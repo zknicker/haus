@@ -7,8 +7,8 @@ import {
     Delete02Icon,
     Edit02Icon,
     PaintBrush03Icon,
+    Settings02Icon,
     UserCircleIcon,
-    UserMultipleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatContextSurfaceItems } from './chat-surface-items.tsx';
@@ -29,22 +29,31 @@ export function ChannelContextMenuItems({
     const archived = Boolean(chat.archivedAt);
     return (
         <>
-            <ContextMenu.Item id="rename" isDisabled={archived} textValue="Name and description">
-                <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
-                <Label>Name &amp; description…</Label>
-            </ContextMenu.Item>
-            <ContextMenu.Item id="appearance" isDisabled={archived} textValue="Icon and color">
-                <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
-                <Label>Icon &amp; color…</Label>
-            </ContextMenu.Item>
-            <ContextMenu.Item
-                id="captains"
-                isDisabled={archived}
-                textValue="Captains in this project"
-            >
-                <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
-                <Label>Captains in this project…</Label>
-            </ContextMenu.Item>
+            {chat.isAll ? (
+                <>
+                    <ContextMenu.Item
+                        id="rename"
+                        isDisabled={archived}
+                        textValue="Name and description"
+                    >
+                        <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
+                        <Label>Name &amp; description…</Label>
+                    </ContextMenu.Item>
+                    <ContextMenu.Item
+                        id="appearance"
+                        isDisabled={archived}
+                        textValue="Icon and color"
+                    >
+                        <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
+                        <Label>Icon &amp; color…</Label>
+                    </ContextMenu.Item>
+                </>
+            ) : (
+                <ContextMenu.Item id="settings" textValue="Project settings">
+                    <Icon aria-hidden="true" icon={Settings02Icon} size={16} />
+                    <Label>Project settings</Label>
+                </ContextMenu.Item>
+            )}
             {actions.filesAvailable ? (
                 <>
                     <ContextMenu.Separator />

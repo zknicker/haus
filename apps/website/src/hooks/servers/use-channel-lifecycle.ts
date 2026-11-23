@@ -9,6 +9,7 @@ function useLifecycleInvalidation() {
             utils.chat.listArchived.invalidate({ serverId }),
             utils.chat.search.invalidate({ serverId }),
             utils.claim.list.invalidate({ serverId }, { refetchType: 'all' }),
+            utils.project.list.invalidate({ serverId }),
         ]);
     };
 }

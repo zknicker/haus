@@ -6,7 +6,7 @@ import {
     Delete02Icon,
     Edit02Icon,
     PaintBrush03Icon,
-    UserMultipleIcon,
+    Settings02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -28,30 +28,31 @@ export function ChannelActionsMenu({
         <Dropdown.Menu onAction={onAction}>
             <Dropdown.Section>
                 <Header>{channelNoun(chat).label}</Header>
-                <Dropdown.Item
-                    id="rename"
-                    isDisabled={Boolean(chat.archivedAt)}
-                    textValue="Name and description"
-                >
-                    <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
-                    <Label>Name &amp; description…</Label>
-                </Dropdown.Item>
-                <Dropdown.Item
-                    id="appearance"
-                    isDisabled={Boolean(chat.archivedAt)}
-                    textValue="Icon and color"
-                >
-                    <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
-                    <Label>Icon &amp; color…</Label>
-                </Dropdown.Item>
-                <Dropdown.Item
-                    id="captains"
-                    isDisabled={Boolean(chat.archivedAt)}
-                    textValue="Captains in this project"
-                >
-                    <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
-                    <Label>Captains in this project…</Label>
-                </Dropdown.Item>
+                {chat.isAll ? (
+                    <>
+                        <Dropdown.Item
+                            id="rename"
+                            isDisabled={Boolean(chat.archivedAt)}
+                            textValue="Name and description"
+                        >
+                            <Icon aria-hidden="true" icon={Edit02Icon} size={16} />
+                            <Label>Name &amp; description…</Label>
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                            id="appearance"
+                            isDisabled={Boolean(chat.archivedAt)}
+                            textValue="Icon and color"
+                        >
+                            <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
+                            <Label>Icon &amp; color…</Label>
+                        </Dropdown.Item>
+                    </>
+                ) : (
+                    <Dropdown.Item id="settings" textValue="Project settings">
+                        <Icon aria-hidden="true" icon={Settings02Icon} size={16} />
+                        <Label>Project settings</Label>
+                    </Dropdown.Item>
+                )}
             </Dropdown.Section>
             <Separator />
             <Dropdown.Section>

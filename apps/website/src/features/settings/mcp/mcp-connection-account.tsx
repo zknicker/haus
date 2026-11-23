@@ -1,33 +1,44 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Avatar, Button, Dropdown, Label, Separator, Spinner } from '@heroui/react';
-import { Add01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Button, Dropdown, Label } from '@heroui/react';
+import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { SettingsGridCard } from '../layout/settings-card-grid.tsx';
+import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { ConnectionSection } from './connection-section.tsx';
-import { connectionStatusLabel, type McpConnection } from './mcp-server-shared.ts';
+import {
+    connectionSetupDescription,
+    connectionStatusLabel,
+    type McpConnection,
+} from './mcp-server-shared.ts';
 
 /**
- * The account this connection signs in as, on one bordered card. Account-level
- * actions live on the account row's own menu; adding another account of a
- * built-in service is the card's last row. A server that takes no credentials
- * has no account, so it renders no section.
+ * The account this connection signs in as. A signed-in account is one row
+ * with its own menu; until then the row states what is missing and carries
+ * the one action that finishes setup. Adding another account of a built-in
+ * service is the section header's control. A server that takes no
+ * credentials has no account, so it renders no section.
  */
 export function McpAccountSection({
     connection,
     onAddAccount,
+    onAddCredentials,
     onDisconnect,
     onReauthorize,
+    onSignIn,
     saving,
+    signingIn,
     usesToken,
 }: {
     connection: McpConnection;
     onAddAccount: () => void;
+    onAddCredentials: () => void;
     onDisconnect: () => void;
     /** Signs in again (OAuth) or replaces saved credentials (headers). */
     onReauthorize: () => void;
+    onSignIn: () => void;
     saving: boolean;
-    /** A bearer-token preset (X): reauthorizing replaces its token. */
+    signingIn: boolean;
+    /** A bearer-token preset (X): its credentials are one pasted token. */
     usesToken: boolean;
 }) {
     if (connection.auth === 'none') {
@@ -35,8 +46,22 @@ export function McpAccountSection({
     }
 
     return (
-        <ConnectionSection title="Connected account">
-            <ItemCardGroup variant="outline">
+        <ConnectionSection
+            action={
+                connection.preset ? (
+                    <Button
+                        isDisabled={saving}
+                        onPress={onAddAccount}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Add account
+                    </Button>
+                ) : null
+            }
+            title="Connected account"
+        >
+            <ItemCardGroup>
                 {connection.connected ? (
                     <AccountRow
                         connection={connection}
@@ -47,22 +72,22 @@ export function McpAccountSection({
                 ) : (
                     <ItemCard>
                         <ItemCard.Content>
-                            <ItemCard.Description>
+                            <SettingsRowTitle info={connectionSetupDescription(connection)}>
                                 {connectionStatusLabel(connection)}
-                            </ItemCard.Description>
+                            </SettingsRowTitle>
                         </ItemCard.Content>
+                        <ItemCard.Action>
+                            <SetupAction
+                                connection={connection}
+                                onAddCredentials={onAddCredentials}
+                                onSignIn={onSignIn}
+                                saving={saving}
+                                signingIn={signingIn}
+                                usesToken={usesToken}
+                            />
+                        </ItemCard.Action>
                     </ItemCard>
                 )}
-                {connection.preset ? (
-                    <>
-                        <Separator />
-                        <ConnectionAddRow
-                            isPending={saving}
-                            onPress={onAddAccount}
-                            title="Add another account"
-                        />
-                    </>
-                ) : null}
             </ItemCardGroup>
         </ConnectionSection>
     );
@@ -120,40 +145,36 @@ function AccountRow({
     );
 }
 
-/**
- * An "add" row at the foot of a connection's card. The whole row is the
- * control, on the Settings pressable-row anatomy. Its mark is the row avatar
- * box (stock `Avatar` at `sm`, so box and radius stay paired) holding a plus,
- * so every title in the card starts on one line. While an add is in flight the
- * plus turns to a spinner and presses are ignored.
- */
-export function ConnectionAddRow({
-    description,
-    isPending,
-    onPress,
-    title,
+function SetupAction({
+    connection,
+    onAddCredentials,
+    onSignIn,
+    saving,
+    signingIn,
+    usesToken,
 }: {
-    description?: string;
-    isPending: boolean;
-    onPress: () => void;
-    title: string;
+    connection: McpConnection;
+    onAddCredentials: () => void;
+    onSignIn: () => void;
+    saving: boolean;
+    signingIn: boolean;
+    usesToken: boolean;
 }) {
+    if (connection.auth === 'oauth') {
+        return (
+            <Button isDisabled={saving} isPending={signingIn} onPress={onSignIn} size="sm">
+                Sign in
+            </Button>
+        );
+    }
     return (
-        <SettingsGridCard onPress={isPending ? () => undefined : onPress}>
-            <Avatar aria-hidden="true" size="sm">
-                <Avatar.Fallback>
-                    {isPending ? (
-                        <Spinner color="current" size="sm" />
-                    ) : (
-                        <Icon aria-hidden="true" icon={Add01Icon} size={16} />
-                    )}
-                </Avatar.Fallback>
-            </Avatar>
-            <ItemCard.Content>
-                <ItemCard.Title>{title}</ItemCard.Title>
-                {description ? <ItemCard.Description>{description}</ItemCard.Description> : null}
-            </ItemCard.Content>
-        </SettingsGridCard>
+        <Button isDisabled={saving} onPress={onAddCredentials} size="sm">
+            {connection.preset === 'skool'
+                ? 'Sign in'
+                : usesToken
+                  ? 'Add token'
+                  : 'Add credentials'}
+        </Button>
     );
 }
 

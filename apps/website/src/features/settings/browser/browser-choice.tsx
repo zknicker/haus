@@ -1,7 +1,9 @@
-import { InlineSelect } from '@heroui-pro/react';
-import { Description, Label, ListBox } from '@heroui/react';
+import { Description, Label, ListBox, Select } from '@heroui/react';
 
-/** The browser selectors share the same compact control and descriptive menu. */
+/**
+ * The browser selectors: the settings row's compact field Select, at the
+ * width the group's facts share (`browserControlWidth`), with a descriptive menu.
+ */
 export function BrowserChoice({
     label,
     value,
@@ -16,9 +18,9 @@ export function BrowserChoice({
     isDisabled: boolean;
 }) {
     return (
-        <InlineSelect
+        <Select
             aria-label={label}
-            className="max-w-full"
+            className={browserControlWidth}
             disabledKeys={options.filter((option) => option.disabled).map((option) => option.id)}
             isDisabled={isDisabled}
             onChange={(key) => {
@@ -28,12 +30,13 @@ export function BrowserChoice({
             }}
             placeholder={`Choose ${label.toLowerCase()}`}
             value={value}
+            variant="secondary"
         >
-            <InlineSelect.Trigger>
-                <InlineSelect.Value />
-                <InlineSelect.Indicator />
-            </InlineSelect.Trigger>
-            <InlineSelect.Popover>
+            <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
                 <ListBox items={options}>
                     {(option) => (
                         <ListBox.Item id={option.id} textValue={option.label}>
@@ -47,7 +50,10 @@ export function BrowserChoice({
                         </ListBox.Item>
                     )}
                 </ListBox>
-            </InlineSelect.Popover>
-        </InlineSelect>
+            </Select.Popover>
+        </Select>
     );
 }
+
+/** One width for every control and fact in the Browser group. */
+export const browserControlWidth = 'w-64 max-w-full';

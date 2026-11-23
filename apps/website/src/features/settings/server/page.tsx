@@ -72,10 +72,9 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     <ItemCardGroup>
                         <ItemCard>
                             <ItemCard.Content>
-                                <ItemCard.Title>This Server</ItemCard.Title>
-                                <ItemCard.Description>
-                                    Deletion is permanent and removes all of its data.
-                                </ItemCard.Description>
+                                <SettingsRowTitle info="Deletion is permanent and removes all of its data.">
+                                    This Server
+                                </SettingsRowTitle>
                                 <SettingsRowError>{remove.error?.message}</SettingsRowError>
                             </ItemCard.Content>
                             <ItemCard.Action>

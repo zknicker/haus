@@ -7,7 +7,6 @@ import {
     browserCapabilityView,
     browserCheckingView,
 } from '../../computers/browser-capability-model.ts';
-import { SettingsStatusTitle } from '../layout/settings-row-title.tsx';
 import { BrowserSettingsDialog } from './browser-settings-dialog.tsx';
 import {
     type BrowserSettingsDraft,
@@ -16,7 +15,7 @@ import {
     hasDraftChanges,
     toSaveInput,
 } from './browser-settings-model.ts';
-import { BrowserRow, BrowserStatusChip } from './browser-settings-row.tsx';
+import { BrowserRow, BrowserStatusTitle } from './browser-settings-row.tsx';
 
 type BrowserSettings = AgentRuntimeBrowserSettings;
 type BrowserSettingsControlRender = (control: {
@@ -142,10 +141,7 @@ function InertBrowserRow({ view }: { view: BrowserCapabilityView }) {
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsStatusTitle status={<BrowserStatusChip view={view} />}>
-                    Chrome
-                </SettingsStatusTitle>
-                <ItemCard.Description>{view.description}</ItemCard.Description>
+                <BrowserStatusTitle view={view} />
             </ItemCard.Content>
             <ItemCard.Action>
                 <Button isDisabled size="sm" variant="secondary">

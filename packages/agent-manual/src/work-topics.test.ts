@@ -83,7 +83,7 @@ test('a Worker starts on a Task at --on or the Project default, and reports ther
         '`haus worker start --task <KEY-n> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]`'
     );
     expect(body).toContain(
-        "Without `--on` a start runs on the Task's Project default, and a Project with none refuses it."
+        "Without `--on` a start runs on the Task's Project default, and a Project with none refuses it (a person sets one at Settings → Projects → (the project) → Workers → Default place)."
     );
     expect(body).not.toContain('Make default');
     expect(body).toContain('`WORKER_TASK_REQUIRED`');

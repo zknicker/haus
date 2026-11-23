@@ -49,7 +49,7 @@ while you read it.
   row and one **Claude** row; each row's status detail sits in its info tooltip. Plan usage for
   the Computer's Worker runtimes (Claude Code and Codex) sits in the page's collapsed
   Diagnostics. A row no longer chooses any Worker's place: a `haus worker start` without `--on`
-  uses the Task's Project default (Settings → Projects). Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
+  uses the Task's Project default (Settings → Projects) and refuses when there is none. Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
   pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
   **Claude's default (not pinned)**; a pin that goes stale (removed or archived) fails the next
   launch outright instead of silently falling back to Claude Code's own choice. The

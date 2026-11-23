@@ -1,8 +1,9 @@
-import { ItemCard } from '@heroui-pro/react';
+import { ItemCardGroup } from '@heroui-pro/react';
 import { Button, Chip, Spinner } from '@heroui/react';
 import { useState } from 'react';
+import { SettingsEmptyRow } from '../layout/settings-empty.tsx';
 import { ConnectionSection } from './connection-section.tsx';
-import { connectionSetupDescription, type McpConnection } from './mcp-server-shared.ts';
+import type { McpConnection } from './mcp-server-shared.ts';
 
 /** About two wrapped lines of names at the page's reading width. */
 const collapsedToolCount = 8;
@@ -29,7 +30,7 @@ export function McpToolsSection({
 
     return (
         <ConnectionSection
-            count={connection.connected ? tools.length : undefined}
+            count={connection.connected && tools.length > 0 ? tools.length : undefined}
             title="Tools"
             trailing={pending ? <Spinner className="ms-2 align-middle" size="sm" /> : null}
         >
@@ -39,7 +40,7 @@ export function McpToolsSection({
                         {shown.map((name) => (
                             <li key={name}>
                                 <Chip size="sm" variant="soft">
-                                    {name}
+                                    <Chip.Label>{name}</Chip.Label>
                                 </Chip>
                             </li>
                         ))}
@@ -69,14 +70,17 @@ function ToolMessage({ connection, pending }: { connection: McpConnection; pendi
         return null;
     }
     return (
-        <ItemCard variant="transparent">
-            <ItemCard.Content>
-                <ItemCard.Description className="whitespace-normal">
-                    {connection.connected
-                        ? 'No tools reported.'
-                        : connectionSetupDescription(connection)}
-                </ItemCard.Description>
-            </ItemCard.Content>
-        </ItemCard>
+        <ItemCardGroup>
+            <SettingsEmptyRow>{toolMessage(connection)}</SettingsEmptyRow>
+        </ItemCardGroup>
     );
+}
+
+function toolMessage(connection: McpConnection) {
+    if (connection.connected) {
+        return 'No tools reported.';
+    }
+    return connection.auth === 'none'
+        ? 'Tools are unavailable right now.'
+        : 'Tools appear once this connection is set up.';
 }

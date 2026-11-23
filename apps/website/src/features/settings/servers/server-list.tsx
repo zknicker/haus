@@ -46,16 +46,14 @@ function ServerRow({ server }: { server: ServerSummary }) {
             render={(props) => <Link {...props} to={route} />}
         >
             <PressableFeedback.Highlight />
-            <ItemCard.Icon>
-                <EntityAvatar name={server.displayName || server.slug} size="sm" />
-            </ItemCard.Icon>
+            <EntityAvatar name={server.displayName || server.slug} size="sm" />
             <ItemCard.Content>
                 <ItemCard.Title>{server.displayName}</ItemCard.Title>
                 <ItemCard.Description>/{server.slug}</ItemCard.Description>
             </ItemCard.Content>
             {isCurrent ? (
                 <ItemCard.Action>
-                    <Icon className="text-accent" icon={Tick02Icon} size={18} />
+                    <Icon className="text-accent" icon={Tick02Icon} size={16} />
                 </ItemCard.Action>
             ) : null}
         </ItemCard>

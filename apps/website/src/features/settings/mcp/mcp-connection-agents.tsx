@@ -26,7 +26,7 @@ export function McpAgentAccessSection({
 
     return (
         <ConnectionSection title="Captain access">
-            <ItemCardGroup variant="outline">
+            <ItemCardGroup>
                 {agents.length > 0 ? (
                     agents.map((agent, index) => (
                         <Fragment key={agent.id}>

@@ -115,13 +115,11 @@ async function findReleaseBaseline({ ledger, target, resolveTag, resolveReleaseC
         ) {
             continue;
         }
-        const tag = targetTag(entry, target);
-        if (!tag) {
-            continue;
-        }
-        const sourceRevision = await resolveTag(tag);
-        if (sourceRevision) {
-            return { tag, sourceRevision };
+        for (const tag of targetTags(entry, target)) {
+            const sourceRevision = await resolveTag(tag);
+            if (sourceRevision) {
+                return { tag, sourceRevision };
+            }
         }
         if (target !== 'computer' && index < ledger.length - 1 && entry.version) {
             const recordedRevision = await resolveReleaseCommit(entry.version);
@@ -147,15 +145,16 @@ async function findReleaseBaseline({ ledger, target, resolveTag, resolveReleaseC
     throw new Error(`could not resolve a recorded ${target} release source`);
 }
 
-function targetTag(entry, target) {
+export function shippedTargetTag(target, releaseVersion) {
+    return `release/${target}/v${releaseVersion}`;
+}
+
+function targetTags(entry, target) {
     if (target === 'computer') {
         const version = releaseTargetVersion(entry, target);
-        return version ? `computer-v${version}` : null;
+        return version ? [`computer-v${version}`] : [];
     }
-    if (target === 'agent') {
-        return entry.version ? `v${entry.version}` : null;
-    }
-    return entry.version ? `v${entry.version}` : null;
+    return entry.version ? [`v${entry.version}`, shippedTargetTag(target, entry.version)] : [];
 }
 
 async function resolveGitTag(tag) {

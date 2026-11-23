@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { channelNoun } from '../../chats/channel-noun.ts';
-import { serverRoute } from '../server-routes.ts';
+import { serverRoute, settingsProjectRoute } from '../server-routes.ts';
 import { ChannelActionsMenu } from './channel-actions-menu.tsx';
 import { ChannelContextMenuItems } from './chat-context-menu-items.tsx';
 import { useChannelActions } from './use-channel-actions.tsx';
@@ -31,6 +31,7 @@ export function ChannelActions({
     const actions = useChannelActions({
         onDeleted: () => navigate(serverRoute(server.slug), { replace: true }),
         openFiles: onOpenFiles,
+        openSettings: (chatId) => navigate(settingsProjectRoute(server.slug, chatId)),
         slug: server.slug,
     });
     const onAction = (key: React.Key) => actions.run(chat, key);
@@ -47,12 +48,7 @@ export function ChannelActions({
                                 size="sm"
                                 variant="ghost"
                             >
-                                <Icon
-                                    aria-hidden="true"
-                                    className="text-muted"
-                                    icon={MoreHorizontalIcon}
-                                    size={15}
-                                />
+                                <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
                             </Button>
                             <Tooltip.Content>Project actions</Tooltip.Content>
                         </Tooltip>
