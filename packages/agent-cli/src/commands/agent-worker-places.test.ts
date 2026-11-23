@@ -88,17 +88,18 @@ test('a place refusal gains the step to list places', async () => {
         message: 'Workers cannot run on mini.',
         options: {
             nextAction:
-                'Run haus worker places --task <KEY-n> to see where Workers can run, then pick another place or ask a person to turn on Workers can run here for that Computer.',
+                'Run haus worker places --task <KEY-n> to see where Workers can run, then pick another place or ask a person to turn on Run Workers here for that Computer.',
         },
     });
 });
 
-test('places lists every place with its switch, runtimes, repo folders, slots, and the default', async () => {
+test('places lists every place with its access, switch, runtimes, repo folders, slots, and the default', async () => {
     const seen: AgentApiRequest[] = [];
     const output: string[] = [];
     const response = {
         places: [
             {
+                allowed: true,
                 computerId: 'cmp_1234567890abcdef',
                 freeSlots: 3,
                 kind: 'computer',
@@ -119,6 +120,7 @@ test('places lists every place with its switch, runtimes, repo folders, slots, a
                 workersEnabled: true,
             },
             {
+                allowed: true,
                 computerId: 'cmp_abcdef1234567890',
                 freeSlots: 4,
                 kind: 'computer',
@@ -130,6 +132,20 @@ test('places lists every place with its switch, runtimes, repo folders, slots, a
                 ready: false,
                 runtimes: [],
                 workersEnabled: false,
+            },
+            {
+                allowed: false,
+                computerId: 'cmp_0000studio000000',
+                freeSlots: 4,
+                kind: 'computer',
+                limit: 4,
+                repoFolders: [],
+                name: 'studio',
+                online: true,
+                projectDefault: false,
+                ready: true,
+                runtimes: [],
+                workersEnabled: true,
             },
             { freeSlots: 10, kind: 'cursor', limit: 10, projectDefault: false, ready: true },
         ],
@@ -153,7 +169,8 @@ test('places lists every place with its switch, runtimes, repo folders, slots, a
         [
             'Places for SEC-12:',
             'computer:cmp_1234567890abcdef mini: ready, 3 of 4 slots free; runtimes claude-code, codex (Codex has no login on this Computer. Run codex login.); repo folders acme/app, acme/site [Project default]',
-            'computer:cmp_abcdef1234567890 laptop: Workers can run here is off',
+            'computer:cmp_abcdef1234567890 laptop: Run Workers here is Off',
+            'computer:cmp_0000studio000000 studio: you have no access there',
             'cursor: ready, 10 of 10 slots free',
             '',
             'Start one with haus worker start --task SEC-12 --on <place> --title <text>.',

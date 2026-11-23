@@ -52,8 +52,11 @@ async function readStewardedComputer(
     const server = await requireServerMembership(db, member, input.serverId);
     const [computer] = await db
         .select({
+            agentAccessScope: computersTable.agentAccessScope,
             attachedByUserId: computersTable.attachedByUserId,
+            computerUseEnabled: computersTable.computerUseEnabled,
             id: computersTable.id,
+            workerLimit: computersTable.workerLimit,
             workersEnabled: computersTable.workersEnabled,
         })
         .from(computersTable)

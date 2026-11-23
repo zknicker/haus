@@ -9,7 +9,8 @@ const nextActions: Partial<Record<WorkerRefusalCode, string>> = {
     WORKER_OPTION_CLOUD:
         'Drop --runtime and --model for a cloud place; its model is the Server’s cloud model setting.',
     WORKER_PLACE_AMBIGUOUS: `${placesStep}, then start again with --on computer:<id>.`,
-    WORKER_PLACE_OFF: `${placesStep}, then pick another place or ask a person to turn on Workers can run here for that Computer.`,
+    WORKER_PLACE_NO_ACCESS: `${placesStep}, then pick another place or ask the person the message names, once, to give you access.`,
+    WORKER_PLACE_OFF: `${placesStep}, then pick another place or ask a person to turn on Run Workers here for that Computer.`,
     WORKER_PLACE_REQUIRED: `${placesStep}, then start again with --on <place>.`,
     WORKER_PLACE_UNAVAILABLE: `${placesStep}, then pick a ready place.`,
     WORKER_RUNTIME_UNAVAILABLE: `${placesStep}, then pick a ready --runtime there or leave it out.`,

@@ -3,9 +3,9 @@ import type {
     ComputerUseSettings,
     ComputerWorkerSettings,
 } from '@haus/api';
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { computersTable, computerUseAgentsTable } from '../postgres/schema.ts';
+import { computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { readAgentAccessGrants } from './computer-agent-access.ts';
@@ -23,11 +23,11 @@ export async function listServerComputers(
     const seesEvery = server.role === 'owner' || server.role === 'admin';
     const computers = await db
         .select({
+            agentAccessScope: computersTable.agentAccessScope,
             attachedByUserId: computersTable.attachedByUserId,
             architecture: computersTable.architecture,
             computerUseChangedAt: computersTable.computerUseChangedAt,
             computerUseEnabled: computersTable.computerUseEnabled,
-            computerUseScope: computersTable.computerUseScope,
             createdAt: computersTable.createdAt,
             health: computersTable.health,
             id: computersTable.id,
@@ -56,20 +56,16 @@ export async function listServerComputers(
             )
         )
         .orderBy(desc(computersTable.createdAt));
-    const named = await readNamedAgents(
-        db,
-        computers.filter((computer) => computer.computerUseScope === 'named').map(({ id }) => id)
-    );
     const grants = await readAgentAccessGrants(
         db,
         computers.map(({ id }) => id)
     );
     return computers.map(
         ({
+            agentAccessScope,
             attachedByUserId,
             computerUseChangedAt,
             computerUseEnabled,
-            computerUseScope,
             workerLimit,
             workersEnabled,
             ...computer
@@ -84,15 +80,13 @@ export async function listServerComputers(
             };
             const agentAccess: ComputerAgentAccessSettings = {
                 agentAccessGrants: grants.get(computer.id) ?? [],
+                agentAccessScope,
                 canGrantAgentAccess: attacher,
                 canRevokeAgentAccess: steward,
             };
             const computerUse: ComputerUseSettings = {
                 canChangeComputerUse: steward,
-                computerUseAgents:
-                    computerUseScope === 'named'
-                        ? { agentIds: named.get(computer.id) ?? [], kind: 'named' }
-                        : { kind: 'all' },
+                canEnableComputerUse: attacher,
                 computerUseChangedAt,
                 computerUseEnabled,
             };
@@ -107,26 +101,4 @@ export async function listServerComputers(
             };
         }
     );
-}
-
-async function readNamedAgents(db: HausDatabase, computerIds: string[]) {
-    const rows =
-        computerIds.length > 0
-            ? await db
-                  .select({
-                      agentId: computerUseAgentsTable.agentId,
-                      computerId: computerUseAgentsTable.computerId,
-                  })
-                  .from(computerUseAgentsTable)
-                  .where(inArray(computerUseAgentsTable.computerId, computerIds))
-                  .orderBy(
-                      asc(computerUseAgentsTable.createdAt),
-                      asc(computerUseAgentsTable.agentId)
-                  )
-            : [];
-    const named = new Map<string, string[]>();
-    for (const row of rows) {
-        named.set(row.computerId, [...(named.get(row.computerId) ?? []), row.agentId]);
-    }
-    return named;
 }

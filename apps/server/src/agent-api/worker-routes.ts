@@ -31,6 +31,7 @@ export function registerAgentWorkerRoutes(
     app: FastifyInstance,
     dependencies: {
         agentDelivery: AgentDelivery;
+        appOrigin: string;
         computers: ComputerConnections;
         db: HausDatabase;
         postCommitWork: ServerPostCommitWork;
@@ -70,7 +71,7 @@ export function registerAgentWorkerRoutes(
             try {
                 return await handle(runner, parsed.data);
             } catch (cause) {
-                return sendWorkerFailure(reply, cause);
+                return sendWorkerFailure(reply, cause, dependencies.appOrigin);
             }
         };
     };

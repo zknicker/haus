@@ -2,7 +2,7 @@
 summary: Normative Workers contract (ADR 0056). A Worker is a quiet, scoped run attached to one Task, started by an Agent with `haus worker` on a place (`computer:<name>`, `cursor`, `claude`). It reads the rule stack at launch and WORKER.md on change, ends each turn with a typed report (done, needs-you, failed) that posts in the Task and wakes its Agent, asks structured questions through its harness's own question tool (the turn ends and any follow-up answers), takes follow-ups between turns, and is supervised with per-place limits, stop, and a missing report counted as failed. Covers the record, places, the Computer run in a worktree with that machine's logins, deliverables in Drive, the Haus-Task trailer, pull requests attached through reports, the card, and the migration from cloud agents.
 read_when:
   - changing Workers, Worker turns, Worker reports, or the `haus worker` CLI family
-  - changing where a Worker runs, the "Workers can run here" switch, the Project's default place, or concurrency limits
+  - changing where a Worker runs, the Run Workers here setting, Agent access for Worker starts, the Project's default place, or concurrency limits
   - changing whether Agent access gates a Worker start on a Computer
   - changing what a Worker reads at launch, WORKER.md delivery, or the Haus Worker instructions
   - changing how people or Agents send a Worker a follow-up or stop it
@@ -171,11 +171,12 @@ resolve. The Worker record shows the place as `workerPlaceViewSchema`, which add
 reported name (`computerName`, null when unknown). Inputs, frames, and storage never carry the
 name.
 
-**The switch.** A Computer runs Workers locally only while its **Workers can run here** switch is on. Only
-the person who attached the Computer turns it on, because it hands the machine user's access to
+**The setting.** A Computer runs Workers locally only while its **Run Workers here** setting is on
+(Up to N; the App called it "Workers can run here" before 2026-11-23). Only the person who
+attached the Computer turns it on or raises the limit, because it hands the machine user's access to
 the Server's Agents
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-decision 4). The attacher, an Owner, or an Admin may turn it off or change the Worker limit
+decision 4). The attacher, an Owner, or an Admin may turn it off or lower the Worker limit
 (`computer.setWorkers`; the App control is the switch and limit select in the Device page's
 Access box). `computer.list` shows `workersEnabled`,
 `workerLimit`, `canChangeWorkers` (whether the viewer may call `computer.setWorkers`), and
@@ -197,14 +198,15 @@ working turns finish, refuses new starts and follow-ups with `WORKER_PLACE_OFF`,
 queued there as failed `place-off`. It also clears every Project default that names the Computer
 ([Projects](projects.md#default-place-for-workers)).
 
-**Agent access (2026-11-23, not yet implemented).** An Agent starts a Worker on a `computer:`
-place only when that Computer's Agent access allows it, beside the switch
+**Agent access.** An Agent starts a Worker on a `computer:` place only when that Computer's Agent
+access allows it, beside the setting
 ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md#amendment-2026-11-23-workers-honor-agent-access)).
 Access allows the Agent whose Machine it is, an Agent with a grant there, and every Agent when the
-Computer allows All Captains on this Server. The check covers `--on` and the Project default, and
-its refusal names the setting and links the Device page. Today `resolveWorkerStart` checks only
-the switch, online state and a ready runtime
-(`apps/server/src/workers/resolve-worker-start.ts:51-64`). Cloud places are unchanged.
+Computer allows All Captains on this Server. The check covers `--on` and the Project default
+(`resolve-worker-start.ts`), and refuses `WORKER_PLACE_NO_ACCESS`, naming the attacher and
+linking the Device page's Access section. A Worker already running there keeps its place, and a
+later revoke does not stop it or refuse its follow-ups. `haus worker places` marks each Computer
+`allowed`. Cloud places are unchanged.
 
 **Carrying a cloud place.** A cloud Worker's provider login lives on a Computer, as it does today.
 So each cloud Worker has a carrier Computer: one whose provider capability is ready. Carrying needs

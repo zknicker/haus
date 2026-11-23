@@ -1,17 +1,79 @@
 import { expect, test } from 'bun:test';
-import { workerLimitOptions, workersSwitchEnabled } from './computer-workers-model.ts';
+import {
+    planLeftLine,
+    workerLimitChoices,
+    workerRuntimeViews,
+    workersSentence,
+} from './computer-workers-model.ts';
 
-test('only the attacher turns Workers on, and a steward turns them off', () => {
-    const off = { canChangeWorkers: true, canEnableWorkers: false, workersEnabled: false };
-    expect(workersSwitchEnabled(off)).toBe(false);
-    expect(workersSwitchEnabled({ ...off, canEnableWorkers: true })).toBe(true);
-    expect(workersSwitchEnabled({ ...off, workersEnabled: true })).toBe(true);
-    expect(workersSwitchEnabled({ ...off, canChangeWorkers: false, workersEnabled: true })).toBe(
-        false
+const device = { canChangeWorkers: true, canEnableWorkers: true, workerLimit: 4 };
+
+test('Run Workers here offers Off or Up to N, keeping an odd stored limit', () => {
+    const choices = workerLimitChoices({ ...device, workerLimit: 5, workersEnabled: true });
+    expect(choices.value).toBe('5');
+    expect(choices.options.map(({ label }) => label)).toContain('Up to 5');
+    expect(choices.options[0]).toEqual({ id: 'off', label: 'Off' });
+    expect(choices.disabled).toEqual([]);
+});
+
+test('a steward who did not attach it can only lower it or turn it off', () => {
+    const on = workerLimitChoices({ ...device, canEnableWorkers: false, workersEnabled: true });
+    expect(on.disabled).toEqual(['6', '8', '10', '12', '16', '20']);
+    const off = workerLimitChoices({ ...device, canEnableWorkers: false, workersEnabled: false });
+    expect(off.value).toBe('off');
+    expect(off.disabled).toContain('1');
+    const member = workerLimitChoices({
+        ...device,
+        canChangeWorkers: false,
+        canEnableWorkers: false,
+        workersEnabled: false,
+    });
+    expect(member.isDisabled).toBe(true);
+});
+
+test('the Run Workers here sentence follows the value', () => {
+    expect(workersSentence({ workerLimit: 4, workersEnabled: false })).toBe(
+        'Captains can’t start Workers here.'
+    );
+    expect(workersSentence({ workerLimit: 1, workersEnabled: true })).toBe(
+        'Captains with access can run up to 1 Worker here at once.'
     );
 });
 
-test('the limit picker always offers the current limit in order', () => {
-    expect(workerLimitOptions(4)).toEqual([1, 2, 3, 4, 6, 8, 10, 12, 16, 20]);
-    expect(workerLimitOptions(37)).toEqual([1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 37]);
+test('a runtime is ready, not signed in, missing, or failing its sign-in', () => {
+    const views = workerRuntimeViews({
+        detected: new Set(['codex']),
+        failedSignIns: new Set(),
+        now: 0,
+        readiness: [{ detail: null, ready: true, runtime: 'claude-code' }],
+        usage: null,
+    });
+    expect(views.map(({ id, status }) => [id, status])).toEqual([
+        ['claude-code', 'ready'],
+        ['codex', 'not-ready'],
+    ]);
+    expect(
+        workerRuntimeViews({
+            detected: new Set(),
+            failedSignIns: new Set(),
+            now: 0,
+            readiness: [],
+            usage: null,
+        })[1]?.status
+    ).toBe('missing');
+    expect(
+        workerRuntimeViews({
+            detected: new Set(),
+            failedSignIns: new Set(['codex']),
+            now: 0,
+            readiness: [],
+            usage: null,
+        })[1]?.status
+    ).toBe('signed-out');
+});
+
+test('plan usage is one line, marked when the Computer last reported long ago', () => {
+    const week = { id: 'current-week', label: 'Weekly Limit', resetsAt: null, usedPercent: 3 };
+    expect(planLeftLine({ stale: false, week })).toBe('97% of the week left');
+    expect(planLeftLine({ stale: true, week })).toBe('97% of the week left · out of date');
 });

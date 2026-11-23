@@ -47,7 +47,7 @@ export async function setProjectDefaultWorkerPlace(
             if (!computer.workersEnabled) {
                 throw new ProjectRefusalError(
                     'WORKER_PLACE_OFF',
-                    'Turn on "Workers can run here" for that Computer before making it the default.'
+                    'Turn on "Run Workers here" for that Computer before making it the default.'
                 );
             }
         }

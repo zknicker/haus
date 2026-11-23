@@ -1914,6 +1914,23 @@
     }
 
     /*
+     * With a description too, the title and control share the first line and
+     * the description keeps stock's own line under the title (the Device
+     * page's Workers section).
+     */
+    .item-card-group__header:has(> :not(.item-card-group__title, .item-card-group__description)):has(
+            > .item-card-group__description
+        ) {
+        row-gap: 0;
+    }
+
+    .item-card-group__header:has(> :not(.item-card-group__title, .item-card-group__description))
+        > .item-card-group__description {
+        order: 1;
+        flex-basis: 100%;
+    }
+
+    /*
      * Stock grid layout paints every direct card with a surface and shadow
      * (`.item-card-group--grid > [data-slot="item-card"]`), which outranks the
      * card's own variant — a transparent card in a grid came back boxed. A

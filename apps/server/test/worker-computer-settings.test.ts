@@ -62,7 +62,7 @@ test('switching Workers off refuses new work, settles queued turns place-off, le
     ]);
     expect(await readDefault(board)).toEqual({ computerId: null, place: null });
     await expect(startOn(connection.db, board, { place: 'mini' })).rejects.toThrow(
-        'its "Workers can run here" switch is off'
+        'its "Run Workers here" setting is Off'
     );
     await expect(
         sendAgentFollowUp(
@@ -71,7 +71,7 @@ test('switching Workers off refuses new work, settles queued turns place-off, le
             { interrupt: false, nonce: 'off', text: 'More.', workerId: queued.id },
             null
         )
-    ).rejects.toThrow('its "Workers can run here" switch is off');
+    ).rejects.toThrow('its "Run Workers here" setting is Off');
 });
 
 test('a Computer default needs the switch on, and removing the Computer clears it first', async () => {
@@ -84,7 +84,7 @@ test('a Computer default needs the switch on, and removing the Computer clears i
         serverId: board.seed.serverId,
     };
     await expect(setProjectDefaultWorkerPlace(connection.db, owner(board), input)).rejects.toThrow(
-        'Turn on "Workers can run here" for that Computer'
+        'Turn on "Run Workers here" for that Computer'
     );
     await setComputerPlace(connection.db, board, other, { enabled: true });
     await setProjectDefaultWorkerPlace(connection.db, owner(board), input);

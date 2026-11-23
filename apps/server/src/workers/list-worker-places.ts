@@ -4,11 +4,12 @@ import {
     type WorkerPlacesResponse,
     cloudAgentProviders,
 } from '@haus/api';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { resolveTaskTargetChat } from '../agent-api/resolve-task-target.ts';
+import { readAccessibleComputerIds } from '../computer-access/agent-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { workerPlaceLimitsTable } from '../postgres/schema.ts';
+import { agentsTable, workerPlaceLimitsTable } from '../postgres/schema.ts';
 import { readRepoFolderNames } from '../repos/repo-folder-read.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { isComputerPlaceUsable, readComputerPlaces } from './computer-places.ts';
@@ -40,6 +41,8 @@ export async function listWorkerPlaces(
     const ready = new Set((await readReadyPlaces(db, serverId)).map((place) => place.kind));
     const limits = await cloudLimits(db, serverId);
     const computers = await readComputerPlaces(db, serverId);
+    const reachable = await readAccessibleComputerIds(db, runner);
+    const machineId = await readMachineId(db, runner);
     const folders = await readRepoFolderNames(
         db,
         serverId,
@@ -54,6 +57,7 @@ export async function listWorkerPlaces(
             ready: ready.has(kind),
         })),
         ...computers.map((computer) => ({
+            allowed: computer.computerId === machineId || reachable.has(computer.computerId),
             computerId: computer.computerId,
             freeSlots: slotsOf(`computer:${computer.computerId}`, computer.limit),
             kind: 'computer' as const,
@@ -68,6 +72,15 @@ export async function listWorkerPlaces(
         })),
     ];
     return { places, task: task?.key ?? null } satisfies WorkerPlacesResponse;
+}
+
+async function readMachineId(db: Reader, runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>) {
+    const [agent] = await db
+        .select({ computerId: agentsTable.computerId })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
+        .limit(1);
+    return agent?.computerId ?? null;
 }
 
 async function readPlacesTask(

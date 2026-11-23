@@ -1,11 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
-    computerUseAgentsSummary,
-    computerUseAgentsValue,
-    computerUseCaptains,
     computerUseNeedsGrant,
     computerUsePermissions,
-    nextComputerUseAgents,
     supportsComputerUse,
 } from './computer-use-model.ts';
 
@@ -16,12 +12,6 @@ const ready = {
     screenRecording: 'granted',
     version: '1.3.1',
 } as const;
-
-const captains = [
-    { displayName: 'Cove', home: true, id: 'agt_cove' },
-    { displayName: 'Forge', home: true, id: 'agt_forge' },
-    { displayName: 'Wren', home: false, id: 'agt_wren' },
-];
 
 test('a ready Device needs nothing, and an older Computer that reports no readiness has no rows', () => {
     expect(computerUseNeedsGrant(ready)).toBe(false);
@@ -57,59 +47,6 @@ test('pane names follow the macOS version', () => {
     expect(panes('26.4')).toEqual(['Accessibility', 'Screen & System Audio Recording']);
     expect(panes('14.6')).toEqual(['Accessibility', 'Screen Recording']);
     expect(panes(undefined)).toEqual(['Accessibility', 'Screen Recording']);
-});
-
-test('the Captains picker moves between all and a named list, and never saves an empty one', () => {
-    expect(nextComputerUseAgents({ kind: 'all' }, ['all', 'agt_cove'])).toEqual({
-        agentIds: ['agt_cove'],
-        kind: 'named',
-    });
-    expect(
-        nextComputerUseAgents({ agentIds: ['agt_cove'], kind: 'named' }, ['agt_cove', 'all'])
-    ).toEqual({ kind: 'all' });
-    expect(nextComputerUseAgents({ agentIds: ['agt_cove'], kind: 'named' }, [])).toBeNull();
-});
-
-test('the Captains summary says all includes later Captains, and names a named list', () => {
-    expect(computerUseAgentsSummary({ kind: 'all' }, captains)).toBe(
-        'All Captains on this device, including ones added later (now Cove and Forge).'
-    );
-    expect(computerUseAgentsSummary({ agentIds: ['agt_forge'], kind: 'named' }, captains)).toBe(
-        'Only Forge.'
-    );
-    expect(computerUseAgentsSummary({ agentIds: [], kind: 'named' }, captains)).toBe(
-        'No Captains. Pick at least one.'
-    );
-});
-
-test('all covers only home Captains, and a named list can name a Captain Agent access allows', () => {
-    expect(
-        computerUseAgentsSummary({ agentIds: ['agt_cove', 'agt_wren'], kind: 'named' }, captains)
-    ).toBe('Only Cove and Wren.');
-    expect(
-        computerUseCaptains(
-            [
-                { computerId: 'cmp_other', displayName: 'Wren', id: 'agt_wren' },
-                { computerId: 'cmp_other', displayName: 'Pike', id: 'agt_pike' },
-                { computerId: 'cmp_studio', displayName: 'Cove', id: 'agt_cove' },
-            ],
-            'cmp_studio',
-            ['agt_wren']
-        )
-    ).toEqual([
-        { displayName: 'Cove', home: true, id: 'agt_cove' },
-        { displayName: 'Wren', home: false, id: 'agt_wren' },
-    ]);
-});
-
-test('the Captains select reads all, one name, or a count', () => {
-    expect(computerUseAgentsValue({ kind: 'all' }, captains)).toBe('All Captains');
-    expect(computerUseAgentsValue({ agentIds: ['agt_forge'], kind: 'named' }, captains)).toBe(
-        'Forge'
-    );
-    expect(
-        computerUseAgentsValue({ agentIds: ['agt_cove', 'agt_wren'], kind: 'named' }, captains)
-    ).toBe('2 Captains');
 });
 
 test('computer use is offered only on macOS', () => {

@@ -1010,6 +1010,11 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   freshness, a connected state the section title already states) never take a row
   description; they go in that row's info tooltip. The only lines that may break a row's
   shape are `SettingsRowWarning` and `SettingsRowError`, since the taller row is the alarm.
+  One exception (Zach, 2026-11-23): a row may carry a description when that sentence states what
+  its current value does and updates with it, as in Capy's Device Access rows ("Only Cove can
+  run tools here." beside Captain access, "Captains can't see or control this Mac's screen."
+  beside Computer use off). The Device page's Access and Workers rows use it. A static
+  description that reads the same whatever the value stays banned.
   Every settings list row has a ×14 (~53px) floor (`.settings-frame` in `default-theme.css`):
   the row's padding around the compact ×8 (30px) field, so a Switch or fact row matches a
   Select row beside it. Fields in a settings row or section header are that compact height,

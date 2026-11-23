@@ -8,45 +8,60 @@ export async function isAgentAllowedOn(
     db: Reader,
     input: { agentId: string; computerId: string; serverId: string }
 ) {
-    const [agent] = await db
-        .select({ computerId: agentsTable.computerId, retiredAt: agentsTable.retiredAt })
+    const [row] = await db
+        .select({
+            granted: computerAgentAccessTable.agentId,
+            machineId: agentsTable.computerId,
+            retiredAt: agentsTable.retiredAt,
+            scope: computersTable.agentAccessScope,
+        })
         .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
-        .limit(1);
-    if (!agent || agent.retiredAt !== null) {
-        return false;
-    }
-    if (agent.computerId === input.computerId) {
-        return true;
-    }
-    const [grant] = await db
-        .select({ agentId: computerAgentAccessTable.agentId })
-        .from(computerAgentAccessTable)
-        .where(
+        .innerJoin(
+            computersTable,
             and(
-                eq(computerAgentAccessTable.serverId, input.serverId),
-                eq(computerAgentAccessTable.computerId, input.computerId),
-                eq(computerAgentAccessTable.agentId, input.agentId)
+                eq(computersTable.serverId, agentsTable.serverId),
+                eq(computersTable.id, input.computerId)
             )
         )
+        .leftJoin(
+            computerAgentAccessTable,
+            and(
+                eq(computerAgentAccessTable.computerId, computersTable.id),
+                eq(computerAgentAccessTable.agentId, agentsTable.id)
+            )
+        )
+        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
-    return grant !== undefined;
+    if (!row || row.retiredAt !== null) {
+        return false;
+    }
+    return accessAllows({ ...row, computerId: input.computerId });
 }
 
-export async function readGrantedComputerIds(
+export async function readAccessibleComputerIds(
     db: Reader,
     input: { agentId: string; serverId: string }
 ) {
     const rows = await db
-        .select({ computerId: computerAgentAccessTable.computerId })
-        .from(computerAgentAccessTable)
-        .where(
+        .select({
+            computerId: computersTable.id,
+            granted: computerAgentAccessTable.agentId,
+            scope: computersTable.agentAccessScope,
+        })
+        .from(computersTable)
+        .leftJoin(
+            computerAgentAccessTable,
             and(
-                eq(computerAgentAccessTable.serverId, input.serverId),
+                eq(computerAgentAccessTable.computerId, computersTable.id),
                 eq(computerAgentAccessTable.agentId, input.agentId)
             )
-        );
-    return new Set(rows.map(({ computerId }) => computerId));
+        )
+        .where(eq(computersTable.serverId, input.serverId));
+    return new Set(
+        rows
+            .filter((row) => row.scope === 'all' || row.granted !== null)
+            .map(({ computerId }) => computerId)
+    );
 }
 
 export async function readAgentsBarredFrom(db: Reader, computerId: string) {
@@ -54,8 +69,9 @@ export async function readAgentsBarredFrom(db: Reader, computerId: string) {
         .select({
             agentId: agentsTable.id,
             granted: computerAgentAccessTable.agentId,
-            homeComputerId: agentsTable.computerId,
+            machineId: agentsTable.computerId,
             retiredAt: agentsTable.retiredAt,
+            scope: computersTable.agentAccessScope,
             serverId: agentsTable.serverId,
         })
         .from(computersTable)
@@ -69,10 +85,15 @@ export async function readAgentsBarredFrom(db: Reader, computerId: string) {
         )
         .where(eq(computersTable.id, computerId));
     return rows
-        .filter(
-            (row) =>
-                row.retiredAt !== null ||
-                (row.homeComputerId !== computerId && row.granted === null)
-        )
+        .filter((row) => row.retiredAt !== null || !accessAllows({ ...row, computerId }))
         .map(({ agentId, serverId }) => ({ agentId, serverId }));
+}
+
+function accessAllows(row: {
+    computerId: string;
+    granted: string | null;
+    machineId: string | null;
+    scope: 'all' | 'selected';
+}) {
+    return row.machineId === row.computerId || row.scope === 'all' || row.granted !== null;
 }

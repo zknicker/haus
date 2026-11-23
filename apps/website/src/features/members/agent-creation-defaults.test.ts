@@ -24,6 +24,27 @@ test('offers only the Computers the person attached', () => {
     expect(resolveAgentCreationDefaults(offered, []).computerId).toBe('cmp_mine');
 });
 
+test('also offers a Computer someone else attached when it allows All Captains', () => {
+    const computers = [
+        {
+            agentAccessScope: 'selected',
+            attachedByCurrentUser: false,
+            id: 'cmp_theirs',
+            name: 'Their Laptop',
+        },
+        {
+            agentAccessScope: 'all',
+            attachedByCurrentUser: false,
+            id: 'cmp_shared',
+            name: 'Shared Mini',
+        },
+    ] as Computer[];
+
+    expect(creatableComputers(computers, runnerModels).map((computer) => computer.id)).toEqual([
+        'cmp_shared',
+    ]);
+});
+
 test('offers nothing when the person attached no Computer', () => {
     const computers = [
         { attachedByCurrentUser: false, id: 'cmp_theirs', name: 'Their Laptop' },

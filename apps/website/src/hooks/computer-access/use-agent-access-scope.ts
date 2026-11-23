@@ -1,18 +1,16 @@
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
-export function useSetComputerUseAgents(serverId: string) {
+export function useSetAgentAccessScope(serverId: string) {
     const utils = hausTrpc.useUtils();
     const input = { serverId };
 
-    return hausTrpc.computer.setComputerUseAgents.useMutation({
-        onMutate: async ({ agents, computerId }) => {
+    return hausTrpc.computer.setAgentAccessScope.useMutation({
+        onMutate: async ({ computerId, scope }) => {
             await utils.computer.list.cancel(input);
             const previous = utils.computer.list.getData(input);
             utils.computer.list.setData(input, (computers) =>
                 computers?.map((computer) =>
-                    computer.id === computerId
-                        ? { ...computer, computerUseAgents: agents }
-                        : computer
+                    computer.id === computerId ? { ...computer, agentAccessScope: scope } : computer
                 )
             );
             return { previous };

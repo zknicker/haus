@@ -66,20 +66,15 @@ export function openComputerLedger() {
             await tx`
                 insert into computers
                     (id, server_id, attached_by_user_id, credential_hash, reported_inventory,
-                     operating_system, health, computer_use_enabled, computer_use_scope,
-                     computer_use_changed_at)
+                     operating_system, health, computer_use_enabled, computer_use_changed_at)
                 values (${computerId}, ${home.serverId}, ${home.attachedBy},
                         ${randomBytes(32).toString('hex')},
                         ${{ name: macbookName, runtimes: [] }}::jsonb,
-                        'darwin', 'offline', true, 'named', now())
+                        'darwin', 'offline', true, now())
             `;
             await tx`
                 insert into computer_agent_access (server_id, computer_id, agent_id, granted_by_user_id)
                 values (${home.serverId}, ${computerId}, ${agentId}, ${home.attachedBy})
-            `;
-            await tx`
-                insert into computer_use_agents (server_id, computer_id, agent_id)
-                values (${home.serverId}, ${computerId}, ${agentId})
             `;
         });
         return {

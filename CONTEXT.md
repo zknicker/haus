@@ -357,17 +357,17 @@ _Avoid_: cloud agent, Cloud Agent work, Run, harness subagent, named teammate
 The place `computer:<computerId>`: a Worker that runs as a native Claude Code or Codex session on
 that Computer, with the machine user's own logins, in its own `git worktree` and branch of each
 of its repos' folders there (ADR 0060), and its own drive folder. It is usable only while the
-Computer's **Workers can run here** switch is on, the Computer is online, and some runtime there
-is ready.
+Computer's **Run Workers here** setting is on, the Computer is online, and some runtime there
+is ready. An Agent starts a Worker there only where Agent access allows it.
 _Avoid_: local cloud agent, device place, machine Worker
 
-**Workers can run here**:
-The per-Computer switch, Server state on the Computer record, that lets Agents run unattended
-Worker sessions there. Only the person who attached the Computer turns it on; that person, an
-Owner, or an Admin turns it off or sets the Worker limit beside it (ADR 0057 decision 4). It is off for a newly attached Computer. Turning it off
+**Run Workers here**:
+The per-Computer setting (Off, or Up to N), Server state on the Computer record, that lets Agents run unattended
+Worker sessions there. Only the person who attached the Computer turns it on or raises the limit; that person,
+an Owner, or an Admin turns it off or lowers the limit (ADR 0057 decision 4). It is off for a newly attached Computer. Turning it off
 refuses new starts and follow-ups there, settles queued turns `place-off`, lets working turns
 finish, and clears Project defaults that name the Computer. Carrying a cloud place needs no switch.
-_Avoid_: local execution toggle, Worker mode, enable Workers
+_Avoid_: Workers can run here (its label before 2026-11-23), local execution toggle, Worker mode, enable Workers
 
 **Repo**:
 A GitHub repository (`owner/name`) known to the Server, once a folder for it was added or a clone

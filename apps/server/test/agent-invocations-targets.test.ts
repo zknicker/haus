@@ -30,7 +30,7 @@ beforeAll(async () => {
         where id = ${setup.computerId}
     `;
     laptopCredential = await attachComputer(setup, { id: laptopId, name: 'Laptop' });
-    link = `${harnessAppOrigin}/s/invocation-targets/settings/computers/${laptopId}`;
+    link = `${harnessAppOrigin}/s/invocation-targets/settings/computers/${laptopId}#access`;
     runner = connectRunner(setup.harness, testRunnerToken);
     await runner.next(frameOfType('runner-hello-accepted'));
     studio = await connectComputer(setup.harness, setup.computerCredential);
@@ -85,7 +85,7 @@ test('an unknown Computer refuses not-found, records no Computer, and replays th
     const first = await answerFor('run_unknown');
     expect(first).toMatchObject({ outcome: 'failed' });
     expect(textOf(first)).toBe(
-        'No Computer on this Server matches that `computer`, so nothing ran. Run `haus computer list` to see each Computer’s id and name, or leave `computer` out to run on your home Computer.'
+        'No Computer on this Server matches that `computer`, so nothing ran. Run `haus computer list` to see each Computer’s id and name, or leave `computer` out to run on your Machine.'
     );
     expect(await ledger('run_unknown')).toEqual([
         { computer_id: null, outcome: 'failed', refusal: 'not-found', state: 'finished' },
@@ -109,32 +109,29 @@ test('a name several Computers share refuses with their ids and never falls back
     await setup.harness.sql`delete from computers where id = ${twin}`;
 });
 
-test('desktop for a borrowed Agent: all means home Agents only, and naming it lets it in', async () => {
+test('desktop for a borrowed Agent: the switch covers every Agent with access', async () => {
     await setup.harness.sql`
-        update computers set computer_use_enabled = true, computer_use_scope = 'all',
-            computer_use_changed_at = now()
+        update computers set computer_use_enabled = true, computer_use_changed_at = now()
         where id = ${laptopId}
     `;
     desktop('run_borrowed', laptopId);
-    const refused = await answerFor('run_borrowed');
-    expect(refused).toMatchObject({ outcome: 'failed' });
-    expect(textOf(refused)).toStartWith(
-        `Computer use on Laptop isn't allowed for Orbit. @ada, or an Owner or Admin, can add Orbit in Settings → Devices → Laptop (${link}).`
-    );
-    expect(await ledger('run_borrowed')).toEqual([
-        { computer_id: laptopId, outcome: 'failed', refusal: 'not-listed', state: 'finished' },
-    ]);
-    expect(textOf(await replay('run_borrowed', laptopId, 'desktop'))).toBe(textOf(refused));
+    await finish(laptop, 'run_borrowed', 'snapshot');
+    expect(textOf(await answerFor('run_borrowed'))).toBe('[Ran on Laptop]\nsnapshot');
 
-    await setup.harness
-        .sql`update computers set computer_use_scope = 'named' where id = ${laptopId}`;
     await setup.harness.sql`
-        insert into computer_use_agents (server_id, computer_id, agent_id)
-        values (${setup.serverId}, ${laptopId}, ${setup.agentId})
+        update computers set computer_use_enabled = false, computer_use_changed_at = now()
+        where id = ${laptopId}
     `;
-    desktop('run_named', laptopId);
-    await finish(laptop, 'run_named', 'snapshot');
-    expect(textOf(await answerFor('run_named'))).toBe('[Ran on Laptop]\nsnapshot');
+    desktop('run_switched_off', laptopId);
+    const refused = await answerFor('run_switched_off');
+    expect(refused).toMatchObject({ outcome: 'failed' });
+    expect(textOf(refused)).toStartWith('Computer use is off on Laptop');
+    expect(textOf(refused)).toContain(
+        `Only @ada can turn it on, in Settings → Devices → Laptop (${link}).`
+    );
+    expect(await ledger('run_switched_off')).toEqual([
+        { computer_id: laptopId, outcome: 'failed', refusal: 'off', state: 'finished' },
+    ]);
 });
 
 test('an offline target answers offline naming it, and replays the same text', async () => {

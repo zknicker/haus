@@ -17,14 +17,15 @@ Agent's execution host, workspace, Agent-local skills, credentials, resume
 state, and effective runtime state. Server retains only reported skill
 metadata for offline display.
 
-An Agent has one home Computer, the Computer it was created on, where its
-workspace lives and its tools run by default. No API or App surface changes the
-home yet; Move to device is a later feature. Only a Computer's attacher may
-create an Agent there. A tool call may also name another Computer with its
-`computer` field, and it runs there when that Computer's Agent access list
-allows the Agent
-([ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-decision 4, [Computer use](computer-use.md#device-page)). The App changes
+An Agent has one Machine, the Computer it was created on, where its workspace
+lives and its tools run by default (`agents.computer_id`). No API or App surface
+changes the Machine yet; Change machine is the next slice of
+[ADR 0057's amendment](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer).
+A Computer's attacher may create an Agent there, and so may any Owner or Admin
+when that Computer allows All Captains on this Server. A tool call may also
+name another Computer with its `computer` field, and it runs there when that
+Computer's Agent access allows the Agent; a Worker starts there under the same
+rule ([Computer use](computer-use.md#access)). The App changes
 desired configuration through Server APIs; it never chooses workspace paths or
 writes Computer-local files.
 

@@ -50,114 +50,117 @@ test('only the attacher grants Agent access, and computer.list shows who may cha
     });
 });
 
-test('a home Agent cannot be granted the Device it lives on', async () => {
+test('an Agent cannot be granted the Device that is its Machine', async () => {
     await expect(
         board.setup.owner.trpc.computer.grantAgentAccess.mutate({
             ...accessInput(board),
             computerId: board.setup.computerId,
         })
-    ).rejects.toThrow('That Captain lives on this Device, so it already has access.');
+    ).rejects.toThrow('This Device is that Captain’s Machine, so it already has access.');
 });
 
-test('the computer use list names a granted Agent and refuses one the Device does not allow', async () => {
+test('only the attacher allows All Captains; an Admin narrows it back and fences who it bars', async () => {
     const device = { computerId: board.laptopId, serverId: board.setup.serverId };
     await expect(
-        board.attacher.trpc.computer.setComputerUseAgents.mutate({
-            ...device,
-            agents: { agentIds: [board.peerAgentId], kind: 'named' },
-        })
-    ).rejects.toThrow('Only Captains this Device allows can be allowed to use it.');
+        board.admin.trpc.computer.setAgentAccessScope.mutate({ ...device, scope: 'all' })
+    ).rejects.toThrow('Only the person who attached this Device can let every Captain use it.');
 
-    await board.attacher.trpc.computer.setComputerUseAgents.mutate({
-        ...device,
-        agents: { agentIds: [board.setup.agentId], kind: 'named' },
+    await board.attacher.trpc.computer.setAgentAccessScope.mutate({ ...device, scope: 'all' });
+    const [mine] = await board.attacher.trpc.computer.list.query({
+        serverId: board.setup.serverId,
     });
+    expect(mine).toMatchObject({ agentAccessScope: 'all', id: board.laptopId });
 
-    expect(await computerUseRows()).toEqual([{ agent_id: board.setup.agentId }]);
+    await board.admin.trpc.computer.setAgentAccessScope.mutate({ ...device, scope: 'selected' });
+    await board.laptop.next(frameOfType('agent-fence', { agentId: board.peerAgentId }));
+    expect(await accessRows()).toEqual([{ agent_id: board.setup.agentId }]);
 });
 
-test("a home change drops only the old home's computer use entry, not a borrowed one", async () => {
-    const { agentId, computerId, harness, serverId } = board.setup;
-    const studio = computerId;
-    await harness.sql`
-        insert into computer_use_agents (agent_id, computer_id, server_id)
-        values (${agentId}, ${studio}, ${serverId})
-    `;
-    await harness.sql`update agents set computer_id = ${board.laptopId} where id = ${agentId}`;
-
-    expect(await computerUseRows()).toEqual([{ agent_id: agentId }]);
-    expect(
-        await harness.sql`
-            select agent_id from computer_use_agents where computer_id = ${studio}
-        `
-    ).toEqual([]);
-
-    await harness.sql`update agents set computer_id = ${studio} where id = ${agentId}`;
-    await harness.sql`
-        insert into computer_use_agents (agent_id, computer_id, server_id)
-        values (${agentId}, ${board.laptopId}, ${serverId})
-    `;
-});
-
-test('an Admin revokes access, which drops its computer use entry and fences the Agent there', async () => {
+test('an Admin revokes access, which fences the Agent there', async () => {
     const input = accessInput(board);
     expect(await board.admin.trpc.computer.revokeAgentAccess.mutate(input)).toEqual({
         computerId: board.laptopId,
     });
 
     await board.laptop.next(frameOfType('agent-fence', { agentId: board.setup.agentId }));
-    expect(await computerUseRows()).toEqual([]);
-    expect(
-        await board.setup.harness.sql`
-            select agent_id from computer_agent_access where computer_id = ${board.laptopId}
-        `
-    ).toEqual([]);
-    await expect(
-        board.attacher.trpc.computer.setComputerUseAgents.mutate({
-            agents: { agentIds: [board.setup.agentId], kind: 'named' },
-            computerId: board.laptopId,
-            serverId: board.setup.serverId,
-        })
-    ).rejects.toThrow('Only Captains this Device allows');
+    expect(await accessRows()).toEqual([]);
 });
 
-test('only the attacher turns Workers on; an Admin can change the limit while on and turn it off', async () => {
+test('only the attacher turns computer use on; an Admin turns it off', async () => {
+    const device = { computerId: board.laptopId, serverId: board.setup.serverId };
+    await expect(
+        board.admin.trpc.computer.setComputerUse.mutate({ ...device, enabled: true })
+    ).rejects.toThrow('Only the person who attached this Device can turn computer use on.');
+    const seen = await board.admin.trpc.computer.list.query({ serverId: board.setup.serverId });
+    expect(seen.find((computer) => computer.id === board.laptopId)).toMatchObject({
+        canChangeComputerUse: true,
+        canEnableComputerUse: false,
+    });
+
+    await board.attacher.trpc.computer.setComputerUse.mutate({ ...device, enabled: true });
+    await board.admin.trpc.computer.setComputerUse.mutate({ ...device, enabled: false });
+    expect(
+        await board.setup.harness.sql`
+            select computer_use_enabled from computers where id = ${board.laptopId}
+        `
+    ).toEqual([{ computer_use_enabled: false }]);
+});
+
+test('only the attacher turns Workers on or raises the limit; an Admin lowers it and turns it off', async () => {
     const device = { computerId: board.laptopId, serverId: board.setup.serverId };
     await expect(
         board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: true })
     ).rejects.toThrow(
-        'Only the person who attached this Computer can turn on "Workers can run here".'
+        'Only the person who attached this Device can turn on Run Workers here or raise its limit.'
     );
 
     await board.attacher.trpc.computer.setWorkers.mutate({ ...device, enabled: true });
     await board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: true, limit: 2 });
     expect(await workerSwitch()).toEqual([{ worker_limit: 2, workers_enabled: true }]);
+    await expect(
+        board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: true, limit: 3 })
+    ).rejects.toThrow('raise its limit');
 
     await board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: false });
     expect(await workerSwitch()).toEqual([{ worker_limit: 2, workers_enabled: false }]);
 });
 
-test('an Admin cannot create an Agent on a Computer someone else attached', async () => {
+test('an Admin creates an Agent on a Computer someone else attached only when it allows All Captains', async () => {
     const projects = await board.setup.owner.trpc.project.list.query({
         serverId: board.setup.serverId,
     });
-    await expect(
+    const create = (handle: string) =>
         board.admin.trpc.agent.create.mutate({
             computerId: board.setup.computerId,
-            displayName: 'Stray',
-            handle: 'stray',
+            displayName: handle,
+            handle,
             homeProjectId: projects[0]?.chatId ?? '',
             modelId: 'gpt-5.6-sol',
             reasoningEffort: 'high',
             runtimeId: 'codex',
             serverId: board.setup.serverId,
-        })
-    ).rejects.toThrow('Only the person who attached that Computer can create an Agent on it.');
+        });
+    await expect(create('stray')).rejects.toThrow(
+        'Only the person who attached that Computer can create an Agent on it'
+    );
+
+    const adminUserId = board.setup.harness.humans.userIdForSubject('user_agent_access_cal');
+    await board.setup.harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${board.setup.serverId}, ${projects[0]?.chatId ?? ''}, ${adminUserId})
+        on conflict do nothing
+    `;
+    await board.setup.owner.trpc.computer.setAgentAccessScope.mutate({
+        computerId: board.setup.computerId,
+        scope: 'all',
+        serverId: board.setup.serverId,
+    });
+    expect((await create('welcome')).agent).toMatchObject({ computerId: board.setup.computerId });
 });
 
-async function computerUseRows() {
+async function accessRows() {
     return await board.setup.harness.sql`
-        select agent_id from computer_use_agents where computer_id = ${board.laptopId}
+        select agent_id from computer_agent_access where computer_id = ${board.laptopId}
     `;
 }
 

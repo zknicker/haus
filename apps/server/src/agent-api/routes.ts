@@ -82,6 +82,7 @@ export function registerAgentApiRoutes(
     app: FastifyInstance,
     options: {
         agentDelivery: import('../agent-delivery/delivery.ts').AgentDelivery;
+        appOrigin: string;
         avatarImageService: AvatarImageService;
         attachmentRoot: AttachmentRoot;
         computers: import('../computers/connections.ts').ComputerConnections;
@@ -111,6 +112,7 @@ export function registerAgentApiRoutes(
     registerWorkerReportRoute(app, { db: options.db });
     registerAgentWorkerRoutes(app, {
         agentDelivery: options.agentDelivery,
+        appOrigin: options.appOrigin,
         computers: options.computers,
         db: options.db,
         postCommitWork: options.postCommitWork,

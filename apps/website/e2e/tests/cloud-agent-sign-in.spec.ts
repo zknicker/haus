@@ -24,7 +24,7 @@ test('an Owner connects a Computer to Cursor for Cloud Workers from Settings', a
 
     await page.goto(`/s/worker-hq/settings/computers/${computerId}`);
     const detail = page.getByRole('main', { name: 'Scrollable main content' });
-    await expect(detail.getByRole('heading', { name: 'Cloud Workers', exact: true })).toBeVisible();
+    await expect(detail.getByRole('heading', { name: 'Workers', exact: true })).toBeVisible();
     // Each provider has its own row; this test drives Cursor's.
     const cursorRow = detail.locator('.item-card', {
         has: page.getByRole('button', { name: 'About Cursor', exact: true }),

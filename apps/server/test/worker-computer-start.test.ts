@@ -1,7 +1,14 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { projectsTable, workersTable } from '../src/postgres/schema.ts';
+import {
+    computerAgentAccessTable,
+    computersTable,
+    projectsTable,
+    serverMembershipsTable,
+    workersTable,
+} from '../src/postgres/schema.ts';
+import { WorkerPlaceNoAccessError } from '../src/workers/place-errors.ts';
 import { startWorker } from '../src/workers/start-worker.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
@@ -98,7 +105,7 @@ test('every unusable Computer start refuses with its reason and writes nothing',
     await expect(refuse({ place: 'mini' })).rejects.toThrow('mini is offline');
     await setComputerPlace(connection.db, board, computerId, { enabled: false });
     await expect(refuse({ place: 'mini' })).rejects.toThrow(
-        'Workers can\'t run on mini: its "Workers can run here" switch is off.'
+        'Workers can\'t run on mini: its "Run Workers here" setting is Off.'
     );
     await connection.db
         .update(projectsTable)
@@ -179,10 +186,55 @@ test("a start without --on uses the Project's Computer default before the Agent'
     expect(started.receipt.worker.place.kind).toBe('computer');
 });
 
+test('a Captain starts a Worker on another Computer only where Agent access allows it', async () => {
+    const board = await computerBoard();
+    const studio = await attachAnotherComputer(connection.db, board, { name: 'studio' });
+    await connection.db
+        .update(serverMembershipsTable)
+        .set({ handle: 'ada' })
+        .where(eq(serverMembershipsTable.userId, board.seed.userId));
+
+    const refused = startWorker(
+        connection.db,
+        board.runner,
+        startInput(board, { place: 'studio' }),
+        null
+    );
+    await expect(refused).rejects.toBeInstanceOf(WorkerPlaceNoAccessError);
+    await expect(refused).rejects.toThrow(
+        "You don't have access to studio, so no Worker started there. Only @ada can give you access"
+    );
+    await connection.db
+        .update(projectsTable)
+        .set({ defaultWorkerComputerId: studio, defaultWorkerPlace: 'computer' })
+        .where(eq(projectsTable.chatId, board.seed.channelId));
+    await expect(
+        startWorker(connection.db, board.runner, startInput(board, { place: undefined }), null)
+    ).rejects.toBeInstanceOf(WorkerPlaceNoAccessError);
+    expect(await countWorkers(board)).toBe(0);
+
+    await connection.db
+        .update(computersTable)
+        .set({ agentAccessScope: 'all' })
+        .where(eq(computersTable.id, studio));
+    expect((await startOn(connection.db, board, { place: 'studio' })).receipt.state).toBe(
+        'started'
+    );
+    await connection.db
+        .update(computersTable)
+        .set({ agentAccessScope: 'selected' })
+        .where(eq(computersTable.id, studio));
+    await grantAccess(board, studio);
+    expect((await startOn(connection.db, board, { place: 'studio' })).receipt.state).toBe(
+        'started'
+    );
+});
+
 test('a Computer past its own Worker limit queues while another Computer still starts', async () => {
     const board = await computerBoard();
     await setComputerPlace(connection.db, board, board.seed.computerId, { limit: 1 });
-    await attachAnotherComputer(connection.db, board, { name: 'studio' });
+    const studio = await attachAnotherComputer(connection.db, board, { name: 'studio' });
+    await grantAccess(board, studio);
 
     const first = await startOn(connection.db, board, { place: 'mini' });
     const second = await startOn(connection.db, board, { place: 'mini' });
@@ -194,6 +246,15 @@ test('a Computer past its own Worker limit queues while another Computer still s
         'started',
     ]);
 });
+
+async function grantAccess(board: WorkerBoard, computerId: string) {
+    await connection.db.insert(computerAgentAccessTable).values({
+        agentId: board.seed.agentId,
+        computerId,
+        grantedByUserId: board.seed.userId,
+        serverId: board.seed.serverId,
+    });
+}
 
 async function countWorkers(board: WorkerBoard) {
     const rows = await connection.db

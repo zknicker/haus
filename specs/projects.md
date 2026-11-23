@@ -144,7 +144,7 @@ A Project has no repos
 
 - `default_worker_place` is where a Worker of this Project's Tasks runs unless the Agent names a
   place. Null means the Agent must name one, and the Worker CLI says so.
-- A `computer:` place must name a Computer whose "Workers can run here" switch is on. Turning the
+- A `computer:` place must name a Computer whose Run Workers here setting is on. Turning the
   switch off clears every Project default that names it, and removing the Computer clears them
   first in the same transaction. This replaces the per-Computer **Make default** provider setting.
 - `project.setDefaultWorkerPlace { serverId, projectId, place | null }` sets it, publishing

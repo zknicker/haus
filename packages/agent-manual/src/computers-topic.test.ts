@@ -10,23 +10,26 @@ test('the computers topic teaches a per-call target with no sticky switch', () =
         "`bash`, `str_replace_based_edit_tool`, `shell`, `apply_patch`, `view_image`, and `execute`'s `browser` and `desktop` built-ins, whose input is `{ args, computer }`"
     );
     expect(body).toContain('name the Computer on every call that should run there');
-    expect(body).toContain('A named Computer never falls back to your home.');
+    expect(body).toContain('A named Computer never falls back to your Machine.');
 });
 
 test('it explains haus computer list, who grants access, and every refusal cause', () => {
     expect(body).toContain('`haus computer list`');
-    expect(body).toContain('only after the person who attached it adds you');
-    expect(body).toContain('Owners and Admins can only remove you');
-    for (const cause of ['not-found', 'no-access', 'not-listed', 'offline']) {
+    expect(body).toContain(
+        'when the person who attached it adds you on its Device page, or sets it to allow every Captain on the Server'
+    );
+    expect(body).toContain('Owners and Admins can only narrow it');
+    expect(body).toContain('A Worker starts on a Computer only where you are allowed too.');
+    for (const cause of ['not-found', 'no-access', 'off', 'offline']) {
         expect(body).toContain(`\`${cause}\``);
     }
 });
 
-test('it says where off-home calls run, that Drive stays home, and that the folders are scratch', () => {
+test('it says where off-home calls run, that Drive stays on the Machine, and that the folders are scratch', () => {
     expect(body).toContain('with `HOME` set to its sibling `home`');
-    expect(body).toContain('That folder has no `drive/`: Drive stays on your home.');
+    expect(body).toContain('That folder has no `drive/`: Drive stays on your Machine.');
     expect(body).toContain("reach a person's files by absolute path");
-    expect(body).toContain("Full Reset recreates only your home's folders");
+    expect(body).toContain("Full Reset recreates only your Machine's folders");
 });
 
 test('a MacBook screenshot uploads from the same Computer the desktop call targeted', () => {

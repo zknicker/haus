@@ -1,4 +1,5 @@
 import { ChatArchivedError } from '../chats/chat-access.ts';
+import { workerNoAccessText } from '../computer-access/access-refusal-text.ts';
 import {
     WorkerAgentNotFoundError,
     WorkerCarrierRemovedError,
@@ -18,6 +19,7 @@ import {
     WorkerComputerUnavailableError,
     WorkerPersonUnknownError,
     WorkerPlaceAmbiguousError,
+    WorkerPlaceNoAccessError,
     WorkerPlaceOffError,
     WorkerPlaceUnknownError,
     WorkerProjectDefaultUnusableError,
@@ -36,6 +38,7 @@ const refusals = [
     [WorkerPlaceUnknownError, 409, 'WORKER_PLACE_UNAVAILABLE'],
     [WorkerComputerUnavailableError, 409, 'WORKER_PLACE_UNAVAILABLE'],
     [WorkerPlaceOffError, 409, 'WORKER_PLACE_OFF'],
+    [WorkerPlaceNoAccessError, 403, 'WORKER_PLACE_NO_ACCESS'],
     [WorkerPlaceAmbiguousError, 409, 'WORKER_PLACE_AMBIGUOUS'],
     [WorkerRuntimeUnavailableError, 409, 'WORKER_RUNTIME_UNAVAILABLE'],
     [WorkerModelUnavailableError, 409, 'WORKER_MODEL_UNAVAILABLE'],
@@ -53,10 +56,18 @@ const refusals = [
     [ChatArchivedError, 409, 'TARGET_READ_ONLY'],
 ] as const;
 
-export function sendWorkerFailure(reply: Parameters<typeof sendAgentApiError>[0], cause: unknown) {
+export function sendWorkerFailure(
+    reply: Parameters<typeof sendAgentApiError>[0],
+    cause: unknown,
+    appOrigin: string | null
+) {
     const refusal = refusals.find(([type]) => cause instanceof type);
     if (refusal && cause instanceof Error) {
-        return sendAgentApiError(reply, refusal[1], refusal[2], cause.message);
+        const message =
+            cause instanceof WorkerPlaceNoAccessError
+                ? workerNoAccessText(cause.computer, appOrigin)
+                : cause.message;
+        return sendAgentApiError(reply, refusal[1], refusal[2], message);
     }
     console.error('[haus] worker request failed', cause);
     return sendAgentApiError(reply, 500, 'SERVER_5XX', 'The Server could not record the Worker.');

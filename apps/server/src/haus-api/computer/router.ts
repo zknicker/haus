@@ -13,7 +13,7 @@ import { removeComputerProcedure } from './remove.ts';
 import { computerRepoFolderStatesProcedure } from './repo-folder-states.ts';
 import { computerRepoFoldersProcedure } from './repo-folders.ts';
 import { revokeAgentAccessProcedure } from './revoke-agent-access.ts';
-import { setComputerUseAgentsProcedure } from './set-computer-use-agents.ts';
+import { setAgentAccessScopeProcedure } from './set-agent-access-scope.ts';
 import { setComputerUseProcedure } from './set-computer-use.ts';
 import { setComputerWorkersProcedure } from './set-workers.ts';
 import { computerSkillFileProcedure } from './skill-file.ts';
@@ -38,8 +38,8 @@ export const computerRouter = createRouter({
     removeRepoFolder: removeComputerRepoFolderProcedure,
     repoFolderStates: computerRepoFolderStatesProcedure,
     repoFolders: computerRepoFoldersProcedure,
+    setAgentAccessScope: setAgentAccessScopeProcedure,
     setComputerUse: setComputerUseProcedure,
-    setComputerUseAgents: setComputerUseAgentsProcedure,
     setWorkers: setComputerWorkersProcedure,
     skillFile: computerSkillFileProcedure,
     stewards: computerStewardsProcedure,

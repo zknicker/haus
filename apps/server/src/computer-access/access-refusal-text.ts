@@ -7,7 +7,7 @@ export function notFoundText(candidates: readonly string[]) {
     if (candidates.length > 1) {
         return `More than one Computer has that name, so nothing ran: ${candidates.join(', ')}. Call again with one of these ids as \`computer\`; \`haus computer list\` shows which is which.`;
     }
-    return 'No Computer on this Server matches that `computer`, so nothing ran. Run `haus computer list` to see each Computer’s id and name, or leave `computer` out to run on your home Computer.';
+    return 'No Computer on this Server matches that `computer`, so nothing ran. Run `haus computer list` to see each Computer’s id and name, or leave `computer` out to run on your Machine.';
 }
 
 export function noAccessText(computer: ComputerFacts, appOrigin: string) {
@@ -16,6 +16,14 @@ export function noAccessText(computer: ComputerFacts, appOrigin: string) {
         : `the person who attached ${computer.name}`;
     const page = `Settings → Devices → ${computer.name} (${computerSettingsLink(appOrigin, computer)})`;
     return `You don't have access to ${computer.name}. Only ${person} can give you access, in ${page}. ${listHint}`;
+}
+
+export function workerNoAccessText(computer: ComputerFacts, appOrigin: string | null) {
+    const person = computer.attacherHandle
+        ? `@${computer.attacherHandle}`
+        : `the person who attached ${computer.name}`;
+    const link = appOrigin ? ` (${computerSettingsLink(appOrigin, computer)})` : '';
+    return `You don't have access to ${computer.name}, so no Worker started there. Only ${person} can give you access, in Settings → Devices → ${computer.name}${link}. Ask them once in plain text, or start the Worker on another place.`;
 }
 
 export function computerOfflineText(name: string) {

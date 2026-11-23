@@ -21,15 +21,15 @@ export type ComputerHealth = 'degraded' | 'healthy' | 'offline' | 'update-requir
 export const computersTable = pgTable(
     'computers',
     {
+        agentAccessScope: text('agent_access_scope')
+            .notNull()
+            .default('selected')
+            .$type<'all' | 'selected'>(),
         architecture: text('architecture'),
         attachedByUserId: text('attached_by_user_id').notNull(),
         attachmentIdempotencyKey: text('attachment_idempotency_key'),
         computerUseChangedAt: timestamp('computer_use_changed_at', { withTimezone: true }),
         computerUseEnabled: boolean('computer_use_enabled').notNull().default(false),
-        computerUseScope: text('computer_use_scope')
-            .notNull()
-            .default('all')
-            .$type<'all' | 'named'>(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialHash: text('credential_hash').notNull(),
         connectionGeneration: text('connection_generation'),
@@ -83,7 +83,10 @@ export const computersTable = pgTable(
             'computers_attachment_idempotency_key_shape',
             sql`${table.attachmentIdempotencyKey} IS NULL OR ${table.attachmentIdempotencyKey} ~ '^cak_[A-Za-z0-9_-]{43}$'`
         ),
-        check('computers_computer_use_scope', sql`${table.computerUseScope} in ('all', 'named')`),
+        check(
+            'computers_agent_access_scope',
+            sql`${table.agentAccessScope} in ('selected', 'all')`
+        ),
         check('computers_worker_limit', sql`${table.workerLimit} between 1 and 50`),
         check(
             'computers_update_phase',

@@ -3,7 +3,7 @@ summary: Usage surfaces for Agent token volume, Computer plan capacity, spend si
 read_when:
   - changing Agent usage, plan capacity, spend, provider activity, or runtime health views
   - changing where operational usage appears in the App
-  - changing the Cloud Workers rows' Connect/Disconnect or Claude's environment picker
+  - changing the Device page Workers section's cloud rows, Connect/Disconnect, or Claude's environment picker
 ---
 
 # Usage
@@ -45,10 +45,10 @@ while you read it.
   SuperGrok and API-key connections show none. See
   [Model connections](../../specs/model-connections.md#plan-capacity).
 
-* **Cloud Workers.** The same Computer page carries a **Cloud Workers** section with one **Cursor**
-  row and one **Claude** row; each row's status detail sits in its info tooltip. Plan usage for
-  the Computer's Worker runtimes (Claude Code and Codex) sits in the page's collapsed
-  Diagnostics. A row no longer chooses any Worker's place: a `haus worker start` without `--on`
+* **Workers.** The same Computer page carries a **Workers** section: Run Workers here, a
+  **Claude Code** and a **Codex** row with a status chip and their weekly plan usage as one line
+  ("97% of the week left", marked out of date when stale), then one **Cursor** row and one
+  **Claude** row; each cloud row's status detail sits in its info tooltip. A row no longer chooses any Worker's place: a `haus worker start` without `--on`
   uses the Task's Project default (Settings → Projects) and refuses when there is none. Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
   pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
   **Claude's default (not pinned)**; a pin that goes stale (removed or archived) fails the next

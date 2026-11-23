@@ -1,9 +1,20 @@
 import { type WorkerPlace, formatWorkerPlace } from '@haus/api';
+import { workerNoAccessText } from '../computer-access/access-refusal-text.ts';
+import type { ComputerFacts } from '../computer-access/computer-facts.ts';
+
+export class WorkerPlaceNoAccessError extends Error {
+    readonly computer: ComputerFacts;
+    constructor(computer: ComputerFacts) {
+        super(workerNoAccessText(computer, null));
+        this.computer = computer;
+        this.name = 'WorkerPlaceNoAccessError';
+    }
+}
 
 export class WorkerPlaceOffError extends Error {
     constructor(name: string) {
         super(
-            `Workers can't run on ${name}: its "Workers can run here" switch is off. Ask the person who attached it, an Owner, or an Admin to turn it on, or pick another place.`
+            `Workers can't run on ${name}: its "Run Workers here" setting is Off. Ask the person who attached it to turn it on, or pick another place.`
         );
         this.name = 'WorkerPlaceOffError';
     }

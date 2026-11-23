@@ -17,11 +17,13 @@ const slotsShape = {
 /**
  * One Computer place. `repoFolders` are the repos it has a folder for; a Worker
  * there in any other repo clones it first. Every Computer is listed, switch off
- * included, so the Agent can say why one is not usable.
+ * included, so the Agent can say why one is not usable. `allowed` is whether
+ * the Computer's Agent access allows the asking Agent; a start there needs it.
  */
 export const computerWorkerPlaceEntrySchema = z
     .object({
         ...slotsShape,
+        allowed: z.boolean(),
         computerId: idSchema,
         kind: z.literal('computer'),
         repoFolders: z.array(repoNameSchema).max(500),

@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { createHomedAgent } from './agent-home.fixture.ts';
 import {
     connectComputer,
     type FrameClient,
@@ -29,7 +28,7 @@ beforeAll(async () => {
         update computers set reported_inventory = reported_inventory || '{"name":"Studio"}'::jsonb
         where id = ${setup.computerId}
     `;
-    link = `${harnessAppOrigin}/s/computer-use-gate/settings/computers/${setup.computerId}`;
+    link = `${harnessAppOrigin}/s/computer-use-gate/settings/computers/${setup.computerId}#access`;
     member = await addMember(setup.harness, setup, 'user_computer_use_member');
     runner = connectRunner(setup.harness, testRunnerToken);
     await runner.next(frameOfType('runner-hello-accepted'));
@@ -47,14 +46,14 @@ test('Computer use is off by default, and a refused Captain is told who can turn
     const listed = await setup.owner.trpc.computer.list.query({ serverId: setup.serverId });
     expect(listed[0]).toMatchObject({
         canChangeComputerUse: true,
-        computerUseAgents: { kind: 'all' },
+        canEnableComputerUse: true,
         computerUseChangedAt: null,
         computerUseEnabled: false,
     });
 
     const first = await refusedText('run_off', 'toolu_look', ['snapshot', '--app', 'Finder']);
     expect(first).toBe(
-        `Computer use is off on Studio and has never been turned on. @ada, or an Owner or Admin, can turn it on in Settings → Devices → Studio (${link}). Ask once in plain text where you're working, link that page, and ask them to reply when it’s changed. Then stop. When they reply, try again.`
+        `Computer use is off on Studio and has never been turned on. Only @ada can turn it on, in Settings → Devices → Studio (${link}). Ask once in plain text where you're working, link that page, and ask them to reply when it’s changed. Then stop. When they reply, try again.`
     );
     expect(await refusedText('run_off', 'toolu_act', ['click', '@s1:e8'])).toEndWith(
         'Already refused this turn. Stop calling `desktop`.'
@@ -83,7 +82,7 @@ test('a member who is not a steward cannot change computer use, but can see who 
         member.trpc.computer.setComputerUse.mutate({ ...device, enabled: true })
     ).rejects.toMatchObject({ data: { code: 'FORBIDDEN' } });
     await expect(
-        member.trpc.computer.setComputerUseAgents.mutate({ ...device, agents: { kind: 'all' } })
+        member.trpc.computer.setAgentAccessScope.mutate({ ...device, scope: 'all' })
     ).rejects.toMatchObject({ data: { code: 'FORBIDDEN' } });
     expect(await member.trpc.computer.stewards.query(device)).toEqual({
         attacher: { displayName: 'Ada', handle: 'ada' },
@@ -119,36 +118,7 @@ test('a Device whose macOS permissions are missing names the pane for its macOS 
     });
 });
 
-test('a named Captains list refuses everyone else without naming who is on it', async () => {
-    const ledger = await createHomedAgent(setup.owner, {
-        computerId: setup.computerId,
-        displayName: 'Ledger',
-        handle: 'ledger',
-        modelId: 'gpt-5.6-sol',
-        reasoningEffort: 'high',
-        runtimeId: 'codex',
-        serverId: setup.serverId,
-    });
-    await setAgents({ agentIds: [ledger.agent.id], kind: 'named' });
-    const refused = await refusedText('run_named', 'toolu_named', ['snapshot']);
-    expect(refused).toStartWith(
-        `Computer use on Studio isn't allowed for Orbit. @ada, or an Owner or Admin, can add Orbit in Settings → Devices → Studio (${link}).`
-    );
-    expect(refused).not.toContain('Ledger');
-
-    await expect(
-        setAgents({ agentIds: ['agt_notonthisdevice1'], kind: 'named' })
-    ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
-
-    await setAgents({ agentIds: [setup.agentId], kind: 'named' });
-    desktop('run_listed', 'toolu_listed', ['snapshot']);
-    await finish(
-        await computer.next(frameOfType('invoke', { runId: 'run_listed' })),
-        'toolu_listed'
-    );
-});
-
-test('a Captain that moves to another machine leaves the list, so moving back needs consent again', async () => {
+test('a Captain whose Machine is elsewhere is refused no-access until Studio allows All Captains', async () => {
     const elsewhere = 'cmp_computerusegateb';
     await setup.harness.sql`
         insert into computers (id, server_id, attached_by_user_id, credential_hash, health)
@@ -157,17 +127,21 @@ test('a Captain that moves to another machine leaves the list, so moving back ne
     `;
     await setup.harness
         .sql`update agents set computer_id = ${elsewhere} where id = ${setup.agentId}`;
+    desktop('run_moved', 'toolu_moved', ['snapshot'], setup.computerId);
+    expect(textOf(await answerFor('toolu_moved'))).toStartWith(
+        `You don't have access to Studio. Only @ada can give you access, in Settings → Devices → Studio (${link}).`
+    );
+
+    await setScope('all');
+    desktop('run_everyone', 'toolu_everyone', ['snapshot'], setup.computerId);
+    await finish(
+        await computer.next(frameOfType('invoke', { runId: 'run_everyone' })),
+        'toolu_everyone'
+    );
+
+    await setScope('selected');
     await setup.harness
         .sql`update agents set computer_id = ${setup.computerId} where id = ${setup.agentId}`;
-    const listed = await setup.owner.trpc.computer.list.query({ serverId: setup.serverId });
-    expect(listed.find(({ id }) => id === setup.computerId)?.computerUseAgents).toEqual({
-        agentIds: [],
-        kind: 'named',
-    });
-    expect(await refusedText('run_moved', 'toolu_moved', ['snapshot'])).toContain(
-        "isn't allowed for Orbit"
-    );
-    await setAgents({ kind: 'all' });
 });
 
 test('an unaccepted desktop act is not resent after Computer use is turned off', async () => {
@@ -182,7 +156,7 @@ test('an unaccepted desktop act is not resent after Computer use is turned off',
     const answer = await answerFor('toolu_resend');
     expect(answer).toMatchObject({ outcome: 'failed' });
     expect(textOf(answer)).toMatch(
-        /^Computer use is off on Studio \(since \d{4}-\d\d-\d\d\)\. @ada, or an Owner or Admin, can turn it on/u
+        /^Computer use is off on Studio \(since \d{4}-\d\d-\d\d\)\. Only @ada can turn it on/u
     );
     const [record] = await setup.harness.sql`
         select id, state, outcome, refusal from agent_invocations where run_id = 'run_resend'
@@ -223,9 +197,10 @@ async function finish(invoke: Record<string, unknown>, toolCallId: string) {
     await answerFor(toolCallId);
 }
 
-function desktop(runId: string, toolCallId: string, args: string[]) {
+function desktop(runId: string, toolCallId: string, args: string[], target?: string) {
     runner.send({
         agentId: setup.agentId,
+        ...(target ? { computer: target } : {}),
         operation: { args, kind: 'desktop' },
         runId,
         seq: 0,
@@ -258,12 +233,10 @@ async function setEnabled(enabled: boolean) {
     });
 }
 
-async function setAgents(
-    agents: { kind: 'all' } | { agentIds: [string, ...string[]]; kind: 'named' }
-) {
-    await setup.owner.trpc.computer.setComputerUseAgents.mutate({
-        agents,
+async function setScope(scope: 'all' | 'selected') {
+    await setup.owner.trpc.computer.setAgentAccessScope.mutate({
         computerId: setup.computerId,
+        scope,
         serverId: setup.serverId,
     });
 }

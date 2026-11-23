@@ -29,7 +29,7 @@ adapter for that Worker: launch, follow-ups, monitoring, stop, and reconciliatio
 in flight, credentials, raw transcripts, and hosted workspace files stay on the carrier or with the
 provider.
 
-A carrier needs only a ready provider capability. The **Workers can run here** switch governs
+A carrier needs only a ready provider capability. The **Run Workers here** setting governs
 local execution, not carrying.
 
 The carrier journals launch intent and acknowledged provider ids in its private data directory,

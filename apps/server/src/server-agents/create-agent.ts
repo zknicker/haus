@@ -43,7 +43,7 @@ export async function createAgent(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const creator = await requireAgentCreationAuthority(tx, member, input.serverId);
-        await requireAttachedHome(tx, creator, input);
+        await requireMachineConsent(tx, creator, input);
         await requireHomeProject(tx, creator, {
             projectId: input.homeProjectId,
             serverId: input.serverId,
@@ -198,13 +198,20 @@ async function requireAgentCreationAuthority(
     return member;
 }
 
-async function requireAttachedHome(
+/**
+ * ADR 0057 decision 7: a new Agent's Machine needs its attacher's consent, given
+ * by creating the Agent themselves or by allowing All Captains on this Server.
+ */
+async function requireMachineConsent(
     db: Pick<HausDatabase, 'select'>,
     creator: HausUser,
     input: { computerId: string; serverId: string }
 ) {
     const [computer] = await db
-        .select({ attachedByUserId: computersTable.attachedByUserId })
+        .select({
+            agentAccessScope: computersTable.agentAccessScope,
+            attachedByUserId: computersTable.attachedByUserId,
+        })
         .from(computersTable)
         .where(
             and(
@@ -213,9 +220,13 @@ async function requireAttachedHome(
             )
         )
         .limit(1);
-    if (computer && computer.attachedByUserId !== creator.id) {
+    if (
+        computer &&
+        computer.attachedByUserId !== creator.id &&
+        computer.agentAccessScope !== 'all'
+    ) {
         throw new AgentConfigDeniedError(
-            'Only the person who attached that Computer can create an Agent on it.'
+            'Only the person who attached that Computer can create an Agent on it, unless it allows All Captains on this Server.'
         );
     }
 }

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HomeCaptainList } from './computer-agents.tsx';
 
-test('Home Captains are rows with a status chip, model fact, and no data grid', () => {
+test('Captains using this device by default are rows with a status chip, model fact, and no data grid', () => {
     const html = renderToStaticMarkup(
         <HomeCaptainList
             onOpenAgent={() => undefined}
@@ -28,9 +28,9 @@ test('Home Captains are rows with a status chip, model fact, and no data grid', 
     expect(html).toContain('<button');
 });
 
-test('a device with no Home Captains shows one none-yet row', () => {
+test('a device no Captain uses by default shows one none-yet row', () => {
     const html = renderToStaticMarkup(<HomeCaptainList onOpenAgent={() => undefined} rows={[]} />);
 
-    expect(html).toContain('No Captains live on this device');
+    expect(html).toContain('No Captains use this device by default');
     expect(html).not.toContain('<button');
 });

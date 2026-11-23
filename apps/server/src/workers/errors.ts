@@ -86,7 +86,7 @@ export class WorkerPlaceRequiredError extends Error {
         super(
             readyPlaces.length > 0
                 ? `This Task's Project has no default place for Workers, so say where the Worker runs with --on. Ready places: ${readyPlaces.map(formatWorkerPlace).join(', ')}.`
-                : "This Task's Project has no default place for Workers, and no place is ready: a Computer must connect Cursor or Claude, or turn on Workers can run here, first."
+                : "This Task's Project has no default place for Workers, and no place is ready: a Computer must connect Cursor or Claude, or turn on Run Workers here, first."
         );
         this.name = 'WorkerPlaceRequiredError';
     }
