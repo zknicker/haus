@@ -44,13 +44,13 @@ export const computerAppPlaces: readonly AppPlace[] = [
     {
         area: 'connections-and-computers',
         task: 'Let a Captain from another device run tools on a device',
-        path: ['Settings', 'Devices', '(your device)', 'Agent access', 'Add Captain'],
+        path: ['Settings', 'Devices', '(your device)', 'Access', 'Add Captain'],
         who: 'attacher',
         note: 'An Owner or Admin can Remove a Captain there but not add one.',
         anchors: [
             settingsEntry(),
             computers(),
-            label('features/computers/agent-access-card.tsx', 'Agent access'),
+            label('features/computers/computer-access-section.tsx', 'Access'),
             label('features/computers/agent-access-card.tsx', 'Add Captain'),
         ],
     },

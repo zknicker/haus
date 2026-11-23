@@ -4,6 +4,7 @@ import {
     ArchiveIcon,
     ComputerIcon,
     Exchange01Icon,
+    GitBranchIcon,
     KeyboardIcon,
     Notification03Icon,
     PaintBoardIcon,
@@ -93,6 +94,13 @@ export const settingsNavItems = [
     },
     {
         access: 'everyone',
+        icon: GitBranchIcon,
+        id: 'git',
+        label: 'Git',
+        rows: ['Commit author', 'Co-author', 'Branch prefix'],
+    },
+    {
+        access: 'everyone',
         icon: ZapIcon,
         id: 'skills',
         label: 'Skills',
@@ -161,7 +169,7 @@ export const settingsNavSections = [
         itemIds: ['profile', 'preferences', 'appearance', 'notifications', 'shortcuts', 'servers'],
         label: 'You',
     },
-    { id: 'captains', itemIds: ['models', 'skills', 'connections'], label: 'Captains' },
+    { id: 'captains', itemIds: ['models', 'git', 'skills', 'connections'], label: 'Captains' },
     {
         id: 'haus',
         itemIds: ['general', 'members', 'computers', 'usage', 'archived'],

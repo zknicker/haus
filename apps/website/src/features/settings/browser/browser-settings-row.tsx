@@ -128,6 +128,7 @@ function statusColor(status: BrowserCapabilityView['status']) {
         case 'not-configured':
         case 'attention':
             return 'warning' as const;
+        case 'checking':
         case 'off':
         case 'unavailable':
             return 'default' as const;

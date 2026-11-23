@@ -4,8 +4,8 @@ import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { hausTrpc } from '../../lib/haus-server.tsx';
-import { AgentAccessCard } from './agent-access-card.tsx';
 import { agentAccessView } from './agent-access-model.ts';
+import { ComputerAccessSection } from './computer-access-section.tsx';
 
 const serverId = 'srv_devices';
 const computerId = 'cmp_devicestudio0000';
@@ -24,11 +24,9 @@ const wrenGrant = {
 test('home Captains are always allowed and a named Captain shows who allowed it', () => {
     const html = render({ agentAccessGrants: [wrenGrant] });
 
-    expect(html).toContain('Agent access');
-    expect(html).toContain(
-        'An allowed Captain runs commands on this device as its user, and anyone who can message the Captain can ask it to.'
-    );
-    expect(html).toContain('Captains on this device');
+    expect(html).toContain('Access');
+    expect(html).toContain('aria-label="About Captain access"');
+    expect(html).toContain('Captain access');
     expect(html).toContain('Always allowed: Cove and Forge.');
     expect(html).toContain('Wren');
     expect(html).toContain('Allowed by Ada');
@@ -98,6 +96,9 @@ function render(overrides: Record<string, unknown>) {
             agentAccessGrants: [],
             canGrantAgentAccess: false,
             canRevokeAgentAccess: false,
+            canChangeComputerUse: false,
+            computerUseAgents: { kind: 'all' },
+            computerUseEnabled: false,
             id: computerId,
             name: 'Studio Mac',
             operatingSystem: 'darwin',
@@ -105,13 +106,14 @@ function render(overrides: Record<string, unknown>) {
         },
     ] as never);
     utils.agent.list.setData({ serverId }, agents as never);
+    utils.computer.desktopActivity.setData({ computerId, serverId }, { commands: [] });
     utils.member.list.setData({ serverId }, {
         members: [{ displayName: 'Ada', userId: 'usr_ada' }],
     } as never);
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <AgentAccessCard computerId={computerId} serverId={serverId} />
+                <ComputerAccessSection computerId={computerId} serverId={serverId} />
             </hausTrpc.Provider>
         </QueryClientProvider>
     );

@@ -10,6 +10,7 @@ import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { serverSettingsSectionRoute } from '../../features/servers/server-routes.ts';
 import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
+import { GitSettings } from '../../features/settings/git/page.tsx';
 import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 import { ConnectionPage } from '../../features/settings/mcp/connection-page.tsx';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
@@ -43,6 +44,7 @@ const sectionRenderers: Record<SettingsRouteTab, (context: SectionContext) => Re
     ),
     connections: () => <ConnectionsPage embedded />,
     general: ({ server }) => <ServerSettings server={server} />,
+    git: () => <GitSettings />,
     members: ({ server }) => <MembersSection server={server} />,
     models: ({ server }) => (
         <ModelsSettings

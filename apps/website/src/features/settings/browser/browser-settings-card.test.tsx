@@ -34,3 +34,18 @@ test('explains shared Browser access without claiming lifecycle ownership', () =
     expect(html).not.toContain('Haus manages');
     expect(html).toContain('aria-label="Chrome actions"');
 });
+
+test('while the device answers, the Browser card shows its Chrome row as Checking, not a blank box', () => {
+    const html = renderToStaticMarkup(
+        <BrowserSettingsCard
+            isLoading
+            onRefresh={() => undefined}
+            onSave={() => undefined}
+            settings={null}
+        />
+    );
+
+    expect(html).toContain('Chrome');
+    expect(html).toContain('Checking');
+    expect(html).not.toContain('aria-busy');
+});

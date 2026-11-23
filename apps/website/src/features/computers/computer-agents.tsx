@@ -1,13 +1,11 @@
-import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react';
-import { Chip } from '@heroui/react';
-import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { DataGrid, type DataGridColumn, ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Chip } from '@heroui/react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
-import { ComputerDataGridState } from './computer-data-grid-state.tsx';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
 type Agent = HausOutputs['agent']['list'][number];
@@ -56,7 +54,11 @@ export function ComputerAgents({ computerId, serverId }: { computerId: string; s
                         ) : null}
                     </ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                <ComputerAgentGrid onOpenAgent={openAgentProfile} rows={rows} state={gridState} />
+                {rows.length > 0 ? (
+                    <ComputerAgentGrid onOpenAgent={openAgentProfile} rows={rows} />
+                ) : (
+                    <ComputerAgentsEmpty state={gridState} />
+                )}
             </ItemCardGroup>
         </section>
     );
@@ -65,39 +67,50 @@ export function ComputerAgents({ computerId, serverId }: { computerId: string; s
 export function ComputerAgentGrid({
     onOpenAgent,
     rows,
-    state,
 }: {
     onOpenAgent: (agentId: string) => void;
     rows: ComputerAgentRow[];
-    state: ComputerAgentGridState;
 }) {
     return (
         <DataGrid
             aria-label="Captains on this device"
             columns={agentColumns}
-            contentClassName={rows.length === 0 ? 'min-h-64 min-w-160' : 'min-w-160'}
+            contentClassName="min-w-160"
             data={rows}
             getRowId={(item) => item.id}
             onRowAction={(key) => onOpenAgent(String(key))}
-            renderEmptyState={() => <ComputerAgentGridEmptyState state={state} />}
         />
     );
 }
 
-function ComputerAgentGridEmptyState({ state }: { state: ComputerAgentGridState }) {
+export function ComputerAgentsEmpty({ state }: { state: ComputerAgentGridState }) {
     if (state.status === 'loading') {
-        return <ComputerDataGridState label="Loading Captains" status="loading" />;
-    }
-    if (state.status === 'unavailable') {
         return (
-            <ComputerDataGridState
-                label="Captains unavailable"
-                onRetry={state.onRetry}
-                status="unavailable"
-            />
+            <div aria-busy="true" className="min-h-14">
+                <span className="sr-only">Loading Captains</span>
+            </div>
         );
     }
-    return <ComputerDataGridState icon={InboxIcon} label="No Captains assigned" status="empty" />;
+    return (
+        <ItemCardGroup className="overflow-hidden">
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>
+                        {state.status === 'unavailable'
+                            ? 'Captains unavailable'
+                            : 'No Captains on this device'}
+                    </ItemCard.Title>
+                </ItemCard.Content>
+                {state.status === 'unavailable' ? (
+                    <ItemCard.Action>
+                        <Button onPress={state.onRetry} size="sm" variant="secondary">
+                            Retry
+                        </Button>
+                    </ItemCard.Action>
+                ) : null}
+            </ItemCard>
+        </ItemCardGroup>
+    );
 }
 
 function computerAgentRows(

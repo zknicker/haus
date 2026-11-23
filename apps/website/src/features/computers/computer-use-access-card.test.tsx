@@ -4,19 +4,18 @@ import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { hausTrpc } from '../../lib/haus-server.tsx';
-import { ComputerUseAccessCard } from './computer-use-access-card.tsx';
+import { ComputerAccessSection } from './computer-access-section.tsx';
+import { ComputerUsePermissionsSection } from './computer-use-access-card.tsx';
 
 const serverId = 'srv_devices';
 const computerId = 'cmp_devicestudio0000';
-const description =
-    'Captains can see the screen and click and type in applications on this Device.';
 
 test('a steward of a Mac sees Computer use allowed, off by default, as a switch', () => {
     const html = render({ canChangeComputerUse: true });
 
     expect(html).toContain('Computer use');
     expect(html).toContain('Computer use allowed');
-    expect(html).toContain(description);
+    expect(html).toContain('aria-label="About Computer use allowed"');
     expect(html).toContain('aria-label="Computer use allowed"');
     expect(html).not.toContain('checked=""');
 });
@@ -28,8 +27,11 @@ test('a viewer who cannot change it sees the switch disabled', () => {
     expect(html).toContain('disabled=""');
 });
 
-test('a Device that is not a Mac has no Access section', () => {
-    expect(render({ operatingSystem: 'linux' })).toBe('');
+test('a Device that is not a Mac has Captain access but no computer use or macOS permissions', () => {
+    const html = render({ computerUseEnabled: true, operatingSystem: 'linux' });
+    expect(html).toContain('Captain access');
+    expect(html).not.toContain('Computer use allowed');
+    expect(html).not.toContain('macOS permissions');
 });
 
 test('a Mac with Computer use allowed lists each macOS permission with its state and a way to grant it', () => {
@@ -108,7 +110,8 @@ function render(overrides: Record<string, unknown>) {
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <ComputerUseAccessCard computerId={computerId} serverId={serverId} />
+                <ComputerAccessSection computerId={computerId} serverId={serverId} />
+                <ComputerUsePermissionsSection computerId={computerId} serverId={serverId} />
             </hausTrpc.Provider>
         </QueryClientProvider>
     );
