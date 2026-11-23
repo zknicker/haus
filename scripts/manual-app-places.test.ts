@@ -68,7 +68,7 @@ test('the app topic renders each place as one line with its role and caveat', ()
     );
     expect(body).toContain('## Channels\n\n- Create a channel: Projects → New project.');
     expect(renderAppPlace(placeFor('Rename a channel or change its description'))).toBe(
-        'Rename a channel or change its description: Project actions → Name & description…'
+        'Rename a channel or change its description: Project actions → Project settings → General.'
     );
     expect(body).toContain('## Common questions\n\n- What a Computer gives an Agent:');
     expect(body).toContain('Its Captain profile shows the last error, with Restart');
@@ -82,8 +82,8 @@ test('the app topic renders each place as one line with its role and caveat', ()
     expect(body).toContain('Haus App lists no support email, phone number, or response time');
     expect(
         body.length,
-        'raised from 5000 for the Models connection place, the Repositories place (ADR 0060), and the Agent access place, its attacher role and the other-Computer answer (ADR 0057)'
-    ).toBeLessThanOrEqual(5553);
+        'raised from 5000 for the Models connection place, the Repositories place (ADR 0060), the Agent access place, its attacher role and the other-Computer answer (ADR 0057), and the Project default place for Workers (Make default retired)'
+    ).toBeLessThanOrEqual(5620);
 });
 
 function anchorRoot(anchor: AppPlaceAnchor): string {

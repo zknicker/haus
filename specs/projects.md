@@ -147,9 +147,9 @@ A Project has no repos
 - A `computer:` place must name a Computer whose "Workers can run here" switch is on. Turning the
   switch off clears every Project default that names it, and removing the Computer clears them
   first in the same transaction. This replaces the per-Computer **Make default** provider setting.
-- The API exists since W3: `project.setDefaultWorkerPlace { serverId, projectId, place | null }`,
-  publishing `project.updated`. The settings UI is W4. Until it ships, a Project with no default
-  falls back to the Agent's Computer's **Make default** cloud provider
+- `project.setDefaultWorkerPlace { serverId, projectId, place | null }` sets it, publishing
+  `project.updated`, from Settings → Projects → the Project → Workers. A Project with no default
+  never falls back to a Computer's cloud default
   ([Workers](workers.md#w3-transitional-decisions)).
 
 ## The Haus project

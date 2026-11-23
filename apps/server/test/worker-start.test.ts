@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq, sql } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { chatMessagesTable, workersTable } from '../src/postgres/schema.ts';
+import { setProjectDefaultWorkerPlace } from '../src/projects/project-worker-defaults.ts';
 import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { startWorker } from '../src/workers/start-worker.ts';
 import {
@@ -125,7 +126,7 @@ test('a start without a usable Task or place is refused before anything is writt
     await expect(refuse({ task: undefined })).rejects.toThrow('A Worker needs a Task.');
     await expect(refuse({ task: 'ZZZ-404' })).rejects.toThrow('Task ZZZ-404 does not exist');
     await expect(refuse({ place: undefined })).rejects.toThrow(
-        'Your Computer has no ready default place, so say where the Worker runs with --on. Ready places: claude.'
+        "This Task's Project has no default place for Workers, so say where the Worker runs with --on. Ready places: claude."
     );
     await expect(refuse({ place: 'cursor' })).rejects.toThrow(
         'No online Computer has cursor ready.'
@@ -152,7 +153,7 @@ test('a start without a usable Task or place is refused before anything is writt
     expect(await countWorkers(board.seed.serverId)).toBe(0);
 });
 
-test("a start without --on runs on the Agent's Computer's ready default place", async () => {
+test("a start without --on runs on the Project's default, never on the Computer's cloud default", async () => {
     const board = await seedWorkerBoard(connection.db);
     const { seed } = board;
     await setReadyPlaces(
@@ -161,25 +162,28 @@ test("a start without --on runs on the Agent's Computer's ready default place", 
         seed.computerId,
         ['cursor', 'claude'],
         'healthy',
-        'claude'
+        'cursor'
     );
 
-    const { worker } = (await startOn(connection.db, board, { place: undefined })).receipt;
-
-    expect([worker.place, worker.carrierComputerId]).toEqual([{ kind: 'claude' }, seed.computerId]);
-    await setReadyPlaces(
-        connection.db,
-        seed.serverId,
-        seed.computerId,
-        ['cursor'],
-        'healthy',
-        'claude'
-    );
     await expect(
         startWorker(connection.db, board.runner, startInput(board, { place: undefined }))
     ).rejects.toThrow(
-        'Your Computer has no ready default place, so say where the Worker runs with --on. Ready places: cursor.'
+        "This Task's Project has no default place for Workers, so say where the Worker runs with --on. Ready places: cursor, claude."
     );
+    expect(await countWorkers(seed.serverId)).toBe(0);
+
+    await setProjectDefaultWorkerPlace(
+        connection.db,
+        { id: seed.userId },
+        {
+            place: { kind: 'claude' },
+            projectId: seed.channelId,
+            serverId: seed.serverId,
+        }
+    );
+    const { worker } = (await startOn(connection.db, board, { place: undefined })).receipt;
+
+    expect([worker.place, worker.carrierComputerId]).toEqual([{ kind: 'claude' }, seed.computerId]);
 });
 
 test('a start past its place limit queues, and starts when a slot frees', async () => {

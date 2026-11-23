@@ -467,8 +467,7 @@ BRIEF
 `POST /api/agent/workers` takes `{ brief, nonce, place?, repository, runtime?, model?, startingRef,
 task?, title }` (`agentWorkerStartInputSchema`). `place` is the object form or a string:
 `computer:<id>`, `cursor`, `claude`, or a Computer name, bare or after `computer:`. Without `place`
-the start uses the Task's Project default, then the Agent's Computer's ready cloud default (W3
-decision). The Server refuses before writing anything: `WORKER_TASK_REQUIRED` (no Task, or one the
+the start uses the Task's Project default, and a Project with none refuses. The Server refuses before writing anything: `WORKER_TASK_REQUIRED` (no Task, or one the
 Agent cannot reach), `WORKER_TASK_CLOSED`, `WORKER_PLACE_REQUIRED` (no usable place, or a Project
 default that cannot take one now; the message lists the usable places), `WORKER_PLACE_UNAVAILABLE`
 (an unknown or offline place, or no online carrier with it ready), `WORKER_PLACE_OFF` (the
