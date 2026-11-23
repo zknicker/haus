@@ -18,7 +18,6 @@ import {
     defaultComputerAppPath,
     permissionStateLabel,
 } from './computer-use-model.ts';
-import { StatusInfoTitle } from './status-info-title.tsx';
 
 export function ComputerUsePermissionNotices({
     deviceName,
@@ -77,14 +76,14 @@ export function ComputerUsePermissionRows({
                 <Separator />
                 <ItemCard>
                     <ItemCard.Content>
-                        <StatusInfoTitle
+                        <SettingsStatusTitle
                             info={`Computer use needs ${permissions.map((permission) => permission.pane).join(' and ')}.`}
                             status={
                                 <SettingsStatusChip color="success">Granted</SettingsStatusChip>
                             }
                         >
                             macOS permissions
-                        </StatusInfoTitle>
+                        </SettingsStatusTitle>
                     </ItemCard.Content>
                 </ItemCard>
             </>

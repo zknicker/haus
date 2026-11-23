@@ -2,9 +2,8 @@ import { ItemCard } from '@heroui-pro/react';
 import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import { SettingsStatusChip } from '../settings/layout/settings-row-title.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import type { SecretsCapabilityView } from './secrets-capability-model.ts';
-import { StatusInfoTitle } from './status-info-title.tsx';
 
 export function SecretsCapabilityRow({
     isBusy,
@@ -22,7 +21,7 @@ export function SecretsCapabilityRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <StatusInfoTitle
+                <SettingsStatusTitle
                     info={view.description}
                     status={
                         <SettingsStatusChip color={statusColor(view.status)}>
@@ -31,7 +30,7 @@ export function SecretsCapabilityRow({
                     }
                 >
                     1Password
-                </StatusInfoTitle>
+                </SettingsStatusTitle>
             </ItemCard.Content>
             <ItemCard.Action>
                 <div className="flex items-center gap-2">
