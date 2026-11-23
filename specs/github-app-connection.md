@@ -223,8 +223,8 @@ An Agent commits, pushes and opens pull requests itself, as the bot
   to that command's processes: `credential.helper` is reset, which drops any inherited helper
   (Apple's git ships `osxkeychain` in its system config, and `gh` adds one), then set to
   `haus-computer __git-credential <server-root> <invocation-id>`, with
-  `credential.https://github.com.useHttpPath` on and `git@github.com:` and `ssh://git@github.com/`
-  rewritten to `https://github.com/`. The machine's own GitHub login, keychain and SSH keys are
+  `credential.https://github.com.useHttpPath` on and `git@github.com:` and `ssh://git@github.com/`,
+  with or without `:22`, rewritten to `https://github.com/`. The machine's own GitHub login, keychain and SSH keys are
   never used. Workers keep the machine's login (ADR 0056 decision 7).
 - **The token.** Git asks the helper only after GitHub answers 401, so public fetches never ask.
   For a GitHub HTTPS repo the helper reads the attachment's Computer credential and calls
@@ -245,7 +245,11 @@ An Agent commits, pushes and opens pull requests itself, as the bot
 - **Identity.** `GET /computer/github/bot` answers `<slug>[bot]` and
   `<id>+<slug>[bot]@users.noreply.github.com`. The Server reads the bot's user id once per process
   from `GET /users/<slug>[bot]`; the Computer keeps the answer an hour and sets
-  `GIT_AUTHOR_*` and `GIT_COMMITTER_*` in every Agent command. Each commit ends with a
+  `GIT_AUTHOR_*` and `GIT_COMMITTER_*` in every Agent command. Until the bot is known, because
+  the Server has no App or does not answer, the name is empty, so git refuses each commit and
+  names `haus-github-app-bot-unavailable-commit-again-shortly` rather than committing as a folder's
+  own `user.name`. A failed read is asked again on the next command; a Server with no App, after a
+  minute. Each commit ends with a
   `Co-authored-by:` trailer per person whose message the turn answers, which
   `haus repo co-author @handle…` prints from their Haus account's name and email.
 - **Trust boundary.** Agent commands run as the machine user, so an Agent can run the helper itself

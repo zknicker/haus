@@ -2,7 +2,7 @@ import { computerGitIdentityPath, type GitIdentity, gitIdentitySchema } from '@h
 import { readServerAttachment } from './server-attachment.ts';
 
 const knownForMs = 60 * 60_000;
-const unknownForMs = 5 * 60_000;
+const withoutAppForMs = 60_000;
 
 const known = new Map<string, { identity: GitIdentity | null; until: number }>();
 
@@ -13,11 +13,15 @@ export async function readGithubBotIdentity(serverRoot: string, now = Date.now()
     }
     const identity = await fetchIdentity(serverRoot).catch((cause: unknown) => {
         console.error(
-            `Could not read the Haus GitHub App bot for Agent commits: ${cause instanceof Error ? cause.message : cause}`
+            `Could not read the Haus GitHub App bot, so Agent commits are refused until it answers: ${cause instanceof Error ? cause.message : cause}`
         );
-        return null;
+        return undefined;
     });
-    known.set(serverRoot, { identity, until: now + (identity ? knownForMs : unknownForMs) });
+    if (identity === undefined) {
+        known.delete(serverRoot);
+        return null;
+    }
+    known.set(serverRoot, { identity, until: now + (identity ? knownForMs : withoutAppForMs) });
     return identity;
 }
 
@@ -29,7 +33,7 @@ async function fetchIdentity(serverRoot: string) {
     const response = await fetch(new URL(computerGitIdentityPath, attachment.serverOrigin), {
         headers: { authorization: `Bearer ${attachment.credential}` },
         redirect: 'error',
-        signal: AbortSignal.timeout(10_000),
+        signal: AbortSignal.timeout(5000),
     });
     if (response.status === 503) {
         return null;
