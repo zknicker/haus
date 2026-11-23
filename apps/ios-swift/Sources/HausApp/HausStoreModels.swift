@@ -54,7 +54,7 @@ extension HausStore {
 
     // MARK: - Workers and settings
 
-    var activeWorkers: [ActiveWorker]? { workers.active }
+    var activeWorkers: [ActiveWorker]? { workers.live }
     var computers: [ComputerSummary]? { settingsModel.computers }
     var modelConnections: ModelConnectionsRead? { settingsModel.modelConnections }
 

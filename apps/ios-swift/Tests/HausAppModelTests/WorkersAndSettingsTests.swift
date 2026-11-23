@@ -18,6 +18,11 @@ struct WorkersAndSettingsTests {
         #expect(workers.active?.isEmpty == true)
     }
 
+    @Test("Only queued and working Workers are happening now", arguments: WorkerStatus.allCases)
+    func liveStatuses(status: WorkerStatus) {
+        #expect(WorkersModel.isLive(status) == (status == .queued || status == .working))
+    }
+
     @Test("A Chat's Workers stay unknown until asked for, and no Chat means no pull requests")
     func chatWorkersStartUnknown() throws {
         let workers = WorkersModel(client: AppModelFixtures.client, scope: scope)

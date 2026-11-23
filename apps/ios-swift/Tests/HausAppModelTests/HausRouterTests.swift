@@ -113,16 +113,25 @@ struct HausRouterTests {
         #expect(router.visibleConversation == .task("task_1"))
     }
 
-    @Test("Chat routes hide the tab bar; lists and settings keep it")
-    func tabBarFollowsTopRoute() {
+    @Test("Stacked, only a tab's root shows the tab bar; every pushed screen hides it")
+    func tabBarOnlyAtRoot() {
         let router = HausRouter()
         #expect(router.showsTabBar)
         router.open(.captainDM(agentID: "agent_1"))
         #expect(!router.showsTabBar)
         router.open(.work(.chat("chat_dm")))
-        #expect(router.showsTabBar)
-        router.open(.worker(workerID: "w_1"))
         #expect(!router.showsTabBar)
+        router.open(.pullRequest(PullRequestReading(number: 512, repository: "haus/haus", state: "draft", url: "u")))
+        #expect(!router.showsTabBar)
+        router.setPath([], for: .home)
+        #expect(router.showsTabBar)
+
+        router.open(.settings(.people))
+        #expect(router.selectedTab == .you)
+        #expect(!router.showsTabBar)
+        router.pop()
+        #expect(router.showsTabBar)
+        #expect(router.showsAskAnything)
     }
 
     @Test("Split keeps the tab bar beside a chat until a side pane opens; Search drops Ask anything")
@@ -132,6 +141,9 @@ struct HausRouterTests {
         router.open(.task(taskID: "task_1"))
         #expect(router.showsTabBar)
         #expect(router.showsAskAnything)
+        router.open(.work(.task("task_1")))
+        #expect(router.showsTabBar)
+        router.pop()
         router.open(.worker(workerID: "w_1"))
         #expect(!router.showsTabBar)
         router.selectedTab = .search

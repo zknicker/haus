@@ -153,6 +153,8 @@ where Item.ID == String {
     var heldAnchor: (anchor: TranscriptScrollAnchor, offset: CGFloat)?
     var isReapplyingAnchor = false
     var contentSizeObservation: NSKeyValueObservation?
+    /// A viewport that changes height moves where short content rests.
+    var boundsObservation: NSKeyValueObservation?
     var handledRevealToken: UUID?
     /// The near-newest answer the view currently holds. It is cached here and
     /// not read back from the binding: the binding write is asynchronous, so a
@@ -205,7 +207,7 @@ where Item.ID == String {
                 view.accessory()
             }
             .margins(.vertical, 0)
-            .margins(.horizontal, 16)
+            .margins(.horizontal, TranscriptMargins.side)
             .minSize(width: 0, height: 0)
         } else {
             let item = items[items.count - 1 - indexPath.row]
@@ -213,7 +215,7 @@ where Item.ID == String {
                 view.row(item)
             }
             .margins(.vertical, 0)
-            .margins(.horizontal, 16)
+            .margins(.horizontal, TranscriptMargins.side)
             .minSize(width: 0, height: 0)
         }
         // The counter-flip lives on the UIKit contentView, not inside the

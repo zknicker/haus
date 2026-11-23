@@ -18,6 +18,12 @@ enum TaskPriorityGlyph: Equatable, Sendable {
         case .urgent: self = .urgent
         }
     }
+
+    /// Whether a list row shows the priority at all: only high and urgent
+    /// earn a mark; none, low, and medium stay quiet.
+    static func isRaised(_ priority: TaskPriority) -> Bool {
+        priority == .high || priority == .urgent
+    }
 }
 
 /// The priority glyph on the App's 16pt viewBox, scaled by `size`. Bars and

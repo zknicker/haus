@@ -32,7 +32,7 @@ struct TaskPreviewCard: View {
             TaskStateDisc(
                 state: task.state,
                 size: 16,
-                surface: HausPlatformColor.background
+                surface: HausPlatformColor.canvas
             )
             .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
             (Text(task.key).foregroundStyle(.secondary).monospacedDigit()
@@ -60,7 +60,7 @@ private struct TaskPreviewMessageRow: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
-            AvatarView(name: message.author.name, url: message.author.avatarURL, presence: nil, size: 18)
+            authorMark
                 .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 4 }
             (Text(message.author.name).fontWeight(.medium)
                 + Text(" " + RichMessageParser.oneLinePreview(message.content)))
@@ -69,6 +69,17 @@ private struct TaskPreviewMessageRow: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var authorMark: some View {
+        if message.author.kind == .captain {
+            CaptainMark(name: message.author.name, side: 18) {
+                AvatarView(name: message.author.name, url: message.author.avatarURL, size: 18 * 2.squareRoot())
+            }
+        } else {
+            AvatarView(name: message.author.name, url: message.author.avatarURL, presence: nil, size: 18)
+        }
     }
 }
 

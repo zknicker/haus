@@ -1,17 +1,16 @@
 import SwiftUI
 
-/// A plain 60pt list row: a lead, a 17pt title over a 15pt muted line, and a
-/// trailing time with the unread dot.
+/// A plain 60pt list row: a lead in the shared ``ListLead`` column, a 17pt
+/// title over a 15pt muted line, and a trailing time with the unread dot.
 struct HomeRow: View {
     let row: HomeRowPresentation
     let now: Date
 
-    @ScaledMetric(relativeTo: .body) private var markSide: CGFloat = 32
     @ScaledMetric(relativeTo: .body) private var discSide: CGFloat = 15
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            lead
+        HStack(alignment: .top, spacing: 0) {
+            lead.listLeadSlot()
             VStack(alignment: .leading, spacing: 3) {
                 Text(row.title)
                     .font(.body)
@@ -19,8 +18,8 @@ struct HomeRow: View {
                     .lineLimit(1)
                 meta
             }
-            Spacer(minLength: 0)
-            trailing
+            Spacer(minLength: 12)
+            ListTrailing(time: row.trailingTime(now: now), isUnread: row.isUnread)
         }
         .padding(.vertical, 8)
         .frame(minHeight: 60, alignment: .top)
@@ -33,14 +32,13 @@ struct HomeRow: View {
     private var lead: some View {
         switch row.lead {
         case .captain(let captain):
-            CaptainFaceMark(captain: captain, side: markSide)
+            CaptainFaceMark(captain: captain, side: ListLead.markSide)
         case .person(let name, let avatarURL):
-            AvatarView(name: name, url: avatarURL, size: markSide)
+            AvatarView(name: name, url: avatarURL, size: ListLead.markSide)
         case .project(let appearance):
-            ChannelIconBox(appearance: appearance, size: markSide)
+            ChannelGlyph(appearance: appearance, size: ListLead.glyphSize)
         case .task(let state):
             TaskStateDisc(state: state, size: discSide, surface: HausPlatformColor.canvas)
-                .frame(width: discSide, height: 22)
         }
     }
 
@@ -56,20 +54,6 @@ struct HomeRow: View {
         .foregroundStyle(HausPlatformColor.mutedInk)
     }
 
-    private var trailing: some View {
-        HStack(spacing: 8) {
-            if let time = row.trailingTime(now: now) {
-                Text(time)
-                    .font(.subheadline)
-                    .foregroundStyle(HausPlatformColor.mutedInk)
-                    .monospacedDigit()
-            }
-            if row.isUnread {
-                ListUnreadDot()
-            }
-        }
-        .frame(height: 22)
-    }
 }
 
 /// The 9pt Haus-blue dot that marks something unread. Never a count.

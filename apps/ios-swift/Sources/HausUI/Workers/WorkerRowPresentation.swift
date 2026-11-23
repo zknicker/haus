@@ -8,21 +8,25 @@ public struct WorkerRowPresentation: Hashable, Sendable, Identifiable {
 
     public let id: String
     public let title: String
-    public let subtitle: String
+    /// The meta in reading order: state, place, then Task. A line too narrow
+    /// for all of them drops them from the end rather than cutting one off.
+    public let subtitleParts: [String]
     public let glyph: Glyph
 
+    public var subtitle: String { subtitleParts.joined(separator: Self.separator) }
     public var isLive: Bool { glyph == .working }
+
+    static let separator = " · "
 
     public init(worker: Worker, taskKey: String? = nil, now: Date) {
         id = worker.id
         title = worker.title
         glyph = Self.glyph(worker.workerStatus)
-        let parts = [
+        subtitleParts = [
             Self.state(worker, now: now),
             WorkerPlaceNaming.placeName(worker.place),
             taskKey,
-        ]
-        subtitle = parts.compactMap(\.self).joined(separator: " · ")
+        ].compactMap(\.self)
     }
 
     static func glyph(_ status: WorkerStatus) -> Glyph {
@@ -41,7 +45,7 @@ public struct WorkerRowPresentation: Hashable, Sendable, Identifiable {
         switch worker.workerStatus {
         case .queued, .working:
             guard let startedAt = worker.runs.first?.startedAt else { return "Starting" }
-            return "Working for \(WorkerDuration.text(now.timeIntervalSince(startedAt)))"
+            return WorkerDuration.stated(now.timeIntervalSince(startedAt)).map { "Working for \($0)" } ?? "Working"
         case .done:
             return workedFor(worker).map { "Worked for \($0)" } ?? "Finished"
         case .needsYou:
@@ -53,9 +57,10 @@ public struct WorkerRowPresentation: Hashable, Sendable, Identifiable {
         }
     }
 
+    /// The settled turns' total, or nil when there is none worth stating.
     static func workedFor(_ worker: Worker) -> String? {
         let spans = worker.runs.compactMap { WorkerTurnRecord(turn: $0).span }
         guard !spans.isEmpty else { return nil }
-        return WorkerDuration.text(spans.reduce(0, +))
+        return WorkerDuration.stated(spans.reduce(0, +))
     }
 }

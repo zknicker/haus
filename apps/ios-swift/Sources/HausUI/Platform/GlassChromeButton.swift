@@ -68,6 +68,14 @@ struct GlassChromeButton: View {
     }
 }
 
+extension View {
+    /// Header chrome draws its glyphs in the label color, never the accent:
+    /// a system toolbar button takes its glyph color from the tint.
+    func hausHeaderGlyph() -> some View {
+        tint(HausPlatformColor.label)
+    }
+}
+
 private struct SidebarMenuGlyph: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {

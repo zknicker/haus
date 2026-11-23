@@ -25,9 +25,11 @@ struct TaskBoardRow: View {
                 }
                 WorkMetaLine(pieces: Self.metaPieces(task, projectName: projectName, now: now))
             }
-            TaskPriorityIcon(priority: task.priority, surface: HausPlatformColor.canvas)
-                .foregroundStyle(HausPlatformColor.mutedInk)
-                .padding(.top, 12)
+            if TaskPriorityGlyph.isRaised(task.priority) {
+                TaskPriorityIcon(priority: task.priority, surface: HausPlatformColor.canvas)
+                    .foregroundStyle(HausPlatformColor.mutedInk)
+                    .padding(.top, 12)
+            }
         }
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
@@ -52,10 +54,11 @@ struct TaskAssigneeMark: View {
     let side: CGFloat
 
     var body: some View {
-        if person.isCaptain {
-            CaptainMark(name: person.name, side: side) {
-                AvatarView(name: person.name, url: person.avatarURL, size: side)
-            }
+        if let agentID = person.actor.agentID {
+            CaptainFaceMark(
+                captain: CaptainIdentity(id: agentID, name: person.name, avatarURL: person.avatarURL),
+                side: side
+            )
         } else {
             AvatarView(name: person.name, url: person.avatarURL, size: side)
                 .accessibilityLabel(person.name)

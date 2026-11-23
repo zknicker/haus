@@ -47,6 +47,20 @@ public final class WorkersModel {
         return active?.first { $0.work.id == id }?.work
     }
 
+    /// The active rows still at work, for "Happening now". The active read
+    /// can still carry a Worker whose job already finished while its turn's
+    /// outcome lags, and that one is no longer happening.
+    public var live: [ActiveWorker]? {
+        active?.filter { Self.isLive($0.work.workerStatus) }
+    }
+
+    nonisolated static func isLive(_ status: WorkerStatus) -> Bool {
+        switch status {
+        case .queued, .working: true
+        case .done, .failed, .stopped, .needsYou: false
+        }
+    }
+
     // MARK: - Reads
 
     public func loadActive() async {

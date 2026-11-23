@@ -13,6 +13,7 @@ struct SettingsProfileRow: View {
         Button(action: action) {
             HStack(spacing: SettingsCardMetrics.iconGap) {
                 SettingsProfileMark(viewer: viewer, side: markSide)
+                    .frame(width: SettingsCardMetrics.iconSide)
                 SettingsValueLayout {
                     Text(viewer.displayName)
                         .font(.body)
@@ -38,8 +39,8 @@ struct SettingsProfileRow: View {
     }
 }
 
-/// A person's avatar as a rounded square, the shape You's rows give every
-/// leading mark. The photo's circle is scaled to cover the square.
+/// The viewer's photo as a circle, matching the You tab's own photo. Only
+/// Captains are rounded squares.
 struct SettingsProfileMark: View {
     let viewer: SettingsPerson
     let side: CGFloat
@@ -49,10 +50,8 @@ struct SettingsProfileMark: View {
             name: viewer.displayName,
             url: viewer.avatarURL,
             initials: viewer.initials,
-            size: side * 2.squareRoot()
+            size: side
         )
-        .frame(width: side, height: side)
-        .clipShape(.haus(HausRadius.captain(side: side)))
         .accessibilityHidden(true)
     }
 }

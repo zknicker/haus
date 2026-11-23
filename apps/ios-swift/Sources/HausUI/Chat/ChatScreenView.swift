@@ -147,7 +147,7 @@ public struct ChatScreenView: View {
             }
             .modelChangeConfirmation($pendingModelChange, onConfirm: applyModelChange)
             .modelChangeFailure($modelChangeError)
-            .background(.background)
+            .background(HausPlatformColor.canvas)
             .task(id: chat.id) { await onLoadMentionOptions() }
     }
 

@@ -36,19 +36,18 @@ extension HausStore {
         guard let directory = members else { return [] }
         return directory.members
             .filter { $0.userID != directory.viewerUserID }
-            .map { member in
-                SearchPerson(
-                    id: member.userID,
-                    name: member.displayName ?? member.handle ?? member.email ?? "Haus member",
-                    handle: member.handle,
-                    avatarURL: resolvedAvatarURL(member.avatarURL)
-                )
-            }
+            .map(searchPerson)
     }
 
     private func searchTasks(captainsByID: [String: SearchCaptain]) -> [SearchTask]? {
         guard tasks.openTasks != nil || tasks.list != nil else { return nil }
         var seen = Set<String>()
+        let peopleByID = Dictionary(
+            (members?.members ?? []).map { member in
+                (member.userID, searchPerson(member))
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
         let records = ((tasks.openTasks ?? []) + (tasks.list?.tasks ?? [])).filter { seen.insert($0.id).inserted }
         return records.map { record in
             SearchTask(
@@ -57,8 +56,18 @@ extension HausStore {
                 title: record.title,
                 state: record.state,
                 captain: record.assignee?.agentID.flatMap { captainsByID[$0] },
+                person: record.assignee?.userID.flatMap { peopleByID[$0] },
                 updatedAt: record.updatedAt
             )
         }
+    }
+
+    private func searchPerson(_ member: MemberSummary) -> SearchPerson {
+        SearchPerson(
+            id: member.userID,
+            name: member.displayName ?? member.handle ?? member.email ?? "Haus member",
+            handle: member.handle,
+            avatarURL: resolvedAvatarURL(member.avatarURL)
+        )
     }
 }

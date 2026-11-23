@@ -49,7 +49,7 @@ public struct AvatarView: View {
                 Circle()
                     .fill(presence.color)
                     .frame(width: presenceDotSize, height: presenceDotSize)
-                    .overlay { Circle().stroke(.background, lineWidth: presenceDotSize > 12 ? 3 : 2) }
+                    .overlay { Circle().stroke(HausPlatformColor.canvas, lineWidth: presenceDotSize > 12 ? 3 : 2) }
                     .offset(x: presenceAlignment == .bottomLeading ? -1 : 1, y: 1)
             }
         }
@@ -123,7 +123,7 @@ struct AvatarImageLoadState<Value> {
     }
 }
 
-private extension AgentPresence {
+extension AgentPresence {
     var color: Color {
         switch self {
         case .idle: .green

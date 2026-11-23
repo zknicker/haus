@@ -36,7 +36,7 @@ struct TranscriptJumpButton: View {
         }
         .buttonStyle(.glassProminent)
         .buttonBorderShape(.circle)
-        .tint(HausPlatformColor.background.opacity(0.78))
+        .tint(HausPlatformColor.canvas.opacity(0.78))
         .fixedSize()
         .accessibilityLabel(label)
     }

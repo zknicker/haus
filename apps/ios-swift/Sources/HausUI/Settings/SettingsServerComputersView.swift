@@ -104,9 +104,9 @@ private struct SettingsComputerRow: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: SettingsCardMetrics.iconGap) {
-                HausIcon(.computer, size: SettingsCardMetrics.iconSide, weight: 1.8)
+                HausIcon(.computer, size: SettingsCardMetrics.iconSide, weight: 1.6)
                     .frame(width: SettingsCardMetrics.iconSide)
-                    .foregroundStyle(HausPlatformColor.ink)
+                    .foregroundStyle(HausPlatformColor.mutedInk)
 
                 SettingsValueLayout {
                     VStack(alignment: .leading, spacing: 2) {

@@ -51,12 +51,12 @@ public struct HomeTabView: View {
         .background(HausPlatformColor.canvas)
         .refreshable { await onRefresh() }
         .task { await onRefresh() }
-        .navigationTitle("Home")
-        .hausInlineNavigationTitle()
+        .hausScreenTitle("Home")
         .toolbar {
             if let onNewCaptain {
                 ToolbarItem(placement: .primaryAction) {
                     Button("New Captain", systemImage: "plus", action: onNewCaptain)
+                        .hausHeaderGlyph()
                 }
             }
         }
@@ -78,7 +78,7 @@ public struct HomeTabView: View {
                     WorkerRow(WorkerRowPresentation(worker: worker.work, taskKey: worker.taskKey, now: now)) {
                         onOpenWorker(worker)
                     }
-                    .hausPlainRow(margin: 0)
+                    .hausPlainRow()
                 }
             }
             if let recent, !recent.isEmpty {
@@ -91,6 +91,7 @@ public struct HomeTabView: View {
             }
         }
         .listStyle(.plain)
+        .reportsChromeScroll()
         .environment(\.defaultMinListRowHeight, 0)
         .animation(.default, value: recent)
         .animation(.default, value: openTasks)

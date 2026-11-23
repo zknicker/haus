@@ -11,7 +11,9 @@ struct PullRequestRow: View {
             HausIcon(.pullRequest, size: 16, weight: 1.8)
                 .foregroundStyle(pullRequest.tone.color)
         } meta: {
-            if let author = pullRequest.context.author {
+            if let captain = pullRequest.context.author?.captain {
+                CaptainFaceMark(captain: captain, side: 16)
+            } else if let author = pullRequest.context.author {
                 CaptainMark(name: author.captainName, tint: author.tint, side: 16)
             }
             PullRequestMetaText(pieces: pullRequest.metaPieces(now: now))

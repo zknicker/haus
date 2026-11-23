@@ -16,7 +16,7 @@ public struct WorkerReportLinePresentation: Hashable, Sendable {
         case .failed: "failed"
         }
         var text = "\(title ?? "Worker") \(words)"
-        if let span { text += ", worked for \(WorkerDuration.text(span))" }
+        if let duration = WorkerDuration.stated(span) { text += ", worked for \(duration)" }
         if pullRequestCount > 0 {
             text += " · \(pullRequestCount) \(pullRequestCount == 1 ? "PR" : "PRs")"
         }

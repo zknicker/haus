@@ -40,6 +40,7 @@ extension TaskChatView {
                 onEditDue: { isDuePresented = true },
                     run: runEdit
                 )
+                .hausHeaderGlyph()
             }
         }
     }

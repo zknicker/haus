@@ -38,14 +38,25 @@ public struct SearchTask: Identifiable, Hashable, Sendable {
     public let title: String
     public let state: TaskState
     public let captain: SearchCaptain?
+    /// The person who owns the Task when no Captain does.
+    public let person: SearchPerson?
     public let updatedAt: Date
 
-    public init(id: String, key: String, title: String, state: TaskState, captain: SearchCaptain?, updatedAt: Date) {
+    public init(
+        id: String,
+        key: String,
+        title: String,
+        state: TaskState,
+        captain: SearchCaptain?,
+        person: SearchPerson? = nil,
+        updatedAt: Date
+    ) {
         self.id = id
         self.key = key
         self.title = title
         self.state = state
         self.captain = captain
+        self.person = person
         self.updatedAt = updatedAt
     }
 }
@@ -140,14 +151,14 @@ enum SearchPaletteAction: CaseIterable, Hashable, Sendable {
         switch self {
         case .newTask: "New task"
         case .newProject: "New project"
-        case .goToTasks: "Go to Tasks"
-        case .goToSettings: "Go to Settings"
+        case .goToTasks: "Go to tasks"
+        case .goToSettings: "Go to settings"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .newTask: "pencil"
+        case .newTask: "square.and.pencil"
         case .newProject: "number"
         case .goToTasks: "list.bullet"
         case .goToSettings: "gearshape"

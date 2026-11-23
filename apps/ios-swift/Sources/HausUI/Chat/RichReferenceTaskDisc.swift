@@ -91,7 +91,7 @@ extension RichReferenceTaskDisc {
         case .check, .cross:
             ink.setFill()
             context.fillEllipse(in: disc.closedDisc)
-            UIColor(HausPlatformColor.background).setStroke()
+            UIColor(HausPlatformColor.canvas).setStroke()
             context.setLineWidth(disc.glyphLineWidth)
             context.setLineCap(.round)
             context.setLineJoin(.round)

@@ -126,7 +126,9 @@ public struct NewChannelFormView: View {
                             toggle(agent.id)
                         } label: {
                             HStack(spacing: 12) {
-                                AvatarView(name: agent.displayName, url: agent.avatarURL, size: 32)
+                                CaptainMark(name: agent.displayName, side: 32) {
+                                    AvatarView(name: agent.displayName, url: agent.avatarURL, size: 32 * 2.squareRoot())
+                                }
                                 Text(agent.displayName)
                                     .foregroundStyle(.primary)
                                 Spacer(minLength: 8)

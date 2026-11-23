@@ -6,10 +6,20 @@ import SwiftUI
 public struct PullRequestAuthor: Hashable, Sendable {
     public let captainName: String
     public let tint: Color
+    /// The Captain itself, when known, so its mark shows its avatar.
+    public let captain: CaptainIdentity?
 
     public init(captainName: String, tint: Color) {
         self.captainName = captainName
         self.tint = tint
+        captain = nil
+    }
+
+    /// A Captain drawn with its own face, on its stable monogram tint.
+    public init(captain: CaptainIdentity) {
+        captainName = captain.name
+        tint = CaptainTint.color(for: captain.id)
+        self.captain = captain
     }
 
     /// A Captain whose mark wears the accent until it carries its own color.

@@ -8,23 +8,24 @@ import UIKit
 import AppKit
 #endif
 
-/// A Captain's prose reads on 24 pt lines at 17 pt; everything else keeps the
+/// A Captain's prose reads on 22 pt lines at 15 pt; everything else keeps the
 /// font's own line. The text engine that draws the body also measures it, so
 /// the laid-out line pitch is the row height the transcript gets.
 @MainActor
 struct RichMessageLineHeightTests {
     private let sentence = "Rotating the deploy tokens, then the staging keys, then I will check the Worker logs again."
 
-    @Test func assistantProseSetsEveryLineAt24PointsFor17PointType() {
-        let body = RichMessageLineHeight.assistantProse.applied(to: text(pointSize: 17))
+    @Test func assistantProseSetsEveryLineAt22PointsFor15PointType() {
+        let body = RichMessageLineHeight.assistantProse.applied(to: text(pointSize: 15))
         let lines = lineHeights(body, width: 160)
         #expect(lines.count > 1)
-        #expect(lines.allSatisfy { $0 == 24 })
+        #expect(lines.allSatisfy { $0 == 22 })
     }
 
     @Test func theLineHeightScalesWithTheBodySize() {
-        #expect(RichMessageLineHeight.assistantProse.lineHeight(pointSize: 17) == 24)
-        #expect(RichMessageLineHeight.assistantProse.lineHeight(pointSize: 23) == 32)
+        #expect(RichMessageLineHeight.assistantProse.lineHeight(pointSize: 15) == 22)
+        #expect(RichMessageLineHeight.assistantProse.lineHeight(pointSize: 17) == 25)
+        #expect(RichMessageLineHeight.assistantProse.lineHeight(pointSize: 23) == 34)
         #expect(RichMessageLineHeight.natural.lineHeight(pointSize: 17) == nil)
     }
 

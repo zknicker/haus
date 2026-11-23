@@ -24,19 +24,17 @@ extension TranscriptListCoordinator {
         landingInsetTop = nil
     }
 
-    /// Measures the room the landed row needs from the rows as laid out now
-    /// and records it as the applied inset. It moves nothing; returns whether
-    /// the applied inset changed.
-    @discardableResult
-    func measureSendLanding(_ table: UITableView) -> Bool {
-        guard let landedItemID, let view, let applied = appliedInsets else { return false }
+    /// Measures the room the landed row needs from the rows as laid out now.
+    /// It moves nothing; `refreshRestingInset` folds it into the applied inset.
+    func measureSendLanding(_ table: UITableView) {
+        guard let landedItemID, let view else { return }
         guard let index = items.lastIndex(where: { $0.id == landedItemID }) else {
             self.landedItemID = nil
             landingInsetTop = nil
-            return false
+            return
         }
         let row = items.count - 1 - index
-        guard row < table.numberOfRows(inSection: 0), table.bounds.height > 0 else { return false }
+        guard row < table.numberOfRows(inSection: 0), table.bounds.height > 0 else { return }
         let landedHeight = table.rectForRow(at: IndexPath(row: row, section: 0)).maxY
         let base = Self.baseTailInset(view)
         let clearance = Self.topClearance(view)
@@ -55,30 +53,6 @@ extension TranscriptListCoordinator {
                 topClearance: clearance,
                 landedHeight: landedHeight
             )
-        }
-        let top = max(base, landingInsetTop ?? 0)
-        guard abs(applied.top - top) > 0.5 else { return false }
-        appliedInsets?.top = top
-        return true
-    }
-
-    /// Re-measures after rows were laid out and keeps a resting landed row
-    /// where it stands.
-    func holdSendLanding(_ table: UITableView) {
-        guard landedItemID != nil, !isReapplyingAnchor else { return }
-        let wasResting = abs(table.contentOffset.y - restingOffset(table)) < 0.5
-            && !table.isDragging
-            && !table.isDecelerating
-        guard measureSendLanding(table), let top = appliedInsets?.top else { return }
-        isReapplyingAnchor = true
-        defer { isReapplyingAnchor = false }
-        if nearNewest.isSettling {
-            table.contentInset.top = max(top, -table.contentOffset.y)
-            stepSettle(table)
-        } else if wasResting {
-            setTravelOffset(-top, in: table)
-        } else {
-            table.contentInset.top = max(top, -table.contentOffset.y)
         }
     }
 }

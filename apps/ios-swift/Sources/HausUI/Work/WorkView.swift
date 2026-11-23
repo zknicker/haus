@@ -38,8 +38,7 @@ public struct WorkView: View {
         body(content)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(HausPlatformColor.canvas)
-            .navigationTitle("Work")
-            .hausInlineNavigationTitle()
+            .hausScreenTitle("Work")
     }
 
     @ViewBuilder

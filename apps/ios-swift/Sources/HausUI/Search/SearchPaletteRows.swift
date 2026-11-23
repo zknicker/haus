@@ -46,9 +46,11 @@ struct SearchCaptainMark: View {
     let side: CGFloat
 
     var body: some View {
-        CaptainMark(name: captain.name, side: side, isWorking: captain.isWorking) {
-            AvatarView(name: captain.name, url: captain.avatarURL, size: side * 2.squareRoot())
-        }
+        CaptainFaceMark(
+            captain: CaptainIdentity(id: captain.id, name: captain.name, avatarURL: captain.avatarURL),
+            side: side,
+            isWorking: captain.isWorking
+        )
     }
 }
 
@@ -57,7 +59,7 @@ struct SearchProjectRow: View {
 
     var body: some View {
         SearchPaletteLine(title: project.title) {
-            ChannelIconBox(appearance: project.appearance, size: 20)
+            ChannelGlyph(appearance: project.appearance, size: ListLead.glyphSize)
         }
         .accessibilityValue(project.unreadCount > 0 ? "Unread" : "")
     }
@@ -79,7 +81,10 @@ struct SearchActionRow: View {
     var body: some View {
         SearchPaletteLine(title: action.title) {
             Image(systemName: action.systemImage)
-                .font(.system(size: 15, weight: .regular))
+                .resizable()
+                .scaledToFit()
+                .fontWeight(.regular)
+                .frame(width: 17, height: 17)
                 .foregroundStyle(HausPlatformColor.mutedInk)
                 .accessibilityHidden(true)
         }
@@ -98,6 +103,8 @@ struct SearchTaskRow: View {
         } meta: {
             if let captain = task.captain {
                 SearchCaptainMark(captain: captain, side: 16)
+            } else if let person = task.person {
+                AvatarView(name: person.name, url: person.avatarURL, size: 16)
             }
             WorkMetaLine(pieces: [task.key, HausCompactRelativeTime.label(for: task.updatedAt, now: now)])
         }
@@ -132,8 +139,18 @@ struct SearchPaletteField: View {
             .padding(.horizontal, 16)
             .frame(height: height)
             .glassEffect(.regular.interactive(), in: .capsule)
-            GlassChromeButton(.icon(.close), label: "Close", action: onClose)
+            if showsClose {
+                GlassChromeButton(.icon(.close), label: "Close", action: onClose)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
         .padding(.horizontal, 20)
+        .animation(.snappy, value: showsClose)
+    }
+
+    /// The close circle shows only while the field is in use; at rest the
+    /// field runs to the margin.
+    private var showsClose: Bool {
+        isFocused.wrappedValue || !query.isEmpty
     }
 }

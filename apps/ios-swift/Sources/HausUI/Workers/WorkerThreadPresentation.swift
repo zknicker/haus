@@ -63,10 +63,10 @@ public struct WorkerThreadPresentation: Hashable, Sendable {
 
     static func dividerText(_ turn: WorkerTurnRecord, now: Date) -> String {
         guard turn.isLive else {
-            return turn.span.map { "Worked for \(WorkerDuration.text($0))" } ?? "Worked"
+            return WorkerDuration.stated(turn.span).map { "Worked for \($0)" } ?? "Worked"
         }
         guard let startedAt = turn.startedAt else { return "Starting" }
-        return "Working for \(WorkerDuration.text(now.timeIntervalSince(startedAt)))"
+        return WorkerDuration.stated(now.timeIntervalSince(startedAt)).map { "Working for \($0)" } ?? "Working"
     }
 
     static func settlementText(_ outcome: WorkerTurnRecord.Outcome, span: TimeInterval?) -> String {
@@ -76,8 +76,8 @@ public struct WorkerThreadPresentation: Hashable, Sendable {
         case .failed(let reason): reason.map { "Failed: \($0)" } ?? "Failed"
         case .stopped: "Stopped"
         }
-        guard let span else { return label }
-        return "\(label), worked for \(WorkerDuration.text(span))"
+        guard let duration = WorkerDuration.stated(span) else { return label }
+        return "\(label), worked for \(duration)"
     }
 
     static func placeLine(worker: Worker, taskKey: String?) -> String {
@@ -94,6 +94,13 @@ public struct WorkerThreadPresentation: Hashable, Sendable {
 public enum WorkerDuration {
     public static func text(_ interval: TimeInterval) -> String {
         WorkerPresentation.duration(seconds: Int(interval.rounded(.down)))
+    }
+
+    /// A duration worth stating, or nil under a whole second: "worked for 0s"
+    /// reads as a fault, so the line leaves the duration out instead.
+    public static func stated(_ interval: TimeInterval?) -> String? {
+        guard let interval, interval >= 1 else { return nil }
+        return text(interval)
     }
 }
 

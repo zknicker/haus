@@ -36,15 +36,29 @@ extension HausStore {
         workContent(place, now: now).map { WorkPillState(content: $0, now: now) }
     }
 
-    /// Reads what a place's pill needs, and its files when the Work view is open.
+    /// Reads what a place's pill needs, and, when the Work view is open, its
+    /// files and the Tasks its Workers belong to.
     func loadWork(_ place: HausWorkPlace, includingFiles: Bool) async {
         await withTaskGroup(of: Void.self) { group in
             if let chatID = workChatID(place) {
-                group.addTask { try? await self.workers.loadChat(chatID: chatID) }
+                group.addTask {
+                    try? await self.workers.loadChat(chatID: chatID)
+                    if includingFiles, case .chat = place { await self.loadWorkTasks(chatID: chatID) }
+                }
             }
             if includingFiles {
                 group.addTask { await self.loadWorkFiles(place) }
             }
+        }
+    }
+
+    /// The details of the Tasks a Chat's Workers belong to that are not held
+    /// yet, one at a time: their pull request readings carry the title and
+    /// checks a Worker's own snapshot lacks.
+    private func loadWorkTasks(chatID: String) async {
+        let taskIDs = Set((workers.byChatID[chatID] ?? []).compactMap(\.worker.taskId))
+        for taskID in taskIDs.sorted() where tasks.detailsByID[taskID] == nil {
+            try? await tasks.reloadDetail(taskID: taskID)
         }
     }
 
@@ -87,7 +101,7 @@ extension HausStore {
     }
 
     var pullRequestAuthors: [String: PullRequestAuthor] {
-        agentsByID.mapValues { PullRequestAuthor(captainName: $0.displayName) }
+        agentsByID.mapValues { PullRequestAuthor(captain: captainIdentity($0)) }
     }
 
     private func workWorkers(_ place: HausWorkPlace) -> [Worker]? {
@@ -106,11 +120,12 @@ extension HausStore {
     private func workTasks(_ place: HausWorkPlace) -> [TaskDetail] {
         switch place {
         case .chat(let chatID):
-            tasks.detailsByID.values
-                .filter { $0.task.origin?.chatID == chatID }
+            let workerTaskIDs = Set((workers.byChatID[chatID] ?? []).compactMap(\.worker.taskId))
+            return tasks.detailsByID.values
+                .filter { $0.task.origin?.chatID == chatID || workerTaskIDs.contains($0.task.id) }
                 .sorted { $0.task.updatedAt > $1.task.updatedAt }
         case .task(let taskID):
-            tasks.detailsByID[taskID].map { [$0] } ?? []
+            return tasks.detailsByID[taskID].map { [$0] } ?? []
         }
     }
 

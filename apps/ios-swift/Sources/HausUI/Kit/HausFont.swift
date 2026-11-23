@@ -15,7 +15,8 @@ struct HausTextRole: Equatable, Sendable {
     let weight: Font.Weight
     let textStyle: Font.TextStyle
 
-    static let chip = HausTextRole(size: 16, weight: .medium, textStyle: .callout)
+    static let chip = HausTextRole(size: 15, weight: .medium, textStyle: .subheadline)
+    static let screenTitle = HausTextRole(size: 17, weight: .medium, textStyle: .headline)
     static let chipGlyph = HausTextRole(size: 12, weight: .semibold, textStyle: .callout)
     static let sectionLabel = HausTextRole(size: 15, weight: .regular, textStyle: .subheadline)
     static let toast = HausTextRole(size: 15, weight: .regular, textStyle: .subheadline)

@@ -83,6 +83,7 @@ struct SettingsHubView: View {
             .padding(.top, 10)
             .padding(.bottom, 28)
         }
+        .reportsChromeScroll()
         .scrollIndicators(.hidden)
         .background(HausPlatformColor.canvas)
     }

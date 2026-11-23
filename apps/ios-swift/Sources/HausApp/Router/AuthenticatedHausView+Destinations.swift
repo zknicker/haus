@@ -3,9 +3,9 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// What each route draws, under the shell's own bottom chrome (the system
-/// tab bar stays hidden on every screen); a route whose record has not arrived
-/// yet stays blank until it does.
+/// What each route draws. The system tab bar stays hidden on every screen,
+/// and stacked, the shell's own bottom chrome stays at the tab's root; a
+/// route whose record has not arrived yet stays blank until it does.
 extension AuthenticatedHausView {
     func routeDestination(_ route: HausRoute) -> some View {
         routeScreen(route).toolbar(.hidden, for: .tabBar)
@@ -112,8 +112,6 @@ extension AuthenticatedHausView {
         return { openAgentCall(destination) }
     }
 
-    /// Stacked, a chat route gives the bottom edge to its composer. Split,
-    /// the tab bar belongs to the list pane beside it and stays.
     func revealBinding(_ conversation: HausConversation) -> Binding<String?> {
         Binding(
             get: { router.revealedMessageID(in: conversation) },

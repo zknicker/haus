@@ -46,9 +46,9 @@ public struct SettingsRow<Content: View>: View {
         VStack(spacing: 0) {
             HStack(spacing: SettingsCardMetrics.valueGap) {
                 if let icon {
-                    HausIcon(icon, size: SettingsCardMetrics.iconSide, weight: 1.8)
+                    HausIcon(icon, size: SettingsCardMetrics.iconSide, weight: 1.6)
                         .frame(width: SettingsCardMetrics.iconSide)
-                        .foregroundStyle(HausPlatformColor.ink)
+                        .foregroundStyle(HausPlatformColor.mutedInk)
                         .padding(.trailing, SettingsCardMetrics.iconGap - SettingsCardMetrics.valueGap)
                 }
                 if let value {

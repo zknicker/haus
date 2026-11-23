@@ -68,11 +68,11 @@ public struct ProjectsTabView: View {
         .background(HausPlatformColor.canvas)
         .refreshable { await actions.refresh() }
         .task { await actions.refresh() }
-        .navigationTitle("Projects")
-        .hausInlineNavigationTitle()
+        .hausScreenTitle("Projects")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("New project", systemImage: "plus", action: actions.newProject)
+                    .hausHeaderGlyph()
             }
         }
     }
@@ -103,7 +103,7 @@ public struct ProjectsTabView: View {
                         .swipeActions(edge: .trailing) { markReadButton(person.isUnread ? person.chatID : nil) }
                 }
             }
-            if isLoaded, !filter.isNarrowed {
+            if isLoaded, !filter.isNarrowed, archivedCount != 0 {
                 Button(action: actions.openArchived) { ArchivedProjectsRow(count: archivedCount) }
                     .buttonStyle(.plain)
                     .padding(.top, 20)
@@ -111,6 +111,7 @@ public struct ProjectsTabView: View {
             }
         }
         .listStyle(.plain)
+        .reportsChromeScroll()
         .environment(\.defaultMinListRowHeight, 0)
         .animation(.snappy(duration: 0.35), value: shown)
     }

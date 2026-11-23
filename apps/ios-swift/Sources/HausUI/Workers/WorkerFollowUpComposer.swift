@@ -91,6 +91,7 @@ struct WorkerFollowUpComposer: View {
                 action: submit
             )
             .disabled(controls.isDisabled)
+            .composerSendPresence(!controls.isDisabled || sending)
         }
     }
 

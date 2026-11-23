@@ -114,6 +114,7 @@ import Testing
         #expect(WorkerThreadPresentation.settlementText(.failed(reason: "Provider error"), span: nil)
             == "Failed: Provider error")
         #expect(WorkerThreadPresentation.settlementText(.stopped, span: 45) == "Stopped, worked for 45s")
+        #expect(WorkerThreadPresentation.settlementText(.finished, span: 0.4) == "Finished")
     }
 
     @Test func aFailedWireTurnGivesItsReasonUnlessItReported() throws {
@@ -141,5 +142,8 @@ import Testing
         #expect(WorkerDuration.text(2 * 3600 + 5 * 60) == "2h 5m")
         #expect(WorkerDuration.text(26 * 3600) == "26h")
         #expect(WorkerDuration.text(-5) == "0s")
+        #expect(WorkerDuration.stated(0.9) == nil)
+        #expect(WorkerDuration.stated(nil) == nil)
+        #expect(WorkerDuration.stated(1) == "1s")
     }
 }

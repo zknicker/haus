@@ -10,7 +10,7 @@ import SwiftUI
 struct TaskStateDisc: View {
     let state: TaskState
     var size: CGFloat = 16
-    var surface: Color = HausPlatformColor.background
+    var surface: Color = HausPlatformColor.canvas
     var isWaitingOnYou = false
 
     var body: some View {

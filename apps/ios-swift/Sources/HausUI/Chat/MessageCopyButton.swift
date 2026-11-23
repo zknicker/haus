@@ -5,7 +5,8 @@ struct MessageCopyButton: View {
     let message: MessagePresentation
     @State private var copies = 0
 
-    static let glyphSize: CGFloat = 17
+    /// The symbol's point size; the drawn glyph comes out about 14 pt across.
+    static let glyphSize: CGFloat = 12
 
     var body: some View {
         Button {
@@ -13,7 +14,7 @@ struct MessageCopyButton: View {
             copies += 1
         } label: {
             Image(systemName: "square.on.square")
-                .font(.system(size: Self.glyphSize - 3))
+                .font(.system(size: Self.glyphSize, weight: .regular))
                 .foregroundStyle(HausPlatformColor.faintInk)
                 .frame(width: 32, height: 28, alignment: .leading)
                 .contentShape(.rect)

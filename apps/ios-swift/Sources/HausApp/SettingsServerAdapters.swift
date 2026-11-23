@@ -8,9 +8,7 @@ import HausUI
 extension HausStore {
     func settingsServerContent(openDriveFile: @escaping @MainActor (DriveFilePresentation) -> Void) -> SettingsServerContent {
         SettingsServerContent(
-            projects: tasks.projects.map { projects in
-                projects.filter { !$0.archived }.map(settingsProject)
-            },
+            projects: settingsProjects,
             modelConnections: modelConnections.map { read in
                 read.connections.sorted { $0.position < $1.position }.map(SettingsModelConnection.init)
             },
@@ -45,14 +43,24 @@ extension HausStore {
         )
     }
 
-    private func settingsProject(_ project: Project) -> SettingsProject {
-        SettingsProject(
-            id: project.id,
-            name: project.name,
-            key: project.key.rawValue,
-            repositories: project.repos.map(\.repository),
-            defaultWorkerPlace: project.defaultWorkerPlace.map(workerPlaceLabel)
-        )
+    /// The Projects tab's own set, the joined Channels in the same order, each
+    /// with the setup its Project record carries once `project.list` lands.
+    /// Blank until the Chat list has loaded.
+    private var settingsProjects: [SettingsProject]? {
+        guard hasLoadedChats else { return nil }
+        let records = tasks.projects ?? projects.projects ?? []
+        return projectRows.map { row in
+            guard let project = records.first(where: { $0.chatID == row.chatID }) else {
+                return SettingsProject(id: row.chatID, name: row.name, key: "")
+            }
+            return SettingsProject(
+                id: project.id,
+                name: row.name,
+                key: project.key.rawValue,
+                repositories: project.repos.map(\.repository),
+                defaultWorkerPlace: project.defaultWorkerPlace.map(workerPlaceLabel)
+            )
+        }
     }
 
     private func workerPlaceLabel(_ place: WorkerPlace) -> String {

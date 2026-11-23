@@ -50,6 +50,23 @@ import Testing
         #expect(!row.isLive)
     }
 
+    @Test func aWorkerThatSettledInUnderASecondStatesNoDuration() throws {
+        let instant = try WorkerViewFixture.worker(
+            status: "done",
+            runs: [
+                WorkerFixture.run(
+                    startedAt: WorkerViewFixture.at(minutes: 20),
+                    terminalAt: WorkerViewFixture.at(minutes: 20)
+                ),
+            ],
+            job: Job.done(startedAt: WorkerViewFixture.at(minutes: 20), settledAt: WorkerViewFixture.at(minutes: 20))
+        )
+
+        #expect(WorkerRowPresentation(worker: instant, now: now).subtitleParts == ["Finished", "mini"])
+        #expect(WorkerReportLinePresentation(title: "Fix", outcome: .finished, span: 0.4, pullRequestCount: 1).text
+            == "Fix finished · 1 PR")
+    }
+
     @Test func otherEndingsNameTheirState() throws {
         let needsYou = try settled("needs-you", turnStatus: "pending_input")
         let failed = try settled("failed", turnStatus: "failed")

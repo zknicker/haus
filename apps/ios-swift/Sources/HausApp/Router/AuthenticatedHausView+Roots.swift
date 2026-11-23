@@ -57,6 +57,7 @@ extension AuthenticatedHausView {
     var youStack: some View {
         NavigationStack(path: youPath) {
             youRoot(settingsPath)
+                .foldsBottomChrome(.you, router: router)
                 .navigationDestination(for: HausRoute.self) { routeDestination($0) }
         }
     }

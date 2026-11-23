@@ -85,7 +85,15 @@ public struct WorkerView: View {
         .toolbar {
             ToolbarItem(placement: .principal) { titleView }
             if actions.openInProvider != nil || actions.copyLink != nil {
-                ToolbarItem(placement: .primaryAction) { menu }
+                ToolbarItem(placement: .primaryAction) { menu.hausHeaderGlyph() }
+            } else {
+                // Balances the back circle so the title centers like other pushed screens.
+                ToolbarItem(placement: .primaryAction) {
+                    Color.clear
+                        .frame(width: GlassChromeButton.diameter, height: GlassChromeButton.diameter)
+                        .accessibilityHidden(true)
+                }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .hausInlineNavigationTitle()
@@ -104,10 +112,14 @@ public struct WorkerView: View {
                     WorkerThreadEntryView(entry: entry, actions: actions)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, TranscriptMargins.side)
             .padding(.bottom, 16)
         }
-        .defaultScrollAnchor(.bottom)
+        // Opens on the newest turn and follows it, but a thread shorter than the screen reads
+        // from the top under the header rather than sinking to the composer.
+        .defaultScrollAnchor(.bottom, for: .initialOffset)
+        .defaultScrollAnchor(.bottom, for: .sizeChanges)
+        .defaultScrollAnchor(.top, for: .alignment)
         .scrollDismissesKeyboard(.interactively)
     }
 
@@ -117,7 +129,7 @@ public struct WorkerView: View {
                 .frame(width: DotGrid.side(dot: 2.2, gap: 2), height: DotGrid.side(dot: 2.2, gap: 2))
                 .foregroundStyle(HausPlatformColor.mutedInk)
             Text(worker.title)
-                .font(.system(size: 17, weight: .medium))
+                .font(HausFont.font(size: 17, weight: .medium))
                 .foregroundStyle(HausPlatformColor.ink)
                 .lineLimit(1)
         }
@@ -180,11 +192,14 @@ private struct WorkerPromptBubble: View {
 
     var body: some View {
         Text(text)
-            .font(.body)
+            .font(.subheadline)
             .foregroundStyle(HausPlatformColor.ink)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(HausPlatformColor.fill, in: .rect(cornerRadius: 18))
+            .padding(.horizontal, MessageBubble.horizontalPadding)
+            .padding(.vertical, MessageBubble.verticalPadding)
+            .background(
+                HausPlatformColor.bubble,
+                in: .rect(cornerRadius: MessageBubble.cornerRadius, style: .continuous)
+            )
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.leading, 48)
             .textSelection(.enabled)

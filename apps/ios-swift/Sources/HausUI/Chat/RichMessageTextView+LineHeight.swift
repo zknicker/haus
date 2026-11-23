@@ -15,8 +15,8 @@ public enum RichMessageLineHeight: Hashable, Sendable {
     /// Lines this multiple of the body's point size apart, scaling with it.
     case relative(CGFloat)
 
-    /// A Captain's prose in the assistant layout: 17 pt type on 24 pt lines.
-    public static let assistantProse = RichMessageLineHeight.relative(24.0 / 17.0)
+    /// A Captain's prose in the assistant layout: 15 pt type on 22 pt lines.
+    public static let assistantProse = RichMessageLineHeight.relative(22.0 / 15.0)
 
     /// The height of each line for a body set at `pointSize`; nil keeps the
     /// font's own.

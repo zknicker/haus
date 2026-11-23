@@ -103,6 +103,9 @@ public struct TaskChatView: View {
     }
 
     static let firstPageHold = Duration.milliseconds(1_200)
+    /// How far the header scrim reaches below the navigation bar: short of the
+    /// transcript's own top clearance, so a resting first row stays crisp.
+    static let scrimOverhang: CGFloat = 10
 
     public var body: some View {
         chrome(screen)
@@ -162,7 +165,7 @@ public struct TaskChatView: View {
                 liveBottomInset: geometry.safeAreaInsets.bottom
             )
         }
-        .background(.background)
+        .background(HausPlatformColor.canvas)
         .attachmentPreview(
             $attachmentPreview,
             images: projection.imagePages,
@@ -210,6 +213,12 @@ public struct TaskChatView: View {
             )
             .ignoresSafeArea()
             .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
+            .overlay(alignment: .top) {
+                ChromeTopScrim(fade: ChromeTopScrim.rowFade + Self.scrimOverhang)
+                    .frame(height: proxy.safeAreaInsets.top + Self.scrimOverhang)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .ignoresSafeArea()
+            }
         }
         .overlay(alignment: .bottomTrailing) { jumpStack }
         .animation(.easeOut(duration: 0.18), value: jumps)

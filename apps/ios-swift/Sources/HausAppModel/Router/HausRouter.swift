@@ -9,8 +9,11 @@ public final class HausRouter {
     public var selectedTab: HausTab = .home {
         didSet {
             if selectedTab == .search, oldValue != .search { tabBeforeSearch = oldValue }
+            if selectedTab != oldValue { chromeScroll.expand() }
         }
     }
+    /// Whether the selected tab root's scrolling has folded the bottom chrome.
+    public private(set) var chromeScroll = BottomChromeScroll()
     /// The tab Search returns to when it closes.
     public private(set) var tabBeforeSearch: HausTab = .home
     public private(set) var paths: [HausTab: [HausRoute]] = [:]
@@ -51,12 +54,12 @@ public final class HausRouter {
         return topRoute?.conversation
     }
 
-    /// Stacked, a conversation owns the bottom edge; split, the bar stays
-    /// until a side pane needs the width.
+    /// Stacked, the bar belongs to a tab's root and every pushed screen hides
+    /// it; split, it stays beside a selection until a side pane needs the width.
     public var showsTabBar: Bool {
         switch panes(selectedTab) {
         case let .split(_, _, side): side == nil
-        case let .stack(path): !(path.last?.isChat ?? false)
+        case let .stack(path): path.isEmpty
         }
     }
 
@@ -105,6 +108,17 @@ public final class HausRouter {
     public func closeSearch() {
         guard selectedTab == .search else { return }
         selectedTab = tabBeforeSearch
+    }
+
+    /// Feeds a tab root's scrolling into the chrome's fold, while that tab is
+    /// the one showing.
+    public func scrollRoot(_ tab: HausTab, from old: Double, to new: Double) {
+        guard selectedTab == tab else { return }
+        chromeScroll.scroll(from: old, to: new)
+    }
+
+    public func unfoldChrome() {
+        chromeScroll.expand()
     }
 
     public func pop() {

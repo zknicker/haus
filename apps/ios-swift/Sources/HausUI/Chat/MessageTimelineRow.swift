@@ -48,12 +48,7 @@ struct MessageTimelineRow: View {
                 if isContinuation {
                     Color.clear.frame(width: Self.avatarSize, height: 1)
                 } else {
-                    AvatarView(
-                        name: message.author.name,
-                        url: message.author.avatarURL,
-                        presence: message.author.presence,
-                        size: Self.avatarSize
-                    )
+                    MessageAuthorAvatar(author: message.author, size: Self.avatarSize)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     VStack(alignment: .leading, spacing: 2) {

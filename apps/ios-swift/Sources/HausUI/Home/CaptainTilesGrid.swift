@@ -18,7 +18,8 @@ public struct CaptainTileActions {
     }
 }
 
-/// Home's Captains: a centered four-column grid of 63pt marks over 17pt names.
+/// Home's Captains: four equal columns of 63pt marks over 15pt names, each
+/// row centered, so two Captains sit in the middle as Capy sets them.
 struct CaptainTilesGrid: View {
     let tiles: [CaptainTilePresentation]
     let actions: CaptainTileActions
@@ -27,19 +28,59 @@ struct CaptainTilesGrid: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .center, spacing: 20) {
+        CenteredColumnsLayout(columns: dynamicTypeSize.isAccessibilitySize ? 2 : 4, spacing: 8, rowSpacing: 20) {
             ForEach(tiles) { tile in
                 CaptainTile(tile: tile, side: min(markSide, 96), actions: actions)
             }
         }
         .animation(.snappy, value: tiles)
     }
+}
 
-    private var columns: [GridItem] {
-        Array(
-            repeating: GridItem(.flexible(), spacing: 8, alignment: .top),
-            count: dynamicTypeSize.isAccessibilitySize ? 2 : 4
-        )
+/// Equal-width columns whose rows center, so a short last row sits in the
+/// middle instead of against the leading edge.
+struct CenteredColumnsLayout: Layout {
+    let columns: Int
+    let spacing: CGFloat
+    let rowSpacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 0
+        let heights = rowHeights(subviews: subviews, columnWidth: columnWidth(in: width))
+        let totalHeight = heights.reduce(0, +) + rowSpacing * CGFloat(max(heights.count - 1, 0))
+        return CGSize(width: width, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let columnWidth = columnWidth(in: bounds.width)
+        let heights = rowHeights(subviews: subviews, columnWidth: columnWidth)
+        var y = bounds.minY
+        for (rowIndex, start) in stride(from: 0, to: subviews.count, by: columns).enumerated() {
+            let row = subviews[start..<min(start + columns, subviews.count)]
+            let rowWidth = CGFloat(row.count) * columnWidth + CGFloat(row.count - 1) * spacing
+            var x = bounds.minX + (bounds.width - rowWidth) / 2
+            for subview in row {
+                subview.place(
+                    at: CGPoint(x: x, y: y),
+                    anchor: .topLeading,
+                    proposal: ProposedViewSize(width: columnWidth, height: nil)
+                )
+                x += columnWidth + spacing
+            }
+            y += heights[rowIndex] + rowSpacing
+        }
+    }
+
+    private func columnWidth(in width: CGFloat) -> CGFloat {
+        max((width - spacing * CGFloat(columns - 1)) / CGFloat(columns), 0)
+    }
+
+    private func rowHeights(subviews: Subviews, columnWidth: CGFloat) -> [CGFloat] {
+        stride(from: 0, to: subviews.count, by: columns).map { start in
+            subviews[start..<min(start + columns, subviews.count)]
+                .map { $0.sizeThatFits(ProposedViewSize(width: columnWidth, height: nil)).height }
+                .max() ?? 0
+        }
     }
 }
 
@@ -52,7 +93,7 @@ private struct CaptainTile: View {
 
     var body: some View {
         Button { actions.open(tile.captain) } label: {
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 CaptainFaceMark(
                     captain: tile.captain,
                     side: side,
@@ -60,8 +101,8 @@ private struct CaptainTile: View {
                     isUnread: tile.isUnread
                 )
                 Text(tile.captain.name)
-                    .font(.body)
-                    .foregroundStyle(tile.isResting ? HausPlatformColor.mutedInk : HausPlatformColor.ink)
+                    .font(.subheadline)
+                    .foregroundStyle(isActive ? HausPlatformColor.ink : HausPlatformColor.mutedInk)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -89,6 +130,12 @@ private struct CaptainTile: View {
         .accessibilityLabel(tile.captain.name)
         .accessibilityValue(accessibilityState)
         .accessibilityHint("Opens the DM")
+    }
+
+    /// A working Captain, or one with something unread, names itself in ink;
+    /// an idle or resting one recedes.
+    private var isActive: Bool {
+        !tile.isResting && (tile.isWorking || tile.isUnread)
     }
 
     private var accessibilityState: String {

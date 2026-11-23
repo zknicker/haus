@@ -44,6 +44,15 @@ extension MessageComposerView {
 }
 
 extension View {
+    /// The send control shows only with something to send, as Capy's does. Its slot keeps its
+    /// width, so the field does not reflow as the first character lands.
+    func composerSendPresence(_ canSend: Bool) -> some View {
+        disabled(!canSend)
+            .opacity(canSend ? 1 : 0)
+            .accessibilityHidden(!canSend)
+            .animation(.easeOut(duration: 0.15), value: canSend)
+    }
+
     /// Why a picked file could not join the draft, as a native alert. The
     /// message clears when the alert is dismissed.
     func composerAttachmentAlert(message: Binding<String?>) -> some View {

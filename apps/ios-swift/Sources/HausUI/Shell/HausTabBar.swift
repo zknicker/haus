@@ -19,33 +19,95 @@ public struct HausTabBarItem<Tab: Hashable>: Identifiable {
 
 /// The bottom chrome measured from Capy: a 49pt glass capsule of icon-only
 /// tabs, with the "Ask anything" field 9pt above it when there is one.
+/// Collapsed, it folds into three glass pieces on one row: the selected tab,
+/// a shorter field, and the last tab (Search). The selected tab unfolds it.
 public struct HausBottomChrome<Tab: Hashable>: View {
     @Binding private var selection: Tab
     private let items: [HausTabBarItem<Tab>]
+    private let isCollapsed: Bool
+    private let onExpand: () -> Void
     private let onAsk: (() -> Void)?
 
     public static var barHeight: CGFloat { 49 }
     public static var accessoryHeight: CGFloat { 47 }
     public static var gap: CGFloat { 9 }
+    static var pieceSize: CGFloat { 48 }
 
-    public init(selection: Binding<Tab>, items: [HausTabBarItem<Tab>], onAsk: (() -> Void)?) {
+    public init(
+        selection: Binding<Tab>,
+        items: [HausTabBarItem<Tab>],
+        isCollapsed: Bool = false,
+        onExpand: @escaping () -> Void = {},
+        onAsk: (() -> Void)?
+    ) {
         _selection = selection
         self.items = items
+        self.isCollapsed = isCollapsed
+        self.onExpand = onExpand
         self.onAsk = onAsk
     }
 
     public var body: some View {
         GlassEffectContainer(spacing: Self.gap) {
-            VStack(spacing: Self.gap) {
-                if let onAsk {
-                    AskAnythingAccessory(action: onAsk)
-                        .frame(height: Self.accessoryHeight)
-                        .glassEffect(.regular.interactive(), in: .capsule)
-                }
-                HausTabBar(selection: $selection, items: items)
+            if isCollapsed, let pieces = collapsedPieces {
+                collapsed(leading: pieces.leading, trailing: pieces.trailing)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
+            } else {
+                expanded
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
             }
         }
+        .animation(.spring(duration: 0.4, bounce: 0.18), value: isCollapsed)
+    }
+
+    private var expanded: some View {
+        VStack(spacing: Self.gap) {
+            if let onAsk { askField(onAsk, height: Self.accessoryHeight) }
+            HausTabBar(selection: $selection, items: items)
+                .glassEffect(.regular, in: .capsule)
+        }
         .padding(.horizontal, 21)
+    }
+
+    private func collapsed(leading: HausTabBarItem<Tab>, trailing: HausTabBarItem<Tab>) -> some View {
+        HStack(spacing: 14) {
+            Button(action: onExpand) { piece(leading) }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel(leading.label)
+                .accessibilityHint("Shows every tab")
+            if let onAsk {
+                askField(onAsk, height: Self.pieceSize)
+            } else {
+                Spacer(minLength: 0)
+            }
+            Button { selection = trailing.tab } label: { piece(trailing) }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel(trailing.label)
+        }
+        .padding(.horizontal, 28)
+        .padding(.bottom, 6)
+    }
+
+    /// Collapsed pieces exist only away from the last tab, which they keep.
+    private var collapsedPieces: (leading: HausTabBarItem<Tab>, trailing: HausTabBarItem<Tab>)? {
+        guard let trailing = items.last, trailing.tab != selection,
+              let leading = items.first(where: { $0.tab == selection })
+        else { return nil }
+        return (leading, trailing)
+    }
+
+    private func piece(_ item: HausTabBarItem<Tab>) -> some View {
+        HausTabBarIcon(item: item, isSelected: item.tab == selection)
+            .frame(width: Self.pieceSize, height: Self.pieceSize)
+            .contentShape(Circle())
+    }
+
+    private func askField(_ action: @escaping () -> Void, height: CGFloat) -> some View {
+        AskAnythingAccessory(action: action)
+            .frame(height: height)
+            .glassEffect(.regular.interactive(), in: .capsule)
     }
 }
 
@@ -65,12 +127,11 @@ struct HausTabBar<Tab: Hashable>: View {
         }
         .padding(.horizontal, 3)
         .frame(height: HausBottomChrome<Tab>.barHeight)
-        .glassEffect(.regular, in: .capsule)
     }
 
     private func cell(_ item: HausTabBarItem<Tab>) -> some View {
         let isSelected = item.tab == selection
-        return icon(item, isSelected: isSelected)
+        return HausTabBarIcon(item: item, isSelected: isSelected)
             .frame(maxWidth: .infinity)
             .frame(height: 42)
             .background {
@@ -80,19 +141,20 @@ struct HausTabBar<Tab: Hashable>: View {
             }
             .contentShape(Capsule())
     }
+}
 
-    @ViewBuilder
-    private func icon(_ item: HausTabBarItem<Tab>, isSelected: Bool) -> some View {
+/// A tab's photo or symbol. The selected pill alone marks a photo; a symbol
+/// also takes the accent.
+struct HausTabBarIcon<Tab: Hashable>: View {
+    let item: HausTabBarItem<Tab>
+    let isSelected: Bool
+
+    var body: some View {
         if let image = item.image {
             image
                 .resizable()
                 .frame(width: 26, height: 26)
                 .clipShape(Circle())
-                .overlay {
-                    if isSelected {
-                        Circle().stroke(HausPlatformColor.accent, lineWidth: 2).padding(-2)
-                    }
-                }
         } else {
             Image(systemName: item.systemImage)
                 .font(.system(size: 19, weight: .medium))

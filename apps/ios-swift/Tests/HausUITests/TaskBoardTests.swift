@@ -138,6 +138,10 @@ struct TaskBoardTests {
         #expect(TaskPriority.pickerOrder == [.none, .urgent, .high, .medium, .low])
     }
 
+    @Test func rowsMarkOnlyHighAndUrgentPriority() {
+        #expect(TaskPriority.pickerOrder.filter(TaskPriorityGlyph.isRaised) == [.urgent, .high])
+    }
+
     @Test func theMetaLineReadsKeyProjectAndAge() {
         let record = task("t1", hoursAgo: 2)
         #expect(TaskBoardRow.metaPieces(record, projectName: "product", now: now) == ["SEC-1", "product", "2h"])

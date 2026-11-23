@@ -42,11 +42,13 @@ public struct ChatHeaderMenuAction: Identifiable, Sendable {
 }
 
 /// The Chat canvas's floating header: a glass back circle, the centered identity (a Captain's
-/// mark, a Project's hash tile, or a person's avatar, then the name), and one `…` menu. Live work
+/// mark, a Project's bare glyph, or a person's avatar, then the name), and one `…` menu. Live work
 /// hangs centered under the identity. While Server is unreachable the title reads "Connecting…"
 /// (`ConnectionOutage`).
 struct ChatScreenHeader: View {
-    static let identitySide: CGFloat = 32
+    static let identitySide: CGFloat = 28
+    /// A Project's glyph sits in the title's line at the title's size, with no box around it.
+    static let channelGlyphSide: CGFloat = 17
 
     let chat: ChatDestination
     let isConnected: Bool
@@ -69,7 +71,7 @@ struct ChatScreenHeader: View {
             }
         } center: {
             Button(action: onOpenChatDetails) {
-                HStack(spacing: 8) {
+                HStack(spacing: chat.kind.isChannel ? 5 : 8) {
                     identity
                     title
                 }
@@ -127,7 +129,7 @@ struct ChatScreenHeader: View {
     private var identity: some View {
         switch chat.kind {
         case .channel:
-            ChannelIconBox(appearance: chat.appearance, size: 28)
+            ChannelGlyph(appearance: chat.appearance, size: Self.channelGlyphSide)
         case .agentDirectMessage(let agent):
             CaptainAvatarMark(name: agent.name, url: agent.avatarURL, side: Self.identitySide)
         case .humanDirectMessage(let human):

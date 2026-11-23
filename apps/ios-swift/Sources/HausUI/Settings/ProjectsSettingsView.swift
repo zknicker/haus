@@ -62,7 +62,9 @@ struct ProjectSettingsDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 SettingsListGroup {
-                    ValueRow("Key", value: project.key, icon: .handle)
+                    if !project.key.isEmpty {
+                        ValueRow("Key", value: project.key, icon: .handle)
+                    }
                     ValueRow(
                         "Workers run on",
                         value: project.defaultWorkerPlace ?? "Ask each time",

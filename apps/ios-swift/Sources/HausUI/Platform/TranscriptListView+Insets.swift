@@ -11,7 +11,7 @@ extension TranscriptListCoordinator {
     ) {
         // Flipped mapping: the table's top inset renders at the visual bottom.
         let insets = UIEdgeInsets(
-            top: max(Self.baseTailInset(view), landingInsetTop ?? 0),
+            top: restingTailInset(view: view, table: table),
             left: 0,
             bottom: Self.topClearance(view),
             right: 0
@@ -43,6 +43,51 @@ extension TranscriptListCoordinator {
             settleToNewest(table: table)
         } else {
             table.contentOffset = CGPoint(x: 0, y: settleHome(table))
+        }
+    }
+
+    /// The visual-bottom clearance a resting transcript sits on: the
+    /// composer's, or more while a send landing holds room open or the rows
+    /// are too short to reach the header (`TranscriptTopAlignment`).
+    func restingTailInset(view: TranscriptListView<Item, Row, Accessory>, table: UITableView) -> CGFloat {
+        let topAligned = TranscriptTopAlignment.tailInset(
+            base: Self.baseTailInset(view),
+            boundsHeight: table.bounds.height,
+            topClearance: Self.topClearance(view),
+            contentHeight: table.contentSize.height
+        )
+        return max(topAligned, landingInsetTop ?? 0)
+    }
+
+    /// Re-reads the resting inset from the rows as laid out now and records it
+    /// as the applied inset. It moves nothing; returns whether it changed.
+    @discardableResult
+    func refreshRestingInset(_ table: UITableView) -> Bool {
+        measureSendLanding(table)
+        guard let view, let applied = appliedInsets else { return false }
+        let top = restingTailInset(view: view, table: table)
+        guard abs(applied.top - top) > 0.5 else { return false }
+        appliedInsets?.top = top
+        return true
+    }
+
+    /// Re-measures after rows were laid out or the viewport resized, and keeps
+    /// a resting transcript where it stands.
+    func holdRestingInset(_ table: UITableView) {
+        guard !isReapplyingAnchor else { return }
+        let wasResting = abs(table.contentOffset.y - restingOffset(table)) < 0.5
+            && !table.isDragging
+            && !table.isDecelerating
+        guard refreshRestingInset(table), let top = appliedInsets?.top else { return }
+        isReapplyingAnchor = true
+        defer { isReapplyingAnchor = false }
+        if nearNewest.isSettling {
+            table.contentInset.top = max(top, -table.contentOffset.y)
+            stepSettle(table)
+        } else if wasResting {
+            setTravelOffset(-top, in: table)
+        } else {
+            table.contentInset.top = max(top, -table.contentOffset.y)
         }
     }
 

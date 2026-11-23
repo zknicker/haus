@@ -229,7 +229,7 @@ public struct MessageComposerView: View {
                     label: "Send message",
                     action: submit
                 )
-                .disabled(!canSend)
+                .composerSendPresence(canSend)
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { controlsHeight = $0 }
         }

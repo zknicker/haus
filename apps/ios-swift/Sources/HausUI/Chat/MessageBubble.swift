@@ -5,7 +5,8 @@ import SwiftUI
 struct MessageBubble: View {
     let blocks: [RichMessageBlock]
 
-    static let cornerRadius: CGFloat = 18
+    /// The same corner at every line count, so a one-line bubble is a rounded rectangle, not a pill.
+    static let cornerRadius: CGFloat = 12
     static let verticalPadding: CGFloat = 10
     static let horizontalPadding: CGFloat = 13
 

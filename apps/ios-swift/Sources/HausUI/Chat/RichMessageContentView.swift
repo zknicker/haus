@@ -10,7 +10,9 @@ import SwiftUI
 /// a selection drags straight through the mention.
 struct RichMessageContentView: View {
     let blocks: [RichMessageBlock]
-    var textStyle: Font.TextStyle = .body
+    /// Chat bodies are set at the subheadline size (15 pt by default), the density
+    /// of a phone chat rather than of a document.
+    var textStyle: Font.TextStyle = .subheadline
 
     /// Avatars arrive after the first frame. Recording the ones that landed
     /// invalidates this body, which repaints those marks with the image in
@@ -34,10 +36,9 @@ struct RichMessageContentView: View {
         .task(id: avatarURLs) { await loadAvatars() }
     }
 
-    /// The App sets one prose measure of air between blocks. The phone's body
-    /// is larger than the web's, so the gap is the same proportion rather than
-    /// the same pixels.
-    private static let blockSpacing: CGFloat = 9
+    /// The App sets one prose measure of air between blocks; the phone keeps
+    /// the same proportion to its body size rather than the same pixels.
+    private static let blockSpacing: CGFloat = 8
 
     /// A heading opens a section, so it stands further from the block above it
     /// than two paragraphs stand from each other — and not at all when it is

@@ -32,15 +32,21 @@ extension AuthenticatedHausView {
             }
         }
         .overlay(alignment: .bottom) {
-            if router.showsTabBar {
-                HausBottomChrome(
-                    selection: $router.selectedTab,
-                    items: tabBarItems,
-                    onAsk: router.showsAskAnything ? { router.present(.askAnything) } : nil
-                )
-                .padding(.bottom, Self.bottomChromeInset - deviceBottomInset)
-                .ignoresSafeArea(.keyboard)
+            ZStack(alignment: .bottom) {
+                if router.showsTabBar {
+                    HausBottomChrome(
+                        selection: $router.selectedTab,
+                        items: tabBarItems,
+                        isCollapsed: router.chromeScroll.isCollapsed && router.showsAskAnything,
+                        onExpand: { router.unfoldChrome() },
+                        onAsk: router.showsAskAnything ? { router.present(.askAnything) } : nil
+                    )
+                    .padding(.bottom, Self.bottomChromeInset - deviceBottomInset)
+                    .transition(.offset(y: 24).combined(with: .opacity))
+                }
             }
+            .animation(.smooth(duration: 0.3), value: router.showsTabBar)
+            .ignoresSafeArea(.keyboard)
         }
         .background {
             GeometryReader { proxy in
@@ -77,7 +83,9 @@ extension AuthenticatedHausView {
 
     func stack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
         NavigationStack(path: pathBinding(tab)) {
-            root().navigationDestination(for: HausRoute.self) { routeDestination($0) }
+            root()
+                .foldsBottomChrome(tab, router: router)
+                .navigationDestination(for: HausRoute.self) { routeDestination($0) }
         }
     }
 
@@ -91,7 +99,7 @@ extension AuthenticatedHausView {
             stack(tab, root: root)
         case let .split(selection, _, side):
             AdaptiveSplitView(showsSide: side != nil) {
-                root()
+                root().foldsBottomChrome(tab, router: router)
             } content: {
                 NavigationStack(path: splitStackBinding(tab)) {
                     Group {
@@ -130,4 +138,26 @@ extension AuthenticatedHausView {
     private var sheetBinding: Binding<HausSheet?> {
         Binding(get: { router.sheet }, set: { if $0 == nil { router.dismissSheet() } })
     }
+}
+
+extension View {
+    /// Folds the shell's bottom chrome as this tab root's list scrolls (the
+    /// list opts in with `reportsChromeScroll()`). Pushed screens sit outside
+    /// the root's environment and never fold it.
+    func foldsBottomChrome(_ tab: HausTab, router: HausRouter) -> some View {
+        environment(\.chromeScroll) { old, new in
+            router.scrollRoot(tab, from: chromeDistance(old), to: chromeDistance(new))
+        }
+    }
+
+}
+
+private func chromeDistance(_ metrics: ChromeScrollMetrics) -> Double {
+    BottomChromeScroll.distance(
+        offset: metrics.offset,
+        topInset: metrics.topInset,
+        bottomInset: metrics.bottomInset,
+        content: metrics.content,
+        container: metrics.container
+    )
 }

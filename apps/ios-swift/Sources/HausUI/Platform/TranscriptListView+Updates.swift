@@ -103,7 +103,7 @@ extension TranscriptListCoordinator {
             // update keeps holding what the last real one anchored.
             heldAnchor = nil
         }
-        holdSendLanding(table)
+        holdRestingInset(table)
         holdFollowedTop(table: table)
         performReveal(view: view, table: table)
         // Covers every path above — a reset's `reloadData`, an inset change, an

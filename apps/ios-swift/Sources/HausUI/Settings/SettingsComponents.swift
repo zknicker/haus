@@ -11,8 +11,8 @@ enum SettingsCardMetrics {
     static let rowHeight: CGFloat = 52
     static let leadingInset: CGFloat = 20
     static let trailingInset: CGFloat = 18
-    static let iconSide: CGFloat = 20
-    static let iconGap: CGFloat = 16
+    static let iconSide: CGFloat = 18
+    static let iconGap: CGFloat = 18
     static let valueGap: CGFloat = 10
     static let separatorTrailing: CGFloat = 16
 
@@ -92,11 +92,11 @@ struct SettingsSeparator: View {
 
 /// The small trailing chevron of a row that pushes a screen.
 struct SettingsChevron: View {
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 10
 
     var body: some View {
         Image(systemName: "chevron.right")
-            .font(.system(size: size, weight: .semibold))
+            .font(.system(size: size, weight: .medium))
             .foregroundStyle(HausPlatformColor.faintInk)
             .accessibilityHidden(true)
     }

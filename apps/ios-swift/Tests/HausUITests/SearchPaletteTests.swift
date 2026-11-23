@@ -58,7 +58,7 @@ struct SearchPaletteTests {
 
     @Test func everyScopeHasItsChipTitleInMockOrder() {
         #expect(SearchScope.allCases.map(\.title) == ["Messages", "Tasks", "Captains", "Projects", "People"])
-        #expect(SearchPaletteAction.allCases.map(\.title) == ["New task", "New project", "Go to Tasks", "Go to Settings"])
+        #expect(SearchPaletteAction.allCases.map(\.title) == ["New task", "New project", "Go to tasks", "Go to settings"])
     }
 
     private func task(_ id: String, key: String, title: String, age: TimeInterval) -> SearchTask {

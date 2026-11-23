@@ -37,16 +37,20 @@ public struct TaskBoardView: View {
                 }
                 .padding(.bottom, 24)
             }
+            .reportsChromeScroll()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(HausPlatformColor.canvas)
-        .navigationTitle("Tasks")
-        .hausInlineNavigationTitle()
+        .hausScreenTitle("Tasks")
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                displayOptions
+            ToolbarItem(placement: .primaryAction) {
                 Button("New task", systemImage: "plus") { isCreating = true }
                     .disabled(content.projects.isEmpty || content.captains.isEmpty)
+                    .hausHeaderGlyph()
+            }
+            ToolbarSpacer(.fixed, placement: .primaryAction)
+            ToolbarItem(placement: .primaryAction) {
+                displayOptions.hausHeaderGlyph()
             }
         }
         .sheet(isPresented: $isCreating) {

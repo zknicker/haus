@@ -63,8 +63,7 @@ public struct SettingsSheet: View {
             onSignOut: onSignOut,
             serverSwitcher: serverSwitcher
         )
-        .navigationTitle("You")
-        .hausInlineNavigationTitle()
+        .hausScreenTitle("You")
         .navigationDestination(for: SettingsRoute.self) { route in
             destination(for: route)
         }

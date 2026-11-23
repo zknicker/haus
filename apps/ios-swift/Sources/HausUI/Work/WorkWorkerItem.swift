@@ -46,7 +46,7 @@ enum WorkWorkerLine {
 
     private static func elapsed(_ start: Date?, _ end: Date?) -> String? {
         guard let start, let end else { return nil }
-        return WorkerPresentation.duration(from: start, to: end)
+        return WorkerDuration.stated(end.timeIntervalSince(start))
     }
 }
 
