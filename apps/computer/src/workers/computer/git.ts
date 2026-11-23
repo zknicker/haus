@@ -79,7 +79,7 @@ export function githubRepositoryOfRemote(url: string) {
 const githubRemotes = [
     /^https:\/\/(?:[^@/]+@)?github\.com\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/iu,
     /^git@github\.com:([^/]+)\/([^/]+?)(?:\.git)?\/?$/iu,
-    /^ssh:\/\/git@github\.com(?::\d+)?\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/iu,
+    /^ssh:\/\/git@github\.com(?::22)?\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/iu,
 ];
 
 async function spawnGit(args: readonly string[], options: GitOptions) {

@@ -46,6 +46,8 @@ test("a Captain's git never runs the machine's SSH setup; a Worker's does", asyn
 test('only github.com remotes name a repo, and a .github repo is one', () => {
     expect(githubRepositoryOfRemote('git@github.com:Acme/.github.git')).toBe('acme/.github');
     expect(githubRepositoryOfRemote('https://github.com/acme/app')).toBe('acme/app');
+    expect(githubRepositoryOfRemote('ssh://git@github.com:22/Acme/App.git')).toBe('acme/app');
+    expect(githubRepositoryOfRemote('ssh://git@github.com:2222/acme/app.git')).toBeNull();
     expect(githubRepositoryOfRemote('https://gitlab.com/acme/app.git')).toBeNull();
     expect(githubRepositoryOfRemote('git@github.com:acme/...git')).toBeNull();
 });

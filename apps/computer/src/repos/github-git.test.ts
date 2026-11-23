@@ -4,7 +4,7 @@ import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { computerGitCredentialPath } from '@haus/api';
-import { agentGitEnvironment, githubAppGit } from './github-git.ts';
+import { agentGitEnvironment, githubAppGit, unavailableBotEmail } from './github-git.ts';
 
 const serverId = 'srv_gitgitgitgitgitgi';
 const identity = {
@@ -104,17 +104,50 @@ test('a refusal stops git with the reason, and asks nothing else', async () => {
 });
 
 test('GitHub SSH remotes go over HTTPS, and commits are the bot', async () => {
-    const remote = await git(['ls-remote', '--get-url', 'git@github.com:acme/app.git']);
-    expect(remote.stdout.trim()).toBe('https://github.com/acme/app.git');
+    for (const url of [
+        'git@github.com:acme/app.git',
+        'ssh://git@github.com/acme/app.git',
+        'ssh://git@github.com:22/acme/app.git',
+    ]) {
+        const remote = await git(['ls-remote', '--get-url', url]);
+        expect(remote.stdout.trim()).toBe('https://github.com/acme/app.git');
+    }
     expect((await git(['var', 'GIT_AUTHOR_IDENT'])).stdout).toStartWith(
         'haus-test[bot] <41898282+haus-test[bot]@users.noreply.github.com>'
     );
 });
 
-async function git(args: string[], stdin = '') {
+test("without the bot identity a commit is refused, never made as the folder's own user", async () => {
+    const repo = join(root, 'repo');
+    const withoutBot = {
+        ...environment,
+        ...agentGitEnvironment(
+            githubAppGit(join(root, 'data'), serverId, {
+                access: 'write',
+                invocationId: 'inv_gitgitgitgitgitgi',
+            }),
+            null
+        ),
+    };
+    await git(['init', '--quiet', repo]);
+    await git(['-C', repo, 'config', 'user.name', 'Ada Person']);
+    await git(['-C', repo, 'config', 'user.email', 'ada@example.test']);
+
+    const committed = await git(
+        ['-C', repo, 'commit', '--quiet', '--allow-empty', '-m', 'work'],
+        '',
+        withoutBot
+    );
+
+    expect(committed.exitCode).not.toBe(0);
+    expect(committed.stderr).toContain(unavailableBotEmail);
+    expect((await git(['-C', repo, 'rev-list', '--all'])).stdout).toBe('');
+});
+
+async function git(args: string[], stdin = '', env = environment) {
     const child = Bun.spawn(['git', ...args], {
         cwd: root,
-        env: environment,
+        env,
         stderr: 'pipe',
         stdin: Buffer.from(stdin),
         stdout: 'pipe',

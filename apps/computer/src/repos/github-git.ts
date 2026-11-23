@@ -34,7 +34,8 @@ export function githubGitConfig(git: GithubAppGit | null) {
         ['credential.helper', git.helper],
         ['credential.https://github.com.useHttpPath', 'true'],
         ['url.https://github.com/.insteadOf', 'git@github.com:'],
-        ['url.https://github.com/.insteadOf', 'ssh://git@github.com/']
+        ['url.https://github.com/.insteadOf', 'ssh://git@github.com/'],
+        ['url.https://github.com/.insteadOf', 'ssh://git@github.com:22/']
     );
     return pairs;
 }
@@ -43,7 +44,21 @@ export function githubGitArgs(git: GithubAppGit | null) {
     return githubGitConfig(git).flatMap(([key, value]) => ['-c', `${key}=${value}`]);
 }
 
-export function agentGitEnvironment(git: GithubAppGit | null, identity: GitIdentity | null) {
+export const unavailableBotEmail = 'haus-github-app-bot-unavailable-commit-again-shortly';
+
+export function agentGitEnvironment(git: GithubAppGit, identity: GitIdentity | null) {
+    const name = identity?.name ?? '';
+    const email = identity?.email ?? unavailableBotEmail;
+    return {
+        ...gitConfigEnvironment(git),
+        GIT_AUTHOR_EMAIL: email,
+        GIT_AUTHOR_NAME: name,
+        GIT_COMMITTER_EMAIL: email,
+        GIT_COMMITTER_NAME: name,
+    };
+}
+
+export function gitConfigEnvironment(git: GithubAppGit | null) {
     const pairs = githubGitConfig(git);
     const environment: Record<string, string> = {
         GIT_CONFIG_COUNT: String(pairs.length),
@@ -53,12 +68,6 @@ export function agentGitEnvironment(git: GithubAppGit | null, identity: GitIdent
         environment[`GIT_CONFIG_KEY_${index}`] = key;
         environment[`GIT_CONFIG_VALUE_${index}`] = value;
     });
-    if (identity) {
-        environment.GIT_AUTHOR_NAME = identity.name;
-        environment.GIT_AUTHOR_EMAIL = identity.email;
-        environment.GIT_COMMITTER_NAME = identity.name;
-        environment.GIT_COMMITTER_EMAIL = identity.email;
-    }
     return environment;
 }
 
