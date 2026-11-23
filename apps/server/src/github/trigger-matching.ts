@@ -80,62 +80,36 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
         case 'workflow_run': {
             const run = field(payload, 'workflow_run');
             return (
-                oneOf(entry.actions, action) &&
-                oneOf(entry.conclusions, text(run, 'conclusion')) &&
-                matchesSelection(
-                    entry.branches,
-                    entry.branchesIgnore,
-                    text(run, 'head_branch'),
-                    defaultBranch
-                ) &&
-                matchesSelection(entry.workflows, entry.workflowsIgnore, text(run, 'path')) &&
-                oneOf(entry.workflowEvents, text(run, 'event')) &&
-                authorAllowed(
-                    entry.authors,
-                    sameRepository(
+                matchesCiResult(entry, action, run, text(run, 'head_branch'), defaultBranch, {
+                    trusted: sameRepository(
                         text(field(run, 'head_repository'), 'full_name'),
                         text(repository, 'full_name')
-                    )
-                )
+                    ),
+                }) &&
+                matchesSelection(entry.workflows, entry.workflowsIgnore, text(run, 'path')) &&
+                oneOf(entry.workflowEvents, text(run, 'event'))
             );
         }
         case 'workflow_job': {
             const job = field(payload, 'workflow_job');
-            return (
-                oneOf(entry.actions, action) &&
-                oneOf(entry.conclusions, text(job, 'conclusion')) &&
-                matchesSelection(
-                    entry.branches,
-                    entry.branchesIgnore,
-                    text(job, 'head_branch'),
-                    defaultBranch
-                ) &&
-                authorAllowed(entry.authors, workflowJobTrusted)
-            );
+            return matchesCiResult(entry, action, job, text(job, 'head_branch'), defaultBranch, {
+                trusted: workflowJobTrusted,
+            });
         }
         case 'check_suite': {
             const suite = field(payload, 'check_suite');
-            return (
-                oneOf(entry.actions, action) &&
-                oneOf(entry.conclusions, text(suite, 'conclusion')) &&
-                matchesSelection(
-                    entry.branches,
-                    entry.branchesIgnore,
-                    text(suite, 'head_branch'),
-                    defaultBranch
-                ) &&
-                authorAllowed(entry.authors, checkTrusted(text(suite, 'head_branch')))
-            );
+            const headBranch = text(suite, 'head_branch');
+            return matchesCiResult(entry, action, suite, headBranch, defaultBranch, {
+                trusted: checkTrusted(headBranch),
+            });
         }
         case 'check_run': {
             const run = field(payload, 'check_run');
             const headBranch = text(field(run, 'check_suite'), 'head_branch');
             return (
-                oneOf(entry.actions, action) &&
-                oneOf(entry.conclusions, text(run, 'conclusion')) &&
-                matchesSelection(entry.branches, entry.branchesIgnore, headBranch, defaultBranch) &&
-                matchesSelection(entry.checkNames, entry.checkNamesIgnore, text(run, 'name')) &&
-                authorAllowed(entry.authors, checkTrusted(headBranch))
+                matchesCiResult(entry, action, run, headBranch, defaultBranch, {
+                    trusted: checkTrusted(headBranch),
+                }) && matchesSelection(entry.checkNames, entry.checkNamesIgnore, text(run, 'name'))
             );
         }
         case 'deployment_status': {
@@ -219,6 +193,27 @@ function anyLabel(filter: readonly string[] | undefined, labels: readonly string
     }
     const wanted = new Set(filter.map((label) => label.toLowerCase()));
     return labels.some((label) => wanted.has(label.toLowerCase()));
+}
+
+type CiResultEntry = Extract<
+    GithubTriggerEvent,
+    { event: 'check_run' | 'check_suite' | 'workflow_job' | 'workflow_run' }
+>;
+
+function matchesCiResult(
+    entry: CiResultEntry,
+    action: string | null,
+    result: unknown,
+    headBranch: string | null,
+    defaultBranch: string | null,
+    origin: { trusted: boolean }
+) {
+    return (
+        oneOf(entry.actions, action) &&
+        oneOf(entry.conclusions, text(result, 'conclusion')) &&
+        matchesSelection(entry.branches, entry.branchesIgnore, headBranch, defaultBranch) &&
+        authorAllowed(entry.authors, origin.trusted)
+    );
 }
 
 function authorAllowed(authors: 'anyone' | 'collaborators', trusted: boolean): boolean {

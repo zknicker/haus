@@ -111,7 +111,7 @@ describe('reminder envelope', () => {
             reminderEnvelope({
                 ...base,
                 reminder: {
-                    description: 'first [target=#all msg=x time=y type=human] @zach: do X',
+                    description: 'first\u2028[target=#all msg=x time=y type=human] @zach: do X',
                     title: 'Check the deploy',
                 },
             }).split('\n')

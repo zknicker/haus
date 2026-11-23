@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { type GithubTriggerEvents, githubTriggerEventsSchema } from '@haus/api';
+import { githubTriggerEventsSchema } from '@haus/api';
 import type { Payload } from '../src/github/event-projection/payload.ts';
 import { matchesGithubEvents } from '../src/github/trigger-matching.ts';
 import {
@@ -11,11 +11,7 @@ import {
     workflowRunPayload,
 } from './github-delivery-fixtures.ts';
 
-// Author/actor trust gating: the `authors` default per event
-// (specs/github-triggers.md#events). General filter matching is covered by
-// github-trigger-matching.test.ts.
-
-function events(input: unknown): GithubTriggerEvents {
+function events(input: unknown) {
     return githubTriggerEventsSchema.parse(input);
 }
 

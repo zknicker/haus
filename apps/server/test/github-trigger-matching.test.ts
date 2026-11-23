@@ -19,7 +19,6 @@ function events(input: unknown): GithubTriggerEvents {
 
 type Case = [string, unknown, Parameters<typeof matchesGithubEvents>[1], Payload, boolean];
 
-// Author/actor trust gating has its own file: github-trigger-authors.test.ts.
 const cases: Case[] = [
     [
         'workflow_run default action is completed',
