@@ -1058,6 +1058,13 @@
       "when": 1795304337003,
       "tag": "0150_computer-use-captains",
       "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1795397910170,
+      "tag": "0151_computer-agent-access",
+      "breakpoints": true
     }
   ]
 }

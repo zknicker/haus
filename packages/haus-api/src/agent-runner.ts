@@ -73,6 +73,35 @@ export const agentRetireCommandSchema = z
 
 export type AgentRetireCommand = z.infer<typeof agentRetireCommandSchema>;
 
+/**
+ * Server to Computer when a person revokes an Agent's access there: stop the
+ * Agent's running invocation at once, the way Stop Agent Input stops a
+ * `desktop` command, and settle each accepted, queued one `cancelled` with no
+ * run. `agent-retire` fences the same way before it purges. Idempotent.
+ */
+export const agentFenceCommandSchema = z
+    .object({
+        agentId: idSchema,
+        type: z.literal('agent-fence'),
+    })
+    .strict();
+
+export type AgentFenceCommand = z.infer<typeof agentFenceCommandSchema>;
+
+/**
+ * Computer to Server, on every connect: the Agents whose folders or worktrees
+ * it still holds under its data root. The Server answers `agent-retire` for
+ * each retired one, so retirement reaches Computers that were not the home.
+ */
+export const agentHeldFrameSchema = z
+    .object({
+        agentIds: z.array(idSchema).max(10_000),
+        type: z.literal('agent-held'),
+    })
+    .strict();
+
+export type AgentHeldFrame = z.infer<typeof agentHeldFrameSchema>;
+
 /** Full desired executor snapshot applied by the assigned Computer. */
 export const agentConfigureCommandSchema = z
     .object({
@@ -114,6 +143,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     agentRestartCommandSchema,
     agentResetCommandSchema,
     agentRetireCommandSchema,
+    agentFenceCommandSchema,
     agentConfigureCommandSchema,
     agentSkillImportCommandSchema,
     agentSkillFileRequestSchema,
