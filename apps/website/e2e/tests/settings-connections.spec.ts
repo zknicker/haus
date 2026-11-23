@@ -81,10 +81,10 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await expect(page.getByRole('button', { exact: true, name: 'Sign in' })).toBeVisible();
     await expect(page.getByText('Sign in required', { exact: true })).toBeVisible();
     await expect(
-        page.getByText('This connection is added to Haus. Sign in', { exact: false })
+        page.getByText('Tools appear once this connection is set up.', { exact: true })
     ).toBeVisible();
     const signInTab = page.context().waitForEvent('page');
-    await page.getByRole('button', { name: 'Add another account' }).click();
+    await page.getByRole('button', { exact: true, name: 'Add account' }).click();
     await (await signInTab).close();
     await expect(title('MerchBase account')).toBeVisible();
     await page.goto(`/s/${slug}/settings/connections`);

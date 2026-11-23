@@ -11,7 +11,6 @@ import { projectRefusalCode } from '../../../lib/project-homes.ts';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelDetailsDialog } from '../../chats/channel-details-dialog.tsx';
-import { ProjectCaptainsDialog } from '../../chats/project-captains-dialog.tsx';
 import {
     type ProjectRehomeAction,
     ProjectRehomeDialog,
@@ -32,9 +31,9 @@ export interface ChannelActions {
     run: (chat: Chat, key: React.Key) => void;
 }
 
-// Editing a channel is several separate decisions, so each one gets its own
-// small dialog instead of one dialog that asks for everything at once.
-type ChannelEditDialog = 'appearance' | 'captains' | 'rename';
+// A Project's settings live on its Settings page; `#all`, which is no
+// Project and has no page, keeps these two small dialogs.
+type ChannelEditDialog = 'appearance' | 'rename';
 
 /**
  * Every channel menu's actions — the web topbar's •••, the sidebar row, and
@@ -45,9 +44,12 @@ type ChannelEditDialog = 'appearance' | 'captains' | 'rename';
 export function useChannelActions({
     onDeleted,
     openFiles,
+    openSettings,
     slug,
 }: ChatActionRoutes & {
     onDeleted?: (chat: Chat) => void;
+    /** The Project's page in Settings, where every Project setting lives. */
+    openSettings: (chatId: string) => void;
     slug: string;
 }): ChannelActions {
     const role = useServer(slug).data?.role;
@@ -84,7 +86,11 @@ export function useChannelActions({
             openFiles?.(chat.id);
             return;
         }
-        if (key === 'rename' || key === 'appearance' || key === 'captains') {
+        if (key === 'settings') {
+            openSettings(chat.id);
+            return;
+        }
+        if (key === 'rename' || key === 'appearance') {
             setEditDialog({ chat, kind: key });
             return;
         }
@@ -121,9 +127,6 @@ export function useChannelActions({
             ) : null}
             {editDialog?.kind === 'appearance' ? (
                 <ChannelAppearanceDialog chat={editDialog.chat} onClose={closeEditDialog} />
-            ) : null}
-            {editDialog?.kind === 'captains' ? (
-                <ProjectCaptainsDialog chat={editDialog.chat} onClose={closeEditDialog} />
             ) : null}
             {rehoming ? (
                 <ProjectRehomeDialog

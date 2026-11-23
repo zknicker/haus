@@ -17,14 +17,6 @@ export async function readReadyPlaces(db: Reader, serverId: string) {
         .map((kind) => ({ kind }));
 }
 
-export async function readDefaultPlace(db: Reader, input: { agentId: string; serverId: string }) {
-    const computerId = await readAssignedComputerId(db, input);
-    const own = (await readReadyCarriers(db, input.serverId)).find(
-        (carrier) => carrier.computerId === computerId
-    );
-    return own?.defaultPlace ?? null;
-}
-
 export async function chooseCarrier(
     db: Reader,
     input: { agentId: string; place: CloudAgentProvider; serverId: string }
@@ -59,7 +51,6 @@ async function readReadyCarriers(db: Reader, serverId: string) {
         });
         return {
             computerId,
-            defaultPlace: ready.find((reported) => reported.isDefault)?.provider ?? null,
             places: new Set(ready.map((reported) => reported.provider)),
         };
     });

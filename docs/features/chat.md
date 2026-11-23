@@ -299,14 +299,17 @@ and [Agent Inbox](../../specs/inbox.md).
   "…", a sidebar row, a desktop tab's submenu — lists the same actions in the
   same order; a sidebar row adds Open first (and, on desktop, Open in new tab, the same
   open as Command-clicking the row), and Attachments appears there only on desktop, where
-  Attachments opens as a page. Editing a channel is two separate
-  decisions, each with its own dialog: Name & description, and Icon & color
-  (both save through `project.update`). Name & description also shows the
-  Project's key, editable until a Task carries it; a taken or fixed key is
-  refused on the field. Captains in this Project lists the Agents whose home
-  it is: Add moves another Agent's home here (each choice shows its avatar and
-  the Project it lives in now), and Move to… moves one home to another Project,
-  both through `agent.setHome`. Every Project choice is one searchable picker
+  Attachments opens as a page. A Project's menus carry one Project settings item
+  that opens its page in Settings → Projects. That page edits the name, description,
+  and key inline (saved on blur or Enter through `project.update`; the key is
+  editable until a Task carries it, and a taken or fixed key is refused on the
+  field), the icon and color from the header mark, and the default place for
+  Workers (`project.setDefaultWorkerPlace`). Its Captains section lists the
+  Agents whose home it is: Add moves another Agent's home here (each choice
+  shows its avatar and the Project it lives in now), and each row's ••• Move to
+  moves one home to another Project, both through `agent.setHome`. The
+  Settings → Projects list shows every open Project with its key, Captains, and
+  default Worker place, and its archived Projects with Restore. Every Project choice is one searchable picker
   over `project.list` whose rows carry the Project's icon and color, and ends in
   New project, which creates a Project and picks it. An Agent's profile hub
   carries the same picker as its Project row, New Captain requires one, and
@@ -316,7 +319,7 @@ and [Agent Inbox](../../specs/inbox.md).
   Agents read it in `haus server info` and `haus channel info`, and the iPhone
   shows it read-only in the channel's details sheet. `#all`, the everyone channel and the one channel
   that is not a Project, keeps its name but its description, icon, and color are editable
-  (`chat.updateAllChannel`). Archive and delete follow them for a
+  (`chat.updateAllChannel`) in its menus' Name & description and Icon & color dialogs. Archive and delete follow them for a
   regular channel. Users create channels in one New project dialog that names
   the channel and picks its icon and color from a trigger inside the name field.
   It calls `project.create`, so the channel is a Project with a key the Server
@@ -352,9 +355,9 @@ and [Agent Inbox](../../specs/inbox.md).
   on authored transcript messages with muted identity and a `DELETED` badge.
   There is no separate pinned-chat state.
   Right-clicking a sidebar chat or its topbar name exposes the same contextual
-  actions without replacing the ordinary click target. Channel menus offer the
-  Name & description, Icon & color, and Captains in this Project dialogs (color is chosen
-  only in Icon & color); DM menus link to the Agent profile.
+  actions without replacing the ordinary click target. Project menus offer Project
+  settings, `#all`'s offer its Name & description and Icon & color dialogs; DM menus
+  link to the Agent profile.
 * **Message context.** Right-clicking a durable message offers copy, reply, and quick
   reactions. Right-clicking a link in a message also offers Copy link, which copies its
   destination URL. Agent messages additionally open Turn Details.

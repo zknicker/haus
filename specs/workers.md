@@ -208,10 +208,8 @@ offline still starts cloud Workers
 **The default place.** Each Project has a default place for its Workers, set in its settings
 ([Projects](projects.md)). A start without `--on` uses the Task's Project default. A Project
 without one, or whose default is not usable now, refuses the start with `WORKER_PLACE_REQUIRED`
-and lists the usable places. Haus never falls back to another place on its own. Until the Project
-settings UI ships, a Project with no default falls back to the Agent's Computer's ready cloud
-default ([Migration](#w3-transitional-decisions)). A default that is set but unusable still
-refuses.
+and lists the usable places. Haus never falls back to another place on its own, a Computer's cloud
+default included.
 
 A Computer place is usable when its switch is on, it is online, and some runtime it reports in
 `workerRuntimes` is ready. A cloud place is usable when an online Computer can carry it.
@@ -787,7 +785,8 @@ W2 migrates every caller and deletes the cloud agent path in one change.
   stays off until the attaching person, an Owner, or an Admin turns it on.
 - Deleted with no alias: `haus cloud-agent` and its `cancel` spelling, `--provider`, `--say`,
   `--cause` on start, the launch Message, **Make default** and `defaultProvider`, and the
-  Computer-local pending follow-up file once drained. **Make default** stays as a fallback
+  Computer-local pending follow-up file once drained. **Make default** stayed as a fallback until
+  the Project default place shipped in Settings
   ([W3 transitional decisions](#w3-transitional-decisions)). The website's older
   `TranscriptWorker` row type is now `TranscriptSubagent`, so the word means one thing.
 
@@ -797,13 +796,12 @@ W3 (Workers on Computers) ships the Server and Computer halves with no App UI. P
 control yet for a Computer's switch or a Project's default place, so W3 keeps these
 until W4 and the Project settings UI replace them. Each says what retires it.
 
-- **Start precedence.** A start runs on `--on`. Otherwise on the Task's Project default, and a
-  default that is set but unusable refuses with `WORKER_PLACE_REQUIRED`, never falling through.
-  Otherwise on the Agent's Computer's ready cloud default. Otherwise it refuses with
-  `WORKER_PLACE_REQUIRED` and lists the usable places. The third step retires with
-  **Make default**, below, which leaves the order this spec's [default place](#places) names.
-- **Make default as the last fallback.** The per-Computer **Make default** cloud provider is the
-  third step above. It retires when the Project settings UI ships the default place.
+- **Start precedence.** Retired 2026-11-23 when Settings → Projects shipped the default place. W3
+  fell through from an unset Project default to the Agent's Computer's ready cloud default; a
+  start now runs on `--on`, else the Task's Project default, else refuses with
+  `WORKER_PLACE_REQUIRED`, the order this spec's [default place](#places) names.
+- **Make default as the last fallback.** Retired with the start precedence above. A Computer's
+  **Make default** no longer chooses any Worker's place.
 - **Repos until the Project settings UI ships them.** Retired 2026-11-22 with `project_repos`
   ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)). Repos belong to the Server and `--repo` is required.
 - **New Worker drive folders pulled in full** until a seed copied only files whose bytes match

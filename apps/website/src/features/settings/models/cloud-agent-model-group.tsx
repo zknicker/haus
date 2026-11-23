@@ -1,5 +1,7 @@
 import { type CloudAgentProvider, cloudAgentProviders } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
+import { Fragment } from 'react';
 import {
     type CloudAgentSettingsTarget,
     useCloudAgentSettings,
@@ -35,12 +37,14 @@ export function CloudAgentModelGroup({
                 <ItemCardGroup.Title>Workers</ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <ItemCardGroup>
-                {cloudAgentProviders.map((provider) => (
-                    <CloudAgentProviderModelRows
-                        canManage={canManage}
-                        key={provider}
-                        target={{ provider, serverId }}
-                    />
+                {cloudAgentProviders.map((provider, index) => (
+                    <Fragment key={provider}>
+                        {index > 0 ? <Separator /> : null}
+                        <CloudAgentProviderModelRows
+                            canManage={canManage}
+                            target={{ provider, serverId }}
+                        />
+                    </Fragment>
                 ))}
             </ItemCardGroup>
         </ItemCardGroup>
@@ -136,8 +140,8 @@ function modelInfo(view: CloudAgentModelView) {
     }
     const about =
         view.provider === 'claude'
-            ? 'Every Claude cloud agent on this Server uses this model. With Default, Claude uses your account’s default model.'
-            : 'Every Cursor cloud agent on this Server uses this model. With Auto, Cursor picks a model for each run.';
+            ? 'Every Claude Cloud Worker on this Server uses this model. With Default, Claude uses your account’s default model.'
+            : 'Every Cursor Cloud Worker on this Server uses this model. With Auto, Cursor picks a model for each run.';
     return view.refreshedAt
         ? `${about} Model list updated ${formatRelativeTime(view.refreshedAt)}.`
         : about;

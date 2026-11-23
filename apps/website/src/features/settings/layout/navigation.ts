@@ -141,7 +141,7 @@ export const settingsNavItems = [
         icon: Folder01Icon,
         id: 'projects',
         label: 'Projects',
-        rows: [],
+        rows: ['New project', 'Archived'],
     },
     {
         access: 'everyone',

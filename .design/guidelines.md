@@ -1030,9 +1030,24 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   row carries no check mark when its section title already says
   Installed or Connected, and no description that only repeats its own name.
   Shared settings parts: a section header that carries a control just puts it after the
-  `ItemCardGroup.Title` (the theme lays the header out as a wrapping row); a row's status is
+  `ItemCardGroup.Title` (the theme lays the header out as a wrapping row); a section's add or
+  create control is a labeled `secondary` `sm` Button there ("Add connection", "Create
+  theme", "Add account"), never an icon-only `+`, a ghost button, or an add row at the foot
+  of the list; a section's count is a muted tabular number after its title, behind an
+  `sr-only` space; a row's leading mark is a bare `EntityAvatar` as the `ItemCard`'s first
+  child (brand tiles keep `ItemCard.Icon` with `ConnectionGlyph`); a row's status is
   `SettingsStatusTitle` with `SettingsStatusChip`s (soft, `sm`, `Chip.Label`), never a chip
-  in `Action`, a description, or a bare fact; an empty page or section is
+  in `Action`, a description, or a bare fact, and what that status means goes in its `info`
+  tooltip; every info tooltip is `SettingsInfo` (ghost `sm`, 16px glyph); a disclosure's
+  trigger is a ghost `sm` Button with `slot="trigger"`; a settings row's picker is a
+  `Select variant="secondary"` at its group's control width, never `InlineSelect`; a record
+  page (a Device, a connection) titles itself with `SettingsPageHeader` and puts its •••
+  menu in the shell band through `PageTopbar`. Settings tables are read-only, with one
+  exception: Models › Connections is a `DataGrid` whose rows carry a use Switch and a •••
+  menu, because each account's plan windows (5h, 7d, resets) are compared down columns
+  across accounts and an account expands into a details row; as `ItemCard` rows that
+  comparison and the expansion would be lost. Any other list of things you change is
+  `ItemCard` rows. An empty page or section is
   `SettingsEmptyState` (Pro `EmptyState` at `md`, no padding classes) and an empty list box
   holds one `SettingsEmptyRow`; a pressable row (`ItemCard` as a link or button) gets its
   inset focus ring from the theme. A dialog's description is a plain `<p>` in its Modal,

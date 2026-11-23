@@ -46,9 +46,9 @@ while you read it.
   [Model connections](../../specs/model-connections.md#plan-capacity).
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
-  Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses the place a
-  `haus worker start` without `--on` uses when the Agent is assigned to this Computer (Cursor until
-  changed). Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
+  Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row no longer chooses
+  any Worker's place: a `haus worker start` without `--on` uses the Task's Project default (Settings →
+  Projects) and refuses when there is none. Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
   pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
   **Claude's default (not pinned)**; a pin that goes stale (removed or archived) fails the next
   launch outright instead of silently falling back to Claude Code's own choice. The

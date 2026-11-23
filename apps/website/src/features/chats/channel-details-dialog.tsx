@@ -1,45 +1,21 @@
 import { type Chat, channelDescriptionMaxLength } from '@haus/api';
-import {
-    Button,
-    FieldError,
-    Form,
-    Input,
-    Label,
-    Modal,
-    TextArea,
-    TextField,
-    toast,
-} from '@heroui/react';
+import { Button, Form, Input, Label, Modal, TextArea, TextField, toast } from '@heroui/react';
 import * as React from 'react';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
-import { ChannelDialogError } from './channel-dialog-error.tsx';
-import { channelHandleIssue } from './channel-handle.ts';
-import { channelNoun } from './channel-noun.ts';
-import { ProjectKeyField, useProjectKeyDraft } from './project-key-field.tsx';
-import { projectKeyRefusal } from './project-key.ts';
+import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 
+/**
+ * `#all`'s name and description. `#all` is no Project, so it has no Settings
+ * page; its name is fixed, which leaves the description to edit.
+ */
 export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
     const updateChannel = useChannelUpdate(chat);
-    const noun = channelNoun(chat);
-    const keyDraft = useProjectKeyDraft(chat);
-    const keyRefusal = projectKeyRefusal(updateChannel.error);
-    const currentName = chat.name ?? '';
     const currentDescription = chat.description ?? '';
-    const [name, setName] = React.useState(currentName);
     const [description, setDescription] = React.useState(currentDescription);
-    const trimmedName = name.trim();
     const trimmedDescription = description.trim();
-    const handleIssue = channelHandleIssue(name);
-    const changed =
-        trimmedName !== currentName ||
-        trimmedDescription !== currentDescription ||
-        keyDraft.changed;
     const canSubmit =
-        trimmedName.length > 0 &&
-        !handleIssue &&
-        keyDraft.savable &&
         trimmedDescription.length <= channelDescriptionMaxLength &&
-        changed &&
+        trimmedDescription !== currentDescription &&
         !updateChannel.isPending;
 
     const handleSubmit = React.useEffectEvent(async (event: React.FormEvent<HTMLFormElement>) => {
@@ -53,11 +29,9 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
             await updateChannel.mutateAsync({
                 chatId: chat.id,
                 description: trimmedDescription,
-                ...(keyDraft.changed && !chat.isAll ? { key: keyDraft.key } : {}),
-                name: trimmedName,
                 serverId: chat.serverId,
             });
-            toast.success(noun.updated);
+            toast.success(`#${chat.name} updated`);
             onClose();
         } catch {
             // The dialog stays open and shows the failure inline.
@@ -70,11 +44,8 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Heading>Edit {noun.lower}</Modal.Heading>
-                        <p>
-                            Captains address the {noun.lower} by its name and read the description
-                            to learn what belongs here.
-                        </p>
+                        <Modal.Heading>Edit channel</Modal.Heading>
+                        <p>Captains read the description to learn what belongs here.</p>
                     </Modal.Header>
                     <Modal.Body>
                         <Form
@@ -84,27 +55,13 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                         >
                             <TextField
                                 fullWidth
-                                isDisabled={updateChannel.isPending || chat.isAll}
-                                isInvalid={Boolean(handleIssue)}
-                                onChange={setName}
-                                value={name}
+                                isDisabled
+                                value={chat.name ?? ''}
                                 variant="secondary"
                             >
-                                <Label>{noun.label} name</Label>
-                                <Input autoFocus={!chat.isAll} placeholder="planning" type="text" />
-                                {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
+                                <Label>Channel name</Label>
+                                <Input type="text" />
                             </TextField>
-                            {chat.isAll ? null : (
-                                <ProjectKeyField
-                                    draft={keyDraft}
-                                    isPending={updateChannel.isPending}
-                                    onChange={(value) => {
-                                        updateChannel.reset();
-                                        keyDraft.setKey(value);
-                                    }}
-                                    refusal={keyRefusal}
-                                />
-                            )}
                             <TextField
                                 fullWidth
                                 isDisabled={updateChannel.isPending}
@@ -114,15 +71,13 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                             >
                                 <Label>Description</Label>
                                 <TextArea
-                                    autoFocus={chat.isAll}
+                                    autoFocus
                                     maxLength={channelDescriptionMaxLength}
-                                    placeholder={`What this ${noun.lower} is for`}
+                                    placeholder="What this channel is for"
                                     rows={3}
                                 />
                             </TextField>
-                            <ChannelDialogError
-                                message={keyRefusal ? null : (updateChannel.error?.message ?? null)}
-                            />
+                            <SettingsRowError>{updateChannel.error?.message}</SettingsRowError>
                         </Form>
                     </Modal.Body>
                     <Modal.Footer>

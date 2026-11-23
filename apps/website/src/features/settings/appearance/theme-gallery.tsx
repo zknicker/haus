@@ -1,8 +1,6 @@
 import { ItemCardGroup, RadioButtonGroup } from '@heroui-pro/react';
 import { Button, Label } from '@heroui/react';
-import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useTheme } from '../../../components/theme-provider.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
 import { selectColorTheme, useColorTheme } from '../../../hooks/shell/use-color-theme.ts';
 import { createCustomTheme, useCustomThemes } from '../../../hooks/shell/use-custom-themes.ts';
 import { getThemeBackground } from '../../../hooks/shell/use-theme-background.ts';
@@ -25,8 +23,7 @@ export function ThemeGallery() {
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Theme</ItemCardGroup.Title>
-                <Button onPress={() => createThemeFrom(theme)} size="sm" variant="ghost">
-                    <Icon aria-hidden="true" icon={Add01Icon} size={16} />
+                <Button onPress={() => createThemeFrom(theme)} size="sm" variant="secondary">
                     Create theme
                 </Button>
             </ItemCardGroup.Header>

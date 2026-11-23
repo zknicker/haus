@@ -1,5 +1,7 @@
 import { type McpPreset, presetChips } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
+import { Fragment } from 'react';
 import { connectionChipViews } from '../../mentions/connection-chip-views.tsx';
 import { ConnectionSection } from './connection-section.tsx';
 
@@ -16,23 +18,26 @@ export function ConnectionChipsSection({ preset }: { preset: McpPreset | null })
 
     return (
         <ConnectionSection title="In chat">
-            <ItemCardGroup variant="outline">
-                {chips.map(({ description, kind, title }) => {
+            <ItemCardGroup>
+                {chips.map(({ description, kind, title }, index) => {
                     const { Sample } = connectionChipViews[kind];
                     return (
-                        <ItemCard key={kind}>
-                            <ItemCard.Content>
-                                <ItemCard.Title>{title}</ItemCard.Title>
-                                <ItemCard.Description className="whitespace-normal">
-                                    {description}
-                                </ItemCard.Description>
-                            </ItemCard.Content>
-                            <ItemCard.Action>
-                                <span className="text-base" inert>
-                                    <Sample />
-                                </span>
-                            </ItemCard.Action>
-                        </ItemCard>
+                        <Fragment key={kind}>
+                            {index > 0 ? <Separator /> : null}
+                            <ItemCard>
+                                <ItemCard.Content>
+                                    <ItemCard.Title>{title}</ItemCard.Title>
+                                    <ItemCard.Description className="whitespace-normal">
+                                        {description}
+                                    </ItemCard.Description>
+                                </ItemCard.Content>
+                                <ItemCard.Action>
+                                    <span className="text-base" inert>
+                                        <Sample />
+                                    </span>
+                                </ItemCard.Action>
+                            </ItemCard>
+                        </Fragment>
                     );
                 })}
             </ItemCardGroup>

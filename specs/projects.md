@@ -62,7 +62,12 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 
 ## Settings
 
-Settings sit behind the channel header menu. There is no Overview pane.
+Settings live on the Project's page in the App, Settings → Projects → the Project
+(`settings/projects/:projectId`, the id being the channel's Chat id). The Projects list shows every
+open Project with its key, home Agents, and default Worker place, and its archived Projects with
+Restore. Every Project menu (sidebar row, tab, header) has one **Project settings** item that
+opens the page; `#all`, which has no page, keeps its own name, description, icon, and color
+dialogs. There is no Overview pane.
 
 | Setting | Owner | Lands in |
 | --- | --- | --- |
@@ -142,9 +147,9 @@ A Project has no repos
 - A `computer:` place must name a Computer whose "Workers can run here" switch is on. Turning the
   switch off clears every Project default that names it, and removing the Computer clears them
   first in the same transaction. This replaces the per-Computer **Make default** provider setting.
-- The API exists since W3: `project.setDefaultWorkerPlace { serverId, projectId, place | null }`,
-  publishing `project.updated`. The settings UI is W4. Until it ships, a Project with no default
-  falls back to the Agent's Computer's **Make default** cloud provider
+- `project.setDefaultWorkerPlace { serverId, projectId, place | null }` sets it, publishing
+  `project.updated`, from Settings → Projects → the Project → Workers. A Project with no default
+  never falls back to a Computer's cloud default
   ([Workers](workers.md#w3-transitional-decisions)).
 
 ## The Haus project

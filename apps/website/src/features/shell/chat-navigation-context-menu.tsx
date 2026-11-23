@@ -8,7 +8,7 @@ import { type ChatNavigationEntry, useListedChat } from '../../hooks/servers/use
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { ChannelContextMenuItems } from '../servers/chat/chat-context-menu-items.tsx';
 import { type ChannelActions, useChannelActions } from '../servers/chat/use-channel-actions.tsx';
-import { serverChatRoute, serverRoute } from '../servers/server-routes.ts';
+import { serverChatRoute, serverRoute, settingsProjectRoute } from '../servers/server-routes.ts';
 import { DmNavigationContextMenu } from './dm-navigation-context-menu.tsx';
 import { RowTabItems, runRowTabItem, useRowTabOpeners } from './open-in-new-tab-item.tsx';
 
@@ -72,6 +72,7 @@ function ChannelNavigationContextMenu({
         // Deleting the channel you are in leaves it; any other page stays put.
         onDeleted: isCurrent ? () => navigate(serverRoute(slug), { replace: true }) : undefined,
         openFiles: openers?.openFiles,
+        openSettings: (projectId) => navigate(settingsProjectRoute(slug, projectId)),
         slug,
     });
 

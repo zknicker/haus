@@ -77,14 +77,15 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
     }
 });
 
-test('a Worker starts on a Task at --on, the Project default, or the cloud default, and reports there', () => {
+test('a Worker starts on a Task at --on or the Project default, and reports there', () => {
     const body = getManualTopic('workers')?.body ?? '';
     expect(body).toContain(
         '`haus worker start --task <KEY-n> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]`'
     );
     expect(body).toContain(
-        "Without `--on` a start runs on the Task's Project default, else on your Computer's ready cloud default (Settings → Devices → (your device) → Cloud Agents → Make default)."
+        "Without `--on` a start runs on the Task's Project default, and a Project with none refuses it (a person sets one at Settings → Projects → (the project) → Workers → Default place)."
     );
+    expect(body).not.toContain('Make default');
     expect(body).toContain('`WORKER_TASK_REQUIRED`');
     expect(body).toContain('`WORKER_PLACE_REQUIRED`');
     expect(body).toContain('Starting posts nothing');

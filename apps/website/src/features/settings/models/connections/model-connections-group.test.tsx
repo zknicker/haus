@@ -121,7 +121,7 @@ describe('the connections table', () => {
 
     test('the Owner gets Add connection, a switch and a menu on each row', () => {
         const html = render([team, gemini]);
-        expect(count(html, 'aria-label="Add connection"')).toBe(1);
+        expect(count(html, '>Add connection<')).toBe(1);
         expect(count(html, 'aria-label="Team plan actions"')).toBe(1);
         expect(count(html, 'aria-label="Gemini key actions"')).toBe(1);
         expect(/<input aria-label="Use Team plan"[^>]*>/u.exec(html)?.[0]).not.toContain(
@@ -131,7 +131,7 @@ describe('the connections table', () => {
 
     test('a member sees no Add connection or menus, and the switches only read', () => {
         const html = render([team, { ...failedGemini, enabled: false }], false);
-        expect(count(html, 'aria-label="Add connection"')).toBe(0);
+        expect(count(html, '>Add connection<')).toBe(0);
         expect(count(html, ' actions"')).toBe(0);
         const enabled = /<input aria-label="Use Team plan"[^>]*>/u.exec(html)?.[0];
         expect(enabled).toContain('disabled=""');
