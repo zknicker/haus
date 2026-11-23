@@ -25,7 +25,7 @@ export function serverAgentDmRoute(slug: string, agentId: string) {
 }
 
 export function serverArchivedChatsRoute(slug: string) {
-    return `${serverRoute(slug)}/archived`;
+    return serverSettingsSectionRoute(slug, 'archived');
 }
 
 /** The human Inbox: one lens over what needs this person right now. */

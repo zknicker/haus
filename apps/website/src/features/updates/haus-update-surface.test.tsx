@@ -14,7 +14,7 @@ import type {
 } from './haus-update-model.ts';
 import { projectHausUpdate } from './haus-update-model.ts';
 import { HausVersionBreakdown } from './haus-version-breakdown.tsx';
-import { HausVersionSummary } from './haus-version-summary.tsx';
+import { HausVersionRow } from './haus-version-summary.tsx';
 import type { OfflineComputerNotice } from './use-offline-computers.ts';
 
 const release: HausReleaseSnapshot = {
@@ -197,11 +197,11 @@ describe('Haus update surfaces', () => {
         expect(html).toContain('text-success');
     });
 
-    test('prominently renders only the product version in Settings', () => {
-        const html = renderToStaticMarkup(<HausVersionSummary view={restartRequiredView} />);
+    test('renders only the product version as a fact row in Settings', () => {
+        const html = renderToStaticMarkup(<HausVersionRow view={restartRequiredView} />);
 
+        expect(html).toContain('Version');
         expect(html).toContain('Haus 1.9.0');
-        expect(html).toContain('Component updates are managed from the sidebar.');
         expect(html).not.toContain('Restart to finish');
     });
 

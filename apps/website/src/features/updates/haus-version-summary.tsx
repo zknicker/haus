@@ -1,22 +1,19 @@
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ItemCard } from '@heroui-pro/react';
+import { SettingsRowTitle } from '../settings/layout/settings-row-title.tsx';
+import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import type { HausUpdateView } from './haus-update-model.ts';
 
-export function HausVersionSummary({ view }: { view: HausUpdateView }) {
+export function HausVersionRow({ view }: { view: HausUpdateView }) {
     return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Version</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
-            <ItemCardGroup>
-                <ItemCard>
-                    <ItemCard.Content>
-                        <ItemCard.Title>Haus {view.version}</ItemCard.Title>
-                        <ItemCard.Description>
-                            Component updates are managed from the sidebar.
-                        </ItemCard.Description>
-                    </ItemCard.Content>
-                </ItemCard>
-            </ItemCardGroup>
-        </ItemCardGroup>
+        <ItemCard>
+            <ItemCard.Content>
+                <SettingsRowTitle info="Component updates are managed from the sidebar.">
+                    Version
+                </SettingsRowTitle>
+            </ItemCard.Content>
+            <ItemCard.Action>
+                <SettingsFact>Haus {view.version}</SettingsFact>
+            </ItemCard.Action>
+        </ItemCard>
     );
 }

@@ -1,5 +1,6 @@
 import { Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import type { ServerContextValue } from '../../features/servers/server-context.ts';
+import { settingsPageLabel } from '../../features/settings/layout/navigation.ts';
 import { SettingsContentFrame } from '../../features/settings/layout/page.tsx';
 import { SettingsBreadcrumb } from '../../features/settings/layout/settings-breadcrumb.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
@@ -7,8 +8,9 @@ import { resolveSettingsSection } from './server-route-state.ts';
 
 export function ServerSettingsPage() {
     const context = useOutletContext<ServerContextValue>();
-    useWindowTitle('Settings');
     const location = useLocation();
+    const section = resolveSettingsSection(location.pathname, context.server.slug);
+    useWindowTitle(settingsPageLabel(section) ?? 'Settings');
     // Skills is the full-bleed library browser, and a device page manages its
     // own scrolling under its band menu.
     const isFullContentRoute =
@@ -21,7 +23,7 @@ export function ServerSettingsPage() {
                 never has to remember to say where it is. */}
             <SettingsBreadcrumb
                 pathname={location.pathname}
-                section={resolveSettingsSection(location.pathname, context.server.slug)}
+                section={section}
                 serverId={context.server.id}
                 slug={context.server.slug}
             />

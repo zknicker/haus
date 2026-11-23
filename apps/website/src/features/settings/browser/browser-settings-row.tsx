@@ -83,9 +83,9 @@ function BrowserActionsMenu({
                             id="enable"
                             isDisabled={isSaving}
                             onAction={() => onToggle(true)}
-                            textValue="Connect Browser"
+                            textValue="Connect browser"
                         >
-                            <Label>Connect Browser</Label>
+                            <Label>Connect browser</Label>
                         </Dropdown.Item>
                     ) : null}
                     {view.canDisable ? (
@@ -93,9 +93,9 @@ function BrowserActionsMenu({
                             id="disable"
                             isDisabled={isSaving}
                             onAction={() => onToggle(false)}
-                            textValue="Disconnect Browser"
+                            textValue="Disconnect browser"
                         >
-                            <Label>Disconnect Browser</Label>
+                            <Label>Disconnect browser</Label>
                         </Dropdown.Item>
                     ) : null}
                 </Dropdown.Menu>

@@ -4,7 +4,7 @@ import { Chip, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
 import { ProviderMark } from '../../components/provider-mark.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
 import { RuntimeIssueHelp } from './runtime-issue.tsx';
-import { type DisplayPlanWindow, usageColor } from './runtime-plan-windows.ts';
+import { type DisplayPlanWindow, percentLeft, usageColor } from './runtime-plan-windows.ts';
 import {
     buildRuntimeRow,
     type RuntimeUsageRow,
@@ -110,13 +110,16 @@ function runtimeColumns(now: number, computerName: string): DataGridColumn<Runti
         {
             cell: (item) =>
                 item.window ? (
-                    <UsageMeter label={`${item.title} ${item.window.label}`} window={item.window} />
+                    <UsageMeter
+                        label={`${item.title} ${item.window.label} left`}
+                        window={item.window}
+                    />
                 ) : (
                     <span className="text-muted truncate text-sm">
                         {item.issue ? '—' : item.status}
                     </span>
                 ),
-            header: 'Weekly limit',
+            header: '7d left',
             id: 'limit',
             minWidth: 240,
         },
@@ -128,11 +131,11 @@ function runtimeColumns(now: number, computerName: string): DataGridColumn<Runti
                 item.fiveHourWindow ? (
                     <Tooltip delay={300}>
                         <Tooltip.Trigger
-                            aria-label={`5-hour limit, ${Math.round(item.fiveHourWindow.usedPercent)}% used.`}
+                            aria-label={`5-hour limit, ${percentLeft(item.fiveHourWindow)}% left.`}
                             className="flex w-full min-w-0"
                         >
                             <UsageMeter
-                                label={`${item.title} 5-hour limit`}
+                                label={`${item.title} 5-hour limit left`}
                                 window={item.fiveHourWindow}
                             />
                         </Tooltip.Trigger>
@@ -144,7 +147,7 @@ function runtimeColumns(now: number, computerName: string): DataGridColumn<Runti
                 ) : (
                     <UnsupportedMeter />
                 ),
-            header: '5h limit',
+            header: '5h left',
             id: 'burst',
             minWidth: 190,
         },
@@ -188,14 +191,14 @@ export function UsageMeter({ label, window }: { label: string; window: DisplayPl
                 // defines a warning tier at 75%, so a 75% week looked as calm as a
                 // 7% one. One scale for every meter.
                 color={usageColor(window.usedPercent)}
-                value={window.usedPercent}
+                value={percentLeft(window)}
             >
                 <ProgressBar.Track>
                     <ProgressBar.Fill />
                 </ProgressBar.Track>
             </ProgressBar>
             <span className="w-10 shrink-0 text-right text-sm font-medium tabular-nums">
-                {Math.round(window.usedPercent)}%
+                {percentLeft(window)}%
             </span>
         </div>
     );
@@ -218,8 +221,8 @@ function UnsupportedMeter() {
 }
 
 function burstResetCopy(window: DisplayPlanWindow, now: number) {
-    const used = `Rolling 5-hour limit, ${Math.round(window.usedPercent)}% used.`;
+    const left = `Rolling 5-hour limit, ${percentLeft(window)}% left.`;
     return window.resetsAt
-        ? `${used} ${Date.parse(window.resetsAt) <= now ? 'Reset' : 'Resets'} ${formatTimestamp(window.resetsAt)}.`
-        : `${used} Reset time unavailable.`;
+        ? `${left} ${Date.parse(window.resetsAt) <= now ? 'Reset' : 'Resets'} ${formatTimestamp(window.resetsAt)}.`
+        : `${left} Reset time unavailable.`;
 }

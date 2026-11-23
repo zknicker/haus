@@ -19,7 +19,7 @@ test('keeps a sole Codex session window in the 5-hour column', () => {
     // A 5-hour session allowance is not a weekly one: the weekly column says so
     // rather than relabelling the burst window.
     expect(markup).toContain('Plan limits unavailable');
-    expect(markup).toContain('5-hour limit, 17% used.');
+    expect(markup).toContain('5-hour limit, 83% left.');
     expect(markup).not.toContain('Codex Weekly Limit');
 });
 
@@ -40,7 +40,7 @@ test('refuses a session window too long to be a 5-hour allowance', () => {
 
     expect(markup).toContain('Plan limits unavailable');
     expect(markup).toContain('No 5-hour limit');
-    expect(markup).not.toContain('5-hour limit, 17% used.');
+    expect(markup).not.toContain('5-hour limit, 83% left.');
 });
 
 test('a failed usage login does not claim the runtime cannot authenticate', () => {
@@ -94,7 +94,7 @@ test('a retained snapshot whose usage login expired keeps its meters without an 
         />
     );
 
-    expect(markup).toContain('28%');
+    expect(markup).toContain('72%');
     expect(markup).toContain('Usage unavailable');
     expect(markup).not.toContain('Authentication failed');
     expect(markup).not.toContain('Usage out of date');
@@ -121,7 +121,7 @@ test('a retained snapshot kept past a request failure keeps the generic stale co
         }
     );
 
-    expect(markup).toContain('13%');
+    expect(markup).toContain('87%');
     expect(markup).toContain('Usage unavailable');
     expect(markup).not.toContain('Authentication failed');
 });
@@ -141,7 +141,7 @@ test('a fresh snapshot with no retention stamp carries no stale copy', () => {
         { capturedAt: new Date(Date.now() - 60_000).toISOString() }
     );
 
-    expect(markup).toContain('13%');
+    expect(markup).toContain('87%');
     expect(markup).not.toContain('Usage out of date');
     expect(markup).toContain('Resets');
 });
@@ -203,6 +203,6 @@ test('execution authentication issues override successful usage and stay scoped 
     expect(markup).toContain('Codex: authentication details');
     expect(markup).toContain('Claude Code: usage details');
     expect(markup.split('Authentication failed')).toHaveLength(2);
-    expect(markup).toContain('13%');
+    expect(markup).toContain('87%');
     expect(markup).not.toContain('Last updated');
 });

@@ -57,7 +57,7 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
     // Settings is a singleton: the Account menu opens it after the left pane's tab…
     await openSettings(page);
     await expect(left).toHaveCount(4);
-    await expect(left.nth(1)).toContainText('Settings');
+    await expect(left.nth(1)).toContainText('Profile');
     await expect(left.nth(1)).toHaveAttribute('data-active', 'true');
     // …with no pre-tab back row on desktop.
     await expect(page.getByRole('row', { exact: true, name: 'Back to chat' })).toHaveCount(0);
@@ -69,13 +69,13 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
 
     // The Settings rail is the Settings page's own drill-down: with Settings in the right
     // pane, a rail section pushes in that tab and never Goes in the left pane.
-    await left.filter({ hasText: 'Settings' }).click({ button: 'right' });
+    await left.filter({ hasText: 'Profile' }).click({ button: 'right' });
     await page.getByRole('menuitem', { name: 'Move to right pane' }).click();
     await expect(right).toHaveCount(2);
     // Focusing it puts its rail in the sidebar.
     await right
-        .filter({ hasText: 'Settings' })
-        .getByRole('button', { exact: true, name: 'Settings' })
+        .filter({ hasText: 'Profile' })
+        .getByRole('button', { exact: true, name: 'Profile' })
         .click();
     const leftBefore = await left.allTextContents();
     await page.getByRole('row', { exact: true, name: 'Members' }).click();

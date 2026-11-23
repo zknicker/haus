@@ -16,9 +16,10 @@ import { cn } from '../../../lib/utils.ts';
  * alone. Page-level actions do not belong here — they go in the shell band
  * through `PageTopbar`, which is otherwise empty on settings routes.
  *
- * - `px-4` puts the title on the same left edge as `ItemCardGroup`'s own header
- *   and row text below it. At `px-1` the page title sat 12px inside everything
- *   it headed, so the column had two left edges.
+ * - No inline padding: the title, section headings, page-level search fields,
+ *   tables and card edges share the column's left edge. Row text keeps its
+ *   inset inside the card. The theme flushes settings section headers to match
+ *   (`.settings-frame` in `default-theme.css`).
  * - Semibold with tight tracking, not bold. Inter at 22px/700 with default
  *   tracking is the browser's idea of a heading, not a designed one.
  *
@@ -53,7 +54,7 @@ export function SettingsPageHeader({
     return (
         <header
             className={cn(
-                'flex min-w-0 flex-wrap items-end justify-between gap-x-8 gap-y-3 px-4',
+                'flex min-w-0 flex-wrap items-end justify-between gap-x-8 gap-y-3',
                 className
             )}
             {...props}

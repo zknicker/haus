@@ -993,6 +993,19 @@
     }
 
     /*
+     * A search field leading a sidebar (the Settings rail) is the head of the
+     * navigation's icon column: its glyph sits where the rows' icons sit, at
+     * HeroUI's fixed 0.5rem row inset, and at their 16px. Stock puts it ×3 in
+     * from the field's border at a spacing-scaled size, a step right of and
+     * smaller than every icon under it.
+     */
+    .sidebar .search-field__search-icon {
+        width: 1rem;
+        height: 1rem;
+        margin-inline-start: calc(0.5rem - var(--border-width-field, 1px));
+    }
+
+    /*
      * A radio is a circle. Not "round at today's radius" — a circle, because
      * the shape is the meaning: round says pick one, a rounded square says
      * pick any. That is not a value the theme gets a vote on.
@@ -1550,6 +1563,16 @@
     }
 
     /*
+     * A settings section heading sits on the page's one left edge, with the
+     * page title, page-level search fields, tables and card edges. Stock insets
+     * the header ×4 to meet the row text inside the card, which left every
+     * settings page with two left edges once a table or search field joined it.
+     */
+    .settings-frame .item-card-group--transparent > .item-card-group__header {
+        padding-inline: 0;
+    }
+
+    /*
      * A chip in a table cell is a token, not a phrase: in a settings table's
      * measure an auto-laid-out grid squeezed "Claude Code" into a two-line
      * pill. Unwrapped, the grid gives the column the chip's width and
@@ -1557,6 +1580,16 @@
      */
     .settings-frame .table__cell .chip {
         white-space: nowrap;
+    }
+
+    /*
+     * A settings table is a short list of records, often one or two rows, not
+     * a spreadsheet. Stock draws a pipe between every column header, which put
+     * more chrome above a one-row Members or Models list than the row itself
+     * carried. The header ground and row rules stay; the pipes go.
+     */
+    .settings-frame .table__column::after {
+        content: none;
     }
 
     /*
@@ -2860,7 +2893,8 @@
 
     /*
      * Inside the band card the lead gets the same air above it as the rows' side inset: the
-     * first row, or a group label when one leads (desktop Settings) and not the row under it.
+     * first row, or a group label or search field when one leads (desktop Settings) and not
+     * the row under it.
      */
     [data-shell-variant="band"]
         .app-shell
@@ -2871,7 +2905,7 @@
         .app-shell
         [data-slot="sidebar-content"]
         > [data-slot="sidebar-group"]:first-child
-        > [data-slot="sidebar-group-label"]:first-child {
+        > :is([data-slot="sidebar-group-label"], .search-field):first-child {
         margin-block-start: calc(var(--spacing-compact) * 3);
     }
 

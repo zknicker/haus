@@ -61,11 +61,11 @@ test('an Owner connects an existing browser, sees its identity, and disconnects'
         await expect(dialog).toBeHidden();
         await page.getByRole('button', { name: 'Chrome actions' }).click();
         await expect(page.getByRole('menuitem', { name: 'Restart Chrome' })).toHaveCount(0);
-        await page.getByRole('menuitem', { name: 'Disconnect Browser' }).click();
+        await page.getByRole('menuitem', { name: 'Disconnect browser' }).click();
         await expect.poll(() => fixture.settings().enabled).toBe(false);
         await page.getByRole('button', { name: 'Chrome actions' }).click();
         await expect(page.getByRole('menuitem', { name: 'Open Chrome' })).toHaveCount(0);
-        await page.getByRole('menuitem', { name: 'Connect Browser' }).click();
+        await page.getByRole('menuitem', { name: 'Connect browser' }).click();
         await expect.poll(() => fixture.settings().enabled).toBe(true);
     } finally {
         computer.close();

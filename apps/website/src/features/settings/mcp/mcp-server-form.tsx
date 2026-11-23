@@ -141,8 +141,8 @@ function HttpConnectionFields({
                             <Label>OAuth</Label>
                             <ListBox.ItemIndicator />
                         </ListBox.Item>
-                        <ListBox.Item id="headers" textValue="Secret Headers">
-                            <Label>Secret Headers</Label>
+                        <ListBox.Item id="headers" textValue="Secret headers">
+                            <Label>Secret headers</Label>
                             <ListBox.ItemIndicator />
                         </ListBox.Item>
                     </ListBox>
@@ -150,10 +150,10 @@ function HttpConnectionFields({
             </Select>
             {draft.auth === 'headers' ? (
                 <SecretFieldsEditor
-                    addLabel="Add Header"
+                    addLabel="Add header"
                     entries={draft.headers}
                     onChange={(headers) => update(setDraft, { headers })}
-                    title="Secret Headers"
+                    title="Secret headers"
                 />
             ) : null}
             {draft.auth === 'oauth' ? (
@@ -189,7 +189,7 @@ function OAuthAdvancedFields({
                             <Input placeholder="Optional — dynamic registration is the default" />
                         </LabeledField>
                         <LabeledField
-                            label="Client Secret"
+                            label="Client secret"
                             onChange={(oauthClientSecret) =>
                                 update(setDraft, { oauthClientSecret })
                             }

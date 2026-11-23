@@ -106,7 +106,7 @@ export function MembersPage({
                 )}
             />
             {commandError ? (
-                <p className="text-danger px-4 text-sm" role="alert">
+                <p className="text-danger text-sm" role="alert">
                     {commandError}
                 </p>
             ) : null}

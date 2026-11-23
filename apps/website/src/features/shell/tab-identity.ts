@@ -3,6 +3,7 @@ import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { parseArtifactPageKey } from '../../routes/app/desktop-page-paths.ts';
 import { type AppSection, resolveActiveSection } from '../../routes/app/server-route-state.ts';
+import { settingsPageLabel } from '../settings/layout/navigation.ts';
 
 /**
  * A desktop tab's mark and title, from its current location (ADR 0039). A tab
@@ -39,6 +40,7 @@ export type TabPage =
     | { kind: 'home' }
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
+    | { kind: 'settings'; page: string }
     | { kind: 'task'; taskKey: string }
     | { kind: 'worker'; workerId: string };
 
@@ -78,6 +80,8 @@ export function parseTabPage(location: TabLocation): TabPage {
                 : sectionPage(pathname, slug);
         case 'tasks':
             return tasksPage(first, second) ?? sectionPage(pathname, slug);
+        case 'settings':
+            return { kind: 'settings', page: first };
         default:
             return sectionPage(pathname, slug);
     }
@@ -133,6 +137,12 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
                 // A shared file names itself once its record loads; until then the slot stays empty.
                 label: page.title ?? records.artifactTitle ?? (page.shared ? '' : 'Workspace'),
                 mark: { kind: 'glyph', glyph: 'artifact' },
+                place: null,
+            };
+        case 'settings':
+            return {
+                label: settingsPageLabel(page.page) ?? sectionLabels.settings,
+                mark: { kind: 'glyph', glyph: 'settings' },
                 place: null,
             };
         case 'task':

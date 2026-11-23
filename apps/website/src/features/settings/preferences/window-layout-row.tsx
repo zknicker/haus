@@ -1,6 +1,6 @@
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ItemCard } from '@heroui-pro/react';
 import { Label, ListBox, Select } from '@heroui/react';
-import { selectShellVariant, useShellVariant } from '../../../hooks/shell/use-shell-variant.ts';
+import { selectShellVariant } from '../../../hooks/shell/use-shell-variant.ts';
 import { parseShellVariant, type ShellVariant } from '../../../lib/shell-variant.ts';
 
 export const windowLayoutOptions: Array<{ id: ShellVariant; label: string }> = [
@@ -8,57 +8,45 @@ export const windowLayoutOptions: Array<{ id: ShellVariant; label: string }> = [
     { id: 'canvas', label: 'Canvas' },
 ];
 
-/** Desktop only: how the window frames the sidebar, tabs, and content. Applies instantly. */
-export function WindowLayoutRow() {
-    return <WindowLayoutField variant={useShellVariant()} />;
-}
-
-/** The Window section for a given layout; nothing on the web, which has none. */
+/** Desktop only: how the window frames the sidebar, tabs, and content. Nothing on the web. */
 export function WindowLayoutField({ variant }: { variant: ShellVariant | null }) {
     if (!variant) {
         return null;
     }
     return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Window</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
-                <ItemCard>
-                    <ItemCard.Content>
-                        <ItemCard.Title>Window layout</ItemCard.Title>
-                    </ItemCard.Content>
-                    <ItemCard.Action>
-                        <Select
-                            aria-label="Window layout"
-                            className="w-48"
-                            onChange={applyWindowLayout}
-                            value={variant}
-                            variant="secondary"
-                        >
-                            <Select.Trigger>
-                                <Select.Value />
-                                <Select.Indicator />
-                            </Select.Trigger>
-                            <Select.Popover>
-                                <ListBox>
-                                    {windowLayoutOptions.map((option) => (
-                                        <ListBox.Item
-                                            id={option.id}
-                                            key={option.id}
-                                            textValue={option.label}
-                                        >
-                                            <Label>{option.label}</Label>
-                                            <ListBox.ItemIndicator />
-                                        </ListBox.Item>
-                                    ))}
-                                </ListBox>
-                            </Select.Popover>
-                        </Select>
-                    </ItemCard.Action>
-                </ItemCard>
-            </ItemCardGroup>
-        </ItemCardGroup>
+        <ItemCard>
+            <ItemCard.Content>
+                <ItemCard.Title>Window layout</ItemCard.Title>
+            </ItemCard.Content>
+            <ItemCard.Action>
+                <Select
+                    aria-label="Window layout"
+                    className="w-48"
+                    onChange={applyWindowLayout}
+                    value={variant}
+                    variant="secondary"
+                >
+                    <Select.Trigger>
+                        <Select.Value />
+                        <Select.Indicator />
+                    </Select.Trigger>
+                    <Select.Popover>
+                        <ListBox>
+                            {windowLayoutOptions.map((option) => (
+                                <ListBox.Item
+                                    id={option.id}
+                                    key={option.id}
+                                    textValue={option.label}
+                                >
+                                    <Label>{option.label}</Label>
+                                    <ListBox.ItemIndicator />
+                                </ListBox.Item>
+                            ))}
+                        </ListBox>
+                    </Select.Popover>
+                </Select>
+            </ItemCard.Action>
+        </ItemCard>
     );
 }
 

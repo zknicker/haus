@@ -42,6 +42,26 @@ export function buildHostSkillSections(
     return sections;
 }
 
+export function filterHostSkillSections(
+    sections: readonly HostSkillSection[],
+    query: string
+): HostSkillSection[] {
+    const needle = query.trim().toLowerCase();
+    if (!needle) {
+        return [...sections];
+    }
+    return sections
+        .map((section) => ({
+            ...section,
+            skills: section.skills.filter(({ skill }) =>
+                [formatSkillName(skill.name), skill.name, skill.description].some((text) =>
+                    text.toLowerCase().includes(needle)
+                )
+            ),
+        }))
+        .filter((section) => section.skills.length > 0);
+}
+
 function hostSkillsOf(computer: ReportingComputer): HostSkill[] {
     const inventory = computer.reportedInventory;
     // Agent libraries copy a skill under its own name, so the name is the join.
