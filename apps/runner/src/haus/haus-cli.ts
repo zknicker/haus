@@ -7,6 +7,7 @@ import { invocationText, invocationToolOutcome } from '../invocations/invocation
 import type { RunAuthority, ToolOutcome } from '../run-context.ts';
 import { hausCommandAccess } from './command-access.ts';
 import type { HausProxy } from './haus-proxy.ts';
+import { repoCheckoutCall, runRepoCheckout } from './repo-checkout.ts';
 import {
     type MachinePath,
     machinePathOf,
@@ -32,12 +33,22 @@ export async function runHausCommand(input: {
     if (access.kind === 'refused') {
         return refusal(access.text);
     }
+    if (access.kind === 'repo-checkout') {
+        const checkout = repoCheckoutCall(input.argv.slice(2));
+        if (checkout.kind === 'refused') {
+            return refusal(checkout.text);
+        }
+        if (checkout.kind === 'invoke') {
+            return runRepoCheckout(checkout.operation, input);
+        }
+    }
+    const machineFlags = access.kind === 'run' ? access.machineFlags : [];
     const root = await mkdtemp(join(tmpdir(), 'haus-runner-cli-'));
     const workdir = join(root, 'work');
     await mkdir(workdir);
     await mkdir(join(root, 'home'));
     try {
-        const plan = planMachinePaths(input.argv, access.machineFlags);
+        const plan = planMachinePaths(input.argv, machineFlags);
         for (const path of plan.paths) {
             await mkdir(dirname(join(workdir, path.standIn)), { recursive: true });
             if (path.direction === 'read') {
@@ -48,7 +59,7 @@ export async function runHausCommand(input: {
             }
         }
         const run = await spawnAgentCli({ ...input, argv: plan.argv, root, workdir });
-        const notes = access.machineFlags.some((flag) => flag.direction === 'write')
+        const notes = machineFlags.some((flag) => flag.direction === 'write')
             ? await writeMachineFiles(workdir, plan.paths, input)
             : [];
         const text = [restoreMachinePaths(run.output, plan.paths), ...notes, ...run.notes]

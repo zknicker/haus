@@ -22,6 +22,7 @@ const workerWithUnknownFields = {
     environmentName: 'Haus production',
     futureWorkerField: 'a field this Computer build predates',
     id: 'wkr_1234567890abcdef',
+    keptWorktree: null,
     job: {
         followUp: null,
         futureJobField: 'next release only',
