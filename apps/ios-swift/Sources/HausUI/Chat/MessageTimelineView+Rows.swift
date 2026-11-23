@@ -23,6 +23,7 @@ extension MessageTimelineView {
                 message: message,
                 isContinuation: grouping.isContinuation,
                 showsReplyReference: grouping.showsReplyReference,
+                showsCopy: entry.endsRun,
                 isHighlighted: highlightedMessageID == message.id,
                 isPressed: message.id == heldMessageID || message.id == actionMessage?.id,
                 attachmentPreview: $attachmentPreview,

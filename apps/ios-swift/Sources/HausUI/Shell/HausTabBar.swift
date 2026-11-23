@@ -64,7 +64,7 @@ public struct HausBottomChrome<Tab: Hashable>: View {
         VStack(spacing: Self.gap) {
             if let onAsk { askField(onAsk, height: Self.accessoryHeight) }
             HausTabBar(selection: $selection, items: items)
-                .glassEffect(.regular, in: .capsule)
+                .glassEffect(.regular.interactive(), in: .capsule)
         }
         .padding(.horizontal, 21)
     }
@@ -111,54 +111,3 @@ public struct HausBottomChrome<Tab: Hashable>: View {
     }
 }
 
-struct HausTabBar<Tab: Hashable>: View {
-    @Binding var selection: Tab
-    let items: [HausTabBarItem<Tab>]
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(items) { item in
-                Button { selection = item.tab } label: { cell(item) }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(item.label)
-                    .accessibilityAddTraits(item.tab == selection ? .isSelected : [])
-            }
-        }
-        .padding(.horizontal, 3)
-        .frame(height: HausBottomChrome<Tab>.barHeight)
-    }
-
-    private func cell(_ item: HausTabBarItem<Tab>) -> some View {
-        let isSelected = item.tab == selection
-        return HausTabBarIcon(item: item, isSelected: isSelected)
-            .frame(maxWidth: .infinity)
-            .frame(height: 42)
-            .background {
-                if isSelected {
-                    Capsule().fill(.black.opacity(colorScheme == .dark ? 0.45 : 0.07))
-                }
-            }
-            .contentShape(Capsule())
-    }
-}
-
-/// A tab's photo or symbol. The selected pill alone marks a photo; a symbol
-/// also takes the accent.
-struct HausTabBarIcon<Tab: Hashable>: View {
-    let item: HausTabBarItem<Tab>
-    let isSelected: Bool
-
-    var body: some View {
-        if let image = item.image {
-            image
-                .resizable()
-                .frame(width: 26, height: 26)
-                .clipShape(Circle())
-        } else {
-            Image(systemName: item.systemImage)
-                .font(.system(size: 19, weight: .medium))
-                .foregroundStyle(isSelected ? HausPlatformColor.accent : HausPlatformColor.label)
-        }
-    }
-}

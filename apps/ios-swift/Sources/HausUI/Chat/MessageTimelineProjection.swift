@@ -9,6 +9,9 @@ struct MessageTimelineEntry: Identifiable, Equatable {
     let message: MessagePresentation
     let grouping: TranscriptRowGrouping
     let isFirst: Bool
+    /// The last row before another speaker or the end, where a Captain's
+    /// reply offers its copy button.
+    var endsRun = true
     /// Part of the entry so a style change re-hosts every row it reaches.
     var style = TranscriptStyle.roster
 
@@ -67,6 +70,8 @@ final class MessageTimelineProjection {
                     calendar: calendar
                 ),
                 isFirst: index == 0,
+                endsRun: index + 1 == messages.count
+                    || TranscriptSpeaker(messages[index + 1]) != TranscriptSpeaker(messages[index]),
                 style: style
             )
         }

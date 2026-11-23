@@ -32,7 +32,7 @@ extension MessageTimelineRow {
                     .messageRowAccessibility(message, actions: accessibilityActions)
             }
             cards(alignment: .leading)
-            if !message.isPending, !message.prose.isEmpty {
+            if showsCopy, !message.isPending, !message.prose.isEmpty {
                 MessageCopyButton(message: message)
             }
         }
