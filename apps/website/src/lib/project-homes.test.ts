@@ -22,7 +22,6 @@ const project = (chatId: string, name: string, homeAgentIds: string[], isHaus = 
         key: name.slice(0, 3).toUpperCase(),
         keyEditable: true,
         name,
-        repos: [],
         serverId: 'srv_1',
         taskKeyId: `key_${chatId}`,
     }) satisfies Project;

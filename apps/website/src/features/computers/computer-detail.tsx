@@ -13,6 +13,7 @@ import { ComputerActions } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
 import { ComputerDiskChip, ComputerDiskWarning } from './computer-disk-warning.tsx';
 import { ComputerInventoryRefresh } from './computer-inventory-refresh.tsx';
+import { ComputerRepoFoldersCard } from './computer-repo-folders-card.tsx';
 import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
 import { ComputerSystemLog } from './computer-system-log-card.tsx';
 import { ComputerUseAccessCard } from './computer-use-access-card.tsx';
@@ -139,6 +140,7 @@ export function ComputerDetail({
             <CloudAgentCapabilityCard computerId={computerId} serverId={serverId} />
             <SecretsCapabilityCard computerId={computerId} serverId={serverId} />
             <ComputerAgents computerId={computerId} serverId={serverId} />
+            <ComputerRepoFoldersCard computerId={computerId} serverId={serverId} />
             <ComputerSystemLog computerId={computerId} key={computerId} serverId={serverId} />
             <ComputerActions
                 computerId={computerId}
