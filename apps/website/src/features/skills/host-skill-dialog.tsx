@@ -155,7 +155,7 @@ function HostSkillUsedBy({
                     </span>
                 </>
             ) : (
-                'Not used by any Captain yet'
+                'No Captain uses it yet. Add it from a Captain’s Profile.'
             )}
         </p>
     );

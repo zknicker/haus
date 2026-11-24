@@ -3,13 +3,8 @@ import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { ConnectionSection } from './connection-section.tsx';
-import {
-    connectionSetupDescription,
-    connectionStatusLabel,
-    type McpConnection,
-} from './mcp-server-shared.ts';
+import { connectionStatusLabel, type McpConnection } from './mcp-server-shared.ts';
 
 /**
  * The account this connection signs in as. A signed-in account is one row
@@ -72,9 +67,10 @@ export function McpAccountSection({
                 ) : (
                     <ItemCard>
                         <ItemCard.Content>
-                            <SettingsRowTitle info={connectionSetupDescription(connection)}>
+                            <ItemCard.Title>Account</ItemCard.Title>
+                            <ItemCard.Description>
                                 {connectionStatusLabel(connection)}
-                            </SettingsRowTitle>
+                            </ItemCard.Description>
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SetupAction
@@ -104,7 +100,6 @@ function AccountRow({
     onReauthorize: () => void;
     usesToken: boolean;
 }) {
-    const status = connectionStatusLabel(connection);
     const reauthorize = reauthorizeLabel(connection, usesToken);
 
     return (
@@ -112,7 +107,7 @@ function AccountRow({
             <EntityAvatar name={connection.accountLabel ?? connection.name} size="sm" />
             <ItemCard.Content>
                 <ItemCard.Title title={connection.accountLabel ?? undefined}>
-                    {connection.accountLabel ?? status}
+                    {connection.accountLabel ?? connection.name}
                 </ItemCard.Title>
             </ItemCard.Content>
             <ItemCard.Action>

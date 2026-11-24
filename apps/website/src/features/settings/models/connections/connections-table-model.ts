@@ -64,13 +64,6 @@ export function failedConnectionIds(connections: readonly ModelConnection[]) {
         .map((connection) => connection.id);
 }
 
-export function connectionCountLabel(count: number) {
-    if (count === 0) {
-        return 'No connections';
-    }
-    return count === 1 ? '1 connection' : `${count} connections`;
-}
-
 export function soonestReset(usage: Pick<PlanUsage, 'fiveHour' | 'weekly'>, now: number) {
     const upcoming = [usage.fiveHour?.resetsAt, usage.weekly?.resetsAt]
         .filter((resetsAt): resetsAt is string => Boolean(resetsAt))

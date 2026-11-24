@@ -1,10 +1,8 @@
-import { EmptyState } from '@heroui-pro/react';
-import { Button, SearchField, Tooltip } from '@heroui/react';
-import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { SearchField } from '@heroui/react';
 import { useState } from 'react';
-import { Icon } from '../../components/ui/icon.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { SettingsEmptyState } from '../settings/layout/settings-empty.tsx';
 import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
 import {
@@ -32,7 +30,7 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
 
     return (
         <SettingsPageColumn width="table">
-            <SettingsPageHeader info={<SkillsInfo />} title="Skills" />
+            <SettingsPageHeader title="Skills" />
             {installed.length > 0 ? (
                 <SearchField
                     aria-label="Search skills"
@@ -48,7 +46,7 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
                 </SearchField>
             ) : null}
             {computers.error && !computers.data ? (
-                <SkillsMessage
+                <SettingsEmptyState
                     description="Haus couldn’t load the device skill inventory. Try opening this page again."
                     title="Skills unavailable"
                 />
@@ -63,9 +61,9 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
                         />
                     ))
                 ) : installed.length > 0 ? (
-                    <p className="text-muted py-8 text-center text-sm">No skills match.</p>
+                    <SettingsEmptyState role="status" title="No skills match your search" />
                 ) : (
-                    <SkillsMessage
+                    <SettingsEmptyState
                         description="Skills installed on a device appear here once it reports them."
                         title="No skills installed"
                     />
@@ -83,29 +81,5 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
                 serverId={serverId}
             />
         </SettingsPageColumn>
-    );
-}
-
-function SkillsInfo() {
-    return (
-        <Tooltip delay={0}>
-            <Button aria-label="About Skills" isIconOnly size="sm" variant="ghost">
-                <Icon aria-hidden="true" icon={InformationCircleIcon} size={16} />
-            </Button>
-            <Tooltip.Content>
-                To give a Captain one of these skills, add it from the Captain’s Profile.
-            </Tooltip.Content>
-        </Tooltip>
-    );
-}
-
-function SkillsMessage({ description, title }: { description: string; title: string }) {
-    return (
-        <EmptyState>
-            <EmptyState.Header>
-                <EmptyState.Title>{title}</EmptyState.Title>
-                <EmptyState.Description>{description}</EmptyState.Description>
-            </EmptyState.Header>
-        </EmptyState>
     );
 }

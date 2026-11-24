@@ -80,19 +80,31 @@ export function connectionFailure(connection: Pick<ModelConnection, 'status' | '
     return connection.statusDetail ?? 'The provider refused this connection.';
 }
 
-export type ConnectionAction = 'make-default' | 'reconnect' | 'remove' | 'rename';
+export type ConnectionAction =
+    | 'make-default'
+    | 'reconnect'
+    | 'remove'
+    | 'rename'
+    | 'turn-off'
+    | 'turn-on';
 
 export const connectionActionLabels: Record<ConnectionAction, string> = {
     'make-default': 'Make default',
     reconnect: 'Reconnect',
     remove: 'Remove',
     rename: 'Rename',
+    'turn-off': 'Turn off',
+    'turn-on': 'Turn on',
 };
 
-export function connectionActions(connection: Pick<ModelConnection, 'isDefault'>) {
-    const actions: ConnectionAction[] = connection.isDefault
-        ? ['rename', 'reconnect', 'remove']
-        : ['rename', 'make-default', 'reconnect', 'remove'];
+export function connectionActions(connection: Pick<ModelConnection, 'enabled' | 'isDefault'>) {
+    const actions: ConnectionAction[] = [
+        'rename',
+        ...(connection.isDefault ? [] : (['make-default'] as const)),
+        connection.enabled ? 'turn-off' : 'turn-on',
+        'reconnect',
+        'remove',
+    ];
     return actions;
 }
 
