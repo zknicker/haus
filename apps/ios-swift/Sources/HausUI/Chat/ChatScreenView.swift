@@ -45,6 +45,7 @@ public struct ChatScreenView: View {
     @State var keyboardInset: CGFloat?
     /// Turn details asked for by a message's "View turn details"; the header presents it.
     @State private var turnDetailsFocus: TurnDetailsFocus?
+    @State var isModelSheetPresented = false
     @State var pendingModelChange: PendingModelChange?
     /// Set once the Server refuses a model change; the inner nil is a refusal with no reason.
     @State var modelRefusal: String??
@@ -122,7 +123,7 @@ public struct ChatScreenView: View {
                     onOpenChatDetails: onOpenChatDetails,
                     onOpenSearch: onOpenSearch,
                     onCall: onCall,
-                    menuActions: menuActions,
+                    menuActions: modelMenuActions + menuActions,
                     turnDetails: $turnDetailsFocus
                 )
                 .padding(.top, contentInsets.top)
@@ -143,6 +144,12 @@ public struct ChatScreenView: View {
             .onKeyboardInsetChange { sample in
                 withTransaction(Transaction(animation: sample.animation)) {
                     keyboardInset = sample.inset
+                }
+            }
+            .sheet(isPresented: $isModelSheetPresented) {
+                if let control = captainModel(for: chat.kind) {
+                    ModelSheet(presentation: control.presentation, onSelect: control.onSelect)
+                        .presentationDetents([.medium, .large])
                 }
             }
             .modelChangeConfirmation($pendingModelChange, onConfirm: applyModelChange)

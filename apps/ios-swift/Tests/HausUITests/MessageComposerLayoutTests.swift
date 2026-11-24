@@ -4,53 +4,26 @@ import XCTest
 @MainActor
 final class MessageComposerLayoutTests: XCTestCase {
     func testRestingComposerIsCompact() {
-        XCTAssertFalse(
-            MessageComposerView.shouldExpand(
-                isFocused: false,
-                hasAttachments: false,
-                isPreparingAttachment: false
-            )
-        )
+        XCTAssertFalse(expands(isFocused: false, fitsOneLine: true))
     }
 
-    func testFocusExpandsComposer() {
-        XCTAssertTrue(
-            MessageComposerView.shouldExpand(
-                isFocused: true,
-                hasAttachments: false,
-                isPreparingAttachment: false
-            )
-        )
+    /// Focus alone keeps the one-line pill, as ChatGPT's composer does.
+    func testFocusOnADraftThatFitsOneLineStaysCompact() {
+        XCTAssertFalse(expands(isFocused: true, fitsOneLine: true))
+    }
+
+    func testADraftThatWrapsGrowsTheFocusedComposerIntoTheCard() {
+        XCTAssertTrue(expands(isFocused: true, fitsOneLine: false))
+    }
+
+    /// Away from the keyboard a long draft rests in the pill again.
+    func testAnUnfocusedLongDraftRestsCompact() {
+        XCTAssertFalse(expands(isFocused: false, fitsOneLine: false))
     }
 
     func testAttachmentWorkKeepsComposerExpanded() {
-        XCTAssertTrue(
-            MessageComposerView.shouldExpand(
-                isFocused: false,
-                hasAttachments: true,
-                isPreparingAttachment: false
-            )
-        )
-        XCTAssertTrue(
-            MessageComposerView.shouldExpand(
-                isFocused: false,
-                hasAttachments: false,
-                isPreparingAttachment: true
-            )
-        )
-    }
-
-    /// The plus button on a collapsed composer opens the source menu over the pill; the composer
-    /// expands only on direct focus or when an attachment lands, never for the portal itself —
-    /// `shouldExpand` deliberately takes no portal state at all.
-    func testAnOpenPortalAloneDoesNotExpandTheComposer() {
-        XCTAssertFalse(
-            MessageComposerView.shouldExpand(
-                isFocused: false,
-                hasAttachments: false,
-                isPreparingAttachment: false
-            )
-        )
+        XCTAssertTrue(expands(isFocused: false, fitsOneLine: true, hasAttachments: true))
+        XCTAssertTrue(expands(isFocused: false, fitsOneLine: true, isPreparingAttachment: true))
     }
 
     func testControlsRowHugsTheBottomEdgeAtEveryExpansion() {
@@ -218,5 +191,19 @@ final class MessageComposerLayoutTests: XCTestCase {
         XCTAssertEqual(MorphingAttachmentImage.revealProgress(for: 0.3), 0)
         XCTAssertGreaterThan(MorphingAttachmentImage.revealProgress(for: 0.5), 0.3)
         XCTAssertEqual(MorphingAttachmentImage.revealProgress(for: 0.8), 1)
+    }
+
+    private func expands(
+        isFocused: Bool,
+        fitsOneLine: Bool,
+        hasAttachments: Bool = false,
+        isPreparingAttachment: Bool = false
+    ) -> Bool {
+        MessageComposerView.shouldExpand(
+            isFocused: isFocused,
+            draftFitsOneLine: fitsOneLine,
+            hasAttachments: hasAttachments,
+            isPreparingAttachment: isPreparingAttachment
+        )
     }
 }

@@ -43,7 +43,8 @@ holds throughout: Projects, Tasks, Workers, and one session per Captain.
 - **Work view.** A floating Work pill with a count, above each place's composer, opens its Workers, Tasks, PRs
   (read-only), and Files.
   The Worker view has steps, the report, a follow-up composer, and Stop Worker.
-- **Composer.** It gains a model chip that opens the Model sheet. The sheet writes the Captain's model. Members
+- **Composer.** It gains a model chip that opens the Model sheet (later moved to the Captain DM's `…` menu,
+  when the composer became a one-line pill that grows as you type). The sheet writes the Captain's model. Members
   see it read-only. (A full-height grabber shipped in 13.0.0 and was removed: swipes meant for the keyboard caught
   it.)
 - **iPhone Duo.** Per Apple's HIG:

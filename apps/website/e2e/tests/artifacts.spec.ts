@@ -29,9 +29,8 @@ test('a Server member opens the shared library and reloads its stable address', 
     await folders.getByRole('row', { name: 'Haus' }).click();
     await expect(page).toHaveURL(/folder=haus$/u);
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
-    const empty = page.locator('.library-empty');
-    await expect(empty.getByRole('button', { name: 'Add instructions' })).toBeVisible();
-    await expect(empty.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
+    const emptyActions = page.locator('.library-empty').getByRole('button');
+    await expect(emptyActions).toHaveText(['Add instructions', 'Upload']);
     expect(await client.artifact.list.query({ serverId: server.id })).toEqual({
         artifacts: [],
         folders: [],

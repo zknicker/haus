@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// One of the composer's 36pt circles: the plus on a strong fill, and send.
+/// One of the composer's 36pt controls: the bare plus, and the send circle.
 struct ComposerCircleButton: View {
     let icon: HausIconName
     let style: ComposerCircleStyle
@@ -18,7 +18,7 @@ struct ComposerCircleButton: View {
                 .fill(style.fill.color)
                 .frame(width: diameter, height: diameter)
                 .overlay {
-                    HausIcon(icon, size: glyphSize, weight: 2.2)
+                    HausIcon(icon, size: glyphSize * style.glyphScale, weight: 2.2)
                         .foregroundStyle(style.ink.color)
                 }
                 .compositingGroup()
@@ -34,9 +34,15 @@ struct ComposerCircleButton: View {
 struct ComposerCircleStyle: Equatable {
     let fill: HausTone
     let ink: HausTone
+    var glyphScale: CGFloat = 1
 
+    /// No circle, and a larger glyph: the plus reads as a control by its place, as ChatGPT's does.
     static func plus(isEnabled: Bool) -> ComposerCircleStyle {
-        ComposerCircleStyle(fill: .strongFill, ink: isEnabled ? .ink : .faintInk)
+        ComposerCircleStyle(
+            fill: HausTone(HausSwatch(0x000000, opacity: 0)),
+            ink: isEnabled ? .ink : .faintInk,
+            glyphScale: 22.0 / 18.0
+        )
     }
 
     /// Accent with a white arrow when the draft can go; otherwise a visible muted circle.
