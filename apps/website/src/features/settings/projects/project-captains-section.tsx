@@ -45,7 +45,7 @@ export function ProjectCaptainsSection({
                         size="sm"
                         variant="secondary"
                     >
-                        Add
+                        Add Captain
                     </Button>
                     <Dropdown.Popover placement="bottom end">
                         <Dropdown.Menu onAction={(agentId) => moveHome(String(agentId), projectId)}>
