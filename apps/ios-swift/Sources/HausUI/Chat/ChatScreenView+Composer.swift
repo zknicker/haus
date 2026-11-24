@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The Chat canvas's composer: its place sets the placeholder ("Reply" with a Captain, "Message
-/// #name" in a Project), and a Captain DM gets the model chip.
+/// #name" in a Project).
 extension ChatScreenView {
     /// The composer floats over the transcript rather than capping it, so glass has live content
     /// to refract. The inset still reserves the transcript's scroll clearance, so a resting or
@@ -20,7 +20,6 @@ extension ChatScreenView {
                 inlineReply: inlineReply,
                 onCancelInlineReply: { inlineReply = nil },
                 transitionNamespace: composerTransitionNamespace,
-                model: composerModel(for: chat.kind),
                 onSend: sendMessage
             )
             // The shell ignores the keyboard, so this inset is the canvas's only keyboard

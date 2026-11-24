@@ -13,7 +13,6 @@ public struct MessageComposerView: View {
     private let inlineReply: MessageReplyReferencePresentation?
     private let onCancelInlineReply: () -> Void
     private let transitionNamespace: Namespace.ID?
-    private let model: ComposerModelControl?
     private let onSend: (String, [ComposerAttachment]) async -> Bool
 
     @FocusState.Binding private var isTextFocused: Bool
@@ -27,6 +26,10 @@ public struct MessageComposerView: View {
     /// True while a surface tap re-issues a focus summons, so the momentary
     /// focus drop never reaches the expansion layout.
     @State private var isReissuingFocus = false
+    /// Whether the draft fits the pill's one line, measured at the pill's field width so the
+    /// answer does not change as the card widens the field.
+    @State private var draftFitsOneLine = true
+    @State private var surfaceWidth: CGFloat = 0
 
     public init(
         text: Binding<String>,
@@ -38,7 +41,6 @@ public struct MessageComposerView: View {
         inlineReply: MessageReplyReferencePresentation? = nil,
         onCancelInlineReply: @escaping () -> Void = {},
         transitionNamespace: Namespace.ID? = nil,
-        model: ComposerModelControl? = nil,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool
     ) {
         _text = text
@@ -50,7 +52,6 @@ public struct MessageComposerView: View {
         self.inlineReply = inlineReply
         self.onCancelInlineReply = onCancelInlineReply
         self.transitionNamespace = transitionNamespace
-        self.model = model
         self.onSend = onSend
     }
 
@@ -65,7 +66,7 @@ public struct MessageComposerView: View {
         )
             .padding(.horizontal, ComposerSurfaceMetrics.sideMargin)
             .padding(.top, 4)
-            .padding(.bottom, isExpanded ? 8 : 0)
+            .padding(.bottom, isExpanded || isTextFocused ? 8 : 0)
             // No opaque band: the transcript runs to the bottom of the screen and passes under the
             // glass, which is the only thing that gives it something to be translucent against.
             .animation(.spring(response: 0.3, dampingFraction: 0.9), value: isExpanded)
@@ -152,13 +153,12 @@ public struct MessageComposerView: View {
 
     private var surfaceBody: some View {
         composerContents
-            .padding(.horizontal, ComposerSurfaceMetrics.expandedControlInset)
+            .padding(.horizontal, ComposerSurfaceMetrics.controlInset)
             .padding(.top, isExpanded
                 ? ComposerSurfaceMetrics.expandedTextTopInset
-                : ComposerSurfaceMetrics.restingControlInset)
-            .padding(.bottom, isExpanded
-                ? ComposerSurfaceMetrics.expandedControlInset
-                : ComposerSurfaceMetrics.restingControlInset)
+                : ComposerSurfaceMetrics.controlInset)
+            .padding(.bottom, ComposerSurfaceMetrics.controlInset)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { surfaceWidth = $0 }
             .composerGlassSurface(cornerRadius: surfaceCornerRadius)
     }
 
@@ -200,7 +200,6 @@ public struct MessageComposerView: View {
                 .disabled(!canAttach)
                 .accessibilityFocused($isAttachmentButtonFocused)
                 messageField
-                toolbarAccessory
                 ComposerCircleButton(
                     icon: .send,
                     style: .send(canSend: canSend),
@@ -221,22 +220,24 @@ public struct MessageComposerView: View {
                     .allowsHitTesting(false)
             }
 
-            ComposerMessageInput(text: $text, options: mentionOptions, label: placeholder)
-                .focused($isTextFocused)
+            ComposerMessageInput(
+                text: $text,
+                options: mentionOptions,
+                label: placeholder,
+                lineFitWidth: compactFieldWidth,
+                fitsOneLine: $draftFitsOneLine
+            )
+            .focused($isTextFocused)
         }
         .clipped()
     }
 
-    @ViewBuilder
-    private var toolbarAccessory: some View {
-        if let model {
-            ComposerModelChip(control: model)
-                .opacity(isExpanded ? 1 : 0)
-                .allowsHitTesting(isExpanded)
-                .accessibilityHidden(!isExpanded)
-        } else {
-            Color.clear.frame(width: 0, height: 0)
-        }
+    private var compactFieldWidth: CGFloat {
+        ComposerControlLayout.compactFieldWidth(
+            inWidth: surfaceWidth - ComposerSurfaceMetrics.controlInset * 2,
+            attachmentWidth: controlDiameter,
+            sendWidth: controlDiameter
+        )
     }
 
     private func toggleSourceMenu() {
@@ -259,6 +260,7 @@ public struct MessageComposerView: View {
     private var isExpanded: Bool {
         Self.shouldExpand(
             isFocused: isTextFocused || isReissuingFocus,
+            draftFitsOneLine: draftFitsOneLine,
             hasAttachments: !interaction.attachments.isEmpty,
             isPreparingAttachment: interaction.isPreparingAttachment
         )

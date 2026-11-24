@@ -13,7 +13,6 @@ extension MessageComposerView {
         inlineReply: MessageReplyReferencePresentation? = nil,
         onCancelInlineReply: @escaping () -> Void = {},
         transitionNamespace: Namespace.ID? = nil,
-        model: ComposerModelControl? = nil,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool
     ) {
         self.init(
@@ -26,20 +25,21 @@ extension MessageComposerView {
             inlineReply: inlineReply,
             onCancelInlineReply: onCancelInlineReply,
             transitionNamespace: transitionNamespace,
-            model: model,
             onSend: onSend
         )
     }
 
-    /// Deliberately blind to the portal: the plus button on a collapsed composer opens the source
-    /// menu over the pill without expanding it, and a portal opened from a focused composer keeps
-    /// its keyboard — so focus alone holds the expanded shell for the portal's whole lifecycle.
+    /// The composer stays a one-line pill, focused or not, until the draft needs a second line;
+    /// then it grows into the card with its controls row below the text, as ChatGPT's does. A
+    /// staged attachment needs the card for its strip. Deliberately blind to the portal: the plus
+    /// opens the source menu over whichever shape the composer has.
     static func shouldExpand(
         isFocused: Bool,
+        draftFitsOneLine: Bool,
         hasAttachments: Bool,
         isPreparingAttachment: Bool
     ) -> Bool {
-        isFocused || hasAttachments || isPreparingAttachment
+        (isFocused && !draftFitsOneLine) || hasAttachments || isPreparingAttachment
     }
 }
 

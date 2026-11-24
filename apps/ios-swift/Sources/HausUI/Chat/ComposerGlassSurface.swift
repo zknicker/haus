@@ -22,16 +22,16 @@ struct ComposerGlassSurface: ViewModifier {
 /// — takes the resting corner, one step inside the shell it rises from, so the two read as a pair
 /// rather than as one shape repeated.
 enum ComposerSurfaceMetrics {
-    static let restingCornerRadius: CGFloat = 24
+    /// Half the 50pt pill, so the resting composer is a capsule.
+    static let restingCornerRadius: CGFloat = 25
     static let expandedCornerRadius: CGFloat = 28
     /// The composer's side margin, resting and expanded alike.
     static let sideMargin: CGFloat = 16
-    /// The inset of the 36pt circles inside the shell: (47 − 36) / 2 at rest.
-    static let restingControlInset: CGFloat = 5.5
-    static let expandedControlInset: CGFloat = 6
+    /// The inset of the 36pt controls inside the shell, pill and card alike: (50 − 36) / 2.
+    static let controlInset: CGFloat = 7
     /// The draft's first line sits as far below the card's top edge as the text sits in from its
     /// side, so the focused card reads as one even frame around the text.
-    static let expandedTextTopInset: CGFloat = 12
+    static let expandedTextTopInset: CGFloat = 14
 }
 
 extension View {

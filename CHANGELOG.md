@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.4.0 - 2026-11-24
+
+- Haus for iPhone 13.1.0 gives the Chat composer ChatGPT's shape. It stays a one-line pill, focused or not, until your draft needs a second line, then grows into a card with the text above its controls. The plus is a bare glyph, and the controls sit further in from the edge. A Captain's model moved from the composer to **Model** in the Captain DM's ••• menu, which shows the current model and opens the same Model sheet. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
+## v30.3.0 - 2026-11-24
+
+- Drive's list view lists folders as rows with their file count, last change and total size, under the same Name, Kind, Modified and Size columns as files. A footer totals the open folder's files and bytes. The Drive root and its Projects and Captains folders leave out the file-type and Created by menus.
+- A single click opens a folder or file in Drive. Command-click and Shift-click select, and Return opens the selection. The second click of a double click is ignored, so it doesn't open whatever replaced the item.
+- An empty Drive area shows the Haus mascot with **Add instructions**, which creates the area's AGENTS.md and opens it, and **Upload**. A folder that holds nothing reads Empty.
+- A wide file viewer shows the file's Drive area as a tree beside the preview, with the file's folders open and a filter for names and paths. Clicking a file in the tree opens it in place.
+- In Haus for Desktop, ⌘, and the Settings button open Settings in the current tab, and **← Settings** at the top of the rail returns to the page you left. The Settings search field keeps its full height.
+- Server 29.3.0 ships alone. No database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.2.0 - 2026-11-24
 
 - Settings rows each have one control and a fixed description that says what the setting does. Healthy rows are quiet: Ready, Connected and Online chips are gone, along with info icons that restated a row. A problem reads as plain text beside the row's button ("Not granted", "Not signed in"), or as a chip when the row has no button.
