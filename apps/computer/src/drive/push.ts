@@ -68,7 +68,7 @@ export async function sendDrivePush(
     await files.clearScratch();
     try {
         if (plan.stalePush !== null && plan.stalePush !== pushId) {
-            await ignorePushClosed(remote.close(plan.stalePush));
+            await ignoreGonePush(remote.close(plan.stalePush));
             await state.openPush(null);
         }
         if (plan.deletes.length === 0 && plan.puts.length === 0) {
@@ -160,6 +160,18 @@ function createSlot(plan: DrivePushPlan, path: string) {
 
 function requestId(parts: (string | null)[]) {
     return `dp_${createHash('sha256').update(JSON.stringify(parts)).digest('hex').slice(0, 48)}`;
+}
+
+async function ignoreGonePush<T>(request: Promise<T>) {
+    return await request.catch((error: unknown) => {
+        if (
+            error instanceof DriveRemoteError &&
+            (error.code === 'PUSH_CLOSED' || error.code === 'NOT_FOUND')
+        ) {
+            return null;
+        }
+        throw error;
+    });
 }
 
 async function ignorePushClosed<T>(request: Promise<T>) {
