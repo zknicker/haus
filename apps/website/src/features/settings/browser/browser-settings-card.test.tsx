@@ -22,31 +22,47 @@ const settings: AgentRuntimeBrowserSettings = {
     },
 };
 
-test('explains shared Browser access without claiming lifecycle ownership', () => {
+test('a connected Chrome row stays quiet and names the shared browser', () => {
+    const shared: AgentRuntimeBrowserSettings = {
+        ...settings,
+        browsers: [
+            {
+                applicationPath: '/Applications/Google Chrome.app',
+                available: true,
+                name: 'Google Chrome',
+                userDataDir: '/shared',
+                version: '153',
+            },
+        ],
+    };
     const html = renderToStaticMarkup(
         <BrowserSettingsCard
             onRefresh={() => undefined}
             onSave={() => undefined}
-            settings={settings}
+            settings={shared}
         />
     );
-    const { description } = browserCapabilityView({ settings });
-    expect(html).toContain('Connected');
-    expect(description).toContain('Disconnecting Haus leaves Chrome open.');
-    expect(description).not.toContain('Haus manages');
+    expect(browserCapabilityView({ settings: shared })).toMatchObject({
+        detail: 'Google Chrome',
+        status: 'ready',
+    });
+    expect(html).toContain('Google Chrome');
+    expect(html).not.toContain('Connected');
+    expect(html).not.toContain('aria-label="About Chrome"');
     expect(html).toContain('aria-label="Chrome actions"');
 });
 
-test('the Chrome row keeps its state explanation behind an info button, not a description line', () => {
+test('a Chrome row that needs a look shows its exception under the title', () => {
     const html = renderToStaticMarkup(
         <BrowserSettingsCard
             onRefresh={() => undefined}
             onSave={() => undefined}
-            settings={settings}
+            settings={{ ...settings, enabled: false }}
         />
     );
-    expect(html).toContain('aria-label="About Chrome"');
-    expect(html).not.toContain('item-card__description');
+    expect(html).toMatch(/item-card__description[^>]*>Disconnected</u);
+    expect(html).not.toContain('data-slot="badge"');
+    expect(html).not.toContain('data-slot="chip"');
 });
 
 test('while the device answers, the Browser card shows its Chrome row as Checking, not a blank box', () => {

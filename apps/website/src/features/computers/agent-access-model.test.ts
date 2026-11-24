@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
 import {
     agentAccessView,
-    captainAccessSentence,
+    allowedCaptains,
     captainChooserChange,
     captainChooserKeys,
-    computerUseSentence,
+    captainScopeRights,
 } from './agent-access-model.ts';
 
 const computerId = 'cmp_devicestudio0000';
@@ -33,29 +33,32 @@ test('a grant for a Captain whose Machine is here, or who is gone, is not counte
     expect(odd.machine.map(({ id }) => id)).toEqual(['agt_cove']);
 });
 
-test('the Captain access sentence names who can run tools and changes with the value', () => {
-    expect(captainAccessSentence('selected', view)).toBe('Only Cove and Wren can run tools here.');
-    expect(captainAccessSentence('all', view)).toBe(
-        'Any Captain on this Server can run tools here.'
-    );
-    expect(
-        captainAccessSentence('selected', agentAccessView({ agents: [], computerId, grants: [] }))
-    ).toBe('No Captains can run tools here yet.');
-    const many = agentAccessView({
-        agents,
-        computerId,
-        grants: ['agt_wren', 'agt_pike', 'agt_ash'].map((agentId) => ({ agentId })),
-    });
-    expect(captainAccessSentence('selected', many)).toBe(
-        'Only Cove, Ash, and 2 others can run tools here.'
-    );
+const none = agentAccessView({ agents: [], computerId, grants: [] });
+const many = agentAccessView({
+    agents,
+    computerId,
+    grants: ['agt_wren', 'agt_pike', 'agt_ash'].map((agentId) => ({ agentId })),
 });
 
-test('computer use says what the switch does now', () => {
-    expect(computerUseSentence(true)).toBe(
-        'Those Captains can see the screen and click and type in apps.'
-    );
-    expect(computerUseSentence(false)).toBe('Captains can’t see or control this Mac’s screen.');
+test('the allowed Captains are this Machine’s first, then the granted ones', () => {
+    expect(allowedCaptains(view).map(({ id }) => id)).toEqual(['agt_cove', 'agt_wren']);
+    expect(allowedCaptains(many).map(({ id }) => id)).toEqual([
+        'agt_cove',
+        'agt_ash',
+        'agt_pike',
+        'agt_wren',
+    ]);
+    expect(allowedCaptains(none)).toEqual([]);
+});
+
+test('only the attacher widens to All Captains; any steward may narrow back', () => {
+    const attacher = { canGrant: true, canRevoke: true };
+    const steward = { canGrant: false, canRevoke: true };
+    const member = { canGrant: false, canRevoke: false };
+    expect(captainScopeRights('selected', attacher).canChange).toBe(true);
+    expect(captainScopeRights('selected', steward).canChange).toBe(false);
+    expect(captainScopeRights('all', steward).canChange).toBe(true);
+    expect(captainScopeRights('all', member)).toEqual({ canChange: false, steward: false });
 });
 
 test('the chooser locks a Machine Captain and only lets each viewer move one way', () => {

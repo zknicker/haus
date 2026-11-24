@@ -4,7 +4,6 @@ import { Label, ListBox, Select } from '@heroui/react';
 import { useProjectWorkerPlace } from '../../../hooks/projects/use-project-worker-place.ts';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../../computers/presentation.ts';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
 import { workerPlaceFromKey, workerPlaceKey, workerPlaceOptions } from './worker-place-options.ts';
 
@@ -32,9 +31,10 @@ export function ProjectWorkersSection({
             <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
-                        <SettingsRowTitle info="A Captain's Worker runs here unless the Captain names a place. A Device is listed once “Run Workers here” is on for it.">
-                            Default place
-                        </SettingsRowTitle>
+                        <ItemCard.Title>Default place</ItemCard.Title>
+                        <ItemCard.Description className="whitespace-normal">
+                            Where Workers run when a Captain doesn’t name a place.
+                        </ItemCard.Description>
                         <SettingsRowError>{setPlace.error?.message}</SettingsRowError>
                     </ItemCard.Content>
                     <ItemCard.Action>

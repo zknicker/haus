@@ -1,12 +1,20 @@
+import type { ComputerAgentAccessScope } from '@haus/api';
+import { CellSwitch } from '@heroui-pro/react';
 import { Button, Description, Label, ListBox, Popover, SearchField } from '@heroui/react';
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
+import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import {
     type AccessCaptain,
     type AgentAccessView,
+    allowedCaptains,
     captainChooserChange,
     captainChooserKeys,
+    captainScopeRights,
 } from './agent-access-model.ts';
+import { CaptainAvatars } from './captain-avatars.tsx';
 
 export function CaptainChooser({
     canGrant,
@@ -14,6 +22,8 @@ export function CaptainChooser({
     deviceKind,
     isPending,
     onChange,
+    onScopeChange,
+    scope,
     view,
 }: {
     canGrant: boolean;
@@ -21,75 +31,136 @@ export function CaptainChooser({
     deviceKind: string;
     isPending: boolean;
     onChange: (change: NonNullable<ReturnType<typeof captainChooserChange>>) => void;
+    onScopeChange: (scope: ComputerAgentAccessScope) => void;
+    scope: ComputerAgentAccessScope;
     view: AgentAccessView;
 }) {
     const [query, setQuery] = useState('');
-    const keys = captainChooserKeys(view, { canGrant, canRevoke });
+    const rights = captainScopeRights(scope, { canGrant, canRevoke });
+    const captains = allowedCaptains(view);
+
+    return (
+        <div className="flex items-center gap-2">
+            {scope === 'all' ? (
+                <SettingsFact>All Captains</SettingsFact>
+            ) : captains.length > 0 ? (
+                <CaptainAvatars captains={captains} />
+            ) : null}
+            <Popover onOpenChange={(open) => (open ? setQuery('') : undefined)}>
+                <Button
+                    aria-label="Choose Captains"
+                    isDisabled={!rights.steward}
+                    isIconOnly
+                    size="sm"
+                    variant="secondary"
+                >
+                    <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+                </Button>
+                <Popover.Content offset={8} placement="bottom end">
+                    <Popover.Dialog aria-label="Captains">
+                        <div className="flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-2 p-2">
+                            <CellSwitch
+                                aria-label="All Captains on this Server"
+                                isDisabled={!rights.canChange || isPending}
+                                isSelected={scope === 'all'}
+                                onChange={(all) => onScopeChange(all ? 'all' : 'selected')}
+                            >
+                                <CellSwitch.Trigger>
+                                    <CellSwitch.Label>All Captains on this Server</CellSwitch.Label>
+                                    <CellSwitch.Control />
+                                </CellSwitch.Trigger>
+                            </CellSwitch>
+                            {scope === 'selected' ? (
+                                <CaptainList
+                                    deviceKind={deviceKind}
+                                    disabledKeys={
+                                        isPending
+                                            ? null
+                                            : captainChooserKeys(view, { canGrant, canRevoke })
+                                                  .disabled
+                                    }
+                                    onChange={onChange}
+                                    onQueryChange={setQuery}
+                                    query={query}
+                                    view={view}
+                                />
+                            ) : null}
+                        </div>
+                    </Popover.Dialog>
+                </Popover.Content>
+            </Popover>
+        </div>
+    );
+}
+
+function CaptainList({
+    deviceKind,
+    disabledKeys,
+    onChange,
+    onQueryChange,
+    query,
+    view,
+}: {
+    deviceKind: string;
+    disabledKeys: readonly string[] | null;
+    onChange: (change: NonNullable<ReturnType<typeof captainChooserChange>>) => void;
+    onQueryChange: (query: string) => void;
+    query: string;
+    view: AgentAccessView;
+}) {
     const needle = query.trim().toLowerCase();
     const captains = [...view.machine, ...view.granted, ...view.others].filter((captain) =>
         captain.displayName.toLowerCase().includes(needle)
     );
     const machineIds = new Set(view.machine.map((captain) => captain.id));
-
     return (
-        <Popover onOpenChange={(open) => (open ? setQuery('') : undefined)}>
-            <Button size="sm" variant="secondary">
-                Choose Captains
-            </Button>
-            <Popover.Content offset={8} placement="bottom end">
-                <Popover.Dialog aria-label="Choose Captains">
-                    <div className="flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-2 p-2">
-                        <SearchField
-                            aria-label="Search Captains"
-                            autoFocus
-                            fullWidth
-                            name="captain-search"
-                            onChange={setQuery}
-                            value={query}
-                            variant="secondary"
-                        >
-                            <SearchField.Group>
-                                <SearchField.SearchIcon />
-                                <SearchField.Input placeholder="Search Captains" />
-                                <SearchField.ClearButton />
-                            </SearchField.Group>
-                        </SearchField>
-                        <ListBox
-                            aria-label="Captains with access"
-                            escapeKeyBehavior="none"
-                            className="max-h-[min(20rem,calc(100dvh-12rem))] overflow-y-auto"
-                            disabledKeys={isPending ? captains.map(({ id }) => id) : keys.disabled}
-                            onSelectionChange={(next) => {
-                                const change = captainChooserChange(
-                                    view,
-                                    new Set(next === 'all' ? [] : [...next].map(String))
-                                );
-                                if (change) {
-                                    onChange(change);
-                                }
-                            }}
-                            renderEmptyState={() => (
-                                <p className="text-muted py-6 text-center text-sm">No matches</p>
-                            )}
-                            selectedKeys={keys.selected}
-                            selectionMode="multiple"
-                        >
-                            {captains.map((captain) => (
-                                <CaptainOption
-                                    captain={captain}
-                                    key={captain.id}
-                                    usesByDefault={
-                                        machineIds.has(captain.id)
-                                            ? `Uses this ${deviceKind} by default`
-                                            : null
-                                    }
-                                />
-                            ))}
-                        </ListBox>
-                    </div>
-                </Popover.Dialog>
-            </Popover.Content>
-        </Popover>
+        <>
+            <SearchField
+                aria-label="Search Captains"
+                autoFocus
+                fullWidth
+                name="captain-search"
+                onChange={onQueryChange}
+                value={query}
+                variant="secondary"
+            >
+                <SearchField.Group>
+                    <SearchField.SearchIcon />
+                    <SearchField.Input placeholder="Search Captains" />
+                    <SearchField.ClearButton />
+                </SearchField.Group>
+            </SearchField>
+            <ListBox
+                aria-label="Captains with access"
+                escapeKeyBehavior="none"
+                className="max-h-[min(20rem,calc(100dvh-14rem))] overflow-y-auto"
+                disabledKeys={disabledKeys ?? captains.map(({ id }) => id)}
+                onSelectionChange={(next) => {
+                    const change = captainChooserChange(
+                        view,
+                        new Set(next === 'all' ? [] : [...next].map(String))
+                    );
+                    if (change) {
+                        onChange(change);
+                    }
+                }}
+                renderEmptyState={() => (
+                    <p className="text-muted py-6 text-center text-sm">No matches</p>
+                )}
+                selectedKeys={[...view.machine, ...view.granted].map((captain) => captain.id)}
+                selectionMode="multiple"
+            >
+                {captains.map((captain) => (
+                    <CaptainOption
+                        captain={captain}
+                        key={captain.id}
+                        usesByDefault={
+                            machineIds.has(captain.id) ? `Uses this ${deviceKind} by default` : null
+                        }
+                    />
+                ))}
+            </ListBox>
+        </>
     );
 }
 

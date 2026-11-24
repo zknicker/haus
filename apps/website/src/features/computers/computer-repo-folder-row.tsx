@@ -1,4 +1,4 @@
-import type { RepoFolder, RepoFolderState } from '@haus/api';
+import type { RepoFolder, RepoFolderState, RepoGithubAccessStatus } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
 import { Button, Dropdown, Label, toast } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
@@ -28,24 +28,17 @@ export function ComputerRepoFolderRow({
     const access = useRepos(target.serverId).data?.repos.find(
         (repo) => repo.repository === folder.repository
     )?.githubAccess;
-    const accessChip = access ? repoAccessChips[access.status] : null;
+    const issue = folderIssue(state, access?.status ?? null);
     return (
         <ItemCard>
             <ItemCard.Content>
                 <SettingsStatusTitle
                     status={
-                        <>
-                            {state && state !== 'present' ? (
-                                <SettingsStatusChip color="warning">
-                                    {capitalize(folderStateLabels[state])}
-                                </SettingsStatusChip>
-                            ) : null}
-                            {accessChip ? (
-                                <SettingsStatusChip color={accessChip.color}>
-                                    {accessChip.label}
-                                </SettingsStatusChip>
-                            ) : null}
-                        </>
+                        issue ? (
+                            <SettingsStatusChip color={issue.color}>
+                                {issue.label}
+                            </SettingsStatusChip>
+                        ) : null
                     }
                 >
                     <span title={folder.path}>{folder.path}</span>
@@ -107,6 +100,16 @@ async function copyPath(path: string) {
             description: error instanceof Error ? error.message : undefined,
         });
     }
+}
+
+function folderIssue(state: RepoFolderState | null, access: RepoGithubAccessStatus | null) {
+    if (state && state !== 'present') {
+        return { color: 'warning', label: capitalize(folderStateLabels[state]) } as const;
+    }
+    if (access && access !== 'ready') {
+        return repoAccessChips[access];
+    }
+    return null;
 }
 
 function capitalize(label: string) {

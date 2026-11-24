@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { Trigger } from '@haus/api';
 import {
+    githubInstallationDescription,
     githubInstallationSettingsUrl,
     githubInstallationStatus,
     githubRemovalBody,
@@ -35,7 +36,21 @@ test('an installation states its repository reach once', () => {
     ).toBe('4 repositories');
 });
 
-test('a healthy installation carries no chip; problems name themselves', () => {
+test('a healthy installation reads its reach alone; a problem leads the line in plain text', () => {
+    const reach = { accessibleRepositoryCount: 4, repositorySelection: 'selected' } as const;
+    expect(
+        githubInstallationDescription({ ...reach, permissions: fullPermissions, status: 'active' })
+    ).toBe('4 repositories');
+    expect(
+        githubInstallationDescription({
+            ...reach,
+            permissions: fullPermissions,
+            status: 'suspended',
+        })
+    ).toBe('Suspended · 4 repositories');
+});
+
+test('a healthy installation has no status; problems name themselves', () => {
     expect(githubInstallationStatus({ permissions: fullPermissions, status: 'active' })).toBeNull();
     expect(githubInstallationStatus({ permissions: fullPermissions, status: 'suspended' })).toBe(
         'Suspended'

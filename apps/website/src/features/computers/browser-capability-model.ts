@@ -11,7 +11,7 @@ export interface BrowserCapabilityView {
     canConfigure: boolean;
     canDisable: boolean;
     canEnable: boolean;
-    description: string;
+    detail: string | null;
     status: BrowserCapabilityStatus;
     statusLabel: string;
 }
@@ -20,16 +20,14 @@ export const browserCheckingView: BrowserCapabilityView = {
     canConfigure: false,
     canDisable: false,
     canEnable: false,
-    description: 'Asking this device about its Chrome.',
+    detail: null,
     status: 'checking',
     statusLabel: 'Checking',
 };
 
 export function browserCapabilityView({
-    error,
     settings,
 }: {
-    error?: string | null;
     settings: AgentRuntimeBrowserSettings | null;
 }): BrowserCapabilityView {
     if (!settings) {
@@ -37,7 +35,7 @@ export function browserCapabilityView({
             canConfigure: false,
             canDisable: false,
             canEnable: false,
-            description: error ?? 'Reconnect this device to configure its Browser.',
+            detail: null,
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };
@@ -51,38 +49,20 @@ export function browserCapabilityView({
         canConfigure: true,
         canDisable: settings.enabled,
         canEnable: settings.configured && !settings.enabled && Boolean(selected?.available),
+        detail: null,
     };
     if (!settings.configured) {
-        return {
-            ...actions,
-            description:
-                'Connect Captains to an existing automation-enabled Chrome on this device.',
-            status: 'not-configured',
-            statusLabel: 'Not configured',
-        };
+        return { ...actions, status: 'not-configured', statusLabel: 'Not configured' };
     }
     if (!settings.enabled) {
-        return {
-            ...actions,
-            description:
-                'Haus is disconnected. Chrome and its profile stay with their current owner.',
-            status: 'off',
-            statusLabel: 'Disconnected',
-        };
+        return { ...actions, status: 'off', statusLabel: 'Disconnected' };
     }
     if (settings.status?.state !== 'healthy') {
-        return {
-            ...actions,
-            description:
-                settings.status?.reason ??
-                'The selected browser is unavailable. Start it with its current owner, then refresh.',
-            status: 'attention',
-            statusLabel: 'Unavailable',
-        };
+        return { ...actions, status: 'attention', statusLabel: 'Unavailable' };
     }
     return {
         ...actions,
-        description: `Captains share ${selected?.name ?? 'the selected Chrome browser'} and its signed-in accounts. Disconnecting Haus leaves Chrome open.`,
+        detail: selected?.name ?? null,
         status: 'ready',
         statusLabel: 'Connected',
     };

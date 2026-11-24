@@ -39,6 +39,14 @@ export function repoAccessFix(
     } satisfies RepoAccessFix;
 }
 
+export function repoRowDescription(
+    repo: Pick<RepoList['repos'][number], 'folders' | 'githubAccess'>
+) {
+    const folders = repoFolderSummary(repo);
+    const status = repo.githubAccess.status;
+    return status === 'ready' ? folders : `${repoAccessChips[status].label} · ${folders}`;
+}
+
 export function repoFolderSummary(repo: Pick<RepoList['repos'][number], 'folders'>) {
     if (repo.folders.length === 0) {
         return 'No folders yet';

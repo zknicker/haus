@@ -1,6 +1,7 @@
-import { Button, Description, Dropdown, Label } from '@heroui/react';
+import { Button, Description, Dropdown, Label, toast } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useComputerInventoryRefresh } from '../../hooks/servers/use-computer-inventory-refresh.ts';
 import { computerRemovalDescription, useComputerRemovalAvailability } from './computer-removal.ts';
 import { type ComputerUpdateComputer, updateInput } from './computer-update-card.tsx';
 import { computerUpdateView } from './computer-update-model.ts';
@@ -23,6 +24,8 @@ export function ComputerActionsMenu({
     useUpdateExpiryRefresh(computer);
     const view = computerUpdateView({ ...updateInput(computer), isChecking: update.isChecking });
     const canRemove = availability.status === 'ready';
+    const refresh = useComputerInventoryRefresh();
+    const reachable = computer.health !== 'offline' && computer.health !== 'update-required';
 
     return (
         <Dropdown>
@@ -31,6 +34,25 @@ export function ComputerActionsMenu({
             </Button>
             <Dropdown.Popover placement="bottom end">
                 <Dropdown.Menu>
+                    <Dropdown.Item
+                        id="refresh-status"
+                        isDisabled={!reachable || refresh.isPending}
+                        onAction={() =>
+                            refresh.mutate(
+                                { computerId: computer.id, serverId },
+                                {
+                                    onError: (error) =>
+                                        toast.danger('Couldn’t refresh status', {
+                                            description: error.message,
+                                        }),
+                                    onSuccess: () => toast.success('Status refreshed'),
+                                }
+                            )
+                        }
+                        textValue="Refresh status"
+                    >
+                        <Label>Refresh status</Label>
+                    </Dropdown.Item>
                     <Dropdown.Item
                         id="check-update"
                         isDisabled={!view.canCheck}

@@ -3,7 +3,6 @@ import { Separator } from '@heroui/react';
 import { Fragment } from 'react';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact } from '../layout/settings-text.tsx';
 import { ReposLinkRow } from '../repos/repos-link-row.tsx';
 
@@ -22,9 +21,12 @@ export function GitSettings() {
                                 {index > 0 ? <Separator /> : null}
                                 <ItemCard>
                                     <ItemCard.Content>
-                                        <SettingsRowTitle info={fact.info}>
-                                            {fact.title}
-                                        </SettingsRowTitle>
+                                        <ItemCard.Title>{fact.title}</ItemCard.Title>
+                                        {fact.description ? (
+                                            <ItemCard.Description className="whitespace-normal">
+                                                {fact.description}
+                                            </ItemCard.Description>
+                                        ) : null}
                                     </ItemCard.Content>
                                     <ItemCard.Action>
                                         <SettingsFact
@@ -45,24 +47,23 @@ export function GitSettings() {
 }
 
 const gitSections: ReadonlyArray<{
-    facts: ReadonlyArray<{ info: string; mono?: boolean; title: string; value: string }>;
+    facts: ReadonlyArray<{ description?: string; mono?: boolean; title: string; value: string }>;
     title: string;
 }> = [
     {
         facts: [
             {
-                info: 'A Captain checks out a repo as a git worktree on its own branch: haus/<captain>/<repo>.',
+                description: 'Each Captain works on its own branch under this prefix.',
                 mono: true,
                 title: 'Branch prefix',
                 value: 'haus/',
             },
             {
-                info: 'Captains commit as the Haus GitHub App’s bot, with whoever asked as co-author.',
                 title: 'Commit author',
                 value: 'Haus bot, requester co-author',
             },
             {
-                info: 'Captains push their branches and open pull requests through the Haus GitHub App, which needs access to the repo.',
+                description: 'The app needs access to each repo a Captain pushes to.',
                 title: 'Pushes and pull requests',
                 value: 'Haus GitHub App',
             },
@@ -72,7 +73,6 @@ const gitSections: ReadonlyArray<{
     {
         facts: [
             {
-                info: 'Workers commit and push with the git login already on the device they run on.',
                 title: 'Commit author',
                 value: 'The device’s git login',
             },

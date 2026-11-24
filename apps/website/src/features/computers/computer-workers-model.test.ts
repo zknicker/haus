@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import {
     planLeftLine,
+    runtimeAttention,
     workerLimitChoices,
     workerRuntimeViews,
-    workersSentence,
 } from './computer-workers-model.ts';
 
 const device = { canChangeWorkers: true, canEnableWorkers: true, workerLimit: 4 };
@@ -31,13 +31,11 @@ test('a steward who did not attach it can only lower it or turn it off', () => {
     expect(member.isDisabled).toBe(true);
 });
 
-test('the Run Workers here sentence follows the value', () => {
-    expect(workersSentence({ workerLimit: 4, workersEnabled: false })).toBe(
-        'Captains can’t start Workers here.'
-    );
-    expect(workersSentence({ workerLimit: 1, workersEnabled: true })).toBe(
-        'Captains with access can run up to 1 Worker here at once.'
-    );
+test('a ready runtime stays quiet, and every other state names its exception', () => {
+    expect(runtimeAttention('ready')).toBeNull();
+    expect(runtimeAttention('not-ready')).toBe('Not signed in');
+    expect(runtimeAttention('signed-out')).toBe('Sign-in failed');
+    expect(runtimeAttention('missing')).toBe('Not installed');
 });
 
 test('a runtime is ready, not signed in, missing, or failing its sign-in', () => {

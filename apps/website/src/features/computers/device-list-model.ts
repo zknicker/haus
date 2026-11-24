@@ -1,6 +1,6 @@
 import { ComputerIcon, LaptopIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { formatRelativeTime } from '../../lib/format.ts';
-import { computerHealthLabel } from './presentation.ts';
+import { computerHealthColor, computerHealthLabel } from './presentation.ts';
 
 interface ListedDevice {
     attachedByCurrentUser: boolean;
@@ -16,14 +16,24 @@ export function deviceGroups<Device extends ListedDevice>(devices: readonly Devi
     };
 }
 
-export function deviceStatusLine(device: ListedDevice, now = Date.now()) {
+export function deviceIssue(device: Pick<ListedDevice, 'health'>) {
+    if (device.health === 'healthy') {
+        return null;
+    }
+    return {
+        color: computerHealthColor(device.health),
+        label: computerHealthLabel(device.health),
+    };
+}
+
+export function deviceLastSeen(device: ListedDevice, now = Date.now()) {
     if (device.health !== 'offline') {
-        return computerHealthLabel(device.health);
+        return null;
     }
     if (!device.lastConnectedAt) {
-        return 'Offline · never connected';
+        return 'Never connected';
     }
-    return `Offline · last seen ${formatRelativeTime(new Date(device.lastConnectedAt).toISOString(), now)}`;
+    return `Last seen ${formatRelativeTime(new Date(device.lastConnectedAt).toISOString(), now)}`;
 }
 
 export function deviceMark(device: Pick<ListedDevice, 'name'>) {

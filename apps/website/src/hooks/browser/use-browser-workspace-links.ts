@@ -15,8 +15,8 @@ export interface WebLinkOpen {
  * Web links clicked in the App (an off-origin anchor, or any `target=_blank` web anchor: message
  * links, website and pull request chips) open as web tabs instead of navigating the App:
  * `open(request)`, with Chrome's dispositions (`tab-open-gesture.ts`). The source is the
- * link's own tab, not the focused one. With Settings → Preferences → Open links in set to the
- * default browser they open there instead, falling back to a tab if the system refuses. Desktop
+ * link's own tab, not the focused one. With Settings → Preferences → Open links in your browser
+ * on they open in the default browser instead, falling back to a tab if the system refuses. Desktop
  * only.
  */
 export function useBrowserWorkspaceLinks(open: (request: WebLinkOpen) => void) {

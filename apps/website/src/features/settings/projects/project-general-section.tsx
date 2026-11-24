@@ -9,7 +9,6 @@ import {
     projectKeyIssue,
     projectKeyRefusal,
 } from '../../chats/project-key.ts';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 
 export function ProjectGeneralSection({ chat, project }: { chat: Chat; project: Project }) {
@@ -92,9 +91,8 @@ function ProjectDescriptionRow({ chat, isDisabled }: { chat: Chat; isDisabled: b
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsRowTitle info="Captains read this to learn what belongs here.">
-                    Description
-                </SettingsRowTitle>
+                <ItemCard.Title>Description</ItemCard.Title>
+                <ItemCard.Description>Tells Captains what belongs here.</ItemCard.Description>
                 <SettingsRowError>{update.error?.message}</SettingsRowError>
             </ItemCard.Content>
             <ItemCard.Action>
@@ -140,9 +138,8 @@ function ProjectKeyRow({
         return (
             <ItemCard>
                 <ItemCard.Content>
-                    <SettingsRowTitle info="Tasks already carry this key, so it stays.">
-                        Task key
-                    </SettingsRowTitle>
+                    <ItemCard.Title>Task key</ItemCard.Title>
+                    <ItemCard.Description>{taskKeyDescription}</ItemCard.Description>
                 </ItemCard.Content>
                 <ItemCard.Action>
                     <SettingsFact>{project.key}</SettingsFact>
@@ -153,9 +150,8 @@ function ProjectKeyRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsRowTitle info="Prefixes this Project's Task numbers. It locks once the first Task is filed.">
-                    Task key
-                </SettingsRowTitle>
+                <ItemCard.Title>Task key</ItemCard.Title>
+                <ItemCard.Description>{taskKeyDescription}</ItemCard.Description>
                 <SettingsRowError>{issue ?? update.error?.message}</SettingsRowError>
             </ItemCard.Content>
             <ItemCard.Action>
@@ -179,6 +175,8 @@ function ProjectKeyRow({
         </ItemCard>
     );
 }
+
+const taskKeyDescription = 'Prefixes Task numbers and locks once the first Task is filed.';
 
 function blurOnEnter(event: React.KeyboardEvent) {
     if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {

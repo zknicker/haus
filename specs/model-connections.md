@@ -114,16 +114,18 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 
 ## Settings → Models
 
-- One connections table sits at the top of the page. Its header counts the accounts ("1
-  connection") and, for the Owner, holds a + that picks a provider and opens its connect dialog.
+- One connections table sits at the top of the page. Its header reads Connections with a muted
+  count and, for the Owner, holds Add connection, which picks a provider and opens its connect
+  dialog. With no accounts the section holds one "No connections yet." row.
 - The columns are Account, 5h left, 7d left and Resets. A row leads with the provider's logo in a
   tile, then its label over the provider name (with "Default" on the first). Each window shows a
   bar and the percentage left (100 minus used), or a dash when it was not read. Resets is the
-  soonest upcoming reset. A failed connection shows Failed in place of the bars.
-- A connection row ends with its on switch, a menu (Rename, Make default, Reconnect, Remove) and an
-  expand chevron. Its details hold how it signed in, the failure detail, and the Web search switch.
-  A failed connection opens on its details. Members see the switches but cannot change them, and
-  get no menu or +.
+  soonest upcoming reset. A failed connection shows Failed in place of the bars, and one that is
+  turned off shows an Off chip beside its label; a connection in use shows neither.
+- A connection row ends with one menu (Rename, Make default, Turn off or Turn on, Reconnect,
+  Remove) and an expand chevron. Its details hold how it signed in, the failure detail, and the
+  Web search switch. A failed connection opens on its details. Members see the Off chip and the Web
+  search switch but cannot change them, and get no menu or Add connection.
 - While the Server's Captains run on Devices (`agentLoop: 'computer'`), the table also lists each
   Device's detected runtime logins, labeled by runtime and Device, with the plan windows that
   Device reports. They only read: no switch, menu or details.

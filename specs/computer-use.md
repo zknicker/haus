@@ -221,22 +221,22 @@ with a watchdog that kills the whole group the moment the daemon's stdin closes.
 
 Settings → Devices → [Device]
 ([docs/features/computer-use.md](../docs/features/computer-use.md)) runs a macOS permissions
-warning only while one is missing, then **Access**, then **Workers**.
+section only while one is missing, then **Access**, then **Workers**.
 
-- **Access** ("Who can use this Mac.") holds two rows, each a title, a sentence that says what its
-  current value does, and a select
-  (`apps/website/src/features/computers/device-access-rows.tsx`):
-  - **Captain access**: Selected Captains ("Only Cove and Forge can run tools here.") or All
-    Captains on this Server ("Any Captain on this Server can run tools here."). Under Selected,
-    **Choose Captains** opens a searchable multi-select of every Captain; one whose Machine is this
-    Device is checked and locked with "Uses this Mac by default". All is disabled for a viewer who
-    is not the attacher, and so is checking a Captain.
-  - **Computer use** (macOS only): On ("Those Captains can see the screen and click and type in
-    apps.") or Off ("Captains can't see or control this Mac's screen."). On is disabled for a
-    viewer who is not the attacher.
+- **Access** holds two rows, each a title, a static description of what the setting does, and
+  one control (`apps/website/src/features/computers/device-access-rows.tsx`):
+  - **Captains** ("Captains that can run tools on this Mac."): an `AvatarGroup` of the allowed
+    Captains (up to four, then a count), or the text "All Captains", then a `+` button (**Choose
+    Captains**). The `+` opens a popover whose top is an **All Captains on this Server** switch,
+    with a searchable multi-select of every Captain below it while that is off. One whose Machine
+    is this Device is checked and locked with "Uses this Mac by default". Turning All on is
+    disabled for a viewer who is not the attacher, and so is checking a Captain; a viewer who is
+    not a steward sees the avatars with the `+` disabled.
+  - **Computer use** (macOS only, "Lets those Captains see the screen and use apps."): a switch.
+    Turning it on is disabled for a viewer who is not the attacher.
   - While a Captain is driving the Device, "Cove is using Studio" with **Stop Agent Input**.
-- **Workers** holds Run Workers here (Off or Up to N), Claude Code and Codex with a status chip
-  and one line of weekly plan usage, and the cloud providers.
+- **Workers** holds Run Workers here (Off or Up to N), Claude Code and Codex with one line of
+  weekly plan usage when ready or their exception and a **Fix** popover, and the cloud providers.
 - A change shows at once and rolls back with a toast if the Server refuses it.
 - **Not your Device.** A member who opens a Device page they cannot see (a refusal link) reads who
   attached it and that they, an Owner, or an Admin can change its settings.
@@ -279,10 +279,12 @@ agent-desktop installed, its version, `accessibility` and `screenRecording` (eac
 `denied`, or `unknown`), `macosVersion` (`sw_vers -productVersion`), and `appPath`, the running
 `.app`.
 
-The Device page lists one row per permission, with Granted or Not granted, a one-line purpose,
-**Open Settings** (`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`
-or `?Privacy_ScreenCapture`, which the desktop App opens with the system handler), and the steps
-for that macOS version (`computerUsePanes` in `packages/haus-api/src/computer-use.ts`):
+The Device page lists one row per permission that is not granted, reading Not granted or
+Couldn't check, with **Open Settings**
+(`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility` or
+`?Privacy_ScreenCapture`, which the desktop App opens with the system handler). Open Settings
+also opens a setup Modal with the permission's purpose and the steps for that macOS version
+(`computerUsePanes` in `packages/haus-api/src/computer-use.ts`):
 
 | macOS | Accessibility pane | Steps |
 | --- | --- | --- |
@@ -290,13 +292,13 @@ for that macOS version (`computerUsePanes` in `packages/haus-api/src/computer-us
 | 27.0–27.2 | Device Control and Data Access | + → Haus Computer → turn it on |
 | 27.3 and later | System & App Protection Override | + → Override System Protections → Choose Apps → Haus Computer → Control Your Entire Mac and All Apps |
 
-Screen Recording is "Screen & System Audio Recording" from macOS 15. While a permission is not
-granted, a row shows the bundle path (`appPath`, else `~/.local/share/haus-computer/Haus
-Computer.app`) with **Copy path** for the file picker's ⌘⇧G, says to do it on the Device itself
-(Screen Sharing for a Mac without a display), and **Check again** asks for a fresh probe. Coming
-back to the App window (focus) also asks for one, so a grant shows without a Refresh. There is no
-drag-to-add: macOS 27.3 has no drop target, and Haus never runs `permissions --guide`. If
-agent-desktop failed to install, the section says to update Haus Computer instead.
+Screen Recording is "Screen & System Audio Recording" from macOS 15. The Modal shows the bundle
+path (`appPath`, else `~/.local/share/haus-computer/Haus Computer.app`) with **Copy path** for the
+file picker's ⌘⇧G, says to do it on the Device itself (Screen Sharing for a Mac without a
+display), and shows the permission's live state. Coming back to the App window (focus) asks for a
+fresh probe, so a grant shows without a Refresh. There is no drag-to-add: macOS 27.3 has no drop
+target, and Haus never runs `permissions --guide`. If agent-desktop failed to install, the section
+shows "Update Haus Computer on this Mac." instead of rows.
 
 Grants never carry over to a new holder: the Computers that ran as a bare executable lose theirs
 when they become `Haus Computer.app`. When the resident service's executable moves to a different

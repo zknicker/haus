@@ -10,7 +10,7 @@ import { ReposSettings } from './page.tsx';
 
 const serverId = 'srv_repos';
 
-test('each repo shows its Devices and App access, with a way to fix access and recheck', () => {
+test('a repo that needs App access says so beside one Fix control; a ready repo stays quiet', () => {
     const html = render({
         canInstallGithubApp: true,
         githubConnectionId: 'mcp_github',
@@ -50,13 +50,12 @@ test('each repo shows its Devices and App access, with a way to fix access and r
     });
 
     expect(html).toContain('acme/widgets');
-    expect(html).toContain('MacBook Pro, Mac mini');
-    expect(html).toContain('App access needed');
-    expect(html).toContain('Grant on GitHub');
-    expect(html).toContain('Recheck');
+    expect(html).toContain('App access needed · MacBook Pro, Mac mini');
+    expect(html).toContain('aria-label="Fix access to acme/widgets"');
+    expect(html).not.toContain('Recheck');
     expect(html).toContain('acme/site');
-    expect(html).toContain('Ready');
-    expect(html.match(/Grant on GitHub/gu)).toHaveLength(1);
+    expect(html).not.toContain('Ready');
+    expect(html.match(/<span[^>]*class="[^"]*chip/gu)).toBeNull();
     expect(html).toMatch(/<button[^>]*>Add repository<\/button>/u);
     expect(html).toContain('Manage the GitHub installation');
     expect(html).toContain('href="/s/haus/settings/connections/mcp_github"');
@@ -74,10 +73,20 @@ test('no repos yet is an empty state with Add repository; without GitHub it says
             { folders: [], githubAccess: { status: 'github-not-connected' }, repository: 'a/b' },
         ],
     });
-    expect(unconnected).toContain('GitHub not connected');
+    expect(unconnected).toContain('GitHub not connected · No folders yet');
     expect(unconnected).toContain('Connect GitHub');
-    expect(unconnected).toContain('No folders yet');
     expect(unconnected).not.toContain('Recheck');
+});
+
+test('when GitHub does not answer, the row offers Recheck alone', () => {
+    const html = render({
+        canInstallGithubApp: false,
+        githubConnectionId: 'mcp_github',
+        repos: [{ folders: [], githubAccess: { status: 'github-unavailable' }, repository: 'a/b' }],
+    });
+    expect(html).toContain('GitHub unavailable · No folders yet');
+    expect(html.match(/>Recheck</gu)).toHaveLength(1);
+    expect(html).not.toContain('Grant on GitHub');
 });
 
 test('nothing but the header shows while the list loads', () => {

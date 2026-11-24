@@ -53,7 +53,7 @@ _Avoid_: Hosted Computer, Haus server, tenant, Haus Computer installation, agent
 The per-Computer setting for which Agents may run tools and start Workers there: selected Agents,
 or every Agent on the Server. An Agent whose Machine is that Computer always has it. Only the
 person who attached the Computer widens it. Computer use is one switch over every Agent it allows.
-The UI calls it Captain access.
+The UI calls it Captain access; the Device page shows it as the Captains row under Access.
 _Avoid_: Computer sharing, borrowed Agent, Computer permission
 
 **Machine**:

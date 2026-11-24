@@ -30,7 +30,11 @@ describe('secretsCapabilityView', () => {
                 isOffline: false,
                 status: notConnected,
             })
-        ).toMatchObject({ canConnect: false, status: 'not-connected' });
+        ).toMatchObject({
+            canConnect: false,
+            status: 'not-connected',
+            statusLabel: 'Connect in Haus for Mac',
+        });
         expect(
             secretsCapabilityView({
                 canUseOnePassword: true,
@@ -43,10 +47,7 @@ describe('secretsCapabilityView', () => {
     test('a Computer that never reported secrets asks for an update', () => {
         expect(
             secretsCapabilityView({ canUseOnePassword: true, isOffline: false, status: null })
-        ).toMatchObject({
-            canConnect: false,
-            description: 'Update this device to connect a 1Password vault.',
-        });
+        ).toMatchObject({ canConnect: false, statusLabel: 'Update needed' });
     });
 
     test('connected names the vault and item count, and keeps it while offline', () => {
@@ -56,7 +57,7 @@ describe('secretsCapabilityView', () => {
             status: connected,
         });
         expect(online).toMatchObject({ canDisconnect: true, canRefresh: false, status: 'ready' });
-        expect(online.description).toContain('“Agents” (1 item)');
+        expect(online.detail).toBe('“Agents” · 1 item');
         expect(
             secretsCapabilityView({ canUseOnePassword: true, isOffline: true, status: connected })
         ).toMatchObject({ canDisconnect: false, canRefresh: false, status: 'ready' });
@@ -90,7 +91,6 @@ describe('secretsCapabilityView', () => {
                 status: { ...connected, issue: 'keychain-locked' },
             })
         ).toMatchObject({
-            description: "This device's Keychain is locked. Log in on the device to unlock it.",
             status: 'needs-attention',
             statusLabel: 'Keychain locked',
         });

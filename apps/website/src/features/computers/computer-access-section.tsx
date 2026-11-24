@@ -5,7 +5,6 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { agentAccessView } from './agent-access-model.ts';
 import { supportsComputerUse } from './computer-use-model.ts';
-import { ComputerUsePermissionNotices } from './computer-use-permissions.tsx';
 import { ComputerUseStop } from './computer-use-stop.tsx';
 import {
     CaptainAccessRow,
@@ -32,7 +31,6 @@ export function ComputerAccessSection({
     }
     const computerUse = supportsComputerUse(computer);
     const deviceKind = computerUse ? 'Mac' : 'device';
-    const deviceName = computerLabel(computer);
 
     return (
         <section
@@ -42,24 +40,13 @@ export function ComputerAccessSection({
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Access</ItemCardGroup.Title>
-                    <ItemCardGroup.Description>
-                        Who can use this {deviceKind}.
-                    </ItemCardGroup.Description>
                 </ItemCardGroup.Header>
                 {computerUse ? (
-                    <>
-                        <ComputerUseStop
-                            computerId={computerId}
-                            deviceName={deviceName}
-                            serverId={serverId}
-                        />
-                        {computer.computerUseEnabled ? (
-                            <ComputerUsePermissionNotices
-                                deviceName={deviceName}
-                                readiness={computer.reportedInventory?.computerUse}
-                            />
-                        ) : null}
-                    </>
+                    <ComputerUseStop
+                        computerId={computerId}
+                        deviceName={computerLabel(computer)}
+                        serverId={serverId}
+                    />
                 ) : null}
                 <ItemCardGroup>
                     {agents.data ? (

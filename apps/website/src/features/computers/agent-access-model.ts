@@ -12,11 +12,6 @@ export interface AgentAccessView {
     others: readonly AccessCaptain[];
 }
 
-export const captainAccessScopes = [
-    { id: 'selected', label: 'Selected Captains' },
-    { id: 'all', label: 'All Captains on this Server' },
-] as const satisfies ReadonlyArray<{ id: ComputerAgentAccessScope; label: string }>;
-
 export function agentAccessView({
     agents,
     computerId,
@@ -36,22 +31,16 @@ export function agentAccessView({
     return view;
 }
 
-export function captainAccessSentence(scope: ComputerAgentAccessScope, view: AgentAccessView) {
-    if (scope === 'all') {
-        return 'Any Captain on this Server can run tools here.';
-    }
-    const names = [...view.machine, ...view.granted].map((captain) => captain.displayName);
-    if (names.length === 0) {
-        return 'No Captains can run tools here yet.';
-    }
-    const shown = names.length > 3 ? [...names.slice(0, 2), `${names.length - 2} others`] : names;
-    return `Only ${listNames(shown)} can run tools here.`;
+export function allowedCaptains(view: AgentAccessView) {
+    return [...view.machine, ...view.granted];
 }
 
-export function computerUseSentence(enabled: boolean) {
-    return enabled
-        ? 'Those Captains can see the screen and click and type in apps.'
-        : 'Captains can’t see or control this Mac’s screen.';
+export function captainScopeRights(
+    scope: ComputerAgentAccessScope,
+    rights: { canGrant: boolean; canRevoke: boolean }
+) {
+    const steward = rights.canGrant || rights.canRevoke;
+    return { canChange: steward && (scope === 'all' || rights.canGrant), steward };
 }
 
 export function captainChooserKeys(
@@ -74,8 +63,4 @@ export function captainChooserChange(view: AgentAccessView, next: ReadonlySet<st
     }
     const removed = view.granted.find((captain) => !next.has(captain.id));
     return removed ? ({ agentId: removed.id, kind: 'revoke' } as const) : null;
-}
-
-function listNames(names: readonly string[]) {
-    return new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(names);
 }

@@ -10,14 +10,12 @@ import { useGithubInstallCandidates } from '../../../../../hooks/github/use-gith
 import { useGithubInstallations } from '../../../../../hooks/github/use-github-installations.ts';
 import { useGithubStartInstall } from '../../../../../hooks/github/use-github-start-install.ts';
 import { SettingsEmptyRow } from '../../../layout/settings-empty.tsx';
-import { SettingsStatusChip, SettingsStatusTitle } from '../../../layout/settings-row-title.tsx';
 import { ConnectionSection } from '../../../mcp/connection-section.tsx';
 import type { BuiltInConnectionSectionProps } from '../built-in-connection-definition.ts';
 import {
     githubCandidateDescription,
+    githubInstallationDescription,
     githubInstallationSettingsUrl,
-    githubInstallationStatus,
-    githubRepositoryScopeLabel,
 } from './github-installation-model.ts';
 import { GithubInstallationRemoveDialog } from './github-installation-remove-dialog.tsx';
 import { GithubSetupNotice } from './github-setup-notice.tsx';
@@ -92,28 +90,15 @@ function InstallationRow({
     installation: GithubInstallation;
     onRemove: () => void;
 }) {
-    const status = githubInstallationStatus(installation);
     const { login } = installation.account;
 
     return (
         <ItemCard>
             <EntityAvatar name={login} size="sm" />
             <ItemCard.Content>
-                <SettingsStatusTitle
-                    status={
-                        status ? (
-                            <SettingsStatusChip
-                                color={installation.status === 'active' ? 'warning' : 'danger'}
-                            >
-                                {status}
-                            </SettingsStatusChip>
-                        ) : null
-                    }
-                >
-                    {login}
-                </SettingsStatusTitle>
+                <ItemCard.Title>{login}</ItemCard.Title>
                 <ItemCard.Description className="tabular-nums">
-                    {githubRepositoryScopeLabel(installation)}
+                    {githubInstallationDescription(installation)}
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>

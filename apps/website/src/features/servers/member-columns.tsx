@@ -1,6 +1,6 @@
 import type { ServerMember, ServerMemberDirectory } from '@haus/api/membership';
 import type { DataGridColumn } from '@heroui-pro/react';
-import { Button, Chip, Description, Dropdown, Label } from '@heroui/react';
+import { Avatar, Button, Chip, Description, Dropdown, Label } from '@heroui/react';
 import { Mail01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Link } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
@@ -38,15 +38,14 @@ export function memberColumns({
             minWidth: 180,
         },
         {
-            cell: (row) => (
-                <Chip
-                    color={row.kind === 'invitation' ? 'warning' : 'default'}
-                    size="sm"
-                    variant="soft"
-                >
-                    <Chip.Label className="capitalize">{row.status}</Chip.Label>
-                </Chip>
-            ),
+            cell: (row) =>
+                row.kind === 'invitation' ? (
+                    <Chip color="warning" size="sm" variant="soft">
+                        <Chip.Label>Pending</Chip.Label>
+                    </Chip>
+                ) : (
+                    <span className="capitalize">{row.status}</span>
+                ),
             header: 'Role',
             id: 'role',
         },
@@ -87,9 +86,11 @@ function MemberName({ row, serverSlug }: { row: MemberRow; serverSlug: string })
     if (row.kind === 'invitation') {
         return (
             <span className="flex min-w-0 items-center gap-2.5">
-                <span className="bg-surface-secondary text-muted flex size-7 shrink-0 items-center justify-center rounded-full">
-                    <Icon aria-hidden="true" icon={Mail01Icon} size={14} />
-                </span>
+                <Avatar size="sm">
+                    <Avatar.Fallback>
+                        <Icon aria-hidden="true" icon={Mail01Icon} size={16} />
+                    </Avatar.Fallback>
+                </Avatar>
                 <span className="text-muted truncate">Invited</span>
             </span>
         );

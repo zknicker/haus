@@ -63,10 +63,11 @@ test('a connected Computer names its account and hides Disconnect behind the row
         state: connected,
     });
     expect(view).toMatchObject({ canConnect: false, canDisconnect: true, status: 'ready' });
-    expect(view.description).toContain('delegate@example.com');
+    expect(view.detail).toBe('delegate@example.com');
 
     const html = render(view);
-    expect(html).toContain('Ready');
+    expect(html).toContain('delegate@example.com');
+    expect(html).not.toContain('Ready');
     expect(html).toContain('aria-label="Cursor actions"');
     // The trigger is an icon-only ghost button, like every other row menu.
     expect(html).toContain('button--icon-only');
@@ -82,10 +83,13 @@ test('an expired key reads as expired and still offers a reconnect', () => {
         state: unready('expired'),
     });
     expect(view).toMatchObject({ canConnect: true, canDisconnect: true, statusLabel: 'Expired' });
-    expect(render(view)).toContain('Expired');
+    const html = render(view);
+    expect(html).toContain('Expired');
+    expect(html).toContain('aria-label="Cursor actions"');
+    expect(html).not.toContain('>Connect<');
 });
 
-test('a Computer that cannot reach Cursor offers nothing to press', () => {
+test('a Computer that cannot reach Cursor shows no control at all', () => {
     for (const state of [unready('provider-unavailable'), null]) {
         const view = cloudAgentCapabilityView({
             isConnecting: false,
@@ -98,7 +102,9 @@ test('a Computer that cannot reach Cursor offers nothing to press', () => {
             canDisconnect: false,
             status: 'unavailable',
         });
-        expect(render(view)).toContain('disabled=""');
+        const html = render(view);
+        expect(html).toContain('Unavailable');
+        expect(html).not.toContain('<button');
     }
 });
 
@@ -109,8 +115,7 @@ test('an offline Computer says so instead of claiming a readiness it cannot read
         provider: 'cursor',
         state: connected,
     });
-    expect(view.status).toBe('unavailable');
-    expect(view.description).toContain('Reconnect this device');
+    expect(view).toMatchObject({ status: 'unavailable', statusLabel: 'Unavailable' });
 });
 
 test('the row reads as connecting while the Computer runs Cursor’s browser sign-in', () => {
@@ -175,32 +180,40 @@ test('offline wins over an in-flight sign-in and failures explain recovery', () 
             state: unready('not-connected'),
         }).status
     ).toBe('unavailable');
+    const failed = {
+        ...unready('not-connected'),
+        signIn: {
+            message: 'This sign-in expired. Try again to get a new link.',
+            status: 'failed',
+        },
+    } as const;
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
         provider: 'cursor',
-        state: {
-            ...unready('not-connected'),
-            signIn: {
-                status: 'failed',
-                message: 'This sign-in expired. Try again to get a new link.',
-            },
-        },
+        state: failed,
     });
-    expect(view.canConnect).toBe(true);
-    expect(view.description).toContain('expired');
+    expect(view).toMatchObject({ canConnect: true, statusLabel: 'Sign-in incomplete' });
+    expect(
+        cloudAgentSignInView({ error: null, isOffline: false, isStarting: false, state: failed })
+    ).toEqual({ message: failed.signIn.message, status: 'failed' });
 });
 
-test('Claude reuses the Computer’s Claude Code login: it checks again and never disconnects', () => {
+test('Claude reuses the Computer’s Claude Code login: it rechecks and never disconnects', () => {
     const signedOut = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
         provider: 'claude',
         state: { ...unready('not-connected'), isDefault: false, provider: 'claude' },
     });
-    expect(signedOut).toMatchObject({ canConnect: true, connectLabel: 'Check again' });
-    expect(signedOut.description).toContain('Claude Code');
-    expect(render(signedOut)).toContain('>Claude Cloud<');
+    expect(signedOut).toMatchObject({
+        canConnect: true,
+        connectLabel: 'Recheck',
+        statusLabel: 'Not signed in',
+    });
+    const html = render(signedOut);
+    expect(html).toContain('>Claude Cloud<');
+    expect(html).toMatch(/<button[^>]*>Recheck<\/button>/u);
 
     const ready = cloudAgentCapabilityView({
         isConnecting: false,

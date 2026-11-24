@@ -1,8 +1,4 @@
-import type {
-    ImageGenerationModel,
-    ImageGenerationProvider,
-    ImageGenerationProviderStatus,
-} from '@haus/api';
+import type { ImageGenerationModel, ImageGenerationProvider } from '@haus/api';
 import { formatImageGenerationCost } from '../../image-generation/image-generation-presentation.ts';
 
 export const providerNames: Record<ImageGenerationProvider, string> = {
@@ -12,10 +8,8 @@ export const providerNames: Record<ImageGenerationProvider, string> = {
 
 export type KeyAction = 'add' | 'remove' | 'replace';
 
-/** The key actions a provider's menu offers: add while disconnected, replace and remove once connected. */
-export function providerKeyActions(status: Pick<ImageGenerationProviderStatus, 'connected'>) {
-    return status.connected ? (['replace', 'remove'] as const) : (['add'] as const);
-}
+/** A provider without a key offers Add key as its one button; once connected, its menu holds these. */
+export const connectedKeyActions = ['replace', 'remove'] as const satisfies readonly KeyAction[];
 
 export const keyActionLabels: Record<KeyAction, string> = {
     add: 'Add key',

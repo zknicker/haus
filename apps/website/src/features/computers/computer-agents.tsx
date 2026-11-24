@@ -8,7 +8,6 @@ import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.t
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
-import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
 import { SettingsEmptyRow } from '../settings/layout/settings-empty.tsx';
 import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import { SettingsFact } from '../settings/layout/settings-text.tsx';
@@ -96,11 +95,11 @@ export function HomeCaptainList({
                             <ItemCard.Content>
                                 <SettingsStatusTitle
                                     status={
-                                        <SettingsStatusChip
-                                            color={availabilityBadgeColor(row.availability)}
-                                        >
-                                            {availabilityLabel(row)}
-                                        </SettingsStatusChip>
+                                        isQuiet(row) ? null : (
+                                            <SettingsStatusChip color={attentionColor(row)}>
+                                                {availabilityLabel(row)}
+                                            </SettingsStatusChip>
+                                        )
                                     }
                                 >
                                     {row.displayName}
@@ -123,6 +122,14 @@ export function HomeCaptainList({
             )}
         </ItemCardGroup>
     );
+}
+
+function isQuiet(row: HomeCaptainRow) {
+    return !row.wakePause && (row.availability === 'idle' || row.availability === 'working');
+}
+
+function attentionColor(row: HomeCaptainRow) {
+    return row.wakePause || row.availability === 'error' ? 'warning' : 'default';
 }
 
 function homeCaptainRow(

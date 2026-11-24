@@ -33,9 +33,11 @@ export function ReposSettings({ serverId, serverSlug }: { serverId: string; serv
                             </span>
                         ) : null}
                     </ItemCardGroup.Title>
-                    <Button onPress={() => setAdding(true)} size="sm" variant="secondary">
-                        Add repository
-                    </Button>
+                    {repos.data?.repos.length === 0 ? null : (
+                        <Button onPress={() => setAdding(true)} size="sm" variant="secondary">
+                            Add repository
+                        </Button>
+                    )}
                 </ItemCardGroup.Header>
                 {repos.data ? (
                     repos.data.repos.length === 0 ? (

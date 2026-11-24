@@ -26,7 +26,7 @@ const triggerPermissions = [...new Set(Object.values(githubTriggerEventPermissio
 
 /**
  * The one exceptional state an installation row names. Active with every
- * permission is the norm and carries no chip.
+ * permission is the norm and says nothing.
  */
 export function githubInstallationStatus(
     installation: Pick<GithubInstallation, 'permissions' | 'status'>
@@ -39,6 +39,18 @@ export function githubInstallationStatus(
     }
     const missing = triggerPermissions.some((permission) => !installation.permissions[permission]);
     return missing ? 'Permissions update needed' : null;
+}
+
+/** The row's description: what it reaches, led by its problem while it has one. */
+export function githubInstallationDescription(
+    installation: Pick<
+        GithubInstallation,
+        'accessibleRepositoryCount' | 'permissions' | 'repositorySelection' | 'status'
+    >
+) {
+    const scope = githubRepositoryScopeLabel(installation);
+    const status = githubInstallationStatus(installation);
+    return status ? `${status} · ${scope}` : scope;
 }
 
 /** Where an owner changes repositories, permissions, or suspension on GitHub. */

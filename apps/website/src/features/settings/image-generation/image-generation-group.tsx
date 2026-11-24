@@ -9,18 +9,13 @@ import {
     useRemoveImageGenerationKey,
     useSetImageGenerationKey,
 } from '../../../hooks/servers/use-image-generation-settings.ts';
-import {
-    SettingsRowTitle,
-    SettingsStatusChip,
-    SettingsStatusTitle,
-} from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 import { ImageGenerationKeyDialog } from './image-generation-key-dialog.tsx';
 import {
+    connectedKeyActions,
     type KeyAction,
     keyActionLabels,
     modelPriceRange,
-    providerKeyActions,
     providerNames,
 } from './image-generation-settings-model.ts';
 
@@ -53,7 +48,11 @@ function OwnerImageGenerationSettings({ serverId }: { serverId: string }) {
             {settings.data ? (
                 <div className="flex flex-col gap-3">
                     {settings.data.providers.map((status) => (
-                        <ProviderGroup key={status.provider} serverId={serverId} status={status} />
+                        <ImageGenerationProviderGroup
+                            key={status.provider}
+                            serverId={serverId}
+                            status={status}
+                        />
                     ))}
                 </div>
             ) : (
@@ -63,7 +62,7 @@ function OwnerImageGenerationSettings({ serverId }: { serverId: string }) {
     );
 }
 
-function ProviderGroup({
+export function ImageGenerationProviderGroup({
     serverId,
     status,
 }: {
@@ -87,22 +86,22 @@ function ProviderGroup({
         <ItemCardGroup>
             <ItemCard>
                 <ItemCard.Content>
-                    <SettingsStatusTitle
-                        info={`Captains use your ${name} API key to generate images. The key stays on the Server and is never shown again.`}
-                        status={
-                            <SettingsStatusChip color={status.connected ? 'success' : 'default'}>
-                                {status.connected ? 'Connected' : 'Not connected'}
-                            </SettingsStatusChip>
-                        }
-                    >
-                        {name}
-                    </SettingsStatusTitle>
+                    <ItemCard.Title>{name}</ItemCard.Title>
+                    {status.connected ? null : (
+                        <ItemCard.Description>No API key</ItemCard.Description>
+                    )}
                     <SettingsRowError>
                         {setKey.error?.message ?? removeKey.error?.message}
                     </SettingsRowError>
                 </ItemCard.Content>
                 <ItemCard.Action>
-                    <KeyMenu label={`${name} key actions`} onAction={onAction} status={status} />
+                    {status.connected ? (
+                        <KeyMenu label={`${name} key actions`} onAction={onAction} />
+                    ) : (
+                        <Button onPress={() => setDialog('key')} size="sm" variant="secondary">
+                            {keyActionLabels.add}
+                        </Button>
+                    )}
                 </ItemCard.Action>
             </ItemCard>
             {status.models.map((model) => (
@@ -110,9 +109,10 @@ function ProviderGroup({
                     <Separator />
                     <ItemCard>
                         <ItemCard.Content>
-                            <SettingsRowTitle info={model.strengths}>
-                                {model.displayName}
-                            </SettingsRowTitle>
+                            <ItemCard.Title>{model.displayName}</ItemCard.Title>
+                            <ItemCard.Description className="whitespace-normal">
+                                {model.strengths}
+                            </ItemCard.Description>
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SettingsFact className="tabular-nums">
@@ -136,15 +136,7 @@ function ProviderGroup({
     );
 }
 
-function KeyMenu({
-    label,
-    onAction,
-    status,
-}: {
-    label: string;
-    onAction: (action: KeyAction) => void;
-    status: Pick<ImageGenerationProviderStatus, 'connected'>;
-}) {
+function KeyMenu({ label, onAction }: { label: string; onAction: (action: KeyAction) => void }) {
     return (
         <Dropdown>
             <Button aria-label={label} isIconOnly size="sm" variant="ghost">
@@ -152,7 +144,7 @@ function KeyMenu({
             </Button>
             <Dropdown.Popover placement="bottom end">
                 <Dropdown.Menu>
-                    {providerKeyActions(status).map((action) => (
+                    {connectedKeyActions.map((action) => (
                         <Dropdown.Item
                             id={action}
                             key={action}

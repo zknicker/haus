@@ -61,11 +61,14 @@ function cellTexts(html: string) {
 }
 
 describe('the connections table', () => {
-    test('counts its accounts in the header, and reads none when empty', () => {
-        expect(render([team])).toContain('>1 connection</');
-        expect(render([team, gemini])).toContain('>2 connections</');
-        expect(render([])).toContain('>No connections</');
-        expect(render([])).not.toContain('role="grid"');
+    test('titles the section Connections with a muted count, and holds one empty row when empty', () => {
+        expect(render([team, gemini])).toMatch(
+            /Connections<span class="text-muted[^"]*"><span class="sr-only"> <\/span>2<\/span>/u
+        );
+        const empty = render([]);
+        expect(empty).toContain('No connections yet.');
+        expect(empty).not.toContain('sr-only"> </span>0');
+        expect(empty).not.toContain('role="grid"');
     });
 
     test('a row reads its logo tile, label, provider, what is left of each window, and the soonest reset', () => {
@@ -119,26 +122,25 @@ describe('the connections table', () => {
         }
     });
 
-    test('the Owner gets Add connection, a switch and a menu on each row', () => {
+    test('the Owner gets Add connection and one menu on each row, with no switch beside it', () => {
         const html = render([team, gemini]);
         expect(count(html, '>Add connection<')).toBe(1);
         expect(count(html, 'aria-label="Team plan actions"')).toBe(1);
         expect(count(html, 'aria-label="Gemini key actions"')).toBe(1);
-        expect(/<input aria-label="Use Team plan"[^>]*>/u.exec(html)?.[0]).not.toContain(
-            'disabled=""'
-        );
+        expect(html).not.toContain('aria-label="Use ');
     });
 
-    test('a member sees no Add connection or menus, and the switches only read', () => {
+    test('an account that is turned off says Off beside its name; one in use stays quiet', () => {
+        const html = render([team, { ...gemini, enabled: false }]);
+        expect(count(html, '>Off<')).toBe(1);
+        expect(cellTexts(html)[0]).toBe('Team planClaude · Default');
+    });
+
+    test('a member sees no Add connection or menus, and web search only reads', () => {
         const html = render([team, { ...failedGemini, enabled: false }], false);
         expect(count(html, '>Add connection<')).toBe(0);
         expect(count(html, ' actions"')).toBe(0);
-        const enabled = /<input aria-label="Use Team plan"[^>]*>/u.exec(html)?.[0];
-        expect(enabled).toContain('disabled=""');
-        expect(enabled).toContain('checked=""');
-        expect(/<input aria-label="Use Gemini key"[^>]*>/u.exec(html)?.[0]).not.toContain(
-            'checked=""'
-        );
+        expect(count(html, '>Off<')).toBe(1);
         expect(/<input aria-label="Web search for Gemini key"[^>]*>/u.exec(html)?.[0]).toContain(
             'disabled=""'
         );
@@ -146,7 +148,7 @@ describe('the connections table', () => {
 });
 
 describe('the table actions', () => {
-    test('the enable switch saves through setEnabled for that one connection', async () => {
+    test('Turn off saves through setEnabled for that one connection', async () => {
         const { harness, hook, mounted } = await mountCallHook(
             () => useConnectionTableActions({ isOwner: true, now, serverId: 'srv_1' }),
             () => ({ ...team, enabled: false })
@@ -160,7 +162,7 @@ describe('the table actions', () => {
             });
         });
         await harness.act(async () => {
-            hook().actions.onEnabled(team, false);
+            hook().actions.onAction(team, 'turn-off');
             await settled;
         });
         expect(harness.calls).toEqual([

@@ -27,7 +27,7 @@ the default palette.
 - **Create theme** copies the current theme's accent, background and foreground for both modes
   into a new custom theme and selects it. A selected custom theme shows **Name**, **Delete
   theme**, and **Colors** with Light and Dark tabs: Accent, Background and Foreground rows (a
-  swatch that opens a picker, and a hex field), and **Advanced colors** for Sidebar, Card,
+  swatch and its hex that open a picker with a hex field), and **Advanced colors** for Sidebar, Card,
   Popover, Input, Button, Muted, Border, Link and Text on accent. An advanced row left empty
   shows the derived value as its placeholder; clearing a field hands the color back to
   derivation. Deleting the selected theme returns to Haus.
@@ -120,7 +120,7 @@ six **adjustments**. The Background section edits the selected theme's:
 - A live preview of Home's composer over the background, drawn from the real tokens.
 - Source tiles: **None**, five built-in patterns, and **Image**. Picking Image with no upload
   opens the file picker. An upload stays with the theme while a pattern is picked, so switching
-  back restores it; **Replace** and **Remove** manage it.
+  back restores it; the Image row's ••• menu holds **Replace image** and **Remove image**.
 - **Effect**: None, Dither (a 4px ordered checker in soft light), Grain (a static 64px
   grayscale noise tile in overlay, generated once from a fixed seed in `lib/grain-tile.ts`), or
   Vignette (edges sink into the theme's background). The layer pays for a filter only while

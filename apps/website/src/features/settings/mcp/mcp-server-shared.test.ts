@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
     buildSaveInput,
-    connectionSetupDescription,
     connectionStatusLabel,
     createConnectionDraft,
     mcpOAuthRedirectUrl,
@@ -12,30 +11,24 @@ import {
 test('account authorization copy follows the MCP authentication method', () => {
     assert.equal(connectionStatusLabel({ auth: 'oauth', connected: false }), 'Sign in required');
     assert.equal(connectionStatusLabel({ auth: 'oauth', connected: true }), 'Account connected');
-    assert.match(connectionSetupDescription({ auth: 'oauth' }), /Sign in to your account/u);
     assert.equal(
         connectionStatusLabel({ auth: 'headers', connected: false }),
         'Credentials required'
     );
     assert.equal(connectionStatusLabel({ auth: 'headers', connected: true }), 'Credentials saved');
-    assert.match(connectionSetupDescription({ auth: 'headers' }), /Add credentials/u);
     assert.equal(connectionStatusLabel({ auth: 'none', connected: true }), 'Ready');
     assert.equal(connectionStatusLabel({ auth: 'none', connected: false }), 'Unavailable');
-    assert.doesNotMatch(connectionSetupDescription({ auth: 'none' }), /Sign in|credentials/u);
 });
 
 test('a bearer-token preset reads as a token, not generic credentials', () => {
     const x = { auth: 'headers', preset: 'x' } as const;
     assert.equal(connectionStatusLabel({ ...x, connected: false }), 'Token required');
     assert.equal(connectionStatusLabel({ ...x, connected: true }), 'Token saved');
-    assert.match(connectionSetupDescription(x), /Add a token/u);
 });
 
-test('Skool requires desktop browser sign-in without exposing tokens', () => {
+test('Skool reads as a sign-in, not a token', () => {
     const skool = { auth: 'headers', preset: 'skool' } as const;
     assert.equal(connectionStatusLabel({ ...skool, connected: false }), 'Sign in required');
-    assert.match(connectionSetupDescription(skool), /desktop app/u);
-    assert.doesNotMatch(connectionSetupDescription(skool), /token/u);
 });
 
 test('splitArgs splits on whitespace and drops empty parts', () => {

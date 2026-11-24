@@ -9,12 +9,9 @@ import { cloudAgentProviderName } from '../workers/cloud-agent-provider-presenta
 export interface CloudAgentCapabilityView {
     canConnect: boolean;
     canDisconnect: boolean;
-    /** Cursor signs in from Haus; Claude reuses the Computer's own Claude Code login. */
     connectLabel: string;
-    description: string;
-    /** The Computer's pinned Claude cloud environment id; null only when the account has none to pin to. */
+    detail: string | null;
     environmentId: string | null;
-    /** This Computer's Claude cloud environments to pin to; null off Claude. */
     environments: CloudAgentEnvironment[] | null;
     provider: CloudAgentProvider;
     providerName: string;
@@ -22,32 +19,14 @@ export interface CloudAgentCapabilityView {
     statusLabel: string;
 }
 
-/** How each provider is signed in to and what an unconnected row tells a human. */
-const providerAccess: Record<
-    CloudAgentProvider,
-    { connectLabel: string; missing: string; notConnected: string; plan: string }
-> = {
-    claude: {
-        connectLabel: 'Check again',
-        missing: 'Install Claude Code on this device to run Workers on Claude.',
-        notConnected:
-            'Sign in to Claude Code on this device with your Claude account, then check again.',
-        plan: 'Claude cloud sessions bill to that Claude plan.',
-    },
-    cursor: {
-        connectLabel: 'Connect',
-        missing: 'This device cannot reach Cursor.',
-        notConnected:
-            'Connect this device to Cursor so Captains can delegate work to Workers on Cursor.',
-        plan: 'Workers on Cursor bill to that Cursor plan.',
-    },
+const providerAccess: Record<CloudAgentProvider, { connectLabel: string; notConnected: string }> = {
+    claude: { connectLabel: 'Recheck', notConnected: 'Not signed in' },
+    cursor: { connectLabel: 'Connect', notConnected: 'Not connected' },
 };
 
-/**
- * The Cloud Agent capability row reads from the Computer's own report, so it
- * says what that machine can actually do rather than what this browser
- * assumes. Computer owns the ongoing sign-in so reloading Settings keeps it.
- */
+export const claudeSignInGuidance =
+    'Sign in to Claude Code on this device with your Claude account, then recheck.';
+
 export function cloudAgentCapabilityView(input: {
     isConnecting: boolean;
     isOffline: boolean;
@@ -57,6 +36,7 @@ export function cloudAgentCapabilityView(input: {
     const access = providerAccess[input.provider];
     const identity = {
         connectLabel: access.connectLabel,
+        detail: null,
         environmentId: input.state?.environmentId ?? null,
         environments: input.state?.environments ?? null,
         provider: input.provider,
@@ -67,7 +47,6 @@ export function cloudAgentCapabilityView(input: {
             ...identity,
             canConnect: false,
             canDisconnect: false,
-            description: 'Reconnect this device to manage its cloud Workers.',
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };
@@ -77,9 +56,6 @@ export function cloudAgentCapabilityView(input: {
             ...identity,
             canConnect: !input.isConnecting,
             canDisconnect: false,
-            description: input.isConnecting
-                ? 'Preparing your sign-in link…'
-                : `Finish signing in to ${identity.providerName} on this device. Haus will connect automatically.`,
             status: 'connecting',
             statusLabel: input.isConnecting ? 'Connecting' : 'Awaiting sign-in',
         };
@@ -88,9 +64,8 @@ export function cloudAgentCapabilityView(input: {
         return {
             ...identity,
             canConnect: false,
-            // Haus never signs Claude Code out; that login belongs to the Computer.
             canDisconnect: input.provider === 'cursor',
-            description: connectedDescription(input.state, access.plan),
+            detail: input.provider === 'cursor' ? input.state.accountEmail : null,
             status: 'ready',
             statusLabel: 'Ready',
         };
@@ -100,7 +75,6 @@ export function cloudAgentCapabilityView(input: {
             ...identity,
             canConnect: input.provider === 'claude',
             canDisconnect: false,
-            description: access.missing,
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };
@@ -109,27 +83,16 @@ export function cloudAgentCapabilityView(input: {
         ...identity,
         canConnect: true,
         canDisconnect: input.provider === 'cursor' && input.state.reason === 'expired',
-        description:
-            input.state.signIn?.status === 'failed'
-                ? input.state.signIn.message
-                : input.state.reason === 'expired'
-                  ? `This device’s ${identity.providerName} key expired. Connect again to renew it.`
-                  : access.notConnected,
         status: 'not-connected',
         statusLabel:
             input.state.signIn?.status === 'failed'
                 ? 'Sign-in incomplete'
                 : input.state.reason === 'expired'
                   ? 'Expired'
-                  : 'Not connected',
+                  : access.notConnected,
     };
 }
 
-/**
- * The readiness line the Computer already reports in its inventory. It renders
- * the row before the settings read answers, and keeps it truthful while a
- * Computer is offline and the read cannot run at all.
- */
 export function reportedCloudAgentCapability(
     inventory: ComputerInventory | null,
     provider: CloudAgentProvider
@@ -148,16 +111,4 @@ export function reportedCloudAgentCapability(
         ready: reported.ready,
         reason: reported.ready ? null : (reported.reason ?? 'provider-unavailable'),
     };
-}
-
-function connectedDescription(state: CloudAgentCapabilityState, plan: string): string {
-    const account = state.accountEmail ? `Connected as ${state.accountEmail}.` : 'Connected.';
-    const assignment = 'Captains assigned to this device use this connection.';
-    const prefix = `${account} ${assignment}`;
-    if (!state.expiresAt) {
-        return `${prefix} ${plan}`;
-    }
-    return `${prefix} Reconnect by ${new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-    }).format(new Date(state.expiresAt))}.`;
 }

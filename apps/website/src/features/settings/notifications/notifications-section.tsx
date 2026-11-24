@@ -9,8 +9,8 @@ import {
     useMessageNotificationsPreference,
 } from '../../notifications/message-notifications-preference.ts';
 import { sendTestNotification } from '../../notifications/test-notification.ts';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
-import { SettingsRowError, SettingsRowWarning } from '../layout/settings-text.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../layout/settings-row-title.tsx';
+import { SettingsRowError } from '../layout/settings-text.tsx';
 
 export function NotificationsSection() {
     const preference = useMessageNotificationsPreference();
@@ -39,10 +39,22 @@ export function NotificationsSection() {
             <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
-                        <SettingsRowTitle info="DMs, @mentions, and replies while Haus is in the background.">
+                        <SettingsStatusTitle
+                            info={blocked?.help}
+                            status={
+                                blocked ? (
+                                    <SettingsStatusChip color={blocked.color}>
+                                        {blocked.label}
+                                    </SettingsStatusChip>
+                                ) : null
+                            }
+                        >
                             Notify me when I'm needed
-                        </SettingsRowTitle>
-                        <SettingsRowWarning>{blocked}</SettingsRowWarning>
+                        </SettingsStatusTitle>
+                        <ItemCard.Description className="whitespace-normal">
+                            Alerts you to DMs, @mentions, and replies while Haus is in the
+                            background.
+                        </ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>
                         <Switch
@@ -94,16 +106,20 @@ export function TestNotificationRow({ isOn }: { isOn: boolean }) {
 }
 
 const testFailure = {
-    blocked: 'Notifications are blocked for Haus. Allow them in your system or browser settings.',
+    blocked: 'Notifications are blocked for Haus.',
     unsupported: 'This browser cannot show notifications.',
 };
 
 function blockedReason(permission: NotificationPermissionState) {
     if (permission === 'unsupported') {
-        return testFailure.unsupported;
+        return { color: 'default', help: undefined, label: 'Not supported' } as const;
     }
     if (permission === 'denied') {
-        return testFailure.blocked;
+        return {
+            color: 'warning',
+            help: 'Allow notifications for Haus in your system or browser settings.',
+            label: 'Blocked',
+        } as const;
     }
     return null;
 }

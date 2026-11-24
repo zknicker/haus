@@ -29,14 +29,6 @@ export function workerLimitChoices(computer: {
     };
 }
 
-export function workersSentence(computer: { workerLimit: number; workersEnabled: boolean }) {
-    if (!computer.workersEnabled) {
-        return 'Captains can’t start Workers here.';
-    }
-    const workers = computer.workerLimit === 1 ? '1 Worker' : `${computer.workerLimit} Workers`;
-    return `Captains with access can run up to ${workers} here at once.`;
-}
-
 export interface WorkerRuntimeView {
     detail: string | null;
     id: WorkerRuntime;
@@ -76,6 +68,19 @@ export function workerRuntimeViews(input: {
         };
         return view;
     });
+}
+
+export function runtimeAttention(status: WorkerRuntimeView['status']) {
+    switch (status) {
+        case 'ready':
+            return null;
+        case 'not-ready':
+            return 'Not signed in';
+        case 'signed-out':
+            return 'Sign-in failed';
+        case 'missing':
+            return 'Not installed';
+    }
 }
 
 export function planLeftLine(

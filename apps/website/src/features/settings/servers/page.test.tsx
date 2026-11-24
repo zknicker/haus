@@ -22,11 +22,11 @@ describe('ServersSettingsView', () => {
         expect(markup.match(/aria-current="page"/g)).toHaveLength(1);
     });
 
-    test('offers create and join with no Server list to hang them off', () => {
+    test('offers one Add Server menu with no Server list to hang it off', () => {
         const markup = render([], '/s/haus-hq/settings/servers');
 
-        expect(markup).toContain('Create a Server');
-        expect(markup).toContain('Join a Server');
+        expect(markup).toContain('Add Server');
+        expect(markup).toContain('aria-haspopup="true"');
     });
 
     test('stays blank while the Server list is still loading', () => {

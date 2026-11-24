@@ -8,7 +8,6 @@ import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 import { AgentSettingsGroup } from './agent-settings-group.tsx';
 
@@ -43,9 +42,10 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     <Separator />
                     <ItemCard>
                         <ItemCard.Content>
-                            <SettingsRowTitle info="This permanent address identifies your Server and confirms deletion.">
-                                Address
-                            </SettingsRowTitle>
+                            <ItemCard.Title>Address</ItemCard.Title>
+                            <ItemCard.Description>
+                                Your Server’s permanent name in links.
+                            </ItemCard.Description>
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SettingsFact>{server.slug}</SettingsFact>
@@ -72,9 +72,10 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     <ItemCardGroup>
                         <ItemCard>
                             <ItemCard.Content>
-                                <SettingsRowTitle info="Deletion is permanent and removes all of its data.">
-                                    This Server
-                                </SettingsRowTitle>
+                                <ItemCard.Title>Delete this Server</ItemCard.Title>
+                                <ItemCard.Description>
+                                    Permanently removes the Server and all of its data.
+                                </ItemCard.Description>
                                 <SettingsRowError>{remove.error?.message}</SettingsRowError>
                             </ItemCard.Content>
                             <ItemCard.Action>
@@ -84,7 +85,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                                     type="button"
                                     variant="danger-soft"
                                 >
-                                    Delete Server
+                                    Delete
                                 </Button>
                             </ItemCard.Action>
                         </ItemCard>
