@@ -1,5 +1,5 @@
 ---
-summary: The Device page's layout — a macOS permissions section only while one is missing, with its setup steps in a Modal, Access (Captains, one chooser button with All Captains on this Server at its top; Computer use, one switch for every Captain with access), Workers (Run Workers here, Claude Code and Codex with plan usage or a Fix popover, the cloud providers), then Folders, Tools, Captains using this device by default, and Diagnostics — plus Stop Agent Input and what a refused Captain is told. Rows stay quiet when healthy; a row that needs a look states it in plain text beside its button, or with a status chip when it has no button.
+summary: The Device page's layout — a macOS permissions section only while one is missing, with its setup steps in a Modal, Access (Captains, an avatar stack of who has access and a + chooser with All Captains on this Server at its top; Computer use, one switch for every Captain with access), Workers (Run Workers here, Claude Code and Codex with plan usage or a Fix popover, the cloud providers), then Folders, Tools, Captains using this device by default, and Diagnostics — plus Stop Agent Input and what a refused Captain is told. Rows stay quiet when healthy; a row that needs a look states it in plain text beside its button, or with a status chip when it has no button.
 read_when:
   - changing the Device page's sections, its ⋯ menu, or when its Software update row shows
   - changing Settings → Devices → (Device) → Access, the Captains chooser, or what a Captain sees when it lacks access
@@ -41,27 +41,26 @@ the Modal or popover a row's button opens, never on the page
 
 ## Access
 
-Each row has a title, a sentence that says what its current value does and changes with it, and
-one control, as in Capy's Device page. Refusals link here (`#access`).
+Each row has a title, one static description that says what the setting does, and one control.
+Descriptions never change with the value. Refusals link here (`#access`).
 
-- **Captains**: one button labeled with who has access: "9 Captains", "1 Captain", "No
-  Captains", or "All Captains".
-  - The sentence reads "Cove, Forge, and 7 others can run tools here.", "No Captains can run tools
-    here.", or, for All, "Any Captain can run tools here." A Captain whose Machine is this Device
-    always counts.
-  - The button opens a popover. Its top is a switch, **All Captains on this Server**. Below it,
+- **Captains**: "Captains that can run tools on this Mac."
+  - The control shows who has access: a stack of up to four Captain avatars, each with its name
+    on hover, and a count for the rest, then a `+` button (**Choose Captains**). With All on, the
+    text "All Captains" replaces the avatars; with nobody allowed, only the `+` shows. A Captain
+    whose Machine is this Device always counts.
+  - The `+` opens a popover. Its top is a switch, **All Captains on this Server**. Below it,
     while the switch is off, is a searchable list of every Captain on the Server. Checking one
     gives it access and unchecking one takes it away. A Captain whose Machine is this Device is
     checked and locked, with "Uses this Mac by default".
   - Only the attacher widens access: checking a Captain or turning All on. The attacher, Owners
     and Admins narrow it: unchecking a Captain or turning All off, which keeps the checked list.
-    Narrowing cancels what a Captain it bars is running here. Anyone else sees the button
-    disabled.
+    Narrowing cancels what a Captain it bars is running here. Anyone else sees the avatars with
+    the `+` disabled.
   - An allowed Captain runs commands on this Device as its user, and anyone who can message the
     Captain can ask it to.
-- **Computer use** (Mac only): a switch. On reads "Allowed Captains can see and control the
-  screen."; off reads "Captains can't see or control the screen." On covers every Captain with
-  access; there is no separate list. Only the attacher turns it on; the attacher, Owners and
+- **Computer use** (Mac only): "Lets those Captains see the screen and use apps." A switch. On
+  covers every Captain with access; there is no separate list. Only the attacher turns it on; the attacher, Owners and
   Admins turn it off.
 - **Stop Agent Input**: while a Captain is driving the Device, Access says "Cove is using Studio"
   with a Stop button. Stop cancels the running command at once, and the Captain is told a person
@@ -72,7 +71,7 @@ refusal's link for a Device they can't see reads who attached it and who can cha
 
 ## Workers
 
-- **Run Workers here**: **Off**, or **Up to N** ("Up to 4 local Workers at once.", default 4). It
+- **Run Workers here**: "How many Workers can run here at once." **Off**, or **Up to N** (default 4). It
   gates local Workers only. Only the attacher turns it on or raises the limit; Owners and Admins
   lower it or turn it off. A Captain starts a Worker here only if Captain access allows it.
 - **Claude Code** and **Codex**: when ready, the plan's weekly usage as one line, "97% of the week

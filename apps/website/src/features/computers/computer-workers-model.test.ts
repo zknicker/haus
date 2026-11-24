@@ -4,7 +4,6 @@ import {
     runtimeAttention,
     workerLimitChoices,
     workerRuntimeViews,
-    workersSentence,
 } from './computer-workers-model.ts';
 
 const device = { canChangeWorkers: true, canEnableWorkers: true, workerLimit: 4 };
@@ -30,18 +29,6 @@ test('a steward who did not attach it can only lower it or turn it off', () => {
         workersEnabled: false,
     });
     expect(member.isDisabled).toBe(true);
-});
-
-test('the Run Workers here sentence follows the value', () => {
-    expect(workersSentence({ workerLimit: 4, workersEnabled: false })).toBe(
-        'Captains can’t start Workers here.'
-    );
-    expect(workersSentence({ workerLimit: 1, workersEnabled: true })).toBe(
-        'Up to 1 local Worker at once.'
-    );
-    expect(workersSentence({ workerLimit: 6, workersEnabled: true })).toBe(
-        'Up to 6 local Workers at once.'
-    );
 });
 
 test('a ready runtime stays quiet, and every other state names its exception', () => {

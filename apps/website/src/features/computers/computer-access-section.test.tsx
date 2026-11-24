@@ -6,6 +6,8 @@ import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { CaptainAvatars } from './captain-avatars.tsx';
+import { CaptainChooser } from './captain-chooser.tsx';
 import { ComputerAccessSection } from './computer-access-section.tsx';
 import { ComputerUsePermissions } from './computer-use-permissions.tsx';
 import { ComputerWorkersSection } from './computer-workers-section.tsx';
@@ -22,34 +24,85 @@ test('Access is the #access target, names who can run tools, and never says home
 
     expect(html).toMatch(/<section id="access"/u);
     expect(html).not.toContain('Who can use this');
-    expect(html).toContain('Cove and Wren can run tools here.');
-    expect(html).toContain('Captains can’t see or control the screen.');
+    expect(html).toContain('Captains that can run tools on this Mac.');
+    expect(html).toContain('Lets those Captains see the screen and use apps.');
     expect(html).not.toMatch(/home/iu);
 });
 
-test('Captains is one chooser button labeled with the count, or All Captains', () => {
+test('the descriptions stay the same whatever the value', () => {
+    const off = render(<Access />, {});
+    const on = render(<Access />, {
+        agentAccessGrants: [grant('agt_wren')],
+        agentAccessScope: 'all',
+        computerUseEnabled: true,
+    });
+    for (const sentence of [
+        'Captains that can run tools on this Mac.',
+        'Lets those Captains see the screen and use apps.',
+    ]) {
+        expect(off).toContain(sentence);
+        expect(on).toContain(sentence);
+    }
+});
+
+test('Captains shows who has access as avatars, then a Choose Captains button', () => {
     const selected = render(<Access />, {
         agentAccessGrants: [grant('agt_wren')],
         canGrantAgentAccess: true,
         canRevokeAgentAccess: true,
     });
-    expect(selected).toMatch(/<button[^>]*>2 Captains<\/button>/u);
-    expect(selected).not.toContain('Choose Captains');
-    expect(selected).not.toContain('Selected Captains');
+    expect(selected).toMatch(/data-slot="avatar-group"[^>]*role="group"/u);
+    expect(selected).toContain('aria-label="Captains with access"');
+    expect(selected).toContain('aria-label="Cove"');
+    expect(selected).toContain('aria-label="Wren"');
+    expect(selected).toMatch(/<button[^>]*aria-label="Choose Captains"/u);
+    expect(selected).not.toMatch(/<button[^>]*aria-label="Choose Captains"[^>]*disabled=""/u);
 
     const all = render(<Access />, { agentAccessScope: 'all', canGrantAgentAccess: true });
-    expect(all).toContain('Any Captain can run tools here.');
-    expect(all).toMatch(/<button[^>]*>All Captains<\/button>/u);
+    expect(all).toContain('>All Captains<');
+    expect(all).not.toContain('data-slot="avatar-group"');
+    expect(all).toContain('aria-label="Choose Captains"');
 });
 
-test('someone who is not a steward reads the Captains count but cannot open the chooser', () => {
+test('someone who is not a steward sees the avatars but cannot open the chooser', () => {
     const html = render(<Access />, {});
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>1 Captain<\/button>/u);
+    expect(html).toContain('aria-label="Cove"');
+    expect(html).toMatch(
+        /<button[^>]*disabled=""[^>]*aria-label="Choose Captains"|<button[^>]*aria-label="Choose Captains"[^>]*disabled=""/u
+    );
+});
+
+test('with nobody allowed, Captains shows only the Choose Captains button', () => {
+    const html = renderToStaticMarkup(
+        <CaptainChooser
+            canGrant
+            canRevoke
+            deviceKind="Mac"
+            isPending={false}
+            onChange={() => undefined}
+            onScopeChange={() => undefined}
+            scope="selected"
+            view={{ granted: [], machine: [], others: [] }}
+        />
+    );
+    expect(html).not.toContain('data-slot="avatar-group"');
+    expect(html).not.toContain('All Captains');
+    expect(html).toContain('aria-label="Choose Captains"');
+});
+
+test('the avatar stack shows four Captains and counts the rest', () => {
+    const captains = ['Ash', 'Cove', 'Ink', 'Pike', 'Wren', 'Zed'].map((name) => ({
+        avatarUrl: null,
+        displayName: name,
+        id: `agt_${name.toLowerCase()}`,
+    }));
+    const html = renderToStaticMarkup(<CaptainAvatars captains={captains} />);
+    expect(html.match(/role="img"/gu)).toHaveLength(4);
+    expect(html).toContain('+2');
 });
 
 test('computer use is a switch, and only the attacher can turn it on', () => {
     const on = render(<Access />, { computerUseEnabled: true });
-    expect(on).toContain('Allowed Captains can see and control the screen.');
     expect(on).toMatch(/data-slot="switch"[^>]*data-selected="true"/u);
     expect(on).not.toMatch(/data-slot="switch"[^>]*data-disabled="true"/u);
 
@@ -117,7 +170,7 @@ test('Workers holds Run Workers here, the local runtimes, and the cloud provider
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
     expect(html).toContain('Coding sessions using this Mac’s logins.');
-    expect(html).toContain('Up to 4 local Workers at once.');
+    expect(html).toContain('How many Workers can run here at once.');
     expect(html).not.toContain('Ready');
     expect(html).not.toContain('aria-label="Refresh"');
     expect(html).toContain('Not installed');

@@ -1,16 +1,20 @@
 import type { ComputerAgentAccessScope } from '@haus/api';
 import { CellSwitch } from '@heroui-pro/react';
 import { Button, Description, Label, ListBox, Popover, SearchField } from '@heroui/react';
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
+import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import {
     type AccessCaptain,
     type AgentAccessView,
-    captainAccessLabel,
+    allowedCaptains,
     captainChooserChange,
     captainChooserKeys,
     captainScopeRights,
 } from './agent-access-model.ts';
+import { CaptainAvatars } from './captain-avatars.tsx';
 
 export function CaptainChooser({
     canGrant,
@@ -33,44 +37,59 @@ export function CaptainChooser({
 }) {
     const [query, setQuery] = useState('');
     const rights = captainScopeRights(scope, { canGrant, canRevoke });
+    const captains = allowedCaptains(view);
 
     return (
-        <Popover onOpenChange={(open) => (open ? setQuery('') : undefined)}>
-            <Button isDisabled={!rights.steward} size="sm" variant="secondary">
-                {captainAccessLabel(scope, view)}
-            </Button>
-            <Popover.Content offset={8} placement="bottom end">
-                <Popover.Dialog aria-label="Captains">
-                    <div className="flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-2 p-2">
-                        <CellSwitch
-                            aria-label="All Captains on this Server"
-                            isDisabled={!rights.canChange || isPending}
-                            isSelected={scope === 'all'}
-                            onChange={(all) => onScopeChange(all ? 'all' : 'selected')}
-                        >
-                            <CellSwitch.Trigger>
-                                <CellSwitch.Label>All Captains on this Server</CellSwitch.Label>
-                                <CellSwitch.Control />
-                            </CellSwitch.Trigger>
-                        </CellSwitch>
-                        {scope === 'selected' ? (
-                            <CaptainList
-                                deviceKind={deviceKind}
-                                disabledKeys={
-                                    isPending
-                                        ? null
-                                        : captainChooserKeys(view, { canGrant, canRevoke }).disabled
-                                }
-                                onChange={onChange}
-                                onQueryChange={setQuery}
-                                query={query}
-                                view={view}
-                            />
-                        ) : null}
-                    </div>
-                </Popover.Dialog>
-            </Popover.Content>
-        </Popover>
+        <div className="flex items-center gap-2">
+            {scope === 'all' ? (
+                <SettingsFact>All Captains</SettingsFact>
+            ) : captains.length > 0 ? (
+                <CaptainAvatars captains={captains} />
+            ) : null}
+            <Popover onOpenChange={(open) => (open ? setQuery('') : undefined)}>
+                <Button
+                    aria-label="Choose Captains"
+                    isDisabled={!rights.steward}
+                    isIconOnly
+                    size="sm"
+                    variant="secondary"
+                >
+                    <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+                </Button>
+                <Popover.Content offset={8} placement="bottom end">
+                    <Popover.Dialog aria-label="Captains">
+                        <div className="flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-2 p-2">
+                            <CellSwitch
+                                aria-label="All Captains on this Server"
+                                isDisabled={!rights.canChange || isPending}
+                                isSelected={scope === 'all'}
+                                onChange={(all) => onScopeChange(all ? 'all' : 'selected')}
+                            >
+                                <CellSwitch.Trigger>
+                                    <CellSwitch.Label>All Captains on this Server</CellSwitch.Label>
+                                    <CellSwitch.Control />
+                                </CellSwitch.Trigger>
+                            </CellSwitch>
+                            {scope === 'selected' ? (
+                                <CaptainList
+                                    deviceKind={deviceKind}
+                                    disabledKeys={
+                                        isPending
+                                            ? null
+                                            : captainChooserKeys(view, { canGrant, canRevoke })
+                                                  .disabled
+                                    }
+                                    onChange={onChange}
+                                    onQueryChange={setQuery}
+                                    query={query}
+                                    view={view}
+                                />
+                            ) : null}
+                        </div>
+                    </Popover.Dialog>
+                </Popover.Content>
+            </Popover>
+        </div>
     );
 }
 

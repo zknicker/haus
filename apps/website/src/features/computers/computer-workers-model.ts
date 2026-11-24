@@ -29,15 +29,6 @@ export function workerLimitChoices(computer: {
     };
 }
 
-export function workersSentence(computer: { workerLimit: number; workersEnabled: boolean }) {
-    if (!computer.workersEnabled) {
-        return 'Captains can’t start Workers here.';
-    }
-    const workers =
-        computer.workerLimit === 1 ? '1 local Worker' : `${computer.workerLimit} local Workers`;
-    return `Up to ${workers} at once.`;
-}
-
 export interface WorkerRuntimeView {
     detail: string | null;
     id: WorkerRuntime;

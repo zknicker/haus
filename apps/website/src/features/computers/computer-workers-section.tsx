@@ -18,7 +18,6 @@ import {
     workerRuntimeTitles,
     workerRuntimeViews,
     workersOffKey,
-    workersSentence,
 } from './computer-workers-model.ts';
 import { SettingSelect } from './device-access-rows.tsx';
 import { computerLabel, computerRuntimePresentations } from './presentation.ts';
@@ -105,7 +104,7 @@ function RunWorkersRow({
             <ItemCard.Content>
                 <ItemCard.Title>Run Workers here</ItemCard.Title>
                 <ItemCard.Description className="whitespace-normal">
-                    {workersSentence(computer)}
+                    How many Workers can run here at once.
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>

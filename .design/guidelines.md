@@ -1010,19 +1010,20 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   freshness, a connected state the section title already states) never take a row
   description; they go in that row's info tooltip. The only lines that may break a row's
   shape are `SettingsRowWarning` and `SettingsRowError`, since the taller row is the alarm.
-  One exception (Zach, 2026-11-23): a row may carry a description when that sentence states what
-  its current value does and updates with it, as in Capy's Device Access rows ("Only Cove can
-  run tools here." beside Captain access, "Captains can't see or control this Mac's screen."
-  beside Computer use off). The Device page's Access and Workers rows use it. A static
-  description that reads the same whatever the value stays banned.
+  On a page that follows the settings copy rules below (the Device page first), a row may carry
+  one static description that says what the setting does ("Captains that can run tools on this
+  Mac.", "Lets those Captains see the screen and use apps."). It never changes with the value
+  (Zach, 2026-11-24, reversing the 2026-11-23 value-describing exception). State ("Not granted")
+  and factual detail (an account email, a vault, a browser name) are not descriptions and may
+  change.
 - **Settings copy rules:** The Device page follows these first (2026-11-24); the other Settings
   pages move to them later, and until then keep the status-chip rule under Settings rows.
   1. One control per row. Give each settings row one `Switch`, `Select`, `Button`, or •••
      menu; never place two controls side by side.
   2. Use `Switch` for booleans. Reserve `Select` for three or more choices; on/off settings use
      a stock `Switch`.
-  3. One short sentence or none. Omit static row descriptions and section subtitles that
-     restate row text; keep dynamic lines only when they state what the current value does.
+  3. One short sentence or none. A description says what the setting does and never changes
+     with its value; omit descriptions and section subtitles that only restate the row's title.
   4. Show exceptions, not health, and only when something needs attention; leave healthy rows
      quiet. A row with an action states its state as plain text in its `ItemCard.Description`
      ("Not granted", "Not signed in") beside its one button, with no color or marker. A row with

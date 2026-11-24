@@ -10,11 +10,7 @@ import {
 import { useSetComputerUseEnabled } from '../../hooks/computer-use/use-computer-use-enabled.ts';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
-import {
-    type AgentAccessView,
-    captainAccessSentence,
-    computerUseSentence,
-} from './agent-access-model.ts';
+import type { AgentAccessView } from './agent-access-model.ts';
 import { CaptainChooser } from './captain-chooser.tsx';
 
 interface AccessDevice {
@@ -44,7 +40,7 @@ export function CaptainAccessRow({
             <ItemCard.Content>
                 <ItemCard.Title>Captains</ItemCard.Title>
                 <ItemCard.Description className="whitespace-normal">
-                    {captainAccessSentence(computer.agentAccessScope, view)}
+                    Captains that can run tools on this {deviceKind}.
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
@@ -109,7 +105,7 @@ export function ComputerUseRow({
             <ItemCard.Content>
                 <ItemCard.Title>Computer use</ItemCard.Title>
                 <ItemCard.Description className="whitespace-normal">
-                    {computerUseSentence(enabled)}
+                    Lets those Captains see the screen and use apps.
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>

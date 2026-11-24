@@ -31,27 +31,8 @@ export function agentAccessView({
     return view;
 }
 
-export function captainAccessSentence(scope: ComputerAgentAccessScope, view: AgentAccessView) {
-    if (scope === 'all') {
-        return 'Any Captain can run tools here.';
-    }
-    const names = allowedCaptains(view).map((captain) => captain.displayName);
-    if (names.length === 0) {
-        return 'No Captains can run tools here.';
-    }
-    const shown = names.length > 3 ? [...names.slice(0, 2), `${names.length - 2} others`] : names;
-    return `${listNames(shown)} can run tools here.`;
-}
-
-export function captainAccessLabel(scope: ComputerAgentAccessScope, view: AgentAccessView) {
-    if (scope === 'all') {
-        return 'All Captains';
-    }
-    const count = allowedCaptains(view).length;
-    if (count === 0) {
-        return 'No Captains';
-    }
-    return count === 1 ? '1 Captain' : `${count} Captains`;
+export function allowedCaptains(view: AgentAccessView) {
+    return [...view.machine, ...view.granted];
 }
 
 export function captainScopeRights(
@@ -60,12 +41,6 @@ export function captainScopeRights(
 ) {
     const steward = rights.canGrant || rights.canRevoke;
     return { canChange: steward && (scope === 'all' || rights.canGrant), steward };
-}
-
-export function computerUseSentence(enabled: boolean) {
-    return enabled
-        ? 'Allowed Captains can see and control the screen.'
-        : 'Captains can’t see or control the screen.';
 }
 
 export function captainChooserKeys(
@@ -88,12 +63,4 @@ export function captainChooserChange(view: AgentAccessView, next: ReadonlySet<st
     }
     const removed = view.granted.find((captain) => !next.has(captain.id));
     return removed ? ({ agentId: removed.id, kind: 'revoke' } as const) : null;
-}
-
-function allowedCaptains(view: AgentAccessView) {
-    return [...view.machine, ...view.granted];
-}
-
-function listNames(names: readonly string[]) {
-    return new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(names);
 }

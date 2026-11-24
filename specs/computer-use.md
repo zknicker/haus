@@ -223,17 +223,17 @@ Settings → Devices → [Device]
 ([docs/features/computer-use.md](../docs/features/computer-use.md)) runs a macOS permissions
 section only while one is missing, then **Access**, then **Workers**.
 
-- **Access** holds two rows, each a title, a sentence that says what its current value does, and
+- **Access** holds two rows, each a title, a static description of what the setting does, and
   one control (`apps/website/src/features/computers/device-access-rows.tsx`):
-  - **Captains**: one button labeled with the count ("2 Captains", "No Captains") or "All
-    Captains". It opens a popover whose top is an **All Captains on this Server** switch, with a
-    searchable multi-select of every Captain below it while that is off. One whose Machine is this
-    Device is checked and locked with "Uses this Mac by default". Turning All on is disabled for a
-    viewer who is not the attacher, and so is checking a Captain. The sentence reads "Cove and
-    Forge can run tools here." or "Any Captain can run tools here."
-  - **Computer use** (macOS only): a switch. On reads "Allowed Captains can see and control the
-    screen."; off reads "Captains can't see or control the screen." Turning it on is disabled for
-    a viewer who is not the attacher.
+  - **Captains** ("Captains that can run tools on this Mac."): an `AvatarGroup` of the allowed
+    Captains (up to four, then a count), or the text "All Captains", then a `+` button (**Choose
+    Captains**). The `+` opens a popover whose top is an **All Captains on this Server** switch,
+    with a searchable multi-select of every Captain below it while that is off. One whose Machine
+    is this Device is checked and locked with "Uses this Mac by default". Turning All on is
+    disabled for a viewer who is not the attacher, and so is checking a Captain; a viewer who is
+    not a steward sees the avatars with the `+` disabled.
+  - **Computer use** (macOS only, "Lets those Captains see the screen and use apps."): a switch.
+    Turning it on is disabled for a viewer who is not the attacher.
   - While a Captain is driving the Device, "Cove is using Studio" with **Stop Agent Input**.
 - **Workers** holds Run Workers here (Off or Up to N), Claude Code and Codex with one line of
   weekly plan usage when ready or their exception and a **Fix** popover, and the cloud providers.
