@@ -4,6 +4,7 @@ import { seedAgentStarterFiles } from '../src/starter-files/agent-files.ts';
 import { backfillRuleFiles } from '../src/starter-files/backfill.ts';
 import { testSqlAgentHome } from './agent-home.ts';
 import { drivePushFixture } from './drive-push.fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const drive = drivePushFixture({ seedManagedSkills: true });
 const { fixture } = drive;
@@ -55,7 +56,11 @@ test('the starter MEMORY.md carries the creating Agent’s brief, and seeding ne
     });
     const memory = (await head('agents/scout/MEMORY.md'))?.text ?? '';
     expect(memory).toContain('## Standing brief from @orbit\n\nOwn delivery checks in #product.\n');
-    expect(await seed()).toEqual({ 'AGENTS.md': 'held', 'MEMORY.md': 'held', 'WORKER.md': 'held' });
+    expect(await seed()).toEqual({
+        'AGENTS.md': 'present',
+        'MEMORY.md': 'present',
+        'WORKER.md': 'present',
+    });
     expect((await head('agents/scout/MEMORY.md'))?.revision_number).toBe(1);
 });
 
@@ -107,6 +112,35 @@ test('the backfill creates missing rule files once and never MEMORY.md', async (
     expect(await head('agents/cove/WORKER.md')).toBeUndefined();
 });
 
+test('the backfill gives live Projects their AGENTS.md and skips archived ones', async () => {
+    await createTestProject(fixture.owner, {
+        key: 'LIVEP',
+        name: 'live-room',
+        serverId: fixture.serverId,
+    });
+    const archived = await createTestProject(fixture.owner, {
+        key: 'ARCH',
+        name: 'archived-room',
+        serverId: fixture.serverId,
+    });
+    await forgetPath('projects/LIVEP/AGENTS.md');
+    await forgetPath('projects/ARCH/AGENTS.md');
+    await fixture.harness.sql`
+        update chats set archived_at = now(), archived_by_user_id = ${fixture.ownerUserId}
+        where id = ${archived.id}
+    `;
+
+    await backfillRuleFiles(connection.db, drive.storage, new AbortController().signal);
+
+    expect(await head('projects/LIVEP/AGENTS.md')).toEqual({
+        author_key: 'haus',
+        creator_agent_id: null,
+        revision_number: 1,
+        text: '# live-room rules\n',
+    });
+    expect(await head('projects/ARCH/AGENTS.md')).toBeUndefined();
+});
+
 function fixtureAgent(agentId: string) {
     return { agentId, serverId: fixture.serverId };
 }
@@ -135,6 +169,14 @@ async function headRevisionId(path: string) {
         where server_id = ${fixture.serverId} and path = ${path} and deleted_at is null
     `) as { current_revision_id: string }[];
     return row?.current_revision_id;
+}
+
+async function forgetPath(path: string) {
+    await fixture.harness.sql`
+        update artifacts set path = ${`${path}.before-seed`},
+            path_key = ${`${path}.before-seed`.toLowerCase()}
+        where server_id = ${fixture.serverId} and path = ${path}
+    `;
 }
 
 async function revisionCount() {

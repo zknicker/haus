@@ -40,7 +40,8 @@ export async function backfillRuleFiles(
         work.catch((cause: unknown) => {
             failures.push(cause);
         });
-    for (const server of await liveServerOwners(db)) {
+    const owners = await liveServerOwners(db);
+    for (const server of owners) {
         if (closing.aborted) {
             return;
         }
@@ -59,7 +60,14 @@ export async function backfillRuleFiles(
             await settle(seedAgentStarterFiles(db, storage, agent, { names, unless: 'ever-held' }));
         }
     }
-    await settle(backfillProjectRules(db, storage, closing));
+    await settle(
+        backfillProjectRules(db, storage, {
+            closing,
+            isHeld: (serverId, path) => held.has(heldKey(serverId, path)),
+            owners: new Map(owners.map((owner) => [owner.serverId, owner.userId])),
+            settle,
+        })
+    );
     if (failures.length > 0) {
         throw new AggregateError(failures, 'Rule-file backfill failed for some files.');
     }
@@ -74,7 +82,8 @@ async function heldRuleKeys(db: HausDatabase) {
                 eq(artifacts.pathKey, artifactPathKey(hausRulesPath)),
                 ...ruleFileNames.map((name) =>
                     like(artifacts.pathKey, `agents/%/${artifactPathKey(name)}`)
-                )
+                ),
+                like(artifacts.pathKey, `projects/%/${artifactPathKey('AGENTS.md')}`)
             )
         );
     return new Set(rows.map((row) => `${row.serverId}\0${row.pathKey}`));

@@ -1,4 +1,5 @@
-import { artifactPathBasename } from '@haus/api';
+import { artifactPathBasename, artifactPathKey } from '@haus/api';
+import { and, eq, isNull } from 'drizzle-orm';
 import { advanceHead, markUploaded, readArtifact } from '../artifacts/land.ts';
 import { lockLiveServer } from '../artifacts/move.ts';
 import { liveArtifactAtPath } from '../artifacts/path.ts';
@@ -9,28 +10,40 @@ import type { ArtifactStorage } from '../artifacts/storage.ts';
 import { createArtifactAt } from '../artifacts/write-target.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
+import { agentsTable, artifactsTable as artifacts } from '../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { driveAreaOfPath } from './areas.ts';
 
-export type DriveSeedOutcome = 'present' | 'raced' | 'written';
+export type DriveSeedOutcome = 'present' | 'raced' | 'retired' | 'written';
 
 export type DriveSeedCreator =
     | { agentId: string; userId: null }
     | { agentId: null; userId: string };
 
+export type DriveSeedGuard = 'ever-held' | 'live';
+
 export async function seedDriveFile(
     db: HausDatabase,
     storage: ArtifactStorage,
-    seed: { creator: DriveSeedCreator; path: string; serverId: string; text: string }
+    seed: {
+        creator: DriveSeedCreator;
+        path: string;
+        serverId: string;
+        text: string;
+        unless?: DriveSeedGuard;
+    }
 ) {
     const { serverId } = seed;
     const bytes = new TextEncoder().encode(seed.text);
     const reserved = await db.transaction(async (tx) => {
         await lockLiveServer(tx, serverId);
-        if (await liveArtifactAtPath(tx, serverId, seed.path)) {
-            return null;
+        const { area, path } = await driveAreaOfPath(tx, serverId, seed.path);
+        if (area.startsWith('agent:') && !(await isLiveAgent(tx, serverId, area.slice(6)))) {
+            return 'retired' satisfies DriveSeedOutcome;
         }
-        const { path } = await driveAreaOfPath(tx, serverId, seed.path);
+        if (await isHeld(tx, serverId, path, seed.unless ?? 'live')) {
+            return 'present' satisfies DriveSeedOutcome;
+        }
         const artifact = await createArtifactAt(tx, { ...seed.creator, serverId }, path);
         const revision = await insertUploadingRevision(
             tx,
@@ -48,8 +61,8 @@ export async function seedDriveFile(
         );
         return { artifactId: artifact.id, revision };
     });
-    if (!reserved) {
-        return 'present' satisfies DriveSeedOutcome;
+    if (typeof reserved === 'string') {
+        return reserved;
     }
     const uploaded = await storage
         .upload(reserved.revision.objectKey, chunksOf(bytes), contentType)
@@ -80,6 +93,33 @@ export async function seedDriveFile(
 }
 
 const contentType = 'text/markdown';
+
+async function isHeld(tx: HausDatabase, serverId: string, path: string, guard: DriveSeedGuard) {
+    if (guard === 'live') {
+        return Boolean(await liveArtifactAtPath(tx, serverId, path));
+    }
+    const [row] = await tx
+        .select({ id: artifacts.id })
+        .from(artifacts)
+        .where(and(eq(artifacts.serverId, serverId), eq(artifacts.pathKey, artifactPathKey(path))))
+        .limit(1);
+    return Boolean(row);
+}
+
+async function isLiveAgent(tx: HausDatabase, serverId: string, agentId: string) {
+    const [row] = await tx
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .where(
+            and(
+                eq(agentsTable.serverId, serverId),
+                eq(agentsTable.id, agentId),
+                isNull(agentsTable.retiredAt)
+            )
+        )
+        .limit(1);
+    return Boolean(row);
+}
 
 async function* chunksOf(bytes: Uint8Array) {
     yield bytes;

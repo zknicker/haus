@@ -2,10 +2,10 @@ import { renderStarterMemory, starterAgentRules, starterWorkerRules } from '@hau
 import { and, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
+import { type DriveSeedGuard, type DriveSeedOutcome, seedDriveFile } from '../drive/seed-file.ts';
 import type { AgentRef } from '../managed-skills/record.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
-import { type StarterFile, type StarterFileOutcome, seedStarterFile } from './seed-file.ts';
 
 export type AgentStarterFileName = 'AGENTS.md' | 'MEMORY.md' | 'WORKER.md';
 
@@ -19,17 +19,18 @@ export async function seedAgentStarterFiles(
     db: HausDatabase,
     storage: ArtifactStorage,
     agent: AgentRef,
-    options: { names?: readonly AgentStarterFileName[]; unless?: StarterFile['unless'] } = {}
+    options: { names?: readonly AgentStarterFileName[]; unless?: DriveSeedGuard } = {}
 ) {
-    const outcomes: Partial<Record<AgentStarterFileName, StarterFileOutcome>> = {};
+    const outcomes: Partial<Record<AgentStarterFileName, DriveSeedOutcome>> = {};
     const facts = await readStarterFacts(db, agent);
     if (!facts) {
         return outcomes;
     }
     for (const name of options.names ?? agentStarterFileNames) {
-        outcomes[name] = await seedStarterFile(db, storage, agent.serverId, {
+        outcomes[name] = await seedDriveFile(db, storage, {
             creator: { agentId: agent.agentId, userId: null },
             path: `agents/${facts.handle}/${name}`,
+            serverId: agent.serverId,
             text: starterText(name, facts),
             unless: options.unless ?? 'live',
         });

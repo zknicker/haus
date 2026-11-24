@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
-import { type DriveSeedCreator, seedDriveFile } from '../drive/seed-file.ts';
+import { type DriveSeedCreator, type DriveSeedGuard, seedDriveFile } from '../drive/seed-file.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
 
@@ -11,7 +11,12 @@ export function projectRulesPath(key: string) {
 export async function seedProjectRules(
     db: HausDatabase,
     storage: ArtifactStorage,
-    project: { creator: DriveSeedCreator; projectId: string; serverId: string }
+    project: {
+        creator: DriveSeedCreator;
+        projectId: string;
+        serverId: string;
+        unless?: DriveSeedGuard;
+    }
 ) {
     const [row] = await db
         .select({ key: taskKeysTable.key, name: chatsTable.name })
@@ -45,5 +50,6 @@ export async function seedProjectRules(
         path: projectRulesPath(row.key),
         serverId: project.serverId,
         text: `# ${row.name ?? row.key} rules\n`,
+        unless: project.unless,
     });
 }
