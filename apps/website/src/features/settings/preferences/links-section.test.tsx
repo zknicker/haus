@@ -1,20 +1,22 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { getOpenLinksIn, readOpenLinksIn } from '../../../hooks/browser/open-links-preference.ts';
-import { applyOpenLinksIn, OpenLinksInRow } from './links-section.tsx';
+import { applyOpenLinksInBrowser, OpenLinksInRow } from './links-section.tsx';
 
-describe('open links in', () => {
-    test('renders the choice', () => {
-        const markup = renderToStaticMarkup(<OpenLinksInRow value="haus" />);
-        expect(markup).toContain('Open links in');
+describe('open links in your browser', () => {
+    test('renders a switch that is on only when links open in the browser', () => {
+        const off = renderToStaticMarkup(<OpenLinksInRow value="haus" />);
+        const on = renderToStaticMarkup(<OpenLinksInRow value="browser" />);
+        expect(off).toContain('Open links in your browser');
+        expect(off).toContain('role="switch"');
+        expect(off).not.toContain('checked=""');
+        expect(on).toContain('checked=""');
     });
 
-    test('a pick writes the choice, and anything else is ignored', () => {
-        applyOpenLinksIn('browser');
+    test('the switch writes the browser or Haus', () => {
+        applyOpenLinksInBrowser(true);
         expect(getOpenLinksIn()).toBe('browser');
-        applyOpenLinksIn('safari');
-        expect(getOpenLinksIn()).toBe('browser');
-        applyOpenLinksIn('haus');
+        applyOpenLinksInBrowser(false);
         expect(getOpenLinksIn()).toBe('haus');
     });
 

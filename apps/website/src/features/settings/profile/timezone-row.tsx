@@ -3,12 +3,9 @@ import { Autocomplete, EmptyState, Label, ListBox, SearchField, Separator } from
 import * as React from 'react';
 import { useHumanTimezone } from '../../../hooks/members/use-human-timezone.ts';
 import { matchesTimezoneSearch, timezoneOptions } from '../../../lib/timezones.ts';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
 
-/** The Timezone row's explanation, shared by the live and pending rows. */
-export const timezoneInfo =
-    'Captains schedule your daily and weekly reminders in this zone. Haus sets it from your device.';
+export const timezoneDescription = 'Captains schedule your reminders in this zone.';
 
 /**
  * The human's timezone. It follows the Identity rows, so it brings its own
@@ -31,7 +28,10 @@ export function TimezoneRow({
             <Separator />
             <ItemCard>
                 <ItemCard.Content>
-                    <SettingsRowTitle info={timezoneInfo}>Timezone</SettingsRowTitle>
+                    <ItemCard.Title>Timezone</ItemCard.Title>
+                    <ItemCard.Description className="whitespace-normal">
+                        {timezoneDescription}
+                    </ItemCard.Description>
                     <SettingsRowError>{setTimezone.error?.message}</SettingsRowError>
                 </ItemCard.Content>
                 <ItemCard.Action>

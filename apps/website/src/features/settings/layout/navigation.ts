@@ -33,7 +33,7 @@ export const settingsNavItems = [
         icon: Settings02Icon,
         id: 'preferences',
         label: 'Preferences',
-        rows: ['Window layout', 'Show claims in chat', 'Open links in'],
+        rows: ['Window layout', 'Show claims in chat', 'Open links in your browser'],
     },
     {
         access: 'everyone',

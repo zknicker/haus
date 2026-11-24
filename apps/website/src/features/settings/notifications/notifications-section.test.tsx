@@ -4,10 +4,11 @@ import { sendTestNotification } from '../../notifications/test-notification.ts';
 import { NotificationsSection, TestNotificationRow } from './notifications-section.tsx';
 
 describe('notifications settings', () => {
-    test('says why the switch is off where notifications cannot show', () => {
+    test('marks the row Not supported where notifications cannot show', () => {
         const markup = renderToStaticMarkup(<NotificationsSection />);
         expect(markup).toContain('Notify me when I&#x27;m needed');
-        expect(markup).toContain('This browser cannot show notifications.');
+        expect(markup).toContain('Not supported');
+        expect(markup).not.toContain('text-warning');
     });
 
     test('offers a test notification only while notifications are on', () => {

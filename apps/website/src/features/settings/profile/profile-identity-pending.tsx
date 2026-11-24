@@ -1,11 +1,9 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Alert, Input, Separator, TextField } from '@heroui/react';
 import { Fragment } from 'react';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
-import { timezoneInfo } from './timezone-row.tsx';
+import { timezoneDescription } from './timezone-row.tsx';
 
-/** The Handle row's explanation, shared by the live and pending rows. */
-export const handleInfo = 'Your unique @name on this Server.';
+export const handleDescription = 'Your unique @name on this Server.';
 
 /** Reserve the identity rows without inventing an editable member. */
 export function ProfileIdentityPending({ error }: { error?: string }) {
@@ -24,18 +22,19 @@ export function ProfileIdentityPending({ error }: { error?: string }) {
                 {[
                     { title: 'Photo' },
                     { title: 'Display name' },
-                    { info: handleInfo, title: 'Handle' },
-                    { info: timezoneInfo, title: 'Timezone' },
+                    { description: handleDescription, title: 'Handle' },
+                    { description: timezoneDescription, title: 'Timezone' },
                 ].map((row, index) => (
                     <Fragment key={row.title}>
                         {index > 0 ? <Separator /> : null}
                         <ItemCard>
                             <ItemCard.Content>
-                                {row.info ? (
-                                    <SettingsRowTitle info={row.info}>{row.title}</SettingsRowTitle>
-                                ) : (
-                                    <ItemCard.Title>{row.title}</ItemCard.Title>
-                                )}
+                                <ItemCard.Title>{row.title}</ItemCard.Title>
+                                {row.description ? (
+                                    <ItemCard.Description className="whitespace-normal">
+                                        {row.description}
+                                    </ItemCard.Description>
+                                ) : null}
                             </ItemCard.Content>
                             <ItemCard.Action>
                                 {row.title === 'Photo' ? (

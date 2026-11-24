@@ -1,56 +1,33 @@
 import { ItemCard } from '@heroui-pro/react';
-import { Label, ListBox, Select } from '@heroui/react';
-import {
-    type OpenLinksIn,
-    openLinksInOptions,
-    parseOpenLinksIn,
-    setOpenLinksIn,
-} from '../../../hooks/browser/open-links-preference.ts';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
+import { Switch } from '@heroui/react';
+import { type OpenLinksIn, setOpenLinksIn } from '../../../hooks/browser/open-links-preference.ts';
 
 export function OpenLinksInRow({ value }: { value: OpenLinksIn }) {
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsRowTitle info="Web links in chats, chips, and Haus pages. Links inside a web page stay in Haus.">
-                    Open links in
-                </SettingsRowTitle>
+                <ItemCard.Title>Open links in your browser</ItemCard.Title>
+                <ItemCard.Description className="whitespace-normal">
+                    Web links in chats and Haus pages open in your default browser.
+                </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
-                <Select
-                    aria-label="Open links in"
-                    className="w-48"
-                    onChange={applyOpenLinksIn}
-                    value={value}
-                    variant="secondary"
+                <Switch
+                    aria-label="Open links in your browser"
+                    isSelected={value === 'browser'}
+                    onChange={applyOpenLinksInBrowser}
                 >
-                    <Select.Trigger>
-                        <Select.Value />
-                        <Select.Indicator />
-                    </Select.Trigger>
-                    <Select.Popover>
-                        <ListBox>
-                            {openLinksInOptions.map((option) => (
-                                <ListBox.Item
-                                    id={option.id}
-                                    key={option.id}
-                                    textValue={option.label}
-                                >
-                                    <Label>{option.label}</Label>
-                                    <ListBox.ItemIndicator />
-                                </ListBox.Item>
-                            ))}
-                        </ListBox>
-                    </Select.Popover>
-                </Select>
+                    <Switch.Content>
+                        <Switch.Control>
+                            <Switch.Thumb />
+                        </Switch.Control>
+                    </Switch.Content>
+                </Switch>
             </ItemCard.Action>
         </ItemCard>
     );
 }
 
-export function applyOpenLinksIn(value: unknown) {
-    const next = parseOpenLinksIn(value);
-    if (next) {
-        setOpenLinksIn(next);
-    }
+export function applyOpenLinksInBrowser(inBrowser: boolean) {
+    setOpenLinksIn(inBrowser ? 'browser' : 'haus');
 }
