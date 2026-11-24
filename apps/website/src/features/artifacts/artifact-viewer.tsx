@@ -18,7 +18,9 @@ import { ArtifactTextEditor } from './artifact-text-editor.tsx';
 import { artifactTextRenderer } from './artifact-text.ts';
 import { ArtifactViewerHeader } from './artifact-viewer-header.tsx';
 import { artifactFolderCrumbs } from './drive-folders.ts';
-import { driveFolderLabel, driveRootLabel } from './drive-places.ts';
+import { driveAgentName, driveFolderLabel, driveRootLabel } from './drive-places.ts';
+import { driveTreeRoot } from './drive-tree-model.ts';
+import { DriveTree } from './drive-tree.tsx';
 import { rememberLibraryItem } from './library-focus.ts';
 import { artifactViewerHref, libraryHref, parseViewerContext } from './library-params.ts';
 import { useArtifactActions } from './use-artifact-actions.tsx';
@@ -75,6 +77,13 @@ export function ArtifactViewer({
                   });
               }
             : undefined;
+    const treeRoot = artifact ? driveTreeRoot(artifact.path) : null;
+    const openFromTree = (nextId: string) => {
+        if (context) {
+            rememberLibraryItem(context.folder, nextId);
+        }
+        navigate(artifactViewerHref(slug, nextId, context), { replace: true });
+    };
     const pinned = pinnedRevisionId !== undefined;
     const { closeEditor, editRevisionId, onEdit } = useViewerEdit({
         artifact,
@@ -96,70 +105,88 @@ export function ArtifactViewer({
                     current={artifact?.filename ?? ''}
                 />
             </PageBand>
-            <div
-                className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
-                ref={scrollRef}
-            >
-                <PageColumn className="@container">
-                    {query.error ? (
-                        <p role="alert">{query.error.message}</p>
-                    ) : artifact ? (
-                        <>
-                            <ArtifactViewerHeader
-                                artifact={artifact}
-                                latestHref={
-                                    pinnedBehindHead(
-                                        pinnedRevisionId,
-                                        head.data?.artifact.revision_id
-                                    )
-                                        ? artifactViewerHref(slug, artifactId, context)
-                                        : null
-                                }
-                                onEdit={onEdit}
-                                pinned={pinned}
-                                serverId={serverId}
-                                stepper={stepper(false)}
-                            />
-                            {editRevisionId ? (
-                                <ArtifactTextEditor
+            <div className="@container/viewer flex min-h-0 flex-1">
+                {artifact && treeRoot !== null ? (
+                    <DriveTree
+                        artifactId={artifactId}
+                        className="hidden w-64 shrink-0 @5xl/viewer:flex"
+                        key={artifactPathKey(treeRoot)}
+                        label={driveFolderLabel(treeRoot, driveAgentName(agents))}
+                        onOpenFile={openFromTree}
+                        path={artifact.path}
+                        root={treeRoot}
+                        serverId={serverId}
+                    />
+                ) : null}
+                <div
+                    className="min-h-0 min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
+                    ref={scrollRef}
+                >
+                    <PageColumn className="@container">
+                        {query.error ? (
+                            <p role="alert">{query.error.message}</p>
+                        ) : artifact ? (
+                            <>
+                                <ArtifactViewerHeader
                                     artifact={artifact}
-                                    onClose={closeEditor}
-                                    revisionId={editRevisionId}
+                                    latestHref={
+                                        pinnedBehindHead(
+                                            pinnedRevisionId,
+                                            head.data?.artifact.revision_id
+                                        )
+                                            ? artifactViewerHref(slug, artifactId, context)
+                                            : null
+                                    }
+                                    onEdit={onEdit}
+                                    pinned={pinned}
                                     serverId={serverId}
+                                    stepper={stepper(false)}
                                 />
-                            ) : (
-                                <div className="grid min-w-0 items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_18rem]">
-                                    {compareFrom ? (
-                                        <ArtifactCompare
-                                            artifact={artifact}
-                                            fromRevisionId={compareFrom}
-                                            onView={(next, options) =>
-                                                navigate(viewHref(next), options)
-                                            }
-                                            serverId={serverId}
-                                        />
-                                    ) : (
-                                        <ArtifactPreview
-                                            artifact={artifact}
-                                            key={artifact.revision_id}
-                                            serverId={serverId}
-                                            startZoomed={isZoomedEntry(location.state)}
-                                            stepper={stepper(true)}
-                                        />
-                                    )}
-                                    <ArtifactInspector
+                                {editRevisionId ? (
+                                    <ArtifactTextEditor
                                         artifact={artifact}
+                                        onClose={closeEditor}
+                                        revisionId={editRevisionId}
                                         serverId={serverId}
-                                        slug={slug}
-                                        viewHref={viewHref}
                                     />
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <section aria-busy="true" aria-label="Loading file" className="min-h-32" />
-                    )}
-                </PageColumn>
+                                ) : (
+                                    <div className="grid min-w-0 items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_18rem]">
+                                        {compareFrom ? (
+                                            <ArtifactCompare
+                                                artifact={artifact}
+                                                fromRevisionId={compareFrom}
+                                                onView={(next, options) =>
+                                                    navigate(viewHref(next), options)
+                                                }
+                                                serverId={serverId}
+                                            />
+                                        ) : (
+                                            <ArtifactPreview
+                                                artifact={artifact}
+                                                key={artifact.revision_id}
+                                                serverId={serverId}
+                                                startZoomed={isZoomedEntry(location.state)}
+                                                stepper={stepper(true)}
+                                            />
+                                        )}
+                                        <ArtifactInspector
+                                            artifact={artifact}
+                                            serverId={serverId}
+                                            slug={slug}
+                                            viewHref={viewHref}
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <section
+                                aria-busy="true"
+                                aria-label="Loading file"
+                                className="min-h-32"
+                            />
+                        )}
+                    </PageColumn>
+                </div>
             </div>
             {dialogs}
         </ArtifactActionsContext>
