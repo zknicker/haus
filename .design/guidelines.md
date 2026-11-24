@@ -1015,6 +1015,18 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   run tools here." beside Captain access, "Captains can't see or control this Mac's screen."
   beside Computer use off). The Device page's Access and Workers rows use it. A static
   description that reads the same whatever the value stays banned.
+- **Settings copy rules:** The Device page follows these first (2026-11-24); the other Settings
+  pages move to them later, and until then keep the status-chip rule under Settings rows.
+  1. One control per row. Give each settings row one `Switch`, `Select`, `Button`, or •••
+     menu; never place two controls side by side.
+  2. Use `Switch` for booleans. Reserve `Select` for three or more choices; on/off settings use
+     a stock `Switch`.
+  3. One short sentence or none. Omit static row descriptions and section subtitles that
+     restate row text; keep dynamic lines only when they state what the current value does.
+  4. Show exceptions, not health. Render status as an inline `Badge` dot plus two or three words
+     (`SettingsAttention`) only when something needs attention; leave healthy rows quiet.
+  5. Keep instructions off settings pages. Never put multi-step how-tos, shortcuts, or app paths
+     in row descriptions; show them inside the modal or popover opened by the row's action.
   Every settings list row has a ×14 (~53px) floor (`.settings-frame` in `default-theme.css`):
   the row's padding around the compact ×8 (30px) field, so a Switch or fact row matches a
   Select row beside it. Fields in a settings row or section header are that compact height,

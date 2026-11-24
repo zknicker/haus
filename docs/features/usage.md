@@ -46,10 +46,11 @@ while you read it.
   [Model connections](../../specs/model-connections.md#plan-capacity).
 
 * **Workers.** The same Computer page carries a **Workers** section: Run Workers here, a
-  **Claude Code** and a **Codex** row with a status chip and their weekly plan usage as one line
-  ("97% of the week left", marked out of date when stale), then one **Cursor** row and one
-  **Claude** row; each cloud row's status detail sits in its info tooltip. A row no longer chooses any Worker's place: a `haus worker start` without `--on`
-  uses the Task's Project default (Settings → Projects) and refuses when there is none. Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
+  **Claude Code** and a **Codex** row with their weekly plan usage as one line when ready ("97% of
+  the week left", marked out of date when stale) or their exception and a **Fix** popover, then
+  one **Cursor Cloud** row and one **Claude Cloud** row; a healthy cloud row is quiet and one that
+  needs a look shows a dot and its state under the title. A row no longer chooses any Worker's place: a `haus worker start` without `--on`
+  uses the Task's Project default (Settings → Projects) and refuses when there is none. Claude uses the Computer's own Claude Code sign-in, so its row offers **Recheck** instead of a Connect flow. The Claude row also carries an environment picker that
   pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
   **Claude's default (not pinned)**; a pin that goes stale (removed or archived) fails the next
   launch outright instead of silently falling back to Claude Code's own choice. The
