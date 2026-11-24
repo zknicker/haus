@@ -40,14 +40,6 @@ export const claimStatusClasses: Record<ClaimStatus, string> = {
     todo: 'bg-[var(--label-orange-bg)] text-[var(--label-orange-fg)]',
 };
 
-export const claimStatusDiscClasses: Record<ClaimStatus, string> = {
-    closed: 'text-[var(--label-gray-fg)]',
-    done: 'text-[var(--label-green-fg)]',
-    in_progress: 'text-[var(--label-blue-fg)]',
-    in_review: 'text-[var(--label-purple-fg)]',
-    todo: 'text-[var(--label-orange-fg)]',
-};
-
 export function formatClaimNumber(claim: { number: number }) {
     return `#${claim.number}`;
 }

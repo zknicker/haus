@@ -1,0 +1,164 @@
+@layer components {
+    .task-status-disc {
+        --task-status-ease: cubic-bezier(0.65, 0, 0.35, 1);
+        --task-status-enter: 100ms;
+    }
+
+    .task-status-disc__exit,
+    .task-status-disc__cross {
+        transform-box: view-box;
+        transform-origin: 8px 8px;
+    }
+
+    .task-status-disc__cross--clockwise {
+        transform: rotate(45deg);
+    }
+
+    .task-status-disc__cross--counter {
+        transform: rotate(-45deg);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .task-status-disc__exit {
+            animation: task-status-exit 160ms cubic-bezier(0.4, 0, 1, 1) both;
+        }
+
+        .task-status-disc__enter {
+            & .task-status-disc__dash {
+                animation: task-status-grow 140ms ease-out both;
+                animation-delay: calc(var(--task-status-enter) + var(--task-status-order) * 35ms);
+            }
+
+            & .task-status-disc__ring {
+                animation: task-status-draw 430ms var(--task-status-ease) var(--task-status-enter)
+                    both;
+            }
+
+            & .task-status-disc__pie {
+                animation: task-status-pie 530ms var(--task-status-ease) var(--task-status-enter)
+                    both;
+            }
+
+            & .task-status-disc__check {
+                animation: task-status-draw 300ms var(--task-status-ease) 80ms both;
+            }
+
+            & .task-status-disc__cross--clockwise {
+                animation: task-status-scissor-clockwise 260ms var(--task-status-ease) 80ms both;
+            }
+
+            & .task-status-disc__cross--counter {
+                animation: task-status-scissor-counter 260ms var(--task-status-ease) 80ms both;
+            }
+        }
+
+        .task-status-disc[data-ring-draws] .task-status-disc__enter {
+            & .task-status-disc__check {
+                animation-delay: calc(var(--task-status-enter) + 430ms);
+            }
+
+            & .task-status-disc__cross--clockwise,
+            & .task-status-disc__cross--counter {
+                animation-delay: calc(var(--task-status-enter) + 380ms);
+            }
+        }
+
+        .task-status-disc[data-mark='pie'] .task-status-disc__enter .task-status-disc__ring {
+            animation-duration: 660ms;
+        }
+
+        .task-status-disc:not([data-ring-draws]) .task-status-disc__enter .task-status-disc__pie {
+            animation-duration: 420ms;
+            animation-delay: 0ms;
+        }
+    }
+
+    @keyframes task-status-exit {
+        to {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+    }
+
+    @keyframes task-status-draw {
+        0% {
+            opacity: 0;
+            stroke-dasharray: 0 1;
+        }
+        1% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 1;
+            stroke-dasharray: 1 0;
+        }
+    }
+
+    @keyframes task-status-grow {
+        0% {
+            opacity: 0;
+            stroke-dasharray: 0 1;
+            stroke-dashoffset: -0.5;
+        }
+        1% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 1;
+            stroke-dasharray: 1 0;
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @keyframes task-status-pie {
+        from {
+            stroke-dasharray: var(--task-status-pie-from, 0) 1;
+        }
+    }
+
+    @keyframes task-status-scissor-clockwise {
+        0% {
+            opacity: 0;
+            stroke-dasharray: 0 1;
+            stroke-dashoffset: -0.5;
+            transform: rotate(0deg);
+        }
+        1% {
+            opacity: 1;
+        }
+        40% {
+            stroke-dasharray: 1 0;
+            stroke-dashoffset: 0;
+            transform: rotate(0deg);
+        }
+        100% {
+            opacity: 1;
+            stroke-dasharray: 1 0;
+            stroke-dashoffset: 0;
+            transform: rotate(45deg);
+        }
+    }
+
+    @keyframes task-status-scissor-counter {
+        0% {
+            opacity: 0;
+            stroke-dasharray: 0 1;
+            stroke-dashoffset: -0.5;
+            transform: rotate(0deg);
+        }
+        1% {
+            opacity: 1;
+        }
+        40% {
+            stroke-dasharray: 1 0;
+            stroke-dashoffset: 0;
+            transform: rotate(0deg);
+        }
+        100% {
+            opacity: 1;
+            stroke-dasharray: 1 0;
+            stroke-dashoffset: 0;
+            transform: rotate(-45deg);
+        }
+    }
+}
