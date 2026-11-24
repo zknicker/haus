@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.5.0 - 2026-11-24
+
+- A new Captain starts with three files in its Drive folder: `MEMORY.md`, which holds the brief it was created with, `AGENTS.md` for its own rules, and `WORKER.md` for the rules its Workers follow. A Full reset writes them again. The Captain's profile always lists all three.
+- A new Server starts with `haus/AGENTS.md`, the rules every Captain and Worker on it follows.
+- Each Project has its own `AGENTS.md` in Drive, under `projects/<key>/`, written when the Project is created. Captains in the Project get it in their turn whenever it changes, and a Task's Workers get it in their first turn. Project settings link to it under **Rules**, and changing a Project's key moves its folder.
+- A Captain's hover card shows its **Context** in a second column, which replaces the ring under the composer: tokens used against the compaction threshold, a row each for System prompt, Tools, Skills, Rules and memory, and Conversation, and **Compact at**. Hovering a Captain's sidebar tile opens the same card beside the sidebar, light in light mode, instead of a name tooltip. Recent turns in the card take one line each, led by a status dot.
+- Server 29.4.0, Haus Computer 26.0.2 and Haus Agent 17.3.0 publish together. Haus Agent 17.3.0 reads a Captain's Project rules between the Server's rules and its own, and the `rules` Manual topic says how they arrive. Computer protocol 49 is unchanged, so either side can update first. No database migration. Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.4.0 - 2026-11-24
 
 - Haus for iPhone 13.1.0 gives the Chat composer ChatGPT's shape. It stays a one-line pill, focused or not, until your draft needs a second line, then grows into a card with the text above its controls. The plus is a bare glyph, and the controls sit further in from the edge. A Captain's model moved from the composer to **Model** in the Captain DM's ••• menu, which shows the current model and opens the same Model sheet. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
