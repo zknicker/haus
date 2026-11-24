@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.4.0 - 2026-11-24
+
+- Haus for iPhone 13.1.0 gives the Chat composer ChatGPT's shape. It stays a one-line pill, focused or not, until your draft needs a second line, then grows into a card with the text above its controls. The plus is a bare glyph, and the controls sit further in from the edge. A Captain's model moved from the composer to **Model** in the Captain DM's ••• menu, which shows the current model and opens the same Model sheet. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
 ## v30.3.0 - 2026-11-24
 
 - Drive's list view lists folders as rows with their file count, last change and total size, under the same Name, Kind, Modified and Size columns as files. A footer totals the open folder's files and bytes. The Drive root and its Projects and Captains folders leave out the file-type and Created by menus.
