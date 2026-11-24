@@ -19,7 +19,8 @@ test('a Captain that is not online shows its state under its name', () => {
         />
     );
     expect(html).toContain('Offline');
-    expect(html).toContain('data-slot="badge"');
+    expect(html).toContain('chip--sm');
+    expect(html).toContain('chip--default');
 });
 
 test('Captains using this device by default are quiet rows with a model fact, and no data grid', () => {
@@ -43,7 +44,7 @@ test('Captains using this device by default are quiet rows with a model fact, an
     expect(html).toContain('Blippy');
     expect(html).toContain('GPT-5.6 Sol');
     expect(html).not.toContain('Online');
-    expect(html).not.toContain('data-slot="badge"');
+    expect(html).not.toContain('chip--sm');
     expect(html).toContain('<button');
 });
 

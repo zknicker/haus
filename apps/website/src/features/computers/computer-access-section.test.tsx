@@ -80,7 +80,8 @@ test('macOS permissions lists only the missing permission, with setup steps off 
     expect(denied).toContain('macOS permissions');
     expect(denied).toContain('Screen &amp; System Audio Recording');
     expect(denied).not.toContain('System &amp; App Protection Override');
-    expect(denied).toContain('Not granted');
+    expect(denied).toMatch(/item-card__description[^>]*>Not granted</u);
+    expect(denied).not.toContain('data-slot="badge"');
     expect(denied).toContain('Open Settings');
     expect(denied).not.toContain('Copy path');
     expect(denied).not.toContain('Check again');

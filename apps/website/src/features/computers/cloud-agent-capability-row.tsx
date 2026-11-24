@@ -3,7 +3,6 @@ import { ItemCard } from '@heroui-pro/react';
 import { Button, Dropdown, Label, ListBox, Select } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import { SettingsAttention } from '../settings/layout/settings-row-title.tsx';
 import type { CloudAgentCapabilityView } from './cloud-agent-capability-model.ts';
 
 export function CloudAgentCapabilityRow({
@@ -28,9 +27,7 @@ export function CloudAgentCapabilityRow({
                         <ItemCard.Description>{view.detail}</ItemCard.Description>
                     ) : null
                 ) : (
-                    <SettingsAttention color={statusColor(view.status)}>
-                        {view.statusLabel}
-                    </SettingsAttention>
+                    <ItemCard.Description>{view.statusLabel}</ItemCard.Description>
                 )}
             </ItemCard.Content>
             <RowControl
@@ -183,17 +180,4 @@ function EnvironmentSelect({
             </Select.Popover>
         </Select>
     );
-}
-
-function statusColor(status: CloudAgentCapabilityView['status']) {
-    switch (status) {
-        case 'ready':
-            return 'success' as const;
-        case 'connecting':
-            return 'accent' as const;
-        case 'not-connected':
-            return 'warning' as const;
-        case 'unavailable':
-            return 'default' as const;
-    }
 }

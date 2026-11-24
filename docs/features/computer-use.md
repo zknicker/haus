@@ -1,5 +1,5 @@
 ---
-summary: The Device page's layout — a macOS permissions section only while one is missing, with its setup steps in a Modal, Access (Captains, one chooser button with All Captains on this Server at its top; Computer use, one switch for every Captain with access), Workers (Run Workers here, Claude Code and Codex with plan usage or a Fix popover, the cloud providers), then Folders, Tools, Captains using this device by default, and Diagnostics — plus Stop Agent Input and what a refused Captain is told. Rows stay quiet when healthy and show a dot and a few words when they need a look.
+summary: The Device page's layout — a macOS permissions section only while one is missing, with its setup steps in a Modal, Access (Captains, one chooser button with All Captains on this Server at its top; Computer use, one switch for every Captain with access), Workers (Run Workers here, Claude Code and Codex with plan usage or a Fix popover, the cloud providers), then Folders, Tools, Captains using this device by default, and Diagnostics — plus Stop Agent Input and what a refused Captain is told. Rows stay quiet when healthy; a row that needs a look states it in plain text beside its button, or with a status chip when it has no button.
 read_when:
   - changing the Device page's sections, its ⋯ menu, or when its Software update row shows
   - changing Settings → Devices → (Device) → Access, the Captains chooser, or what a Captain sees when it lacks access
@@ -32,8 +32,10 @@ contract and [Computer use API](../api/computer-use.md) lists the procedures.
 Refresh status, Check for updates, and Remove device live in the page's `⋯` menu. The page never
 calls a Device a Captain's home.
 
-Every row has one control. A healthy row is quiet; a row that needs a look shows a dot and two or
-three words under its title ("Not granted", "Not signed in", "Expired"). Steps and how-tos live in
+Every row has at most one control. A healthy row is quiet. A row with a button that needs a look
+says so in plain text under its title ("Not granted", "Not signed in", "Expired"); a row without
+one, such as a missing folder or an offline Captain, shows a status chip beside its title. Steps
+and how-tos live in
 the Modal or popover a row's button opens, never on the page
 ([copy rules](../../.design/guidelines.md)).
 
@@ -101,7 +103,7 @@ Apps → Haus Computer → Control Your Entire Mac and All Apps. Haus Computer l
 folder, so the Modal gives its path with **Copy path**; paste it into the file picker with ⌘⇧G.
 Do this on the Device itself. For a Mac mini or another Mac without a display, connect with
 Screen Sharing first ([headless Devices](../operations/computer-use-headless-devices.md)). The
-Modal's footer shows the permission's live state: Waiting for macOS, Checking…, or Granted.
+Modal ends with the permission's live state in plain text: Waiting for macOS, Checking…, or Granted.
 
 The section rechecks in a fresh process whenever you come back to the App, so a grant shows
 within a second or two. After the update that made Haus Computer an app, the old grants no longer

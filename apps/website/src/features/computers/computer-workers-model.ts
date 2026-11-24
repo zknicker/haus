@@ -84,11 +84,11 @@ export function runtimeAttention(status: WorkerRuntimeView['status']) {
         case 'ready':
             return null;
         case 'not-ready':
-            return { color: 'warning', label: 'Not signed in' } as const;
+            return 'Not signed in';
         case 'signed-out':
-            return { color: 'danger', label: 'Sign-in failed' } as const;
+            return 'Sign-in failed';
         case 'missing':
-            return { color: 'default', label: 'Not installed' } as const;
+            return 'Not installed';
     }
 }
 

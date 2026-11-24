@@ -1023,8 +1023,11 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
      a stock `Switch`.
   3. One short sentence or none. Omit static row descriptions and section subtitles that
      restate row text; keep dynamic lines only when they state what the current value does.
-  4. Show exceptions, not health. Render status as an inline `Badge` dot plus two or three words
-     (`SettingsAttention`) only when something needs attention; leave healthy rows quiet.
+  4. Show exceptions, not health, and only when something needs attention; leave healthy rows
+     quiet. A row with an action states its state as plain text in its `ItemCard.Description`
+     ("Not granted", "Not signed in") beside its one button, with no color or marker. A row with
+     no action shows the problem as the stock `SettingsStatusChip` beside its title, in warning
+     or default color. Never pull a `Badge` out of its anchor to make an inline dot.
   5. Keep instructions off settings pages. Never put multi-step how-tos, shortcuts, or app paths
      in row descriptions; show them inside the modal or popover opened by the row's action.
   Every settings list row has a ×14 (~53px) floor (`.settings-frame` in `default-theme.css`):

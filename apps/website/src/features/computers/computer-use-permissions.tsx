@@ -3,7 +3,6 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Alert, Button, Separator } from '@heroui/react';
 import { Fragment, useState } from 'react';
 import { useComputerUseRecheck } from '../../hooks/computer-use/use-computer-use-recheck.ts';
-import { SettingsAttention } from '../settings/layout/settings-row-title.tsx';
 import {
     type ComputerUsePermission,
     computerUseNeedsGrant,
@@ -98,9 +97,9 @@ function PermissionRow({
         <ItemCard>
             <ItemCard.Content>
                 <ItemCard.Title>{permission.pane}</ItemCard.Title>
-                <SettingsAttention color={permission.state === 'denied' ? 'warning' : 'default'}>
+                <ItemCard.Description>
                     {permissionStateLabel(permission.state)}
-                </SettingsAttention>
+                </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
                 <Button onPress={onOpenSettings} size="sm" variant="secondary">

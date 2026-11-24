@@ -1,5 +1,6 @@
-import { Badge, Button, Modal, toast } from '@heroui/react';
+import { Button, Modal, toast } from '@heroui/react';
 import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Fragment } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import type { ComputerUsePermission } from './computer-use-model.ts';
@@ -42,19 +43,14 @@ export function ComputerUseSetupDialog({
                                 <li>
                                     In the file picker, press ⌘⇧G and paste the path to Haus
                                     Computer:
-                                    <code className="block break-all">{appPath}</code>
+                                    <code className="block">{breakAtSeparators(appPath)}</code>
                                 </li>
                             </ol>
                             <p className="text-muted">
                                 Do this on {deviceName} itself, through Screen Sharing if it has no
                                 display.
                             </p>
-                            <p aria-live="polite" className="inline-flex items-center gap-1.5">
-                                <Badge
-                                    className="static transform-none"
-                                    color={granted ? 'success' : 'warning'}
-                                    size="sm"
-                                />
+                            <p aria-live="polite">
                                 {granted
                                     ? 'Granted'
                                     : isChecking
@@ -76,6 +72,19 @@ export function ComputerUseSetupDialog({
             </Modal.Container>
         </Modal.Backdrop>
     );
+}
+
+function breakAtSeparators(path: string) {
+    return path.split('/').map((segment, index) => (
+        <Fragment key={`${index}-${segment}`}>
+            {index > 0 ? (
+                <>
+                    /<wbr />
+                </>
+            ) : null}
+            <span className="whitespace-nowrap">{segment}</span>
+        </Fragment>
+    ));
 }
 
 async function copyPath(path: string) {

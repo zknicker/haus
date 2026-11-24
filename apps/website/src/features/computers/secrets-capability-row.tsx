@@ -2,7 +2,6 @@ import { ItemCard } from '@heroui-pro/react';
 import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import { SettingsAttention } from '../settings/layout/settings-row-title.tsx';
 import type { SecretsCapabilityView } from './secrets-capability-model.ts';
 
 export function SecretsCapabilityRow({
@@ -22,11 +21,12 @@ export function SecretsCapabilityRow({
         <ItemCard>
             <ItemCard.Content>
                 <ItemCard.Title>1Password</ItemCard.Title>
-                {view.detail ? <ItemCard.Description>{view.detail}</ItemCard.Description> : null}
-                {view.status === 'ready' ? null : (
-                    <SettingsAttention color={statusColor(view.status)}>
-                        {view.statusLabel}
-                    </SettingsAttention>
+                {view.status === 'ready' ? (
+                    <ItemCard.Description>{view.detail}</ItemCard.Description>
+                ) : (
+                    <ItemCard.Description>
+                        {view.detail ? `${view.statusLabel} · ${view.detail}` : view.statusLabel}
+                    </ItemCard.Description>
                 )}
             </ItemCard.Content>
             {view.canConnect ? (
@@ -82,16 +82,4 @@ export function SecretsCapabilityRow({
             ) : null}
         </ItemCard>
     );
-}
-
-function statusColor(status: SecretsCapabilityView['status']) {
-    switch (status) {
-        case 'ready':
-            return 'success' as const;
-        case 'needs-attention':
-            return 'warning' as const;
-        case 'not-connected':
-        case 'unavailable':
-            return 'default' as const;
-    }
 }

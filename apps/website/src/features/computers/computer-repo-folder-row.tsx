@@ -9,7 +9,7 @@ import {
     useRemoveRepoFolder,
 } from '../../hooks/servers/use-computer-repo-folders.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
-import { SettingsAttention } from '../settings/layout/settings-row-title.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 import { folderStateLabels, repoAccessChips } from '../settings/repos/repo-access.ts';
 
@@ -32,15 +32,20 @@ export function ComputerRepoFolderRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>
+                <SettingsStatusTitle
+                    status={
+                        issue ? (
+                            <SettingsStatusChip color={issue.color}>
+                                {issue.label}
+                            </SettingsStatusChip>
+                        ) : null
+                    }
+                >
                     <span title={folder.path}>{folder.path}</span>
-                </ItemCard.Title>
+                </SettingsStatusTitle>
                 <ItemCard.Description>
                     {folder.addedBy ? folder.repository : `${folder.repository}, Haus’s own clone`}
                 </ItemCard.Description>
-                {issue ? (
-                    <SettingsAttention color={issue.color}>{issue.label}</SettingsAttention>
-                ) : null}
                 <SettingsRowError>{remove.error?.message}</SettingsRowError>
             </ItemCard.Content>
             <ItemCard.Action>

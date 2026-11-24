@@ -56,6 +56,7 @@ test('a healthy folder is quiet and a folder with a GitHub gap shows that one is
     });
     expect(html).not.toContain('Ready');
     expect(html.match(/App access needed/gu)).toHaveLength(1);
+    expect(html.match(/chip--warning/gu)).toHaveLength(1);
 });
 
 test('Folders lists each path with its repo, its top issue, a row menu, and Add folder', () => {

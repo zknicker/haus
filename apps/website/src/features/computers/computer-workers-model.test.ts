@@ -46,9 +46,9 @@ test('the Run Workers here sentence follows the value', () => {
 
 test('a ready runtime stays quiet, and every other state names its exception', () => {
     expect(runtimeAttention('ready')).toBeNull();
-    expect(runtimeAttention('not-ready')).toEqual({ color: 'warning', label: 'Not signed in' });
-    expect(runtimeAttention('signed-out')).toEqual({ color: 'danger', label: 'Sign-in failed' });
-    expect(runtimeAttention('missing')).toEqual({ color: 'default', label: 'Not installed' });
+    expect(runtimeAttention('not-ready')).toBe('Not signed in');
+    expect(runtimeAttention('signed-out')).toBe('Sign-in failed');
+    expect(runtimeAttention('missing')).toBe('Not installed');
 });
 
 test('a runtime is ready, not signed in, missing, or failing its sign-in', () => {

@@ -60,8 +60,9 @@ test('a Chrome row that needs a look shows its exception under the title', () =>
             settings={{ ...settings, enabled: false }}
         />
     );
-    expect(html).toContain('Disconnected');
-    expect(html).toContain('badge');
+    expect(html).toMatch(/item-card__description[^>]*>Disconnected</u);
+    expect(html).not.toContain('data-slot="badge"');
+    expect(html).not.toContain('data-slot="chip"');
 });
 
 test('while the device answers, the Browser card shows its Chrome row as Checking, not a blank box', () => {

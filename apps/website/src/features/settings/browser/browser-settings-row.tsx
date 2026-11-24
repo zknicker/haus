@@ -4,7 +4,6 @@ import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { BrowserCapabilityView } from '../../computers/browser-capability-model.ts';
-import { SettingsAttention } from '../layout/settings-row-title.tsx';
 
 type BrowserSettings = AgentRuntimeBrowserSettings;
 
@@ -110,24 +109,8 @@ export function BrowserStatusTitle({ view }: { view: BrowserCapabilityView }) {
                     <ItemCard.Description>{view.detail}</ItemCard.Description>
                 ) : null
             ) : (
-                <SettingsAttention color={statusColor(view.status)}>
-                    {view.statusLabel}
-                </SettingsAttention>
+                <ItemCard.Description>{view.statusLabel}</ItemCard.Description>
             )}
         </>
     );
-}
-
-function statusColor(status: BrowserCapabilityView['status']) {
-    switch (status) {
-        case 'ready':
-            return 'success' as const;
-        case 'not-configured':
-        case 'attention':
-            return 'warning' as const;
-        case 'checking':
-        case 'off':
-        case 'unavailable':
-            return 'default' as const;
-    }
 }

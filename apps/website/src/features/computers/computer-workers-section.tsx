@@ -7,7 +7,6 @@ import { useSetComputerWorkers } from '../../hooks/computer-workers/use-set-comp
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
-import { SettingsAttention } from '../settings/layout/settings-row-title.tsx';
 import { percentLeft, usageColor } from '../usage/runtime-plan-windows.ts';
 import { CloudAgentProviderCapability } from './cloud-agent-provider-capability.tsx';
 import { supportsComputerUse } from './computer-use-model.ts';
@@ -148,7 +147,7 @@ function WorkerRuntimeRow({
             <ItemCard.Content>
                 <ItemCard.Title>{title}</ItemCard.Title>
                 {attention ? (
-                    <SettingsAttention color={attention.color}>{attention.label}</SettingsAttention>
+                    <ItemCard.Description>{attention}</ItemCard.Description>
                 ) : runtime.week ? (
                     <ItemCard.Description>
                         <span className="flex items-center gap-2">
