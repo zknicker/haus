@@ -176,8 +176,9 @@ its tab and replaces that tab's stack with the route on top of the tab's root.
 
 ## Models
 
-- **The composer's model chip** opens the Model sheet: searchable, grouped by model connection, with effort
-  drill-in.
+- **Model in a Captain DM's `…` menu**, with the current model under it, opens the Model sheet: searchable,
+  grouped by model connection, with effort drill-in. It is not in the composer, because it sets the Captain's
+  model everywhere, not this draft's.
 - **What it writes:** the Captain's model (`agent.configure`), never a per-chat model.
 - **Read-only:** for Members, or when configure is refused. Configure rotates the Captain's session.
 - **Usage** reads `modelConnections.list` capacity windows.

@@ -1125,8 +1125,9 @@ rounded, local attachment portal; they do not create routes or full-screen cover
 painted to the true screen bottom and the keyboard simply stays up *behind* it — the portal never
 dismisses it, so nothing behind the card resettles while a portal is open. The portal also never
 changes the composer's shape: the plus button on a collapsed composer opens the source menu over the
-pill without expanding it, and the composer expands only on direct focus — the user's intent to type —
-or when an attachment lands in its strip. What can still pull the keyboard out mid-portal is a system
+pill without expanding it. Focus alone keeps the one-line pill, as ChatGPT's does: the composer grows
+into the card only when a focused draft needs a second line at the pill's field width
+(`MessageComposerView.shouldExpand`), or when an attachment lands in its strip. What can still pull the keyboard out mid-portal is a system
 surface, such as a first-run Photos or Camera permission alert; for that case the Chat screen freezes
 the keyboard bottom inset it lays out against (`ComposerPortalFreeze`), so the transcript and composer
 stay pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it

@@ -6,6 +6,8 @@ import SwiftUI
 public struct ChatHeaderMenuAction: Identifiable, Sendable {
     public let id: String
     public let title: String
+    /// A second line under the title, such as the model a Captain runs on.
+    public let subtitle: String?
     public let systemImage: String
     public let isDestructive: Bool
     /// A disabled action still shows, to state where something stands.
@@ -15,6 +17,7 @@ public struct ChatHeaderMenuAction: Identifiable, Sendable {
     public init(
         id: String,
         title: String,
+        subtitle: String? = nil,
         systemImage: String,
         isDestructive: Bool = false,
         isEnabled: Bool = true,
@@ -22,6 +25,7 @@ public struct ChatHeaderMenuAction: Identifiable, Sendable {
     ) {
         self.id = id
         self.title = title
+        self.subtitle = subtitle
         self.systemImage = systemImage
         self.isDestructive = isDestructive
         self.isEnabled = isEnabled
@@ -152,6 +156,7 @@ private struct ChatHeaderMenu: View {
                     ForEach(actions) { action in
                         Button(role: action.isDestructive ? .destructive : nil, action: action.perform) {
                             Label(action.title, systemImage: action.systemImage)
+                            if let subtitle = action.subtitle { Text(subtitle) }
                         }
                         .disabled(!action.isEnabled)
                     }

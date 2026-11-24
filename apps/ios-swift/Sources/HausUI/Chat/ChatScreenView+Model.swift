@@ -28,6 +28,13 @@ public struct CaptainModelRefusal: Error, Sendable {
     }
 }
 
+/// A Captain DM's model: the Model sheet's content, and how to write the Captain's model
+/// (`agent.configure`, which rotates the Captain's session).
+struct CaptainModelControl {
+    let presentation: ModelSheetPresentation
+    let onSelect: (AgentRuntimeConfiguration) -> Void
+}
+
 /// A model change waiting on the person's confirmation, because it starts a fresh session.
 struct PendingModelChange: Identifiable, Equatable {
     let agentID: String
@@ -38,9 +45,25 @@ struct PendingModelChange: Identifiable, Equatable {
 }
 
 extension ChatScreenView {
-    /// The model chip for a Captain DM: the Captain's model, read-only for Members or once the
-    /// Server refused a change. A pick asks before it rotates the session.
-    func composerModel(for kind: ChatKind) -> ComposerModelControl? {
+    /// A Captain DM's "Model" row in the header's `…` menu, with the current model under it. The
+    /// model is the Captain's everywhere it works, not this draft's, so it sits with the Captain's
+    /// other actions rather than in the composer.
+    var modelMenuActions: [ChatHeaderMenuAction] {
+        guard let control = captainModel(for: chat.kind) else { return [] }
+        let isPresented = $isModelSheetPresented
+        return [
+            ChatHeaderMenuAction(
+                id: "model",
+                title: "Model",
+                subtitle: control.presentation.chipTitle,
+                systemImage: "cpu"
+            ) { isPresented.wrappedValue = true },
+        ]
+    }
+
+    /// The Captain's model, read-only for Members or once the Server refused a change. A pick
+    /// asks before it rotates the session.
+    func captainModel(for kind: ChatKind) -> CaptainModelControl? {
         guard case .agentDirectMessage(let agent) = kind,
               let source = engagementSource?.captainModel,
               let presentation = source.presentation(agent.id)
@@ -53,7 +76,7 @@ extension ChatScreenView {
                 access: .configureRefused(reason)
             )
         } ?? presentation
-        return ComposerModelControl(presentation: shown) { configuration in
+        return CaptainModelControl(presentation: shown) { configuration in
             pendingModelChange = PendingModelChange(
                 agentID: agent.id,
                 captainName: presentation.captainName,

@@ -10,18 +10,24 @@ struct ComposerMessageInput: View {
     @Binding var text: String
     let options: [MentionOptionPresentation]
     let label: String
+    /// The width the one-line question is asked at: the pill's field width.
+    let lineFitWidth: CGFloat
+    @Binding var fitsOneLine: Bool
 
     var body: some View {
         #if os(iOS)
         ComposerTextView(
             text: $text,
             options: options,
-            accessibilityLabel: label
+            accessibilityLabel: label,
+            lineFitWidth: lineFitWidth,
+            fitsOneLine: $fitsOneLine
         )
         #else
         TextField("", text: $text, axis: .vertical)
             .foregroundStyle(.primary)
             .lineLimit(1...6)
+            .onChange(of: text) { _, value in fitsOneLine = !value.contains("\n") }
         #endif
     }
 }
@@ -46,6 +52,8 @@ struct ComposerTextView: UIViewRepresentable {
     @Binding var text: String
     let options: [MentionOptionPresentation]
     let accessibilityLabel: String
+    let lineFitWidth: CGFloat
+    @Binding var fitsOneLine: Bool
     /// The field grows with its text up to this many lines, then scrolls.
     var maximumLines = 6
 
@@ -85,6 +93,12 @@ struct ComposerTextView: UIViewRepresentable {
     func updateUIView(_ view: ComposerUITextView, context: Context) {
         context.coordinator.parent = self
         apply(to: view, coordinator: context.coordinator)
+        // A rebuild from outside (a send's clear, a restored draft) changes the answer without a
+        // keystroke; it lands after this update, never inside it.
+        let fits = context.coordinator.measureFit(view)
+        if fits != fitsOneLine {
+            Task { @MainActor in fitsOneLine = fits }
+        }
     }
 
     func sizeThatFits(
@@ -182,6 +196,21 @@ final class ComposerTextCoordinator: NSObject, UITextViewDelegate {
         let next = ComposerDraftText.markdown(from: textView.attributedText)
         guard echoes.report(next) else { return }
         parent?.text = next
+        if let parent {
+            let fits = measureFit(textView)
+            if fits != parent.fitsOneLine { parent.fitsOneLine = fits }
+        }
+    }
+
+    /// Whether the shown text sits on one line at the pill's field width. Asked at that fixed
+    /// width, so the card's wider field cannot fold a draft back into the pill and out again.
+    func measureFit(_ textView: UITextView) -> Bool {
+        guard let parent, parent.lineFitWidth > 0, let font else { return true }
+        guard textView.textStorage.length > 0 else { return true }
+        let height = textView.sizeThatFits(
+            CGSize(width: parent.lineFitWidth, height: .greatestFiniteMagnitude)
+        ).height
+        return height < font.lineHeight * 1.5
     }
 
     /// A caret never rests inside a chip, and typing after a chip writes plain
