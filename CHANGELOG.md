@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.2.0 - 2026-11-24
+
+- Settings rows each have one control and a fixed description that says what the setting does. Healthy rows are quiet: Ready, Connected and Online chips are gone, along with info icons that restated a row. A problem reads as plain text beside the row's button ("Not granted", "Not signed in"), or as a chip when the row has no button.
+- The Device page shows the Captains with access as avatars, with a **+** that opens the chooser and **All Captains on this Server** at its top. Computer use is a switch. A missing macOS permission is one row with **Open Settings**, which opens a dialog with the steps and the app path. **Refresh status** moved to the page's ••• menu, and Claude Code and Codex show a **Fix** popover when they need a sign-in.
+- Projects list their Captains as avatars. Repositories with a problem show it beside one action, with a **Fix** popover when the Haus GitHub App needs access. The Devices list marks a Device Offline, Update required or Needs attention only when it is. Archived chats show each chat's own icon, and a failed restore shows its error.
+- Preferences has an **Open links in your browser** switch. Each custom theme color is one color picker, and the background image's Replace and Remove live in its ••• menu. Servers has one **Add Server** menu for creating or joining. A model connection turns off and on from its ••• menu and shows Off while it's off. An image provider without a key shows **Add key**.
+- Haus for Desktop 7.4.1 starts a fresh development session when the saved one belongs to another database, instead of failing to sign in.
+- Server 29.2.0, Haus for Desktop 7.4.1, Haus Computer 26.0.1 and Haus Agent 17.2.1 publish together. Haus Agent 17.2.1 updates the Manual's paths to the renamed Device page controls. Computer protocol 49 is unchanged, so either side can update first. No database migration. Haus for iPhone is unchanged.
+
 ## v30.1.0 - 2026-11-24
 
 - The chat sidebar has its own density again: 30px rows, while Settings keeps its compact 26px list. Project icons, section labels, Captain avatars and the Haus logo share one left edge, and each Project's icon sits evenly inside its hover highlight. Section labels are quieter, with their collapse caret and + showing on hover.
