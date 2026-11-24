@@ -1064,8 +1064,8 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   `Select variant="secondary"` at its group's control width, never `InlineSelect`; a record
   page (a Device, a connection) titles itself with `SettingsPageHeader` and puts its •••
   menu in the shell band through `PageTopbar`. Settings tables are read-only, with one
-  exception: Models › Connections is a `DataGrid` whose rows carry a use Switch and a •••
-  menu, because each account's plan windows (5h, 7d, resets) are compared down columns
+  exception: Models › Connections is a `DataGrid` whose rows carry one ••• menu (Turn off
+  lives there, and an Off chip marks an account that is off), because each account's plan windows (5h, 7d, resets) are compared down columns
   across accounts and an account expands into a details row; as `ItemCard` rows that
   comparison and the expansion would be lost. Any other list of things you change is
   `ItemCard` rows. An empty page or section is

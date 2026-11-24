@@ -83,9 +83,10 @@ Settings, in an Owner-only **Image generation** section.
   unchanged and unrelated.
 - **Keys never leave the Server.** No API returns a key. Reads return per provider only
   `{ provider, connected, updatedAt, models }`; there is no last-4 hint (the X precedent shows none).
-- **Settings page.** Per provider: connected or not, and the curated models that key unlocks, each
-  with display name, what it is good at, and rough price. Add, replace, and remove key live in a
-  menu. The model list is curated and read-only: no refresh from provider APIs and no per-model
+- **Settings page.** Per provider: the curated models that key unlocks, each with display name,
+  what it is good at, and rough price. A provider without a key says "No API key" beside its one
+  Add key button; a connected provider stays quiet, with Replace and Remove key in its menu. The
+  model list is curated and read-only: no refresh from provider APIs and no per-model
   toggles in v1.
 - **No key, no models.** A provider with no key has its models listed as unavailable by
   `haus image models`, with reason `no-key`, and `generate` against one fails before any record is
