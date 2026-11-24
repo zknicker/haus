@@ -1,4 +1,4 @@
-import { artifactPathBasename, artifactPathKey } from '@haus/api';
+import { artifactPathBasename } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import { advanceHead, markUploaded, readArtifact } from '../artifacts/land.ts';
 import { lockLiveServer } from '../artifacts/move.ts';
@@ -10,7 +10,7 @@ import type { ArtifactStorage } from '../artifacts/storage.ts';
 import { createArtifactAt } from '../artifacts/write-target.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentsTable, artifactsTable as artifacts } from '../postgres/schema.ts';
+import { agentsTable } from '../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { driveAreaOfPath } from './areas.ts';
 
@@ -20,18 +20,10 @@ export type DriveSeedCreator =
     | { agentId: string; userId: null }
     | { agentId: null; userId: string };
 
-export type DriveSeedGuard = 'ever-held' | 'live';
-
 export async function seedDriveFile(
     db: HausDatabase,
     storage: ArtifactStorage,
-    seed: {
-        creator: DriveSeedCreator;
-        path: string;
-        serverId: string;
-        text: string;
-        unless?: DriveSeedGuard;
-    }
+    seed: { creator: DriveSeedCreator; path: string; serverId: string; text: string }
 ) {
     const { serverId } = seed;
     const bytes = new TextEncoder().encode(seed.text);
@@ -41,7 +33,7 @@ export async function seedDriveFile(
         if (area.startsWith('agent:') && !(await isLiveAgent(tx, serverId, area.slice(6)))) {
             return 'retired' satisfies DriveSeedOutcome;
         }
-        if (await isHeld(tx, serverId, path, seed.unless ?? 'live')) {
+        if (await liveArtifactAtPath(tx, serverId, path)) {
             return 'present' satisfies DriveSeedOutcome;
         }
         const artifact = await createArtifactAt(tx, { ...seed.creator, serverId }, path);
@@ -93,18 +85,6 @@ export async function seedDriveFile(
 }
 
 const contentType = 'text/markdown';
-
-async function isHeld(tx: HausDatabase, serverId: string, path: string, guard: DriveSeedGuard) {
-    if (guard === 'live') {
-        return Boolean(await liveArtifactAtPath(tx, serverId, path));
-    }
-    const [row] = await tx
-        .select({ id: artifacts.id })
-        .from(artifacts)
-        .where(and(eq(artifacts.serverId, serverId), eq(artifacts.pathKey, artifactPathKey(path))))
-        .limit(1);
-    return Boolean(row);
-}
 
 async function isLiveAgent(tx: HausDatabase, serverId: string, agentId: string) {
     const [row] = await tx

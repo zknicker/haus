@@ -1,10 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { seedAgentStarterFiles } from '../src/starter-files/agent-files.ts';
-import { backfillRuleFiles } from '../src/starter-files/backfill.ts';
 import { testSqlAgentHome } from './agent-home.ts';
 import { drivePushFixture } from './drive-push.fixture.ts';
-import { createTestProject } from './project.fixture.ts';
 
 const drive = drivePushFixture({ seedManagedSkills: true });
 const { fixture } = drive;
@@ -90,57 +88,6 @@ test('a full reset reseeds the starter MEMORY.md and rule files', async () => {
     expect((await head('agents/orbit/WORKER.md'))?.text).toBe("# Rules for Orbit's Workers\n");
 });
 
-test('the backfill creates missing rule files once and never MEMORY.md', async () => {
-    const serverId = await insertServer();
-    const closing = new AbortController().signal;
-
-    await backfillRuleFiles(connection.db, drive.storage, closing);
-
-    expect((await head('agents/cove/AGENTS.md'))?.text).toBe('# Cove rules\n');
-    expect((await head('agents/cove/WORKER.md'))?.text).toBe("# Rules for Cove's Workers\n");
-    expect(await head('agents/cove/MEMORY.md')).toBeUndefined();
-    expect((await head('haus/AGENTS.md', serverId))?.text).toBe(hausRules);
-
-    await fixture.harness.sql`
-        update artifacts set deleted_at = now()
-        where server_id = ${fixture.serverId} and path = 'agents/cove/WORKER.md'
-    `;
-    const before = await revisionCount();
-    await backfillRuleFiles(connection.db, drive.storage, closing);
-
-    expect(await revisionCount()).toBe(before);
-    expect(await head('agents/cove/WORKER.md')).toBeUndefined();
-});
-
-test('the backfill gives live Projects their AGENTS.md and skips archived ones', async () => {
-    await createTestProject(fixture.owner, {
-        key: 'LIVEP',
-        name: 'live-room',
-        serverId: fixture.serverId,
-    });
-    const archived = await createTestProject(fixture.owner, {
-        key: 'ARCH',
-        name: 'archived-room',
-        serverId: fixture.serverId,
-    });
-    await forgetPath('projects/LIVEP/AGENTS.md');
-    await forgetPath('projects/ARCH/AGENTS.md');
-    await fixture.harness.sql`
-        update chats set archived_at = now(), archived_by_user_id = ${fixture.ownerUserId}
-        where id = ${archived.id}
-    `;
-
-    await backfillRuleFiles(connection.db, drive.storage, new AbortController().signal);
-
-    expect(await head('projects/LIVEP/AGENTS.md')).toEqual({
-        author_key: 'haus',
-        creator_agent_id: null,
-        revision_number: 1,
-        text: '# live-room rules\n',
-    });
-    expect(await head('projects/ARCH/AGENTS.md')).toBeUndefined();
-});
-
 function fixtureAgent(agentId: string) {
     return { agentId, serverId: fixture.serverId };
 }
@@ -171,21 +118,6 @@ async function headRevisionId(path: string) {
     return row?.current_revision_id;
 }
 
-async function forgetPath(path: string) {
-    await fixture.harness.sql`
-        update artifacts set path = ${`${path}.before-seed`},
-            path_key = ${`${path}.before-seed`.toLowerCase()}
-        where server_id = ${fixture.serverId} and path = ${path}
-    `;
-}
-
-async function revisionCount() {
-    const [row] = (await fixture.harness.sql`
-        select count(*)::int as count from artifact_revisions
-    `) as { count: number }[];
-    return row?.count ?? 0;
-}
-
 async function insertAgent(
     handle: string,
     displayName: string,
@@ -203,16 +135,4 @@ async function insertAgent(
         )
     `;
     return agentId;
-}
-
-async function insertServer() {
-    const serverId = `srv_${'s'.repeat(16)}`;
-    await fixture.harness.sql`
-        insert into servers (id, display_name, slug) values (${serverId}, 'Older HQ', 'older-hq')
-    `;
-    await fixture.harness.sql`
-        insert into server_memberships (id, role, server_id, user_id)
-        values (${`mem_${'s'.repeat(16)}`}, 'owner', ${serverId}, ${fixture.ownerUserId})
-    `;
-    return serverId;
 }

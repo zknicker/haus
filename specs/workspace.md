@@ -117,13 +117,8 @@ Creating a Server writes `haus/AGENTS.md` the same way: a `# Haus rules` heading
 saying the rules apply to every Captain and Worker on the Server. It is created by the Server's
 creator. People own it.
 
-Agents and Servers that existed before these seeds get the rule files from a Server backfill
-(`startRuleFileBackfill`), a boot sweep that runs at start and hourly. It writes `haus/AGENTS.md`
-for each live Server, `projects/<key>/AGENTS.md` for each live, unarchived Project (created by the
-Server's earliest active owner, as `haus/AGENTS.md` is), and `AGENTS.md` and `WORKER.md` for each
-live Agent, only where Drive has
-never held a file at that path, live or deleted, so a rule file someone deleted stays deleted. It
-never writes `MEMORY.md`.
+Nothing seeds these files after the fact. Agents, Projects and Servers that existed before the
+seeds had their files added once by hand.
 
 A former Cove (ADR 0059) is seeded, launches, and resets as an ordinary Agent. Its existing Drive
 area, including any `notes/onboarding_*.md` files, is ordinary Drive content: no factory refresh
