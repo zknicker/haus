@@ -138,6 +138,9 @@ function createNativeAuthClient({ appUrl, fetchImpl = fetch, now = Date.now }) {
         const result = await post('/auth/dev/session', {
             body: { client: 'desktop', ...(sessionToken ? { sessionToken } : {}) },
         });
+        if (sessionToken && result.response.status === 401) {
+            return developmentSession(null);
+        }
         if (!result.response.ok) {
             throw new Error(
                 `Haus could not refresh the desktop session (${result.response.status}).`

@@ -89,3 +89,23 @@ test('the dev session fixture is used only for loopback, un-packaged shells', as
     expect(hosted.calls).toHaveLength(0);
     expect(hosted.manager.currentSession()).toBeNull();
 });
+
+test('a dev session token the local Server no longer knows starts a fresh dev session', async () => {
+    const local = createHarness({
+        appUrl: 'http://127.0.0.1:3101',
+        initial: { sessionToken: 'resume-from-another-database' },
+        isPackaged: false,
+        onRequest: async (url, init) => {
+            if (url.pathname === '/auth/dev/session' && JSON.parse(init.body).sessionToken) {
+                return json({ error: 'auth_required' }, 401);
+            }
+        },
+    });
+    await local.manager.initialize();
+
+    expect(local.calls.map((call) => call.url.pathname)).toEqual([
+        '/auth/dev/session',
+        '/auth/dev/session',
+    ]);
+    expect(local.manager.currentSession()).toMatchObject({ user: { id: 'usr_user-a' } });
+});
