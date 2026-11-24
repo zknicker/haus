@@ -29,7 +29,7 @@ export function AgentHoverActivity({ agentId, serverId }: { agentId: string; ser
     return (
         <section
             aria-label={current ? 'Current activity' : 'Recent turns'}
-            className="border-separator flex min-w-0 flex-col gap-1 border-t pt-2.5 text-xs empty:hidden"
+            className="haus-hover-card__section border-separator flex min-w-0 flex-col gap-1 border-t text-xs empty:hidden"
         >
             {current ? (
                 <AgentHoverLive agentId={agentId} current={current} serverId={serverId} />
@@ -101,7 +101,7 @@ function AgentHoverRecentTurns({ agentId, serverId }: { agentId: string; serverI
         return <p className="text-muted">No turns yet.</p>;
     }
     return (
-        <ul className="flex min-w-0 flex-col gap-2">
+        <ul className="flex min-w-0 flex-col gap-1">
             {rows.map((row) => (
                 <AgentHoverTurn key={row.latest.runId} row={row} title={titleOf(row.latest)} />
             ))}

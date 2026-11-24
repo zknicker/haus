@@ -2368,6 +2368,23 @@
         overflow: hidden;
     }
 
+    /* The Captain card follows the app theme: dark glass in dark, a light sheet in light. */
+    :root:not(.dark) .hover-card__content.haus-hover-card.haus-hover-card--themed {
+        color-scheme: light;
+        --default: inherit;
+        --default-foreground: inherit;
+        --foreground: inherit;
+        --muted: inherit;
+        --overlay: inherit;
+        --overlay-foreground: inherit;
+        --surface: inherit;
+        --separator: inherit;
+        --skill-reference: inherit;
+        --warning: var(--warning-soft-foreground);
+        outline-color: var(--separator);
+        backdrop-filter: none;
+    }
+
     .haus-hover-card__section {
         padding: calc(var(--spacing) * 3);
     }

@@ -28,15 +28,15 @@ test('a log line keeps its label left and its time in the column', () => {
     expect(markup).toMatch(numericColumn);
 });
 
-test('a recent turn stacks request over place and outcome, length over age', () => {
+test('a recent turn is one line: request, place and outcome, length, age', () => {
     const markup = renderToStaticMarkup(
         <AgentHoverTurn
             row={{ count: 1, latest: turn(), since: startedAt }}
             title={{ kind: 'text', place: 'DM', text: 'Ship it' }}
         />
     );
-    const [title, outcome, length] = text(markup);
-    expect([title, outcome, length]).toEqual(['Ship it', 'DM · Sent 1 message', '11m']);
+    const [title, details, length] = text(markup);
+    expect([title, details, length]).toEqual(['Ship it', 'DM · Sent 1 message', '11m']);
 });
 
 test('a recent turn with no visible request is one outcome line, status explicit', () => {
@@ -46,7 +46,8 @@ test('a recent turn with no visible request is one outcome line, status explicit
             title={{ kind: 'none' }}
         />
     );
-    expect(text(markup).slice(0, 3)).toEqual(['Sent 1 message', 'Interrupted 2×', '11m']);
+    const [outcome, status, length] = text(markup);
+    expect([outcome, status, length]).toEqual(['Sent 1 message', 'Interrupted 2×', '11m']);
 });
 
 const startedAt = '2026-10-06T12:00:00.000Z';

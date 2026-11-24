@@ -1,5 +1,4 @@
 import type { ReactNode, Ref } from 'react';
-import { ContextUsageRing } from '../../agent-context/context-usage-ring.tsx';
 import { type ChatComposerHandle, ServerChatComposer } from './chat-composer.tsx';
 import { agentDmDraftKey, chatDraftKey } from './chat-draft-store.ts';
 import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
@@ -9,7 +8,6 @@ export function ChatComposer(props: {
     autoFocus?: boolean;
     chatId: string;
     chatName: string;
-    footer?: ReactNode;
     inlineReply?: ChatInlineReplyTarget | null;
     onInlineReplyCancel?: () => void;
     onInlineReplySent?: (messageId: string) => void;
@@ -51,7 +49,6 @@ export function ImplicitAgentDmComposer({
         <ServerChatComposer
             chatName={chatName}
             draftKey={draftKey}
-            footer={<ContextUsageRing agentId={agentId} serverId={serverId} />}
             key={draftKey}
             onMaterialized={onMaterialized}
             serverId={serverId}
