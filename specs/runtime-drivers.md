@@ -266,15 +266,19 @@ executor sends no instruction-update input to it. The executor keeps resumed Cla
 current as it does today (specs/sessions.md "Instruction updates").
 
 Rules and memory ride the turn input, ahead of the turn content, as ADR 0052 delivers
-`MEMORY.md`. The runner reads the rule layers broadest first, `haus/AGENTS.md` then
-`agents/<handle>/AGENTS.md`, by path with the run credential; an absent file is no layer. A fresh
+`MEMORY.md`. The runner reads the rule layers broadest first, `haus/AGENTS.md`, then its home
+Project's `projects/<key>/AGENTS.md`, then `agents/<handle>/AGENTS.md`, by path with the run
+credential. The key is `projectKey` on the Agent's own profile (`GET /api/agent/profile`). An absent file
+is no layer. A fresh
 session receives every present layer. A resumed session receives a layer only when its digest
 differs from the session's rule receipt, and a layer the session saw that is now gone is announced
 once as deleted. The receipts sit in `session.json` beside the memory receipt and move the same
 way: they advance after a completed turn, hold after an interrupted one, and reset after a
-compacted one. A layer the runner could not read keeps its receipt. Agent Projects arrive in J3,
-and the Project's `projects/<key>/AGENTS.md` joins between the two layers then. The block
-text is `formatRulesBlock` in `@haus/agent-prompt`.
+compacted one. A layer the runner could not read keeps its receipt. An Agent moved to another
+Project receives the new Project's file as a new layer; the old Project's receipt stays unread and
+is not announced. Every Agent works in its one Project (generalists retired 2026-11-20,
+[projects.md](projects.md#generalists)), so no other Project's file joins the turn. The block text
+is `formatRulesBlock` in `@haus/agent-prompt`.
 
 Skills load from Drive. The runner lists the Agent's skills in its instructions by name and
 description, from `agents/<handle>/skills/*/SKILL.md`, and the Agent opens one with

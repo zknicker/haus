@@ -10,14 +10,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-export interface SeedAgentWorkspaceInput {
+export interface SeedAgentWorkspaceInput extends StarterMemoryInput {
+    workspaceDir: string;
+}
+
+export interface StarterMemoryInput {
     agentName: string;
     bio?: string | null;
     /** The standing instruction the Agent that made this one wrote for it. */
     brief?: string | null;
     /** Whose brief it is, so the new Agent knows who to go back to. */
     briefAuthorHandle?: string | null;
-    workspaceDir: string;
 }
 
 /**
@@ -35,7 +38,7 @@ export async function seedAgentWorkspace(input: SeedAgentWorkspaceInput): Promis
     return true;
 }
 
-function renderStarterMemory(input: SeedAgentWorkspaceInput): string {
+export function renderStarterMemory(input: StarterMemoryInput): string {
     const role = input.bio?.trim() || 'No role defined yet.';
 
     return `# ${input.agentName}
@@ -65,7 +68,7 @@ ${renderBriefSection(input)}
  * overwritten. The one-time greeting is not memory: it rides the first turn's
  * input (`apps/server/src/agent-delivery/greeting.ts`).
  */
-function renderBriefSection(input: SeedAgentWorkspaceInput): string {
+function renderBriefSection(input: StarterMemoryInput): string {
     const brief = input.brief?.trim();
     const author = input.briefAuthorHandle?.trim();
     if (!(brief && author)) {

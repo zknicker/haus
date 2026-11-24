@@ -3,7 +3,12 @@ import { artifactListPageMax } from '@haus/api';
 import * as z from 'zod';
 import type { RunAuthority } from '../run-context.ts';
 
-const profileSchema = z.object({ profile: z.object({ handle: z.string().min(1) }) });
+const profileSchema = z.object({
+    profile: z.object({
+        handle: z.string().min(1),
+        projectKey: z.string().min(1).nullable().default(null),
+    }),
+});
 const artifactSchema = z.object({ artifact_id: z.string().min(1), path: z.string().min(1) });
 const byPathSchema = z.object({ artifact: artifactSchema });
 const listSchema = z.object({ artifacts: z.array(artifactSchema) });
@@ -16,9 +21,9 @@ export class AgentDriveReadError extends Error {
     }
 }
 
-export async function readAgentHandle(authority: RunAuthority) {
+export async function readAgentProfile(authority: RunAuthority) {
     return profileSchema.parse(await agentGet(authority, '/api/agent/profile', 'the profile'))
-        .profile.handle;
+        .profile;
 }
 
 export async function readDriveText(authority: RunAuthority, path: string) {

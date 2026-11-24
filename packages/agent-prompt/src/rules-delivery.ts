@@ -4,8 +4,12 @@ import { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export type RuleFile = RulesChange;
 
 /** The rule layers a main session receives, by Drive path (ADR 0054 decision 7). */
-export function ruleLayerPaths(handle: string) {
-    return ['haus/AGENTS.md', `agents/${handle}/AGENTS.md`];
+export function ruleLayerPaths(agent: { handle: string; projectKey: string | null }) {
+    return [
+        'haus/AGENTS.md',
+        ...(agent.projectKey === null ? [] : [`projects/${agent.projectKey}/AGENTS.md`]),
+        `agents/${agent.handle}/AGENTS.md`,
+    ];
 }
 
 /**

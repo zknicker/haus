@@ -59,6 +59,10 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 - Agents cannot create Projects. `POST /api/agent/channels/create` and `haus channel create` are
   deleted. An Agent asked for a new Project says that a person creates it in the App.
 - A new Project has no Agents. A person adds them in its settings.
+- After the create commits, Haus writes the Project's `projects/<key>/AGENTS.md`, a
+  `# <name> rules` heading, unless a file is already there
+  ([artifact-drive.md](artifact-drive.md#areas)). Settings → Projects → the Project → Rules links
+  it.
 
 ## Settings
 
@@ -88,7 +92,7 @@ dialogs. There is no Overview pane.
   ([tasks.md](tasks.md#keys)). No two Projects share a key.
 - The key is editable until the first Task is filed under it. From then on it is fixed, because
   Tasks, bare-key references, and commit trailers carry it. Changing it moves the Project's Drive
-  folder to `projects/<new key>/`.
+  folder to `projects/<new key>/` in the same transaction.
 - A key matches `^[A-Z][A-Z0-9]{1,4}$` and is unique on the Server. A key in use by another
   Project, or held by Tasks of another Project, is `TASK_KEY_TAKEN`.
 

@@ -5,11 +5,15 @@ import { serverProcedure } from './procedure.ts';
 
 export const createServerProcedure = serverProcedure
     .input(z.object({ displayName: serverDisplayNameSchema, slug: serverSlugSchema }).strict())
-    .mutation(
-        async ({ ctx, input }) =>
-            await createServer(ctx.hausDb, {
-                userId: ctx.userId!,
-                displayName: input.displayName,
-                slug: input.slug,
-            })
-    );
+    .mutation(async ({ ctx, input }) => {
+        const server = await createServer(ctx.hausDb, {
+            userId: ctx.userId!,
+            displayName: input.displayName,
+            slug: input.slug,
+        });
+        await ctx.managedSkills.seedServer(
+            { serverId: server.id, userId: server.viewerUserId },
+            ctx.postCommitWork
+        );
+        return server;
+    });

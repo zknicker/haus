@@ -315,8 +315,8 @@ Computer restarts. Stop, Restart, Start fresh session, and Full reset all run fr
 header's actions menu. Session reset creates fresh model context while preserving
 the workspace and skills. Full reset deletes every file in the Agent's Drive area
 (`agents/<handle>/`: memory, notes, skills and rules) as the person who pressed it, clears its
-local state, and the next launch seeds a starter `MEMORY.md` and the factory-managed skills as new
-files. Each deleted file stays in Recently deleted in Drive for 30 days. Restoring the old
+local state, and reseeds a starter `MEMORY.md`, `AGENTS.md`, `WORKER.md` and the factory-managed
+skills as new files. Each deleted file stays in Recently deleted in Drive for 30 days. Restoring the old
 `MEMORY.md` or a factory skill means moving or deleting the seeded file at that path first. Today
 the only factory-managed skill is `visuals`.
 

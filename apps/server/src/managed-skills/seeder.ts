@@ -4,6 +4,8 @@ import { type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentManagedSkillsTable, agentsTable, serversTable } from '../postgres/schema.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
+import { seedAgentStarterFiles } from '../starter-files/agent-files.ts';
+import { seedServerRules } from '../starter-files/server-rules.ts';
 import type { AgentRef } from './record.ts';
 import { factoryRelease, type ManagedSkillRelease } from './release.ts';
 import { seedManagedSkills } from './seed.ts';
@@ -12,14 +14,29 @@ const sweepIntervalMs = 60 * 60_000;
 
 export interface ManagedSkillSeeder {
     seedAgent(agent: AgentRef, work: Pick<ServerPostCommitWork, 'run'>): Promise<void>;
+    seedServer(
+        server: { serverId: string; userId: string },
+        work: Pick<ServerPostCommitWork, 'run'>
+    ): Promise<void>;
     readonly storage: ArtifactStorage | null;
 }
 
 export function managedSkillSeeder(db: HausDatabase, storage: ArtifactStorage | null) {
     const seeder: ManagedSkillSeeder = {
-        seedAgent: (agent, work) =>
+        seedAgent: async (agent, work) => {
+            if (!storage) {
+                return;
+            }
+            await work.run('agent.seed-managed-skills', () =>
+                seedManagedSkills(db, storage, agent)
+            );
+            await work.run('agent.seed-starter-files', () =>
+                seedAgentStarterFiles(db, storage, agent)
+            );
+        },
+        seedServer: (server, work) =>
             storage
-                ? work.run('agent.seed-managed-skills', () => seedManagedSkills(db, storage, agent))
+                ? work.run('server.seed-rules', () => seedServerRules(db, storage, server))
                 : Promise.resolve(),
         storage,
     };

@@ -10,6 +10,7 @@ import { ProjectCaptainsSection } from './project-captains-section.tsx';
 import { ProjectGeneralSection } from './project-general-section.tsx';
 import { ProjectHeader } from './project-header.tsx';
 import { ProjectReposSection } from './project-repos-section.tsx';
+import { ProjectRulesSection } from './project-rules-section.tsx';
 import { ProjectWorkersSection } from './project-workers-section.tsx';
 
 export function ProjectPage({ projectId, serverId }: { projectId: string; serverId: string }) {
@@ -45,6 +46,7 @@ export function ProjectPage({ projectId, serverId }: { projectId: string; server
             <SettingsPageColumn>
                 <ProjectHeader chat={chat} project={project} />
                 <ProjectGeneralSection chat={chat} project={project} />
+                <ProjectRulesSection project={project} slug={server.slug} />
                 <ProjectCaptainsSection
                     isDisabled={isArchived}
                     projectId={project.chatId}

@@ -2,11 +2,12 @@ import type { ProjectUpdateInput } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
+import { renameProjectFolder } from '../drive/project-folder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { chatsTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
-import { projectUpdatedTopic } from '../realtime/topics.ts';
+import { artifactUpdatedTopic, projectUpdatedTopic } from '../realtime/topics.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
@@ -77,14 +78,21 @@ export async function updateProject(
             await updateChannelRow(tx, input, edits);
         }
         const key = input.key === undefined || input.key === current.key ? null : input.key;
-        if (key !== null) {
-            await renameProjectKey(tx, {
-                key,
-                serverId: input.serverId,
-                taskKeyId: current.taskKeyId,
-            });
+        if (key === null) {
+            return { channel, key: false, movedFiles: 0 };
         }
-        return { channel, key: key !== null };
+        await renameProjectKey(tx, {
+            key,
+            serverId: input.serverId,
+            taskKeyId: current.taskKeyId,
+        });
+        const movedFiles = await renameProjectFolder(tx, {
+            fromKey: current.key,
+            projectId: input.chatId,
+            serverId: input.serverId,
+            toKey: key,
+        });
+        return { channel, key: true, movedFiles };
     });
 
     const target = { chatId: input.chatId, serverId: input.serverId };
@@ -92,6 +100,9 @@ export async function updateProject(
         ...(changed.channel ? [prepareLifecycleEvent(target, 'updated')] : []),
         ...(changed.channel || changed.key
             ? [projectUpdatedTopic.prepare({ projectId: input.chatId, serverId: input.serverId })]
+            : []),
+        ...(changed.movedFiles > 0
+            ? [artifactUpdatedTopic.prepare({ artifactId: null, serverId: input.serverId })]
             : []),
     ];
     return { ...(await readProjectResult(db, member, target)), events };

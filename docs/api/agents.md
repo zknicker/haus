@@ -76,7 +76,8 @@ only) and writes it with `haus profile update` (`POST /api/agent/profile/update`
 `description`). The runner token fixes the Agent, so that route changes only the caller, and one
 transaction applies every field or none.
 Neither field appears in the `Agent` projection, rosters, envelopes, `agent-configure` frames, or
-another Agent's profile view.
+another Agent's profile view. The own-profile read also carries `projectKey`, the home Project's
+key, from which the runner reads `projects/<key>/AGENTS.md` as a rule layer.
 
 They reach the assigned Computer only on the `start` frame, as `agentConversationStyle` and
 `agentSignatureEmoji`. The prompt renders the house `## Personality` right after `## Who you are`,
