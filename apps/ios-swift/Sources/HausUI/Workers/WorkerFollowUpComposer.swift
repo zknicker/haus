@@ -40,7 +40,7 @@ struct WorkerFollowUpComposer: View {
                 field
                 trailingButton
             }
-            .padding(ComposerSurfaceMetrics.restingControlInset)
+            .padding(ComposerSurfaceMetrics.controlInset)
             .composerGlassSurface(cornerRadius: ComposerSurfaceMetrics.restingCornerRadius)
         }
         .padding(.horizontal, ComposerSurfaceMetrics.sideMargin)

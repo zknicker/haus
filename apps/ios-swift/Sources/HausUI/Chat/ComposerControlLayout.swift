@@ -2,9 +2,7 @@ import SwiftUI
 
 /// Keeps composer controls alive while their positions interpolate between compact and focused UI.
 ///
-/// Subviews, in order: the plus, the text field, the toolbar accessory (the model chip, or an empty
-/// zero-size view), and send. The accessory rides the controls row beside the plus; the caller
-/// hides it while the composer is compact.
+/// Subviews, in order: the plus, the text field, and send.
 struct ComposerControlLayout: Layout {
     var expansion: CGFloat
     /// The tallest the collapsed pill lets its one line of text be. Scaled by
@@ -21,14 +19,12 @@ struct ComposerControlLayout: Layout {
     /// Gap between the text zone and the controls row when expanded.
     static let expandedRowSpacing: CGFloat = 14
     /// Breathing room between the shell's inner edge and the text when expanded. With the shell's
-    /// own 6pt padding this lands the text 16pt in from the glass edge.
+    /// own 7pt padding this lands the text 17pt in from the glass edge.
     static let expandedFieldInset: CGFloat = 10
     /// Gap between the plus button and the placeholder in the collapsed pill.
     static let compactFieldGap: CGFloat = 10
     /// Gap between the placeholder and the send button in the collapsed pill.
     static let compactSendGap: CGFloat = 8
-    /// Gap between the plus and the toolbar accessory, and between the accessory and send.
-    static let accessoryGap: CGFloat = 10
 
     static func expandedFieldWidth(inWidth width: CGFloat) -> CGFloat {
         max(0, width - (expandedFieldInset * 2))
@@ -52,7 +48,7 @@ struct ComposerControlLayout: Layout {
         subviews: Subviews,
         cache: inout ()
     ) -> CGSize {
-        guard subviews.count == 4 else { return .zero }
+        guard subviews.count == 3 else { return .zero }
         return metrics(width: proposal.width, subviews: subviews).size
     }
 
@@ -62,7 +58,7 @@ struct ComposerControlLayout: Layout {
         subviews: Subviews,
         cache: inout ()
     ) {
-        guard subviews.count == 4 else { return }
+        guard subviews.count == 3 else { return }
         let layout = metrics(width: bounds.width, subviews: subviews)
 
         for (subview, frame) in zip(subviews, layout.frames) {
@@ -78,7 +74,7 @@ struct ComposerControlLayout: Layout {
         let progress = min(max(expansion, 0), 1)
         let fieldProgress = Self.fieldProgress(for: progress)
         let attachmentSize = subviews[0].sizeThatFits(.unspecified)
-        let sendSize = subviews[3].sizeThatFits(.unspecified)
+        let sendSize = subviews[2].sizeThatFits(.unspecified)
         let proposedWidth = width ?? attachmentSize.width + sendSize.width + 180
         let compactFieldWidth = Self.compactFieldWidth(
             inWidth: proposedWidth,
@@ -117,15 +113,6 @@ struct ComposerControlLayout: Layout {
             width: interpolate(compactFieldWidth, expandedFieldWidth, progress: fieldProgress),
             height: interpolate(compactFieldHeight, expandedFieldHeight, progress: fieldProgress)
         )
-        let accessoryX = attachmentSize.width + Self.accessoryGap
-        let accessoryWidth = max(0, proposedWidth - accessoryX - sendSize.width - Self.accessoryGap)
-        let accessorySize = subviews[2].sizeThatFits(ProposedViewSize(width: accessoryWidth, height: nil))
-        let accessoryFrame = CGRect(
-            x: accessoryX,
-            y: controlsRowY + (controlsHeight - accessorySize.height) / 2,
-            width: min(accessorySize.width, accessoryWidth),
-            height: accessorySize.height
-        )
         let sendFrame = CGRect(
             x: proposedWidth - sendSize.width,
             y: controlsRowY + (controlsHeight - sendSize.height) / 2,
@@ -135,7 +122,7 @@ struct ComposerControlLayout: Layout {
 
         return Metrics(
             size: CGSize(width: proposedWidth, height: totalHeight),
-            frames: [attachmentFrame, fieldFrame, accessoryFrame, sendFrame]
+            frames: [attachmentFrame, fieldFrame, sendFrame]
         )
     }
 

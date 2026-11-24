@@ -13,6 +13,6 @@ struct ComposerPlaceTests {
         #expect(ComposerCircleStyle.send(canSend: true).fill == .accent)
         #expect(ComposerCircleStyle.send(canSend: false).fill == .strongFill)
         #expect(ComposerCircleStyle.send(canSend: false).ink == .mutedInk)
-        #expect(ComposerCircleStyle.plus(isEnabled: true).fill == .strongFill)
+        #expect(ComposerCircleStyle.plus(isEnabled: true).fill.dark.opacity == 0)
     }
 }
