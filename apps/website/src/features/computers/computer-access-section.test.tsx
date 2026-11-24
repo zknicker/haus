@@ -52,7 +52,7 @@ test('Captains shows who has access as avatars, then a Choose Captains button', 
         canRevokeAgentAccess: true,
     });
     expect(selected).toMatch(/data-slot="avatar-group"[^>]*role="group"/u);
-    expect(selected).toContain('aria-label="Captains with access"');
+    expect(selected).toContain('aria-label="Captains with access: Cove, Wren"');
     expect(selected).toContain('aria-label="Cove"');
     expect(selected).toContain('aria-label="Wren"');
     expect(selected).toMatch(/<button[^>]*aria-label="Choose Captains"/u);
@@ -98,6 +98,9 @@ test('the avatar stack shows four Captains and counts the rest', () => {
     }));
     const html = renderToStaticMarkup(<CaptainAvatars captains={captains} />);
     expect(html.match(/role="img"/gu)).toHaveLength(4);
+    expect(html).toContain('aria-label="Captains with access: Ash, Cove, Ink, Pike, Wren, Zed"');
+    expect(html).not.toMatch(/tabindex="0"/u);
+    expect(html.match(/tabindex="-1"/gu)).toHaveLength(4);
     expect(html).toContain('+2');
 });
 
