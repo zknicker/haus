@@ -20,5 +20,7 @@ test('Git states what Captains and Workers commit and push as, with nothing to c
     expect(html).toContain('Workers');
     expect(html).toContain('The device’s git login');
     expect(html).not.toMatch(/<input|role="switch"|data-slot="select"/u);
+    expect(html).not.toContain('<button');
+    expect(html).toContain('Each Captain works on its own branch under this prefix.');
     expect(html).toMatch(/<a[^>]*href="\/s\/haus\/settings\/repos"/u);
 });

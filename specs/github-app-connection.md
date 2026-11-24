@@ -294,9 +294,9 @@ Agents. That was a one-time migration; an ordinary re-sign-in keeps grants
 ## App UI
 
 The GitHub connection page adds **Installations** between Connected Account and Agent Access: one
-row per installation (account mark and login, "All repositories" or "N repositories", a status
-chip for Suspended, Removed, or Permissions update needed, and a `···` menu with Configure on
-GitHub and Remove from Haus). **Install on GitHub** is primary when there are none; **Add existing
+row per installation (account mark and login, "All repositories" or "N repositories" led in plain
+text by Suspended, Removed, or Permissions update needed while one applies, and a `···` menu with
+Configure on GitHub and Remove from Haus). **Install on GitHub** is primary when there are none; **Add existing
 installation** appears when owner-checked candidates exist. Remove confirmation names dependent
 Triggers. The OAuth app access restriction copy is deleted. iOS has no connection UI and gets
 none. Trigger UI is in [GitHub Triggers](github-triggers.md#app-ui).

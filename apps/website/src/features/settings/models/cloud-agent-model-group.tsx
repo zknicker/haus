@@ -7,10 +7,8 @@ import {
     useCloudAgentSettings,
     useSetCloudAgentModel,
 } from '../../../hooks/servers/use-cloud-agent-settings.ts';
-import { formatRelativeTime } from '../../../lib/format.ts';
 import { cloudAgentProviderName } from '../../workers/cloud-agent-provider-presentation.ts';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
-import { SettingsFact, SettingsRowError, SettingsRowWarning } from '../layout/settings-text.tsx';
+import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 import { CloudAgentModelPicker } from './cloud-agent-model-picker.tsx';
 import {
     type CloudAgentModelView,
@@ -90,19 +88,14 @@ function CloudAgentModelRow({
     view: CloudAgentModelView;
 }) {
     const setModel = useSetCloudAgentModel(target);
-    const fallback = view.provider === 'claude' ? 'the account default' : 'Auto';
 
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsRowTitle info={modelInfo(view)}>
-                    {modelTitle(view.provider)}
-                </SettingsRowTitle>
-                {view.state === 'unavailable' ? (
-                    <SettingsRowWarning>
-                        Unavailable. Runs use {fallback} until you pick an available model.
-                    </SettingsRowWarning>
-                ) : null}
+                <ItemCard.Title>{modelTitle(view.provider)}</ItemCard.Title>
+                <ItemCard.Description className="whitespace-normal">
+                    {modelDescription(view)}
+                </ItemCard.Description>
                 <SettingsRowError>{setModel.error?.message}</SettingsRowError>
             </ItemCard.Content>
             <ItemCard.Action>
@@ -117,11 +110,7 @@ function CloudAgentModelRow({
                         view={view}
                     />
                 ) : (
-                    <SettingsFact
-                        className={view.state === 'unavailable' ? 'text-warning' : undefined}
-                    >
-                        {view.selectedLabel}
-                    </SettingsFact>
+                    <SettingsFact>{view.selectedLabel}</SettingsFact>
                 )}
             </ItemCard.Action>
         </ItemCard>
@@ -132,17 +121,13 @@ function modelTitle(provider: CloudAgentProvider): string {
     return `${cloudAgentProviderName(provider)} model`;
 }
 
-/** What the Model row means, and how fresh the catalog behind its picker is. */
-function modelInfo(view: CloudAgentModelView) {
-    const name = cloudAgentProviderName(view.provider);
-    if (view.catalogMissing) {
-        return `Models appear once a device with ${name} connected reports them.`;
+function modelDescription(view: CloudAgentModelView) {
+    if (view.state === 'unavailable') {
+        const fallback = view.provider === 'claude' ? 'the account default' : 'Auto';
+        return `Unavailable. Runs use ${fallback} until you pick an available model.`;
     }
-    const about =
-        view.provider === 'claude'
-            ? 'Every Claude Cloud Worker on this Server uses this model. With Default, Claude uses your account’s default model.'
-            : 'Every Cursor Cloud Worker on this Server uses this model. With Auto, Cursor picks a model for each run.';
-    return view.refreshedAt
-        ? `${about} Model list updated ${formatRelativeTime(view.refreshedAt)}.`
-        : about;
+    if (view.catalogMissing) {
+        return 'No models reported yet.';
+    }
+    return `The model every ${cloudAgentProviderName(view.provider)} Cloud Worker uses.`;
 }

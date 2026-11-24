@@ -47,11 +47,17 @@ test('a failure reads the provider detail, or a fallback when it gave none', () 
     expect(connectionFailure({ status: 'ready', statusDetail: null })).toBeNull();
 });
 
-test('the row menu ends with Remove and drops Make default on the default', () => {
-    expect(connectionActions({ isDefault: true })).toEqual(['rename', 'reconnect', 'remove']);
-    expect(connectionActions({ isDefault: false })).toEqual([
+test('the row menu ends with Remove, drops Make default on the default, and turns the account off or on', () => {
+    expect(connectionActions({ enabled: true, isDefault: true })).toEqual([
+        'rename',
+        'turn-off',
+        'reconnect',
+        'remove',
+    ]);
+    expect(connectionActions({ enabled: false, isDefault: false })).toEqual([
         'rename',
         'make-default',
+        'turn-on',
         'reconnect',
         'remove',
     ]);

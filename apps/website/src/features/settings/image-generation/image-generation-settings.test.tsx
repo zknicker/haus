@@ -1,16 +1,38 @@
 import { expect, test } from 'bun:test';
 import type { ImageGenerationModel } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ImageGenerationSettings } from './image-generation-group.tsx';
-import { modelPriceRange, providerKeyActions } from './image-generation-settings-model.ts';
+import { renderWithTrpc } from '../../../test-support/trpc-test-provider.tsx';
+import {
+    ImageGenerationProviderGroup,
+    ImageGenerationSettings,
+} from './image-generation-group.tsx';
+import { connectedKeyActions, modelPriceRange } from './image-generation-settings-model.ts';
 
 const priced = (usd: number[]): Pick<ImageGenerationModel, 'priceEstimates'> => ({
     priceEstimates: usd.map((value) => ({ quality: null, resolution: null, usd: value })),
 });
 
-test('a disconnected provider offers Add; a connected one offers Replace and Remove', () => {
-    expect(providerKeyActions({ connected: false })).toEqual(['add']);
-    expect(providerKeyActions({ connected: true })).toEqual(['replace', 'remove']);
+function renderProvider(connected: boolean) {
+    return renderWithTrpc(
+        <ImageGenerationProviderGroup
+            serverId="srv_1"
+            status={{ connected, models: [], provider: 'openai', updatedAt: null }}
+        />
+    );
+}
+
+test('a provider without a key says so beside its one Add key button', () => {
+    const html = renderProvider(false);
+    expect(html).toContain('No API key');
+    expect(html).toContain('>Add key<');
+    expect(html).not.toContain('key actions');
+});
+
+test('a connected provider stays quiet, with Replace and Remove behind its menu', () => {
+    const html = renderProvider(true);
+    expect(html).not.toMatch(/Connected|No API key|Add key/u);
+    expect(html).toContain('aria-label="OpenAI key actions"');
+    expect(connectedKeyActions).toEqual(['replace', 'remove']);
 });
 
 test('a model price is a labeled estimate range', () => {

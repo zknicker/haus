@@ -32,14 +32,14 @@ export function useConnectionTableActions({
                     setDialog({ provider: connection.provider, replacing: connection }),
                 remove: () => edits.remove.mutate(target(connection)),
                 rename: () => setRenaming(connection),
+                'turn-off': () =>
+                    edits.setEnabled.mutate({ ...target(connection), enabled: false }),
+                'turn-on': () => edits.setEnabled.mutate({ ...target(connection), enabled: true }),
             };
             run[action]();
         },
-        onEnabled: (connection, enabled) =>
-            edits.setEnabled.mutate({ ...target(connection), enabled }),
         onWebSearch: (connection, enabled) =>
             edits.setWebSearch.mutate({ ...target(connection), enabled }),
-        savingEnabled: edits.setEnabled.isPending,
         savingWebSearch: edits.setWebSearch.isPending,
     };
     const failedEdit = [edits.makeDefault, edits.remove, edits.setEnabled, edits.setWebSearch].find(

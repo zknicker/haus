@@ -2,12 +2,12 @@ import { type ModelConnection, type ModelProvider, modelProviderSchema } from '@
 import { DataGrid, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Dropdown, Label } from '@heroui/react';
 import { useModelConnections } from '../../../../hooks/servers/use-model-connections.ts';
+import { SettingsEmptyRow } from '../../layout/settings-empty.tsx';
 import { SettingsRowError } from '../../layout/settings-text.tsx';
 import { ConnectDialog } from './connect-dialog.tsx';
 import { connectionColumns, expandColumnId } from './connection-columns.tsx';
 import {
     type AccountRow,
-    connectionCountLabel,
     connectionRows,
     failedConnectionIds,
     rowChildren,
@@ -64,10 +64,22 @@ export function ModelConnectionsTable({
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
-                <ItemCardGroup.Title>{connectionCountLabel(rows.length)}</ItemCardGroup.Title>
+                <ItemCardGroup.Title>
+                    Connections
+                    {rows.length > 0 ? (
+                        <span className="text-muted ms-2 tabular-nums">
+                            <span className="sr-only"> </span>
+                            {rows.length}
+                        </span>
+                    ) : null}
+                </ItemCardGroup.Title>
                 {isOwner ? <ProviderPicker onPick={(provider) => setDialog({ provider })} /> : null}
             </ItemCardGroup.Header>
-            {rows.length > 0 ? (
+            {rows.length === 0 ? (
+                <ItemCardGroup>
+                    <SettingsEmptyRow>No connections yet.</SettingsEmptyRow>
+                </ItemCardGroup>
+            ) : (
                 <DataGrid
                     aria-label="Connections"
                     columns={connectionColumns(actions)}
@@ -79,7 +91,7 @@ export function ModelConnectionsTable({
                     treeColumn={expandColumnId}
                     treeIndent={0}
                 />
-            ) : null}
+            )}
             <SettingsRowError>
                 {failedEdit ? connectionErrorMessage(failedEdit) : null}
             </SettingsRowError>

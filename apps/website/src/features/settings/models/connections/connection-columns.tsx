@@ -1,6 +1,6 @@
 import type { ModelConnection } from '@haus/api';
 import type { DataGridColumn } from '@heroui-pro/react';
-import { Chip, Switch } from '@heroui/react';
+import { SettingsStatusChip } from '../../layout/settings-row-title.tsx';
 import { ConnectionDetails, ConnectionMenu, LeftMeter } from './connection-row-parts.tsx';
 import {
     type AccountRow,
@@ -16,9 +16,7 @@ export interface ConnectionTableActions {
     isOwner: boolean;
     now: number;
     onAction: (connection: ModelConnection, action: ConnectionAction) => void;
-    onEnabled: (connection: ModelConnection, enabled: boolean) => void;
     onWebSearch: (connection: ModelConnection, enabled: boolean) => void;
-    savingEnabled: boolean;
     savingWebSearch: boolean;
 }
 
@@ -65,12 +63,15 @@ export function connectionColumns(actions: ConnectionTableActions) {
         {
             align: 'end',
             cell: (row) =>
-                row.kind === 'connection' ? (
-                    <ConnectionControls actions={actions} connection={row.connection} />
+                row.kind === 'connection' && actions.isOwner ? (
+                    <ConnectionMenu
+                        connection={row.connection}
+                        onAction={(action) => actions.onAction(row.connection, action)}
+                    />
                 ) : null,
-            header: <span className="sr-only">Controls</span>,
+            header: <span className="sr-only">Actions</span>,
             id: 'controls',
-            minWidth: 96,
+            minWidth: 56,
         },
         {
             cell: () => null,
@@ -82,11 +83,15 @@ export function connectionColumns(actions: ConnectionTableActions) {
 }
 
 function AccountCell({ row }: { row: AccountRow }) {
+    const off = row.kind === 'connection' && !row.connection.enabled;
     return (
         <span className="flex min-w-0 items-center gap-3">
             <ModelAccountMark account={row.mark} />
             <span className="flex min-w-0 flex-col">
-                <span className="text-foreground truncate font-medium">{row.title}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                    <span className="text-foreground truncate font-medium">{row.title}</span>
+                    {off ? <SettingsStatusChip>Off</SettingsStatusChip> : null}
+                </span>
                 <span className="text-muted truncate text-sm">{row.subtitle}</span>
             </span>
         </span>
@@ -108,9 +113,7 @@ function WindowCell({ row, window }: { row: ConnectionTableRow; window: keyof Pl
     }
     if (row.problem) {
         return window === 'fiveHour' ? (
-            <Chip color="danger" size="sm" variant="soft">
-                <Chip.Label>{row.problem}</Chip.Label>
-            </Chip>
+            <SettingsStatusChip color="warning">{row.problem}</SettingsStatusChip>
         ) : null;
     }
     const shown = row[window];
@@ -118,37 +121,5 @@ function WindowCell({ row, window }: { row: ConnectionTableRow; window: keyof Pl
         <LeftMeter label={row.title} window={shown} />
     ) : (
         <span className="text-muted text-sm">—</span>
-    );
-}
-
-function ConnectionControls({
-    actions,
-    connection,
-}: {
-    actions: ConnectionTableActions;
-    connection: ModelConnection;
-}) {
-    return (
-        <span className="flex items-center justify-end gap-1">
-            <Switch
-                aria-label={`Use ${connection.label}`}
-                isDisabled={!actions.isOwner || actions.savingEnabled}
-                isSelected={connection.enabled}
-                onChange={(enabled) => actions.onEnabled(connection, enabled)}
-                size="sm"
-            >
-                <Switch.Content>
-                    <Switch.Control>
-                        <Switch.Thumb />
-                    </Switch.Control>
-                </Switch.Content>
-            </Switch>
-            {actions.isOwner ? (
-                <ConnectionMenu
-                    connection={connection}
-                    onAction={(action) => actions.onAction(connection, action)}
-                />
-            ) : null}
-        </span>
     );
 }
