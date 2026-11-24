@@ -11,9 +11,8 @@ import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { humanDisplayName } from '../../servers/human-identity.ts';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
-import { handleInfo, ProfileIdentityPending } from './profile-identity-pending.tsx';
+import { handleDescription, ProfileIdentityPending } from './profile-identity-pending.tsx';
 import { TimezoneRow } from './timezone-row.tsx';
 
 export function ProfileSettings({ serverId }: { serverId: string }) {
@@ -145,7 +144,10 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
             <Separator />
             <ItemCard>
                 <ItemCard.Content>
-                    <SettingsRowTitle info={handleInfo}>Handle</SettingsRowTitle>
+                    <ItemCard.Title>Handle</ItemCard.Title>
+                    <ItemCard.Description className="whitespace-normal">
+                        {handleDescription}
+                    </ItemCard.Description>
                     <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
                 </ItemCard.Content>
                 <ItemCard.Action>
@@ -193,9 +195,8 @@ function SignOutSection() {
             <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
-                        <SettingsRowTitle info="Sign out of Haus here. Your chats stay on the Server.">
-                            This device
-                        </SettingsRowTitle>
+                        <ItemCard.Title>This device</ItemCard.Title>
+                        <ItemCard.Description>Your chats stay on the Server.</ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>
                         <Button onPress={signOut} size="sm" variant="danger-soft">

@@ -9,7 +9,6 @@ import { HausVersionRow } from '../../updates/haus-version-summary.tsx';
 import { useHausUpdate } from '../../updates/use-haus-update.ts';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { OpenLinksInRow } from './links-section.tsx';
 import { WindowLayoutField } from './window-layout-row.tsx';
 
@@ -46,9 +45,10 @@ function ShowClaimsRow() {
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsRowTitle info="Captains make claims as they work. Off, those stay on the Tasks page.">
-                    Show claims in chat
-                </SettingsRowTitle>
+                <ItemCard.Title>Show claims in chat</ItemCard.Title>
+                <ItemCard.Description className="whitespace-normal">
+                    Shows Captains’ claims in chat, not only on the Tasks page.
+                </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
                 <Switch
