@@ -457,7 +457,11 @@ contract are gone; the path is the identity.
 The Drive migration (D2, `0129_drive`) prefixes every path with `haus/`, deleted rows included, so `starter-kit/scripts/tm_check.py`
 becomes `haus/starter-kit/scripts/tm_check.py`. It rewrites paths only, like a move, and starts each
 area's counter at the number of its files. Moving Agent workspaces into `agents/<handle>/` is D3,
-which writes each file as the Agent that owned the workspace, with no Task. It writes a fresh Agent's
+which writes each file as the Agent that owned the workspace, with no Task. R4d-4 retired D3's
+launch-time run; the Server now seeds a new Agent's factory files (starter `MEMORY.md`, `AGENTS.md`,
+`WORKER.md` and managed skills) as Haus revisions when the Agent is created, and a boot backfill
+writes missing `haus/AGENTS.md`, `AGENTS.md` and `WORKER.md` files
+([workspace.md](workspace.md#the-seed-at-creation)). D3 wrote a fresh Agent's
 factory seed the same way, never over a path Drive already holds, and derives each `request_id` as
 the SHA-256 of `drive-migration`, the Agent id, the start frame's run id, the Drive path and the
 content hash (NUL-separated). Unlike a push, the id names the run: a relaunch of the same run gets

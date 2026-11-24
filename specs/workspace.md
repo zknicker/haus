@@ -5,7 +5,7 @@ Haus Computer owns one isolated local root for each assigned Agent:
 ```text
 agents/<agent-id>/
   workspace/
-    drive/agents/<handle>/   the Agent's Drive area: MEMORY.md, notes/, workbench/, skills/
+    drive/agents/<handle>/   the Agent's Drive area: AGENTS.md, WORKER.md, MEMORY.md, notes/, workbench/, skills/
     drive-refused/           files Drive refused, kept by their Drive path
   home/
   runtime/
@@ -74,6 +74,8 @@ import):
 
 ```text
 drive/agents/<handle>/
+  AGENTS.md       the Agent's own rules
+  WORKER.md       rules every Worker of this Agent reads
   MEMORY.md       capped memory, delivered in the turn input
   notes/          the deeper knowledge MEMORY.md indexes
   workbench/      pages the Agent cards in chat
@@ -92,27 +94,36 @@ Everyone on the team can read the area, and Drive keeps every revision. The Agen
 directory stays `workspace/`; everything there outside `drive/` is local scratch, not Drive. The
 Agent may add, rename, organize, and remove files in its area as its work requires.
 
-### The seed at launch
+### The seed at creation
 
-A fresh Agent's area is seeded on its first launch, after the runner is minted and before the
-runtime starts, because only the launch knows the handle. Configure writes no files; it records
-the seed facts in `configuration.json` (name, description, and standing brief) for the launch to
-read. Every Agent gets the same factory seed:
+The Server seeds a new Agent's area when the Agent is created, from either create path (the App's
+New Captain and an Agent's `haus agent create`), before its first configure and greeting. It writes
+each file to Drive as a Haus revision, created by the Agent, and only when the path holds no live
+file, so a seed never overwrites (`apps/server/src/starter-files/`). Every Agent gets the same
+factory seed:
 
-- `MEMORY.md` in the prompt template's shape: identity, role, empty standing
-  preferences, initial Active Context, and an empty Key Knowledge index.
-- `notes/` for the deeper knowledge `MEMORY.md` indexes (Raft's workspace initialization). Drive
-  holds no empty folders, so it exists once the Agent writes a note.
+- `MEMORY.md` in the prompt template's shape: identity, role (the Agent's description), empty
+  standing preferences, initial Active Context, and an empty Key Knowledge index. An Agent made by
+  another Agent also gets a `## Standing brief from @<creator>` section with the brief its creator
+  wrote, so the brief is a memory fact the new Agent owns from there.
+- `AGENTS.md`, the Agent's own rules: a `# <Name> rules` heading and nothing else.
+- `WORKER.md`, the rules its Workers read: a `# Rules for <Name>'s Workers` heading.
 - The release-owned `visuals` skill under `skills/`.
 
-The seed runs only when the Agent has no `runtime/drive-seed.json` receipt, no legacy files, and
-no `MEMORY.md` in its folder. An Agent with legacy files but no `MEMORY.md`, in its workspace or
-its folder, gets the seed's `MEMORY.md` alone beside its migrated files, as the workspace seed
-always filled a missing `MEMORY.md`. The seed writes each file to Drive with no base, so a path Drive already
-holds keeps Drive's copy: a seed never overwrites, exactly as the workspace seed never did. It
-then places the same bytes in the folder.
+`notes/` holds the deeper knowledge `MEMORY.md` indexes. Drive holds no empty folders, so it
+exists once the Agent writes a note.
 
-A former Cove (ADR 0059) seeds, launches, and resets as an ordinary Agent. Its existing Drive
+Creating a Server writes `haus/AGENTS.md` the same way: a `# Haus rules` heading and one line
+saying the rules apply to every Captain and Worker on the Server. It is created by the Server's
+creator. People own it.
+
+Agents and Servers that existed before these seeds get the rule files from a Server backfill
+(`startRuleFileBackfill`), a boot sweep that runs at start and hourly. It writes `haus/AGENTS.md`
+for each live Server, and `AGENTS.md` and `WORKER.md` for each live Agent, only where Drive has
+never held a file at that path, live or deleted, so a rule file someone deleted stays deleted. It
+never writes `MEMORY.md`.
+
+A former Cove (ADR 0059) is seeded, launches, and resets as an ordinary Agent. Its existing Drive
 area, including any `notes/onboarding_*.md` files, is ordinary Drive content: no factory refresh
 touches it, and a Full reset treats it as it treats any Agent's area. A `configuration.json` written before Computer protocol 42 may still
 carry `seed.factoryKind`; the Computer ignores the key. Leftover `cove-application.json` and
@@ -120,9 +131,12 @@ carry `seed.factoryKind`; the Computer ignores the key. Leftover `cove-applicati
 
 ### Migration
 
+R4d-4 retired this launch-time migration: nothing calls `prepareAgentDrive` now, and the Server
+seeds new Agents. It is kept here as the record of what D3 did.
+
 Agents created before Drive kept `MEMORY.md`, `notes/`, `pages/` and `workbench/` at the workspace
 root and their skills in a sibling `agents/<agent-id>/skills/`. On the first launch after D3, before
-the seed is considered, the Computer moves them into the area:
+the seed is considered, the Computer moved them into the area:
 
 1. It walks the legacy regular files, skipping symlinks, `.git`, `node_modules`, `__pycache__`,
    `.DS_Store`, and the retired `.ai-sdk-harness-skills.json`.
@@ -219,10 +233,10 @@ finished its migration, so full reset also keeps the legacy `workspace/MEMORY.md
 `pages/`, `workbench/` and `agents/<agent-id>/skills/`, and the next launch moves them; a reset
 never deletes a file that has not reached Drive. Full reset clears everything else: `home/`,
 `runtime/` (with its seed receipt, folder bookkeeping and the managed-skill record), `.agent-runs`,
-and `session.json`. The next launch finds no receipt and no `MEMORY.md`, seeds the factory
-workspace and the factory-managed skills from `@haus/agent-workspace` as new files, and pulls every
-other area again. Restoring a deleted file whose path the seed took fails with `PATH_TAKEN` until
-the seeded file moves.
+and `session.json`. Right after the reset the Server reseeds the factory files as new files, the
+way it seeds a new Agent: the starter `MEMORY.md`, `AGENTS.md` and `WORKER.md`, each only where no
+live file sits, and the factory-managed skills. The next launch pulls every area again. Restoring a
+deleted file whose path the seed took fails with `PATH_TAKEN` until the seeded file moves.
 
 History: D3 made full reset keep the Drive folder and reseed nothing. D7c restored the factory
 reset, with Recently deleted as the way back.

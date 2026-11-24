@@ -20,6 +20,7 @@ import type { PushSender } from './push/push-sender.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
 import { startReminderRetentionSweep } from './reminders/retention-sweep.ts';
 import { startExecutionJournalRetentionSweep } from './server-agents/execution-journal-retention.ts';
+import { startRuleFileBackfill } from './starter-files/backfill.ts';
 import { startTriggerRetentionSweep } from './triggers/retention-sweep.ts';
 import { startOfflineComputerTurnSweep } from './workers/fail-offline-computer-turns.ts';
 
@@ -47,7 +48,7 @@ interface ServerSweepsInput {
     pushReadGraceMs?: number;
     /** iPhone push; absent when no APNs key is configured. */
     pushSender: PushSender | null;
-    /** Seeds stale managed skills at start and hourly while it has storage. */
+    /** Seeds stale managed skills and backfills rule files at start and hourly while it has storage. */
     managedSkills: Pick<ManagedSkillSeeder, 'storage'>;
     timers?: SweepTimers;
     wakeAgents?(wakes: { agentId: string; serverId: string }[]): void;
@@ -87,6 +88,10 @@ export async function startServerSweeps(
                   [
                       'managed-skills',
                       () => startManagedSkillSweep(input.db, managedSkillStorage, input.timers),
+                  ] satisfies NamedSweep,
+                  [
+                      'rule-files',
+                      () => startRuleFileBackfill(input.db, managedSkillStorage, input.timers),
                   ] satisfies NamedSweep,
               ]
             : []),

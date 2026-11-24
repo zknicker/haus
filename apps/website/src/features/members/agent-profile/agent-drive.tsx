@@ -19,25 +19,22 @@ export function AgentDrive({ agent, server }: { agent: Agent; server: ServerDeta
         return null;
     }
     const view = { creator: null, folder, kind: 'all' } as const;
-    const files = ruleFiles.flatMap((name) => {
-        const file = listing.files?.find(
-            (entry) => artifactPathKey(entry.path) === artifactPathKey(`${folder}/${name}`)
-        );
-        return file ? [{ id: file.artifact_id, name }] : [];
-    });
+    const folderHref = libraryHref(server.slug, view);
     const rows = [
-        ...files.map((file) => ({
-            href: artifactViewerHref(server.slug, file.id, { ...view, query: '' }),
-            icon: File02Icon,
-            key: file.id,
-            title: file.name,
-        })),
-        {
-            href: libraryHref(server.slug, view),
-            icon: Folder01Icon,
-            key: folder,
-            title: 'All files',
-        },
+        ...ruleFiles.map((name) => {
+            const file = listing.files?.find(
+                (entry) => artifactPathKey(entry.path) === artifactPathKey(`${folder}/${name}`)
+            );
+            return {
+                href: file
+                    ? artifactViewerHref(server.slug, file.artifact_id, { ...view, query: '' })
+                    : folderHref,
+                icon: File02Icon,
+                key: name,
+                title: name,
+            };
+        }),
+        { href: folderHref, icon: Folder01Icon, key: folder, title: 'All files' },
     ];
 
     return (

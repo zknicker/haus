@@ -7,4 +7,10 @@ export {
     visualsSkillFiles,
     visualsSkillId,
 } from './managed-skills.ts';
-export { type SeedAgentWorkspaceInput, seedAgentWorkspace } from './starter-kit.ts';
+export {
+    renderStarterMemory,
+    type SeedAgentWorkspaceInput,
+    type StarterMemoryInput,
+    seedAgentWorkspace,
+} from './starter-kit.ts';
+export { starterAgentRules, starterHausRules, starterWorkerRules } from './starter-rules.ts';
