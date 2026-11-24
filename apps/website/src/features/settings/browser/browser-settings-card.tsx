@@ -41,7 +41,7 @@ export function BrowserSettingsCard({
     if (isLoading || !settings) {
         return (
             <InertBrowserRow
-                view={isLoading ? browserCheckingView : browserCapabilityView({ error, settings })}
+                view={isLoading ? browserCheckingView : browserCapabilityView({ settings })}
             />
         );
     }
@@ -57,7 +57,7 @@ export function BrowserSettingsCard({
             settings={currentSettings}
         >
             {({ openSettingsDialog, requestSave }) => {
-                const view = browserCapabilityView({ error, settings: currentSettings });
+                const view = browserCapabilityView({ settings: currentSettings });
                 return (
                     <BrowserRow
                         isSaving={isSaving}

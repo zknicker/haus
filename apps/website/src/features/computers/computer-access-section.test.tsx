@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { ComputerUseReadiness } from '@haus/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils, getQueryKey } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
@@ -6,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { ComputerAccessSection } from './computer-access-section.tsx';
-import { ComputerUsePermissionWarning } from './computer-use-permissions.tsx';
+import { ComputerUsePermissions } from './computer-use-permissions.tsx';
 import { ComputerWorkersSection } from './computer-workers-section.tsx';
 
 const serverId = 'srv_devices';
@@ -16,35 +17,52 @@ const agents = [
     { avatarUrl: null, computerId: 'cmp_devicemini00000', displayName: 'Wren', id: 'agt_wren' },
 ];
 
-test('Access is the #access target, says who can use the Mac, and never says home', () => {
+test('Access is the #access target, names who can run tools, and never says home', () => {
     const html = render(<Access />, { agentAccessGrants: [grant('agt_wren')] });
 
     expect(html).toMatch(/<section id="access"/u);
-    expect(html).toContain('Who can use this Mac.');
-    expect(html).toContain('Only Cove and Wren can run tools here.');
-    expect(html).toContain('Captains can’t see or control this Mac’s screen.');
+    expect(html).not.toContain('Who can use this');
+    expect(html).toContain('Cove and Wren can run tools here.');
+    expect(html).toContain('Captains can’t see or control the screen.');
     expect(html).not.toMatch(/home/iu);
 });
 
-test('a steward gets Choose Captains under Selected Captains, and All hides it', () => {
-    const selected = render(<Access />, { canGrantAgentAccess: true, canRevokeAgentAccess: true });
-    expect(selected).toContain('Choose Captains');
-    expect(selected).toContain('Selected Captains');
+test('Captains is one chooser button labeled with the count, or All Captains', () => {
+    const selected = render(<Access />, {
+        agentAccessGrants: [grant('agt_wren')],
+        canGrantAgentAccess: true,
+        canRevokeAgentAccess: true,
+    });
+    expect(selected).toMatch(/<button[^>]*>2 Captains<\/button>/u);
+    expect(selected).not.toContain('Choose Captains');
+    expect(selected).not.toContain('Selected Captains');
 
     const all = render(<Access />, { agentAccessScope: 'all', canGrantAgentAccess: true });
-    expect(all).toContain('Any Captain on this Server can run tools here.');
-    expect(all).not.toContain('Choose Captains');
+    expect(all).toContain('Any Captain can run tools here.');
+    expect(all).toMatch(/<button[^>]*>All Captains<\/button>/u);
 });
 
-test('turning computer use on is the attacher’s, so its select reads the value for others', () => {
-    const html = render(<Access />, { computerUseEnabled: true });
-    expect(html).toContain('Those Captains can see the screen and click and type in apps.');
+test('someone who is not a steward reads the Captains count but cannot open the chooser', () => {
+    const html = render(<Access />, {});
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>1 Captain<\/button>/u);
+});
+
+test('computer use is a switch, and only the attacher can turn it on', () => {
+    const on = render(<Access />, { computerUseEnabled: true });
+    expect(on).toContain('Allowed Captains can see and control the screen.');
+    expect(on).toMatch(/data-slot="switch"[^>]*data-selected="true"/u);
+    expect(on).not.toMatch(/data-slot="switch"[^>]*data-disabled="true"/u);
+
+    const off = render(<Access />, { canEnableComputerUse: false, computerUseEnabled: false });
+    expect(off).toMatch(/data-slot="switch"[^>]*data-disabled="true"/u);
+
+    const attacher = render(<Access />, { canEnableComputerUse: true, computerUseEnabled: false });
+    expect(attacher).not.toMatch(/data-slot="switch"[^>]*data-disabled="true"/u);
 });
 
 test('a device that is not a Mac has Captain access but no computer use', () => {
     const html = render(<Access />, { operatingSystem: 'linux' });
-    expect(html).toContain('Who can use this device.');
-    expect(html).toContain('Captain access');
+    expect(html).toContain('>Captains<');
     expect(html).not.toContain('Computer use');
 });
 
@@ -54,16 +72,34 @@ test('Captain access stays readable when the Captain roster fails to load', () =
     expect(html).toContain('Retry');
 });
 
-test('the macOS warning shows only while a permission is missing', () => {
-    const granted = render(<Warning readiness={readiness('granted')} />, {});
+test('macOS permissions lists only the missing permission, with setup steps off the page', () => {
+    const granted = render(<Permissions readiness={readiness('granted')} />, {});
     expect(granted).toBe('');
 
-    const denied = render(<Warning readiness={readiness('denied')} />, {});
+    const denied = render(<Permissions readiness={readiness('denied')} />, {});
     expect(denied).toContain('macOS permissions');
+    expect(denied).toContain('Screen &amp; System Audio Recording');
+    expect(denied).not.toContain('System &amp; App Protection Override');
     expect(denied).toContain('Not granted');
     expect(denied).toContain('Open Settings');
-    expect(denied).toContain('Copy path');
-    expect(denied).toContain('Check again');
+    expect(denied).not.toContain('Copy path');
+    expect(denied).not.toContain('Check again');
+    expect(denied).not.toContain('Screen Sharing');
+});
+
+test('moved permissions say why macOS asks again, and an old Computer asks for an update', () => {
+    const moved = render(
+        <Permissions readiness={{ ...readiness('denied'), permissionsMoved: true }} />,
+        {}
+    );
+    expect(moved).toContain('Haus Computer is an app now, so macOS asks again.');
+
+    const missing = render(
+        <Permissions readiness={{ ...readiness('denied'), installed: false }} />,
+        {}
+    );
+    expect(missing).toContain('Update Haus Computer on this Mac.');
+    expect(missing).not.toContain('Open Settings');
 });
 
 test('Workers holds Run Workers here, the local runtimes, and the cloud providers', () => {
@@ -79,10 +115,27 @@ test('Workers holds Run Workers here, the local runtimes, and the cloud provider
     const positions = order.map((label) => html.indexOf(label));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
-    expect(html).toContain('Coding sessions Captains start on this Mac, using its logins.');
-    expect(html).toContain('Captains with access can run up to 4 Workers here at once.');
-    expect(html).toContain('Ready');
+    expect(html).toContain('Coding sessions using this Mac’s logins.');
+    expect(html).toContain('Up to 4 local Workers at once.');
+    expect(html).not.toContain('Ready');
+    expect(html).not.toContain('aria-label="Refresh"');
     expect(html).toContain('Not installed');
+});
+
+test('a runtime that is not signed in shows the exception and one Fix button', () => {
+    const html = render(<Workers />, {
+        reportedInventory: {
+            name: 'Studio Mac',
+            runtimes: [],
+            workerRuntimes: [
+                { detail: null, ready: true, runtime: 'claude-code' },
+                { detail: 'Run codex login.', ready: false, runtime: 'codex' },
+            ],
+        },
+    });
+    expect(html).toContain('Not signed in');
+    expect(html.match(/>Fix<\/button>/gu)).toHaveLength(1);
+    expect(html).not.toContain('Run codex login.');
 });
 
 function Access() {
@@ -93,9 +146,9 @@ function Workers() {
     return <ComputerWorkersSection computerId={computerId} serverId={serverId} />;
 }
 
-function Warning({ readiness }: { readiness: ReturnType<typeof readinessOf> }) {
+function Permissions({ readiness }: { readiness: ComputerUseReadiness }) {
     return (
-        <ComputerUsePermissionWarning
+        <ComputerUsePermissions
             computerId={computerId}
             deviceName="Studio Mac"
             readiness={readiness}

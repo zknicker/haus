@@ -4,17 +4,11 @@ export interface SecretsCapabilityView {
     canConnect: boolean;
     canDisconnect: boolean;
     canRefresh: boolean;
-    description: string;
+    detail: string | null;
     status: 'needs-attention' | 'not-connected' | 'ready' | 'unavailable';
     statusLabel: string;
 }
 
-/**
- * The Secrets row reads the Computer's own report (inventory `secrets`), so it
- * says what that machine holds rather than what this window assumes. Connect
- * and Refresh items need the desktop App: only desktop main can run the local
- * `op` CLI. Disconnect only tells the Computer to forget, so any window can.
- */
 export function secretsCapabilityView(input: {
     canUseOnePassword: boolean;
     isOffline: boolean;
@@ -28,54 +22,26 @@ export function secretsCapabilityView(input: {
             canConnect: false,
             canDisconnect: manageable,
             canRefresh: manageable && input.canUseOnePassword,
+            detail: `“${status.vault.name}” · ${items}`,
         };
         if (status.issue === 'runtime-missing') {
-            return {
-                ...actions,
-                description: `Connected to “${status.vault.name}”, but this device could not set up Varlock, so Captains cannot use it yet. Refresh items to try again.`,
-                status: 'needs-attention',
-                statusLabel: 'Needs attention',
-            };
+            return { ...actions, status: 'needs-attention', statusLabel: 'Needs attention' };
         }
         if (status.issue === 'keychain-locked') {
-            return {
-                ...actions,
-                description: "This device's Keychain is locked. Log in on the device to unlock it.",
-                status: 'needs-attention',
-                statusLabel: 'Keychain locked',
-            };
+            return { ...actions, status: 'needs-attention', statusLabel: 'Keychain locked' };
         }
-        return {
-            ...actions,
-            description: `Captains on this device can read “${status.vault.name}” (${items}) with haus-secrets.`,
-            status: 'ready',
-            statusLabel: 'Connected',
-        };
+        return { ...actions, status: 'ready', statusLabel: 'Connected' };
     }
-    const none = { canConnect: false, canDisconnect: false, canRefresh: false };
+    const none = { canConnect: false, canDisconnect: false, canRefresh: false, detail: null };
     if (input.isOffline || !status) {
         return {
             ...none,
-            description: input.isOffline
-                ? 'Reconnect this device to manage its secrets.'
-                : 'Update this device to connect a 1Password vault.',
             status: 'unavailable',
-            statusLabel: 'Unavailable',
+            statusLabel: input.isOffline ? 'Unavailable' : 'Update needed',
         };
     }
     if (!input.canUseOnePassword) {
-        return {
-            ...none,
-            description: 'Open Haus for Mac to connect a 1Password vault.',
-            status: 'not-connected',
-            statusLabel: 'Not connected',
-        };
+        return { ...none, status: 'not-connected', statusLabel: 'Connect in Haus for Mac' };
     }
-    return {
-        ...none,
-        canConnect: true,
-        description: 'Give Captains on this device read-only access to one 1Password vault.',
-        status: 'not-connected',
-        statusLabel: 'Not connected',
-    };
+    return { ...none, canConnect: true, status: 'not-connected', statusLabel: 'Not connected' };
 }

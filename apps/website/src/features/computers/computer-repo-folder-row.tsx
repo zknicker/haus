@@ -1,4 +1,4 @@
-import type { RepoFolder, RepoFolderState } from '@haus/api';
+import type { RepoFolder, RepoFolderState, RepoGithubAccessStatus } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
 import { Button, Dropdown, Label, toast } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
@@ -9,7 +9,7 @@ import {
     useRemoveRepoFolder,
 } from '../../hooks/servers/use-computer-repo-folders.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
-import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
+import { SettingsAttention } from '../settings/layout/settings-row-title.tsx';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 import { folderStateLabels, repoAccessChips } from '../settings/repos/repo-access.ts';
 
@@ -28,31 +28,19 @@ export function ComputerRepoFolderRow({
     const access = useRepos(target.serverId).data?.repos.find(
         (repo) => repo.repository === folder.repository
     )?.githubAccess;
-    const accessChip = access ? repoAccessChips[access.status] : null;
+    const issue = folderIssue(state, access?.status ?? null);
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsStatusTitle
-                    status={
-                        <>
-                            {state && state !== 'present' ? (
-                                <SettingsStatusChip color="warning">
-                                    {capitalize(folderStateLabels[state])}
-                                </SettingsStatusChip>
-                            ) : null}
-                            {accessChip ? (
-                                <SettingsStatusChip color={accessChip.color}>
-                                    {accessChip.label}
-                                </SettingsStatusChip>
-                            ) : null}
-                        </>
-                    }
-                >
+                <ItemCard.Title>
                     <span title={folder.path}>{folder.path}</span>
-                </SettingsStatusTitle>
+                </ItemCard.Title>
                 <ItemCard.Description>
                     {folder.addedBy ? folder.repository : `${folder.repository}, Haus’s own clone`}
                 </ItemCard.Description>
+                {issue ? (
+                    <SettingsAttention color={issue.color}>{issue.label}</SettingsAttention>
+                ) : null}
                 <SettingsRowError>{remove.error?.message}</SettingsRowError>
             </ItemCard.Content>
             <ItemCard.Action>
@@ -107,6 +95,16 @@ async function copyPath(path: string) {
             description: error instanceof Error ? error.message : undefined,
         });
     }
+}
+
+function folderIssue(state: RepoFolderState | null, access: RepoGithubAccessStatus | null) {
+    if (state && state !== 'present') {
+        return { color: 'warning', label: capitalize(folderStateLabels[state]) } as const;
+    }
+    if (access && access !== 'ready') {
+        return repoAccessChips[access];
+    }
+    return null;
 }
 
 function capitalize(label: string) {

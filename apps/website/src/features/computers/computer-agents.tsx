@@ -10,7 +10,7 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
 import { SettingsEmptyRow } from '../settings/layout/settings-empty.tsx';
-import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
+import { SettingsAttention } from '../settings/layout/settings-row-title.tsx';
 import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
@@ -94,17 +94,14 @@ export function HomeCaptainList({
                             <PressableFeedback.Highlight />
                             <EntityAvatar name={row.displayName} size="sm" src={row.avatarUrl} />
                             <ItemCard.Content>
-                                <SettingsStatusTitle
-                                    status={
-                                        <SettingsStatusChip
-                                            color={availabilityBadgeColor(row.availability)}
-                                        >
-                                            {availabilityLabel(row)}
-                                        </SettingsStatusChip>
-                                    }
-                                >
-                                    {row.displayName}
-                                </SettingsStatusTitle>
+                                <ItemCard.Title>{row.displayName}</ItemCard.Title>
+                                {isQuiet(row) ? null : (
+                                    <SettingsAttention
+                                        color={availabilityBadgeColor(row.availability)}
+                                    >
+                                        {availabilityLabel(row)}
+                                    </SettingsAttention>
+                                )}
                             </ItemCard.Content>
                             <ItemCard.Action>
                                 <div className="flex items-center gap-2">
@@ -123,6 +120,10 @@ export function HomeCaptainList({
             )}
         </ItemCardGroup>
     );
+}
+
+function isQuiet(row: HomeCaptainRow) {
+    return !row.wakePause && (row.availability === 'idle' || row.availability === 'working');
 }
 
 function homeCaptainRow(

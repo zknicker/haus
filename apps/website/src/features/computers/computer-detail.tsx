@@ -13,7 +13,7 @@ import { ComputerRepoFoldersCard } from './computer-repo-folders-card.tsx';
 import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
 import { ComputerToolsSection } from './computer-tools-section.tsx';
 import type { ComputerUpdatePreviewState } from './computer-update-preview.tsx';
-import { ComputerUsePermissionWarning } from './computer-use-permissions.tsx';
+import { ComputerUsePermissions } from './computer-use-permissions.tsx';
 import { ComputerWorkersSection } from './computer-workers-section.tsx';
 import {
     computerHealthColor,
@@ -99,7 +99,7 @@ export function ComputerDetail({
                 serverId={serverId}
             />
             {computer.computerUseEnabled ? (
-                <ComputerUsePermissionWarning
+                <ComputerUsePermissions
                     computerId={computerId}
                     deviceName={computerLabel(computer)}
                     readiness={computer.reportedInventory?.computerUse}

@@ -7,15 +7,14 @@ import { useSetComputerWorkers } from '../../hooks/computer-workers/use-set-comp
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
-import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
-import { RuntimeIssueHelp } from '../usage/runtime-issue.tsx';
+import { SettingsAttention } from '../settings/layout/settings-row-title.tsx';
 import { percentLeft, usageColor } from '../usage/runtime-plan-windows.ts';
 import { CloudAgentProviderCapability } from './cloud-agent-provider-capability.tsx';
-import { ComputerInventoryRefresh } from './computer-inventory-refresh.tsx';
 import { supportsComputerUse } from './computer-use-model.ts';
 import {
     type WorkerRuntimeView,
     planLeftLine,
+    runtimeAttention,
     workerLimitChoices,
     workerRuntimeTitles,
     workerRuntimeViews,
@@ -24,6 +23,7 @@ import {
 } from './computer-workers-model.ts';
 import { SettingSelect } from './device-access-rows.tsx';
 import { computerLabel, computerRuntimePresentations } from './presentation.ts';
+import { RuntimeFixPopover } from './runtime-fix-popover.tsx';
 
 export function ComputerWorkersSection({
     computerId,
@@ -62,9 +62,8 @@ export function ComputerWorkersSection({
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Workers</ItemCardGroup.Title>
                     <ItemCardGroup.Description>
-                        Coding sessions Captains start on this {deviceKind}, using its logins.
+                        Coding sessions using this {deviceKind}’s logins.
                     </ItemCardGroup.Description>
-                    <ComputerInventoryRefresh computerId={computerId} serverId={serverId} />
                 </ItemCardGroup.Header>
                 <ItemCardGroup>
                     <RunWorkersRow computer={computer} serverId={serverId} />
@@ -142,20 +141,15 @@ function WorkerRuntimeRow({
     runtime: WorkerRuntimeView;
 }) {
     const title = workerRuntimeTitles[runtime.id];
+    const attention = runtimeAttention(runtime.status);
     return (
         <ItemCard>
             <ProviderMark className="text-muted size-5 shrink-0" provider={runtime.id} />
             <ItemCard.Content>
-                <SettingsStatusTitle
-                    info={
-                        runtime.status === 'not-ready' ? (runtime.detail ?? undefined) : undefined
-                    }
-                    infoLabel={`About ${title}`}
-                    status={<RuntimeStatusChip status={runtime.status} />}
-                >
-                    {title}
-                </SettingsStatusTitle>
-                {runtime.week ? (
+                <ItemCard.Title>{title}</ItemCard.Title>
+                {attention ? (
+                    <SettingsAttention color={attention.color}>{attention.label}</SettingsAttention>
+                ) : runtime.week ? (
                     <ItemCard.Description>
                         <span className="flex items-center gap-2">
                             <ProgressBar
@@ -174,29 +168,17 @@ function WorkerRuntimeRow({
                     </ItemCard.Description>
                 ) : null}
             </ItemCard.Content>
-            {runtime.status === 'signed-out' ? (
+            {runtime.status === 'signed-out' || runtime.status === 'not-ready' ? (
                 <ItemCard.Action>
-                    <RuntimeIssueHelp
+                    <RuntimeFixPopover
                         computerName={computerName}
-                        issue="authentication"
+                        detail={runtime.detail}
                         runtimeId={runtime.id}
+                        status={runtime.status}
                         title={title}
                     />
                 </ItemCard.Action>
             ) : null}
         </ItemCard>
     );
-}
-
-function RuntimeStatusChip({ status }: { status: WorkerRuntimeView['status'] }) {
-    switch (status) {
-        case 'ready':
-            return <SettingsStatusChip color="success">Ready</SettingsStatusChip>;
-        case 'not-ready':
-            return <SettingsStatusChip color="warning">Not signed in</SettingsStatusChip>;
-        case 'missing':
-            return <SettingsStatusChip>Not installed</SettingsStatusChip>;
-        case 'signed-out':
-            return <SettingsStatusChip color="danger">Authentication failed</SettingsStatusChip>;
-    }
 }

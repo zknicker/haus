@@ -10,6 +10,7 @@ import {
 } from '../../hooks/servers/use-cloud-agent-capability.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import {
+    claudeSignInGuidance,
     cloudAgentCapabilityView,
     reportedCloudAgentCapability,
 } from './cloud-agent-capability-model.ts';
@@ -89,7 +90,9 @@ export function CloudAgentProviderCapability({
         try {
             const checked = await connect.mutateAsync(target);
             if (!checked.ready) {
-                toast.info('Claude Code is not signed in on this device yet');
+                toast.info('Claude Code is not signed in on this device yet', {
+                    description: claudeSignInGuidance,
+                });
             }
         } catch (error) {
             toast.danger('Couldn’t check Claude Code', { description: errorMessage(error) });

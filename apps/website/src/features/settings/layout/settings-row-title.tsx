@@ -1,5 +1,5 @@
 import { ItemCard } from '@heroui-pro/react';
-import { Button, Chip, type ChipProps, Tooltip } from '@heroui/react';
+import { Badge, type BadgeProps, Button, Chip, type ChipProps, Tooltip } from '@heroui/react';
 import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -71,6 +71,23 @@ export function SettingsStatusChip({
         <Chip className="shrink-0" color={color} size="sm" variant="soft">
             <Chip.Label>{children}</Chip.Label>
         </Chip>
+    );
+}
+
+export function SettingsAttention({
+    children,
+    color = 'warning',
+}: {
+    children: React.ReactNode;
+    color?: BadgeProps['color'];
+}) {
+    return (
+        <ItemCard.Description>
+            <span className="inline-flex items-center gap-1.5">
+                <Badge className="static transform-none" color={color} size="sm" />
+                {children}
+            </span>
+        </ItemCard.Description>
     );
 }
 

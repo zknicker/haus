@@ -64,7 +64,7 @@ test('the app topic renders each place as one line with its role and caveat', ()
     const body = getManualTopic('app')?.body ?? '';
     expect(body).toContain('- Change your timezone: Settings → Profile → Timezone.\n');
     expect(body).toContain(
-        '- Connect a 1Password vault to a Computer: Settings → Devices → (your device) → Tools → Connect 1Password (Server Owner). Desktop App only.\n'
+        '- Connect a 1Password vault to a Computer: Settings → Devices → (your device) → Tools → 1Password → Connect (Server Owner). Desktop App only.\n'
     );
     expect(body).toContain('## Channels\n\n- Create a channel: Projects → New project.');
     expect(renderAppPlace(placeFor('Rename a channel or change its description'))).toBe(

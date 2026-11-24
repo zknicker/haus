@@ -45,7 +45,20 @@ const repos: RepoList = {
     ],
 };
 
-test('Folders lists each path with its repo, App access, a row menu, and Add folder', () => {
+test('a healthy folder is quiet and a folder with a GitHub gap shows that one issue', () => {
+    const html = render({
+        folders: { canAdd: true, canRemove: true, folders },
+        repos,
+        states: [
+            { path: checkout, state: 'present' },
+            { path: clone, state: 'present' },
+        ],
+    });
+    expect(html).not.toContain('Ready');
+    expect(html.match(/App access needed/gu)).toHaveLength(1);
+});
+
+test('Folders lists each path with its repo, its top issue, a row menu, and Add folder', () => {
     const html = render({
         folders: { canAdd: true, canRemove: true, folders },
         repos,
@@ -60,8 +73,8 @@ test('Folders lists each path with its repo, App access, a row menu, and Add fol
     expect(html).toContain('haus/haus');
     expect(html).toContain(clone);
     expect(html).toContain('haus/tools, Haus’s own clone');
-    expect(html).toContain('Ready');
-    expect(html).toContain('App access needed');
+    expect(html).not.toContain('Ready');
+    expect(html).not.toContain('App access needed');
     expect(html.match(/Missing/gu)).toHaveLength(1);
     expect(html.match(/<hr/gu)).toHaveLength(1);
     expect(html).toContain('aria-label="haus/haus actions"');

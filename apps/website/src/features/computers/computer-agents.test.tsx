@@ -2,7 +2,27 @@ import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HomeCaptainList } from './computer-agents.tsx';
 
-test('Captains using this device by default are rows with a status chip, model fact, and no data grid', () => {
+test('a Captain that is not online shows its state under its name', () => {
+    const html = renderToStaticMarkup(
+        <HomeCaptainList
+            onOpenAgent={() => undefined}
+            rows={[
+                {
+                    avatarUrl: null,
+                    availability: 'offline',
+                    displayName: 'Tiny',
+                    id: 'agent-tiny',
+                    model: 'GPT-5.6 Terra',
+                    wakePause: null,
+                },
+            ]}
+        />
+    );
+    expect(html).toContain('Offline');
+    expect(html).toContain('data-slot="badge"');
+});
+
+test('Captains using this device by default are quiet rows with a model fact, and no data grid', () => {
     const html = renderToStaticMarkup(
         <HomeCaptainList
             onOpenAgent={() => undefined}
@@ -22,9 +42,8 @@ test('Captains using this device by default are rows with a status chip, model f
     expect(html).not.toContain('data-slot="data-grid"');
     expect(html).toContain('Blippy');
     expect(html).toContain('GPT-5.6 Sol');
-    expect(html).toContain('Online');
-    expect(html).toContain('chip--sm');
-    expect(html).toContain('data-slot="chip-label"');
+    expect(html).not.toContain('Online');
+    expect(html).not.toContain('data-slot="badge"');
     expect(html).toContain('<button');
 });
 

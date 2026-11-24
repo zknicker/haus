@@ -1,6 +1,6 @@
 import type { ComputerAgentAccessScope } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
-import { Button, Label, ListBox, Select } from '@heroui/react';
+import { Button, Label, ListBox, Select, Switch } from '@heroui/react';
 import type { Key } from '@heroui/react';
 import { useSetAgentAccessScope } from '../../hooks/computer-access/use-agent-access-scope.ts';
 import {
@@ -12,7 +12,6 @@ import { withSaveErrorToast } from '../../lib/saving-toast.ts';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 import {
     type AgentAccessView,
-    captainAccessScopes,
     captainAccessSentence,
     computerUseSentence,
 } from './agent-access-model.ts';
@@ -40,53 +39,34 @@ export function CaptainAccessRow({
     const revoke = useRevokeAgentAccess(serverId);
     const setScope = useSetAgentAccessScope(serverId);
     const target = { computerId: computer.id, serverId };
-    const isPending = grant.isPending || revoke.isPending || setScope.isPending;
-    const steward = computer.canGrantAgentAccess || computer.canRevokeAgentAccess;
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>Captain access</ItemCard.Title>
+                <ItemCard.Title>Captains</ItemCard.Title>
                 <ItemCard.Description className="whitespace-normal">
                     {captainAccessSentence(computer.agentAccessScope, view)}
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
-                <div className="flex items-center gap-2">
-                    {computer.agentAccessScope === 'selected' && steward ? (
-                        <CaptainChooser
-                            canGrant={computer.canGrantAgentAccess}
-                            canRevoke={computer.canRevokeAgentAccess}
-                            deviceKind={deviceKind}
-                            isPending={isPending}
-                            onChange={(change) => {
-                                const mutation = change.kind === 'grant' ? grant : revoke;
-                                withSaveErrorToast(() =>
-                                    mutation.mutateAsync({ ...target, agentId: change.agentId })
-                                ).catch(() => undefined);
-                            }}
-                            view={view}
-                        />
-                    ) : null}
-                    <SettingSelect
-                        disabledKeys={
-                            computer.canGrantAgentAccess || computer.agentAccessScope === 'all'
-                                ? []
-                                : ['all']
-                        }
-                        isDisabled={!steward || isPending}
-                        label="Captain access"
-                        onChange={(scope) => {
-                            withSaveErrorToast(() =>
-                                setScope.mutateAsync({
-                                    ...target,
-                                    scope: scope as ComputerAgentAccessScope,
-                                })
-                            ).catch(() => undefined);
-                        }}
-                        options={captainAccessScopes}
-                        value={computer.agentAccessScope}
-                    />
-                </div>
+                <CaptainChooser
+                    canGrant={computer.canGrantAgentAccess}
+                    canRevoke={computer.canRevokeAgentAccess}
+                    deviceKind={deviceKind}
+                    isPending={grant.isPending || revoke.isPending || setScope.isPending}
+                    onChange={(change) => {
+                        const mutation = change.kind === 'grant' ? grant : revoke;
+                        withSaveErrorToast(() =>
+                            mutation.mutateAsync({ ...target, agentId: change.agentId })
+                        ).catch(() => undefined);
+                    }}
+                    onScopeChange={(scope) => {
+                        withSaveErrorToast(() => setScope.mutateAsync({ ...target, scope })).catch(
+                            () => undefined
+                        );
+                    }}
+                    scope={computer.agentAccessScope}
+                    view={view}
+                />
             </ItemCard.Action>
         </ItemCard>
     );
@@ -96,7 +76,7 @@ export function CaptainAccessUnresolved({ onRetry }: { onRetry: (() => void) | n
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>Captain access</ItemCard.Title>
+                <ItemCard.Title>Captains</ItemCard.Title>
                 {onRetry ? <SettingsRowError>Couldn’t load Captains.</SettingsRowError> : null}
             </ItemCard.Content>
             {onRetry ? (
@@ -109,11 +89,6 @@ export function CaptainAccessUnresolved({ onRetry }: { onRetry: (() => void) | n
         </ItemCard>
     );
 }
-
-const computerUseOptions = [
-    { id: 'on', label: 'On' },
-    { id: 'off', label: 'Off' },
-] as const;
 
 export function ComputerUseRow({
     computer,
@@ -138,22 +113,30 @@ export function ComputerUseRow({
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
-                <SettingSelect
-                    disabledKeys={enabled || computer.canEnableComputerUse ? [] : ['on']}
-                    isDisabled={!computer.canChangeComputerUse || setEnabled.isPending}
-                    label="Computer use"
-                    onChange={(key) => {
+                <Switch
+                    aria-label="Computer use"
+                    isDisabled={
+                        !computer.canChangeComputerUse ||
+                        setEnabled.isPending ||
+                        (!enabled && !computer.canEnableComputerUse)
+                    }
+                    isSelected={enabled}
+                    onChange={(next) => {
                         withSaveErrorToast(() =>
                             setEnabled.mutateAsync({
                                 computerId: computer.id,
-                                enabled: key === 'on',
+                                enabled: next,
                                 serverId,
                             })
                         ).catch(() => undefined);
                     }}
-                    options={computerUseOptions}
-                    value={enabled ? 'on' : 'off'}
-                />
+                >
+                    <Switch.Content>
+                        <Switch.Control>
+                            <Switch.Thumb />
+                        </Switch.Control>
+                    </Switch.Content>
+                </Switch>
             </ItemCard.Action>
         </ItemCard>
     );

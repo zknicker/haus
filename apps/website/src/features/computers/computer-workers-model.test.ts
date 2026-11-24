@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
     planLeftLine,
+    runtimeAttention,
     workerLimitChoices,
     workerRuntimeViews,
     workersSentence,
@@ -36,8 +37,18 @@ test('the Run Workers here sentence follows the value', () => {
         'Captains can’t start Workers here.'
     );
     expect(workersSentence({ workerLimit: 1, workersEnabled: true })).toBe(
-        'Captains with access can run up to 1 Worker here at once.'
+        'Up to 1 local Worker at once.'
     );
+    expect(workersSentence({ workerLimit: 6, workersEnabled: true })).toBe(
+        'Up to 6 local Workers at once.'
+    );
+});
+
+test('a ready runtime stays quiet, and every other state names its exception', () => {
+    expect(runtimeAttention('ready')).toBeNull();
+    expect(runtimeAttention('not-ready')).toEqual({ color: 'warning', label: 'Not signed in' });
+    expect(runtimeAttention('signed-out')).toEqual({ color: 'danger', label: 'Sign-in failed' });
+    expect(runtimeAttention('missing')).toEqual({ color: 'default', label: 'Not installed' });
 });
 
 test('a runtime is ready, not signed in, missing, or failing its sign-in', () => {
