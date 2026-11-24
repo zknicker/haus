@@ -73,32 +73,26 @@ describe('Go: sidebar rows and the command menu (ADR 0039)', () => {
     });
 });
 
-describe('Settings is a singleton', () => {
-    test('opens as a new selected tab in the left pane after its selected tab', () => {
+describe('Settings is a page, as in Capy and Linear', () => {
+    test('pushes onto the left pane’s selected tab, focusing it; Back returns', () => {
         const state = run(split(), { kind: 'focusPane', pane: 'secondary' }, settings());
         expect(describeTabs(state)).toEqual({
             focused: 'primary',
-            primary: 'inbox settings*',
+            primary: 'settings*',
             secondary: 'tasks*',
         });
+        expect(describeTabs(run(state, { delta: -1, kind: 'go', tabId: 't0' })).primary).toBe(
+            'inbox*'
+        );
     });
 
-    test('selects an existing Settings tab anywhere in the window, focusing its pane', () => {
-        const base = run(
-            split(),
-            { fromTabId: 't0', kind: 'open', location: app('settings/members'), newId: 's' },
-            { kind: 'select', tabId: 't1' },
-            { kind: 'focusPane', pane: 'primary' }
-        );
+    test('a tab already in Settings keeps its section; a deeper address is pushed', () => {
+        const base = run(start(), go('settings/members'));
         const state = run(base, settings());
-        expect(describeTabs(state)).toEqual({
-            focused: 'secondary',
-            primary: 'inbox*',
-            secondary: 'tasks settings/members*',
-        });
-        // ⌘, keeps the section you were on; a deeper address is pushed.
-        expect(state.tabs.s?.history.entries).toHaveLength(1);
+        expect(describeTabs(state).primary).toBe('settings/members*');
+        expect(state.tabs.t0?.history.entries).toHaveLength(2);
         const deeper = run(base, settings('settings/connections'));
-        expect(describeTabs(deeper).secondary).toBe('tasks settings/connections*');
+        expect(describeTabs(deeper).primary).toBe('settings/connections*');
+        expect(deeper.tabs.t0?.history.entries).toHaveLength(3);
     });
 });

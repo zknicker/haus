@@ -57,7 +57,7 @@ export type DesktopTabsAction =
           location: TabLocation;
           newId: string;
       }
-    /** ⌘, and the Settings button: the window's one Settings tab, else a new one in the left pane. */
+    /** ⌘, and the Settings button: Settings in the left pane's selected tab, like a Go. */
     | { kind: 'openSettings'; location: TabLocation; newId: string }
     /** ⌘T and the row's plus: a new selected tab at the end of the focused pane's row. */
     | { kind: 'openNewTab'; location: TabLocation; newId: string }

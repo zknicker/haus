@@ -9,22 +9,20 @@ import { SettingsEmptyState } from '../settings/layout/settings-empty.tsx';
 import {
     SettingsRailRouter,
     useSettingsRailNavigate,
+    useSettingsExit,
     useSettingsRailTabId,
 } from './settings-rail-router.tsx';
 import { ShellSidebarPageContent } from './shell-sidebar.tsx';
 import { SidebarBackToChatRow } from './sidebar-settings-action.tsx';
 
-/**
- * Settings navigation sidebar for the Server settings routes. `backRoute` null drops the
- * back-to-chat row: desktop tabs and ⌘[ cover going back (ADR 0039); the web keeps it.
- */
+/** Settings navigation sidebar for the Server settings routes, led by a Back to chat row. */
 export function SettingsSidebar({
     backRoute,
     canOperate,
     currentSection,
     slug,
 }: {
-    backRoute: string | null;
+    backRoute: string;
     canOperate: boolean;
     currentSection: SettingsRouteTab | undefined;
     slug: string;
@@ -32,10 +30,11 @@ export function SettingsSidebar({
     const [query, setQuery] = React.useState('');
     const groups = settingsNavGroups({ canOperate, query });
     const railTabId = useSettingsRailTabId();
+    const exitSettings = useSettingsExit(slug, backRoute);
     return (
         <SettingsRailRouter>
             <ShellSidebarPageContent className="settings-rail" sourceTabId={railTabId}>
-                {backRoute ? <SidebarBackToChatRow route={backRoute} /> : null}
+                <SidebarBackToChatRow onBack={exitSettings} route={backRoute} />
                 <SettingsSearch
                     firstRoute={firstRoute(groups, slug)}
                     onChange={setQuery}

@@ -5,6 +5,8 @@ import {
     type DesktopTabCommands,
     useOptionalDesktopTabs,
 } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import { deltaBeforeRun } from '../../hooks/desktop-tabs/desktop-tabs-history.ts';
+import { resolveActiveSection } from '../../routes/app/server-route-state.ts';
 
 /**
  * The tab window chrome reads its page from (the focused pane's selected tab), provided by
@@ -45,4 +47,32 @@ export function useSettingsRailTabId(): string | null {
 /** A rail link: a push in the Settings tab itself. */
 export function settingsRailNavigate(tabs: Pick<DesktopTabCommands, 'navigate'>, tabId: string) {
     return (path: string) => tabs.navigate(tabId, { kind: 'app', path }, 'push');
+}
+
+/**
+ * Desktop Back in Settings: the tab steps back to the page before Settings, as in Capy; a tab
+ * that started in Settings shows `fallback` in place. Null on the web, whose row is a link.
+ */
+export function useSettingsExit(slug: string, fallback: string): (() => void) | null {
+    const tabs = useOptionalDesktopTabs();
+    const tabId = React.use(ShellTabIdContext);
+    if (!(tabs && tabId)) {
+        return null;
+    }
+    return () => {
+        const tab = tabs.tab(tabId);
+        const delta = tab
+            ? deltaBeforeRun(
+                  tab.history,
+                  (location) =>
+                      location.kind === 'app' &&
+                      resolveActiveSection(location.path, slug) === 'settings'
+              )
+            : null;
+        if (delta === null) {
+            tabs.navigate(tabId, { kind: 'app', path: fallback }, 'replace');
+        } else {
+            tabs.go(tabId, delta);
+        }
+    };
 }

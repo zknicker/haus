@@ -7,7 +7,7 @@ import {
 import { currentOpenGesture, type OpenGesture } from '../desktop-tabs/tab-open-gesture.ts';
 
 /**
- * The sidebar's Settings button. Desktop: the window's one Settings tab (ADR 0039), or for
+ * The sidebar's Settings button. Desktop: Settings in the left pane's selected tab (ADR 0046), or for
  * ⌘-, middle-, or Shift-click a new tab after the left pane's selected tab like any row.
  * Web: a push to Settings. Stable for the caller's lifetime.
  */

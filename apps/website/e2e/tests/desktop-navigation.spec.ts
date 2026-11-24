@@ -4,7 +4,7 @@ import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop
 import { createTestServer, openSection, openSettings } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('the sidebar goes in the left pane, pages open on the right, and Settings is one tab', async ({
+test('the sidebar goes in the left pane, pages open on the right, and Settings is a page in its tab', async ({
     page,
 }) => {
     await installDesktopBrowserStub(page);
@@ -54,18 +54,17 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
     await expect(left.nth(0)).toHaveAttribute('data-active', 'true');
     await expect(right).toHaveCount(1);
 
-    // Settings is a singleton: the Account menu opens it after the left pane's tab…
+    // Settings is a page, as in Capy: the Account menu pushes it onto the left pane's tab…
     await openSettings(page);
-    await expect(left).toHaveCount(4);
-    await expect(left.nth(1)).toContainText('Profile');
-    await expect(left.nth(1)).toHaveAttribute('data-active', 'true');
-    // …with no pre-tab back row on desktop.
-    await expect(page.getByRole('row', { exact: true, name: 'Back to chat' })).toHaveCount(0);
-    // …and pressing it again from another tab selects that same tab.
-    await left.nth(0).getByRole('button', { exact: true, name: 'all' }).click();
+    await expect(left).toHaveCount(3);
+    await expect(left.nth(0)).toContainText('Profile');
+    await expect(left.nth(0)).toHaveAttribute('data-active', 'true');
+    // …and its "← Settings" row steps that tab back to the page before Settings.
+    await page.getByRole('row', { exact: true, name: 'Back to chat' }).click();
+    await expect(left.nth(0)).not.toContainText('Profile');
+    await expect(left).toHaveCount(3);
     await openSettings(page);
-    await expect(left).toHaveCount(4);
-    await expect(left.nth(1)).toHaveAttribute('data-active', 'true');
+    await expect(left.nth(0)).toContainText('Profile');
 
     // The Settings rail is the Settings page's own drill-down: with Settings in the right
     // pane, a rail section pushes in that tab and never Goes in the left pane.

@@ -30,7 +30,6 @@ import {
 import { useAppSidebarWidth } from '../../hooks/shell/use-app-sidebar-width.ts';
 import { useSettingsOpener } from '../../hooks/shell/use-settings-opener.ts';
 import { useStableNavigate } from '../../hooks/shell/use-stable-navigate.ts';
-import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { cn } from '../../lib/utils.ts';
 import {
@@ -154,10 +153,7 @@ export function ServerShell({
                                         </ShellSidebarPage>
                                         <ShellSidebarPage ariaLabel="Settings" value="settings">
                                             <SettingsSidebar
-                                                // Desktop tabs and ⌘[ go back; only the web keeps the row.
-                                                backRoute={
-                                                    isElectronDesktopApp() ? null : chatSectionRoute
-                                                }
+                                                backRoute={chatSectionRoute}
                                                 canOperate={canOperate}
                                                 currentSection={settingsSection}
                                                 slug={slug}

@@ -4,7 +4,7 @@ import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**
  * Opens the current Server's surfaces when the native menu asks: Settings…
- * (⌘,, the window's one Settings tab) and Edit > Find… (⌘F, the Search page
+ * (⌘,, Settings in the left pane's selected tab) and Edit > Find… (⌘F, the Search page
  * opened on the right), ADR 0039. Pass stable callbacks.
  */
 export function useDesktopMenuNavigation(menu: {

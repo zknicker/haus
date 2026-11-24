@@ -1,5 +1,5 @@
 ---
-summary: Approved desktop navigation model with two verbs chosen by the surface clicked; Go (a sidebar row or a command menu result) navigates the left pane's selected tab in place, always, and Open (anything activated inside a page, plus notifications, deep links, and Find) opens a new selected tab in the right pane, creating it, reusing only a right-pane tab already on that page; Command-, middle-, and Shift-click open a new tab right after the clicked-from tab in its pane everywhere; Settings is a window singleton; an Inbox Unread card's plain open navigates its own tab.
+summary: Approved desktop navigation model with two verbs chosen by the surface clicked; Go (a sidebar row or a command menu result) navigates the left pane's selected tab in place, always, and Open (anything activated inside a page, plus notifications, deep links, and Find) opens a new selected tab in the right pane, creating it, reusing only a right-pane tab already on that page; Command-, middle-, and Shift-click open a new tab right after the clicked-from tab in its pane everywhere; Settings is a page pushed onto the left pane's selected tab (amended 2026-11-24); an Inbox Unread card's plain open navigates its own tab.
 read_when:
   - changing what a sidebar row, the command menu, a chip, an in-app link, a web link, a notification, or a deep link does on desktop
   - changing Command-, Shift-, or middle-click, or Command-Return, on any desktop link, row, or button
@@ -90,10 +90,12 @@ before the navigation. Command means Control off macOS. Middle-click never autos
 **Sidebar row menu.** Open (Go), Open in new tab (a background tab after the left pane's selected
 tab), Open on the right (Open), and, where they apply, View profile, Files, and Tasks (Open).
 
-**Settings is a singleton.** Command-comma and the sidebar's Settings button select the window's
-Settings tab wherever it is, focusing its pane; with none, Settings opens as a new selected tab in
-the left pane, right after its selected tab. Inside Settings, sections stay in the tab. Desktop
-hides Settings' back button (the tab and Command-[ cover it); the web keeps it.
+**Settings is a page.** Amended 2026-11-24, copying Capy and Linear: Command-comma and the
+sidebar's Settings button push Settings onto the left pane's selected tab, like a Go; a tab
+already in Settings keeps its section, and a deeper address is pushed. Modified clicks open a
+new tab as anywhere. Inside Settings, sections stay in the tab. Settings' Back row steps the tab
+back to the page before Settings, or shows your last chat in place when the tab started there;
+the web's Back row is a link to your last chat.
 
 **Scope.** Desktop only. The web App keeps one routed page with its chat side pane; iOS is
 unchanged.

@@ -86,7 +86,7 @@ export async function runAgentAction(page: Page, agentName: string, action: stri
 /**
  * The Capy shell's places: Tasks, Drive and Activity are footer links, Search is
  * the header button, Settings sits in the Account menu, and Chat is the sidebar
- * itself (a Settings page offers a back row on the web).
+ * itself (a Settings page leads with a back row, "← Settings").
  */
 export async function openSection(page: Page, name: string) {
     if (name === 'Chat') {

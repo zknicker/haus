@@ -223,7 +223,7 @@ test('renders back navigation with the shared sidebar menu anatomy', () => {
         <MemoryRouter>
             <Sidebar.Provider>
                 <Sidebar>
-                    <SidebarBackToChatRow route="/s/dev/chats/general" />
+                    <SidebarBackToChatRow onBack={null} route="/s/dev/chats/general" />
                 </Sidebar>
             </Sidebar.Provider>
         </MemoryRouter>
@@ -232,7 +232,7 @@ test('renders back navigation with the shared sidebar menu anatomy', () => {
     expect(markup).toContain('data-slot="sidebar-menu-item"');
     expect(markup).toContain('data-slot="sidebar-menu-icon"');
     expect(markup).toContain('data-slot="sidebar-menu-label"');
-    expect(markup).toContain('>Back</span>');
+    expect(markup).toContain('>Settings</span>');
     expect(markup).not.toContain('Back to chat</span>');
 });
 

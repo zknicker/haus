@@ -43,6 +43,23 @@ export function goHistory(history: TabHistory, delta: number): TabHistory | null
     return { entries: history.entries, index };
 }
 
+/**
+ * The delta back to the entry before the run of `inRun` entries that ends at the current one;
+ * null when the current entry is outside the run or the run starts the history.
+ */
+export function deltaBeforeRun(
+    history: TabHistory,
+    inRun: (location: TabLocation) => boolean
+): number | null {
+    for (let index = history.index; index >= 0; index -= 1) {
+        const entry = history.entries[index];
+        if (!(entry && inRun(entry.location))) {
+            return index === history.index ? null : index - history.index;
+        }
+    }
+    return null;
+}
+
 export function savePageStateInHistory(history: TabHistory, pageState: TabPageState): TabHistory {
     return {
         entries: history.entries.map((item, index) =>

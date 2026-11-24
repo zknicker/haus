@@ -56,21 +56,28 @@ export function SidebarSettingsAction({
  * The stock `Sidebar.Group` is what puts it on the same leading edge and width
  * as the settings rows it sits above.
  */
-export function SidebarBackToChatRow({ route }: { route: string }) {
+export function SidebarBackToChatRow({
+    onBack,
+    route,
+}: {
+    onBack: (() => void) | null;
+    route: string;
+}) {
     return (
         <Sidebar.Group>
             <Sidebar.Menu aria-label="Back to chat">
                 <Sidebar.MenuItem
                     aria-label="Back to chat"
-                    href={route}
+                    href={onBack ? undefined : route}
                     id="back-to-chat"
-                    textValue="Back"
+                    onAction={onBack ?? undefined}
+                    textValue="Settings"
                 >
                     <Sidebar.MenuIcon>
                         <Icon aria-hidden="true" icon={ArrowLeft01Icon} />
                     </Sidebar.MenuIcon>
                     <Sidebar.MenuItemContent>
-                        <Sidebar.MenuLabel>Back</Sidebar.MenuLabel>
+                        <Sidebar.MenuLabel>Settings</Sidebar.MenuLabel>
                     </Sidebar.MenuItemContent>
                 </Sidebar.MenuItem>
             </Sidebar.Menu>

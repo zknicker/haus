@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { SettingsSidebar } from './settings-sidebar.tsx';
 
-function render(backRoute: string | null) {
+function render(backRoute: string) {
     return renderToStaticMarkup(
         <MemoryRouter>
             <Sidebar.Provider>
@@ -19,9 +19,8 @@ function render(backRoute: string | null) {
     );
 }
 
-test('the web keeps the Settings back row; desktop (no back route) drops it for tabs and ⌘[', () => {
-    expect(render('/s/acme/chats/c1')).toContain('aria-label="Back to chat"');
-    const desktop = render(null);
-    expect(desktop).not.toContain('Back to chat');
-    expect(desktop).toContain('aria-label="Preferences"');
+test('Settings leads with a Back to chat row on every surface', () => {
+    const html = render('/s/acme/chats/c1');
+    expect(html).toContain('aria-label="Back to chat"');
+    expect(html).toContain('aria-label="Preferences"');
 });

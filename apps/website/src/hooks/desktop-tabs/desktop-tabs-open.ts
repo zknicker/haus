@@ -1,6 +1,5 @@
 import { navigateHistory, newTab, sameLocation } from './desktop-tabs-history.ts';
 import {
-    allTabIds,
     currentLocation,
     type DesktopTabsState,
     paneOfTab,
@@ -16,7 +15,7 @@ import { focusedTabId, insertAfter, insertTab, putTab, selectTab } from './deskt
  * - `openPage`: anything activated inside a page, notifications, deep links, ⌘F. A selected tab
  *   in the right pane.
  * - `openTabFrom`: a modified click (⌘, middle, Shift). A tab right after the source.
- * - `openSettings`: ⌘, and the Settings button. The window's one Settings tab.
+ * - `openSettings`: ⌘, and the Settings button. Settings in the left pane's selected tab.
  *
  * Ids arrive on the action (`newId`): a new tab's id, or the new history entry's key.
  */
@@ -90,32 +89,24 @@ export function openTabFrom(
 }
 
 /**
- * Settings is a singleton: an existing Settings tab anywhere is selected (its pane focused),
- * taking `location` when that is not an ancestor of the address it shows; else Settings opens
- * as a new selected tab in the left pane after its selected tab.
+ * Settings is a page, as in Capy and Linear: the left pane's selected tab pushes it like a Go,
+ * unless that tab already shows Settings at or below `location`, which keeps its section.
  */
 export function openSettings(
     state: DesktopTabsState,
     input: { location: TabLocation; newId: string }
 ): DesktopTabsState {
     const { location, newId } = input;
-    const existing = allTabIds(state).find((id) => samePage(state, id, location));
-    if (existing) {
-        const tab = state.tabs[existing];
-        const shown = tab ? currentLocation(tab) : null;
-        const within =
-            shown?.kind === 'app' &&
-            location.kind === 'app' &&
-            shown.path.startsWith(location.path);
-        const navigated = within ? state : navigateTab(state, existing, location, 'push', newId);
-        return selectTab(navigated, existing, { focus: true });
-    }
-    const left = state.primary?.selectedTabId;
-    if (!left) {
+    const tabId = state.primary?.selectedTabId;
+    if (!tabId) {
         return appendSelected(state, 'primary', location, newId);
     }
-    const created = putTab(state, newTab(newId, location, newId));
-    return selectTab(insertAfter(created, left, newId), newId, { focus: true });
+    const tab = state.tabs[tabId];
+    const shown = tab ? currentLocation(tab) : null;
+    const within =
+        shown?.kind === 'app' && location.kind === 'app' && shown.path.startsWith(location.path);
+    const navigated = within ? state : navigateTab(state, tabId, location, 'push', newId);
+    return selectTab(navigated, tabId, { focus: true });
 }
 
 /** ⌘T and the row's plus: a new selected tab at the end of the focused pane's row. */

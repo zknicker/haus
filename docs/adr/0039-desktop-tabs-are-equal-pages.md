@@ -164,7 +164,7 @@ The shipped macOS Control rule stands: Control combos other than Control-Tab sta
 text bindings.
 
 **Settings is a tab.** Superseded by [ADR 0046](0046-the-sidebar-goes-pages-open-to-the-right.md):
-Settings is a window singleton.
+Settings is a page pushed onto the left pane's selected tab (amended 2026-11-24).
 
 **Unread clearing.** A chat counts as viewed in focus ([ADR 0038 The Inbox Is
 Unread](0038-inbox-is-unread-not-attention.md)) only while its tab is **shown** (selected in either
