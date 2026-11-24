@@ -1,5 +1,5 @@
 import { ItemCardGroup } from '@heroui-pro/react';
-import { Button } from '@heroui/react';
+import { Button, Dropdown, Label } from '@heroui/react';
 import * as React from 'react';
 import { useServerList } from '../../../hooks/servers/use-server-list.ts';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';
@@ -29,18 +29,9 @@ export function ServersSettingsView({ servers }: { servers: ServerSummary[] | un
         <SettingsPageColumn>
             <SettingsPageHeader title="Servers" />
             <ItemCardGroup variant="transparent">
-                {/* Creating and joining both add a row to this list, so the
-                    controls belong to the section rather than the page. */}
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Your Servers</ItemCardGroup.Title>
-                    <div className="flex items-center gap-2">
-                        <Button onPress={() => setDialog('join')} size="sm" variant="secondary">
-                            Join a Server
-                        </Button>
-                        <Button onPress={() => setDialog('create')} size="sm" variant="secondary">
-                            Create a Server
-                        </Button>
-                    </div>
+                    <AddServerMenu onChoose={setDialog} />
                 </ItemCardGroup.Header>
                 {servers ? <ServerList servers={servers} /> : null}
             </ItemCardGroup>
@@ -53,5 +44,25 @@ export function ServersSettingsView({ servers }: { servers: ServerSummary[] | un
                 onOpenChange={(isOpen) => setDialog(isOpen ? 'join' : null)}
             />
         </SettingsPageColumn>
+    );
+}
+
+function AddServerMenu({ onChoose }: { onChoose: (dialog: 'create' | 'join') => void }) {
+    return (
+        <Dropdown>
+            <Button size="sm" variant="secondary">
+                Add Server
+            </Button>
+            <Dropdown.Popover placement="bottom end">
+                <Dropdown.Menu onAction={(key) => onChoose(key === 'join' ? 'join' : 'create')}>
+                    <Dropdown.Item id="create" textValue="Create a Server">
+                        <Label>Create a Server</Label>
+                    </Dropdown.Item>
+                    <Dropdown.Item id="join" textValue="Join a Server">
+                        <Label>Join a Server</Label>
+                    </Dropdown.Item>
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
     );
 }

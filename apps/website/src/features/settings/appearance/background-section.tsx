@@ -1,6 +1,8 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button } from '@heroui/react';
+import { Button, Dropdown, Label } from '@heroui/react';
+import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { CSSProperties } from 'react';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { useBackgroundImageUrl } from '../../../hooks/shell/use-background-image-url.ts';
 import {
     saveThemeBackground,
@@ -97,17 +99,34 @@ function ImageRow({
                         {url?.status === 'missing' ? 'Missing on this device' : image.name}
                     </ItemCard.Description>
                 </ItemCard.Content>
-                <ItemCard.Action className="flex gap-2">
-                    <Button onPress={onReplace} size="sm" variant="secondary">
-                        Replace
-                    </Button>
-                    <Button
-                        onPress={() => removeBackgroundImage(theme)}
-                        size="sm"
-                        variant="danger-soft"
-                    >
-                        Remove
-                    </Button>
+                <ItemCard.Action>
+                    <Dropdown>
+                        <Button aria-label="Image actions" isIconOnly size="sm" variant="ghost">
+                            <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
+                        </Button>
+                        <Dropdown.Popover placement="bottom end">
+                            <Dropdown.Menu
+                                onAction={(key) => {
+                                    if (key === 'remove') {
+                                        removeBackgroundImage(theme);
+                                    } else {
+                                        onReplace();
+                                    }
+                                }}
+                            >
+                                <Dropdown.Item id="replace" textValue="Replace image">
+                                    <Label>Replace image</Label>
+                                </Dropdown.Item>
+                                <Dropdown.Item
+                                    id="remove"
+                                    textValue="Remove image"
+                                    variant="danger"
+                                >
+                                    <Label>Remove image</Label>
+                                </Dropdown.Item>
+                            </Dropdown.Menu>
+                        </Dropdown.Popover>
+                    </Dropdown>
                 </ItemCard.Action>
             </ItemCard>
         </ItemCardGroup>

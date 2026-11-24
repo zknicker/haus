@@ -6,6 +6,7 @@ import {
     ColorPicker,
     ColorSlider,
     ColorSwatch,
+    Label,
     parseColor,
 } from '@heroui/react';
 import { useState } from 'react';
@@ -34,43 +35,41 @@ export function ThemeColorRow({
                 <ItemCard.Title>{role.label}</ItemCard.Title>
             </ItemCard.Content>
             <ItemCard.Action>
-                <div className="flex items-center gap-2">
-                    <ColorPicker onChange={pick} value={color}>
-                        <ColorPicker.Trigger aria-label={`Pick ${role.label.toLowerCase()} color`}>
-                            <ColorSwatch size="sm" />
-                        </ColorPicker.Trigger>
-                        <ColorPicker.Popover placement="bottom end">
-                            <ColorArea
-                                aria-label={`${role.label} saturation and brightness`}
-                                className="max-w-full"
-                                colorSpace="hsb"
-                                xChannel="saturation"
-                                yChannel="brightness"
-                            >
-                                <ColorArea.Thumb />
-                            </ColorArea>
-                            <ColorSlider
-                                aria-label={`${role.label} hue`}
-                                channel="hue"
-                                colorSpace="hsb"
-                            >
-                                <ColorSlider.Track>
-                                    <ColorSlider.Thumb />
-                                </ColorSlider.Track>
-                            </ColorSlider>
-                        </ColorPicker.Popover>
-                    </ColorPicker>
-                    <ColorField
-                        aria-label={`${role.label} hex`}
-                        className="w-28"
-                        onChange={(next) => onChange(next ? toHex(next) : null)}
-                        value={stored ? parseColor(stored) : null}
-                    >
-                        <ColorField.Group variant="secondary">
-                            <ColorField.Input placeholder={effective.toUpperCase()} />
-                        </ColorField.Group>
-                    </ColorField>
-                </div>
+                <ColorPicker onChange={pick} value={color}>
+                    <ColorPicker.Trigger aria-label={`Pick ${role.label.toLowerCase()} color`}>
+                        <ColorSwatch size="sm" />
+                        <Label>{effective.toUpperCase()}</Label>
+                    </ColorPicker.Trigger>
+                    <ColorPicker.Popover placement="bottom end">
+                        <ColorArea
+                            aria-label={`${role.label} saturation and brightness`}
+                            className="max-w-full"
+                            colorSpace="hsb"
+                            xChannel="saturation"
+                            yChannel="brightness"
+                        >
+                            <ColorArea.Thumb />
+                        </ColorArea>
+                        <ColorSlider
+                            aria-label={`${role.label} hue`}
+                            channel="hue"
+                            colorSpace="hsb"
+                        >
+                            <ColorSlider.Track>
+                                <ColorSlider.Thumb />
+                            </ColorSlider.Track>
+                        </ColorSlider>
+                        <ColorField
+                            aria-label={`${role.label} hex`}
+                            onChange={(next) => onChange(next ? toHex(next) : null)}
+                            value={stored ? parseColor(stored) : null}
+                        >
+                            <ColorField.Group variant="secondary">
+                                <ColorField.Input placeholder={effective.toUpperCase()} />
+                            </ColorField.Group>
+                        </ColorField>
+                    </ColorPicker.Popover>
+                </ColorPicker>
             </ItemCard.Action>
         </ItemCard>
     );
