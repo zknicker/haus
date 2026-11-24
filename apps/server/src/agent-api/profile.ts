@@ -3,6 +3,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, serverMembershipsTable, usersTable } from '../postgres/schema.ts';
+import { readAgentHomeKey } from '../projects/agent-home.ts';
 import { writeAgentConversationStyle } from '../server-agents/agent-conversation-style.ts';
 import { assertAgentDescriptionWrite } from '../server-agents/errors.ts';
 import { AgentTargetError } from './resolve-target.ts';
@@ -59,6 +60,10 @@ export async function readAgentProfile(db: HausDatabase, runner: ResolvedRunner,
                   ...profile,
                   conversationStyle: agent.conversationStyle,
                   isSelf: true,
+                  projectKey: await readAgentHomeKey(db, {
+                      agentId: agent.id,
+                      serverId: runner.serverId,
+                  }),
                   signatureEmoji: agent.signatureEmoji,
               },
           }

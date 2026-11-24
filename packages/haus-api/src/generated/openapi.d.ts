@@ -2107,6 +2107,8 @@ export interface components {
             isSelf: boolean;
             /** @description Present only on the caller's own profile; private to the Agent and its Owners and Admins. */
             conversationStyle?: string | null;
+            /** @description Present only on the caller's own profile when it is read. The key of the Agent's home Project, which names its Drive folder `projects/<key>/`. */
+            projectKey?: string;
             /** @description Present only on the caller's own profile. Null means the default pickup reaction. */
             signatureEmoji?: string | null;
         };

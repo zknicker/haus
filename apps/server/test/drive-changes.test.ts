@@ -32,7 +32,12 @@ afterAll(async () => {
 test('drive.changes from any counter returns exactly the paths changed since, tombstones included, and finishes under continuous writes', async () => {
     const orbit = `agent:${fixture.orbitAgentId}`;
     const fresh = await changes({});
-    expect(fresh.areas).toEqual(
+    const projects = fresh.areas.filter((area) => area.area.startsWith('project:'));
+    const seeded = Object.fromEntries(projects.map((area) => [area.area, area.counter]));
+    expect(
+        fresh.changes.map((change) => [change.area, change.path.replace(/^projects\/[^/]+\//u, '')])
+    ).toEqual(projects.flatMap((area) => (area.counter > 0 ? [[area.area, 'AGENTS.md']] : [])));
+    expect(fresh.areas.filter((area) => !area.area.startsWith('project:'))).toEqual(
         [
             { area: 'haus', counter: 0, root: 'haus' },
             { area: orbit, counter: 0, root: 'agents/orbit' },
@@ -40,7 +45,6 @@ test('drive.changes from any counter returns exactly the paths changed since, to
             { area: `agent:${fixture.coveAgentId}`, counter: 0, root: 'agents/cove' },
         ].sort((left, right) => (left.area < right.area ? -1 : 1))
     );
-    expect(fresh.changes).toEqual([]);
 
     const a = await publish({ path: 'haus/notes/a.md', body: 'a1' });
     const a2 = await publish({ base: a.revision_id, body: 'a2', path: 'haus/notes/a.md' });
@@ -52,8 +56,9 @@ test('drive.changes from any counter returns exactly the paths changed since, to
     await move('haus/notes/a.md', 'haus/notes/c.md');
     await move('haus/notes/c.md', 'agents/orbit/c.md');
 
-    const all = await changes({});
+    const all = await changes({ since: seeded });
     expect(all.until).toEqual({
+        ...seeded,
         [`agent:${fixture.coveAgentId}`]: 0,
         [`agent:${fixture.peerAgentId}`]: 0,
         haus: 7,
@@ -89,7 +94,7 @@ test('drive.changes from any counter returns exactly the paths changed since, to
         size_bytes: null,
     });
 
-    const middle = await changes({ since: { haus: 4, [orbit]: 1 } });
+    const middle = await changes({ since: { ...seeded, haus: 4, [orbit]: 1 } });
     expect(middle.changes.map(brief)).toEqual([
         ['haus', 5, 'haus/notes/a.md', 'delete', null],
         ['haus', 7, 'haus/notes/c.md', 'delete', null],

@@ -62,9 +62,18 @@ An area is identified by `driveAreaIdSchema` (`packages/haus-api/src/drive.ts`).
 or the Agent's handle, and the Server maps a path to its area by that prefix.
 
 Every live path sits in an area. Its first segment is `haus`, `projects`, or `agents`. A path under
-`projects/` names a live Project's key, and a path under `agents/` names one of the Server's
-Agents, active or retired. No file sits directly in `projects/` or `agents/`. Any other path is
-`INVALID_PATH`. Projects arrive with ADR 0055, so `projects/` holds nothing until then.
+`projects/` names one of the Server's Projects by its key, archived and deleted ones included so
+their files stay reachable, and a path under `agents/` names one of the Server's Agents, active or
+retired. A key compares without case, and the folder takes the key's own spelling
+(`projects/ops/a.md` lands as `projects/OPS/a.md`). A key no Project holds is `INVALID_PATH`
+naming the key. No file sits directly in `projects/` or `agents/`. Any other path is
+`INVALID_PATH`.
+
+Creating a Project writes `projects/<key>/AGENTS.md`, a `# <name> rules` heading, as Haus, after
+the create commits and never over a file already there (`seedProjectRules` in
+`apps/server/src/projects/project-rules.ts`). Changing a Project's key moves its folder to
+`projects/<new key>/` in the same transaction: paths only, deleted files included, with a delete
+and a put in the Project's area for each live file, as a move records them.
 
 A write stores the area prefix in its canonical spelling, so `HAUS/a.md` lands as `haus/a.md` and
 `Agents/ORBIT/a.md` as `agents/orbit/a.md`. A handle compares without case. Handles are unique only
@@ -137,9 +146,10 @@ Each revision records four facts.
 - `author` is the writer. It is `{ type: 'agent', agent_id }`, `{ type: 'user', user_id }`,
   `{ type: 'worker', worker_id, agent_id }`, or `{ type: 'haus' }`. The Worker variant lands with
   Workers (W2). Haus is the author of the factory-managed skills it seeds into each Agent's
-  area ([Skills](skills.md#managed-skills)). A Haus revision stores author key `haus` with no
-  Agent or person column, and a file Haus creates names the Agent whose area holds it as its
-  `creator`, so `creator` stays an Agent or a person for deployed CLIs.
+  area ([Skills](skills.md#managed-skills)) and of each new Project's `AGENTS.md`. A Haus revision
+  stores author key `haus` with no Agent or person column, and a file Haus creates names an Agent
+  or a person as its `creator`, so `creator` stays an Agent or a person for deployed CLIs: the
+  Agent whose area holds a skill, and the person who created a Project for its `AGENTS.md`.
 - `task_id` is the Task the write was for, or null. A push names its run, and the Server takes the
   Task from that run. That is the Task whose chat the run answered in, or the Task a
   `task_assignment` run carried. A Worker's write takes the Worker's Task. A person's write, and an
@@ -431,7 +441,8 @@ The v1 Drive page replaces the Files page and keeps its library, viewer, and act
   days (`artifact.listDeleted`) with Restore.
 - A person's save carries its base. A failed merge refuses the save and opens Compare between the
   person's text and `current`, because the person is there to resolve it.
-- The Agent page links the Agent's `AGENTS.md`, `WORKER.md`, and `MEMORY.md`.
+- The Agent page links the Agent's `AGENTS.md`, `WORKER.md`, and `MEMORY.md`, and a Project's
+  settings page links its `AGENTS.md` (its folder when the file is missing).
 
 The page stays live through `artifact.onUpdated`. Drive adds no subscription, and machines
 subscribe to nothing.

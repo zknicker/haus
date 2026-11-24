@@ -32,6 +32,8 @@ test('the first turn inlines the rule stack in order, and a later turn carries W
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const handle = await agentHandle(board);
     const haus = await publish(board, 'haus/AGENTS.md', 'Haus rules.');
+    const projectKey = board.task.key.split('-')[0];
+    const project = await publish(board, `projects/${projectKey}/AGENTS.md`, 'Project rules.');
     const workerMd = await publish(board, `agents/${handle}/WORKER.md`, 'Worker rules v1.');
     const scope = { computerId: board.seed.computerId, serverId: board.seed.serverId };
 
@@ -48,6 +50,7 @@ test('the first turn inlines the rule stack in order, and a later turn carries W
     const firstInput = first?.type === 'worker-turn-start' ? first.input : '';
     expect(sectionHeads(firstInput)).toEqual([
         `## haus/AGENTS.md (revision ${haus})`,
+        `## projects/${projectKey}/AGENTS.md (revision ${project})`,
         `## agents/${handle}/WORKER.md (revision ${workerMd})`,
         `## Brief from @${handle}`,
     ]);

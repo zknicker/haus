@@ -3,7 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { ArtifactAccess } from '../artifacts/access.ts';
 import { ArtifactError } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable } from '../postgres/schema.ts';
+import { agentsTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
 
 export interface DriveArea {
     area: DriveAreaId;
@@ -68,8 +68,10 @@ export async function serverDriveAreas(db: HausDatabase, serverId: string) {
         .select({ handle: agentsTable.handle, id: agentsTable.id })
         .from(agentsTable)
         .where(eq(agentsTable.serverId, serverId));
+    const projects = await projectKeys(db, serverId);
     const areas: DriveArea[] = [
         { area: 'haus', root: 'haus' },
+        ...projects.map((project) => projectArea(project)),
         ...agents.map((agent) => agentArea(agent)),
     ];
     return areas.sort((left, right) => byteOrder(left.area, right.area));
@@ -93,13 +95,22 @@ async function placeInArea(tx: HausDatabase, serverId: string, path: string, sha
         }
         return placement(agentArea(agent), segments, 2, shape, path);
     }
-    if (folder === 'agents') {
-        throw invalidPath(
-            `\`${path}\` sits directly in \`agents/\`. Agent files live in \`agents/<handle>/\`.`
-        );
+    if (
+        folder === 'projects' &&
+        second !== undefined &&
+        (segments.length > 2 || shape === 'folder')
+    ) {
+        const [project] = await projectKeys(tx, serverId, second);
+        if (!project) {
+            throw invalidPath(`No Project has the key \`${second}\`, so \`${path}\` has no area.`);
+        }
+        return placement(projectArea(project), segments, 2, shape, path);
     }
-    if (folder === 'projects') {
-        throw invalidPath(`\`${path}\` names no Project. \`projects/\` holds nothing yet.`);
+    if (folder === 'agents' || folder === 'projects') {
+        const inside = folder === 'agents' ? 'agents/<handle>/' : 'projects/<key>/';
+        throw invalidPath(
+            `\`${path}\` sits directly in \`${folder}/\`. Its files live in \`${inside}\`.`
+        );
     }
     throw invalidPath(
         `\`${path}\` is outside Drive's areas. Paths start with \`haus/\`, \`projects/<key>/\`, or \`agents/<handle>/\`.`
@@ -137,6 +148,31 @@ async function agentByHandle(tx: HausDatabase, serverId: string, handle: string)
         .orderBy(sql`${agentsTable.retiredAt} desc nulls first`)
         .limit(1);
     return agent;
+}
+
+async function projectKeys(tx: HausDatabase, serverId: string, key?: string) {
+    return await tx
+        .select({ id: projectsTable.chatId, key: taskKeysTable.key })
+        .from(projectsTable)
+        .innerJoin(
+            taskKeysTable,
+            and(
+                eq(taskKeysTable.serverId, projectsTable.serverId),
+                eq(taskKeysTable.id, projectsTable.taskKeyId)
+            )
+        )
+        .where(
+            and(
+                eq(projectsTable.serverId, serverId),
+                key === undefined
+                    ? undefined
+                    : eq(sql`lower(${taskKeysTable.key})`, artifactPathKey(key))
+            )
+        );
+}
+
+function projectArea(project: { id: string; key: string }) {
+    return { area: `project:${project.id}`, root: `projects/${project.key}` } satisfies DriveArea;
 }
 
 function agentArea(agent: { handle: string; id: string }) {
