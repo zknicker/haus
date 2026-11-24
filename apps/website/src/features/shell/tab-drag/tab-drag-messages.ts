@@ -3,6 +3,7 @@ import type { TabDragMessage } from '../../../lib/desktop-tab-drag.ts';
 import { measureBand, typicalTabWidth } from './tab-band-dom.ts';
 import type { TabDragDeps, TabDragEngine } from './tab-drag-engine.ts';
 import { resolveSlot, type Slot } from './tab-drag-geometry.ts';
+import type { TabDragState } from './tab-drag-machine.ts';
 import { slotTarget } from './tab-drag-projection.ts';
 
 /**
@@ -18,7 +19,7 @@ export function handleTabDragMessage(
     report: () => void
 ) {
     const state = engine.state();
-    const relayed = state.phase === 'attached' && state.owner === 'relay';
+    const relayed = isRelayed(state);
     switch (message.kind) {
         case 'attach': {
             const bundle = parseTabBundle(message.bundle);
@@ -75,4 +76,10 @@ export function handleTabDragMessage(
             report();
             return;
     }
+}
+
+function isRelayed(
+    state: TabDragState
+): state is Extract<TabDragState, { phase: 'attached' | 'detaching' }> {
+    return (state.phase === 'attached' || state.phase === 'detaching') && state.owner === 'relay';
 }

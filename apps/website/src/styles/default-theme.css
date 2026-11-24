@@ -720,6 +720,10 @@
         pointer-events: none;
     }
 
+    .workspace-tab-drag-layer:empty {
+        display: none;
+    }
+
     .workspace-tab-drag-layer > .workspace-tab {
         position: absolute;
         top: 0;

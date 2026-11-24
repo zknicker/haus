@@ -28,8 +28,14 @@ export function HomeComposer({
     const [text, setText] = React.useState('');
     const [projectId, setProjectId] = React.useState(initialProjectId);
     const [pickedCaptainId, setPickedCaptainId] = React.useState<string | null>(null);
-    const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
-    const focusPrompt = React.useCallback(() => textAreaRef.current?.focus(), []);
+    const composerRef = React.useRef<HTMLDivElement>(null);
+    const focusPrompt = React.useCallback(
+        () =>
+            composerRef.current
+                ?.querySelector<HTMLTextAreaElement>('[data-slot="prompt-input-textarea"]')
+                ?.focus(),
+        []
+    );
     useHomePromptFocusRequests(focusPrompt);
 
     const project = projects.find((entry) => entry.id === projectId) ?? projects[0];
@@ -44,7 +50,7 @@ export function HomeComposer({
             : null;
 
     return (
-        <div className="home-composer flex w-full flex-col gap-2">
+        <div className="home-composer flex w-full flex-col gap-2" ref={composerRef}>
             <div className="flex items-center gap-1">
                 <ProjectPicker
                     onChange={(id) => {
@@ -77,10 +83,15 @@ export function HomeComposer({
                             aria-label="Ask a Captain"
                             autoFocus
                             placeholder={`Ask ${captain?.displayName ?? 'a Captain'} anything`}
-                            ref={textAreaRef}
                         />
                     </PromptInput.Content>
-                    <PromptInput.Toolbar>
+                    <PromptInput.Toolbar
+                        onClick={(event) => {
+                            if (event.target === event.currentTarget) {
+                                focusPrompt();
+                            }
+                        }}
+                    >
                         <PromptInput.ToolbarEnd>
                             <PromptInput.Send aria-label="Send" isDisabled={!ask} />
                         </PromptInput.ToolbarEnd>

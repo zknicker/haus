@@ -163,6 +163,24 @@ test('a relayed tab rides another window, lands on its drop, and never ends the 
     expect(stepTabDrag(relayed.state, { kind: 'withdrawn' }).effects).toEqual([]);
 });
 
+test('a relayed tab released while its detach is in flight lands and frees the window', () => {
+    const pulled = play(
+        {
+            grab: { x: 20, y: 10 },
+            kind: 'attach',
+            point: { x: 120, y: 10 },
+            slot: { index: 1, row: 'primary' },
+            tabIds: ['x'],
+        },
+        move(120, 90),
+        { kind: 'release' }
+    );
+    expect(pulled.state.phase).toBe('detaching');
+    const refused = stepTabDrag(pulled.state, { kind: 'detach-refused' });
+    expect(refused.effects[0]).toMatchObject({ kind: 'commit', tabIds: ['x'] });
+    expect(refused.state).toEqual(idleTabDrag);
+});
+
 test('a detached drag ends on release or Escape and tears down', () => {
     const detached = play(press, move(30), move(30, 70), { keepsTab: false, kind: 'detached' });
     expect(stepTabDrag(detached.state, { kind: 'cancel' }).effects).toEqual([
