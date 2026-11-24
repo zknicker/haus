@@ -1069,10 +1069,11 @@
      * The Settings rail is a list to scan, so it runs tighter than the chat
      * sidebar: a ~26px row pitch, Capy's, against the chat sidebar's ~30px. Zach chose
      * Settings-only density (2026-11-22), so the chat sidebar keeps its rows.
-     * HeroUI sizes a row ×9 tall with ×1.5 block padding and a search field
-     * `h-9`; the rail takes ×7.5 and ×0.75 for both, and its group labels lose
-     * a step of block padding to match. Inline insets stay stock, so icons and
-     * labels keep their columns.
+     * HeroUI sizes a row ×9 tall with ×1.5 block padding; the rail takes ×7.5
+     * and ×0.75, and its group labels lose a step of block padding to match.
+     * Its search field keeps HeroUI's height, the app's field height (Zach,
+     * 2026-11-24). Inline insets stay stock, so icons and labels keep their
+     * columns.
      */
     .settings-rail {
         --settings-rail-row: calc(var(--spacing) * 7.5);
@@ -1085,10 +1086,6 @@
 
     .settings-rail .sidebar__group-label {
         padding-block: var(--spacing);
-    }
-
-    .settings-rail .search-field__group {
-        height: var(--settings-rail-row);
     }
 
     /*

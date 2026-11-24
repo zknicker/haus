@@ -1035,8 +1035,8 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   only when the groups mean something. The page title, section headings, page-level search
   fields, tables and card edges share the column's one left edge; row text keeps its inset
   inside the card. The Settings rail runs a ~26px row pitch against the chat sidebar's ~30px:
-  one `.settings-rail` override in `default-theme.css` sizes its rows, group labels and search
-  field (Zach chose Settings-only density, 2026-11-22; reaffirmed 2026-11-24 after one shared
+  one `.settings-rail` override in `default-theme.css` sizes its rows and group labels, while its
+  search field keeps the app's field height (Zach chose Settings-only density, 2026-11-22; reaffirmed 2026-11-24 after one shared
   density read cramped in the chat sidebar). Every sidebar's nav icons draw at 16px in a 16px
   slot, at a 2-unit Hugeicons stroke (~1.33px, Capy's weight) and in their label's ink; the
   rail's search glyph is a Hugeicons `Search01Icon` on the same x-axis and stroke
