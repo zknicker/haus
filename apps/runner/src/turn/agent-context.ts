@@ -1,6 +1,6 @@
 import { type RuleFile, ruleLayerPaths } from '@haus/agent-prompt';
 import type { RunAuthority } from '../run-context.ts';
-import { readAgentHandle, readDriveText, readSkillListing } from './agent-drive.ts';
+import { readAgentProfile, readDriveText, readSkillListing } from './agent-drive.ts';
 import { readManagedSkillNotice } from './managed-skill-notice.ts';
 
 interface ContextReader {
@@ -9,19 +9,20 @@ interface ContextReader {
 }
 
 export async function readAgentContext(input: ContextReader) {
-    const handle = await readAgentHandle(input.authority).catch((error: unknown) => {
-        input.log(`Runner could not read the Agent's handle: ${String(error)}`);
+    const profile = await readAgentProfile(input.authority).catch((error: unknown) => {
+        input.log(`Runner could not read the Agent's profile: ${String(error)}`);
         return null;
     });
-    if (!handle) {
+    if (!profile) {
         return { memory: null, rules: [], skillNotice: null, skills: [] };
     }
+    const { handle } = profile;
     const [memory, rules, skills, skillNotice] = await Promise.all([
         readDriveText(input.authority, `agents/${handle}/MEMORY.md`).catch((error: unknown) => {
             input.log(`Runner could not read ${handle}'s MEMORY.md: ${String(error)}`);
             return null;
         }),
-        readRuleFiles(input, handle),
+        readRuleFiles(input, ruleLayerPaths(profile)),
         readSkillListing(input.authority, handle).catch((error: unknown) => {
             input.log(`Runner could not list ${handle}'s skills: ${String(error)}`);
             return [];
@@ -34,9 +35,9 @@ export async function readAgentContext(input: ContextReader) {
     return { memory, rules, skillNotice, skills };
 }
 
-async function readRuleFiles(input: ContextReader, handle: string) {
+async function readRuleFiles(input: ContextReader, paths: readonly string[]) {
     const files = await Promise.all(
-        ruleLayerPaths(handle).map((path) =>
+        paths.map((path) =>
             readDriveText(input.authority, path).then(
                 (content) => {
                     const file: RuleFile = { content, path };

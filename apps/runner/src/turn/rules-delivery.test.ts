@@ -18,15 +18,17 @@ import { readAgentSession, resolveTurnSession, writeAgentSession } from './sessi
 afterEach(drainCleanups);
 
 const hausRules = 'haus/AGENTS.md';
+const projectRules = 'projects/PROD/AGENTS.md';
 const agentRules = 'agents/blippy/AGENTS.md';
 const header = (path: string) =>
     `The rules in ${path}, as they are now. Follow them. Haus puts them here whenever they changed since this session last saw them.`;
 
-test('a fresh session receives the Haus rules, then its own, then its memory', async () => {
+test('a fresh session receives the Haus, home Project, and own rules, then its memory', async () => {
     const { server, turn } = await agentDrive({
         'agents/blippy/MEMORY.md': '# Memory\n- R3 ships Friday.\n',
         [agentRules]: '- Post release notes in #product.\n',
         [hausRules]: '# Haus\n- Answer in the Task.\n',
+        [projectRules]: '# product rules\n- Ship behind a flag.\n',
     });
 
     expect(await turn(false)).toBe(
@@ -36,6 +38,13 @@ test('a fresh session receives the Haus rules, then its own, then its memory', a
             '',
             '# Haus',
             '- Answer in the Task.',
+            '</haus-rules>',
+            '',
+            '<haus-rules>',
+            header(projectRules),
+            '',
+            '# product rules',
+            '- Ship behind a flag.',
             '</haus-rules>',
             '',
             '<haus-rules>',
@@ -69,6 +78,10 @@ test('a fresh session receives the Haus rules, then its own, then its memory', a
             `Bearer ${runCredential}`,
         ],
         ['/api/agent/artifacts/by-path?path=haus%2FAGENTS.md', `Bearer ${runCredential}`],
+        [
+            '/api/agent/artifacts/by-path?path=projects%2FPROD%2FAGENTS.md',
+            `Bearer ${runCredential}`,
+        ],
     ]);
 });
 
@@ -115,7 +128,7 @@ test('a rules file deleted mid-session is announced once', async () => {
 
 async function agentDrive(initial: Record<string, string>) {
     const files = new Map(Object.entries(initial));
-    const server = serverStandIn(driveRoutes('blippy', files));
+    const server = serverStandIn(driveRoutes('blippy', files, 'PROD'));
     const agentDir = await mkdtemp(join(tmpdir(), 'haus-runner-rules-'));
     cleanups.push(() => rm(agentDir, { force: true, recursive: true }));
     return { files, server, turn: (isResume: boolean) => runnerTurn(server, agentDir, isResume) };

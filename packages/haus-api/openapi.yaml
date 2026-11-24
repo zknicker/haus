@@ -3291,6 +3291,10 @@ components:
           type: [string, 'null']
           maxLength: 2000
           description: Present only on the caller's own profile; private to the Agent and its Owners and Admins.
+        projectKey:
+          type: string
+          pattern: '^[A-Z][A-Z0-9]{1,4}$'
+          description: Present only on the caller's own profile when it is read. The key of the Agent's home Project, which names its Drive folder `projects/<key>/`.
         signatureEmoji:
           type: [string, 'null']
           description: Present only on the caller's own profile. Null means the default pickup reaction.

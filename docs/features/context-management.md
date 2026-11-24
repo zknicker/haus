@@ -40,8 +40,9 @@ model session. Per-turn message delivery is an inbox concern; see
   ([ADR 0052](../adr/0052-memory-is-one-capped-file-and-heartbeats-retire.md),
   [Agent Workspace](../../specs/workspace.md#memory)). The Agent reads any other notes it needs
   itself.
-- The rule layers arrive the same way, ahead of `MEMORY.md`: `drive/haus/AGENTS.md`, then the
-  Agent's own `drive/agents/<handle>/AGENTS.md`, each in a `<haus-rules>` block when its content
+- The rule layers arrive the same way, ahead of `MEMORY.md`: `drive/haus/AGENTS.md`, then its
+  home Project's `drive/projects/<key>/AGENTS.md`, then the Agent's own
+  `drive/agents/<handle>/AGENTS.md`, each in a `<haus-rules>` block when its content
   differs from what this session last received, and a deleted layer is announced once
   ([ADR 0054](../adr/0054-drive-holds-what-agents-know-and-follow.md) decision 7). The change test
   is `planRulesDelivery` in `@haus/agent-prompt`, shared with the runner; the Computer reads the
@@ -115,7 +116,7 @@ and other prompt text is never cut just to make room. Raft-verbatim text is neve
 AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
 
 Durable Agent knowledge lives in the Agent's Drive area (`MEMORY.md`, notes and
-skills). Only `MEMORY.md` and the two `AGENTS.md` rule layers reach the turn input, and only
+skills). Only `MEMORY.md` and the three `AGENTS.md` rule layers reach the turn input, and only
 when they changed. Agents
 read older canonical Chat history through the `haus` CLI when inbox delivery is
 insufficient.
