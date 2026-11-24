@@ -170,14 +170,19 @@ The Server keeps the request in `agent_machine_changes` and moves it a step at a
    Computer pushes the folder under that id and closes the push even when nothing changed
    (`flushDriveForRun`), and the close is what tells the Server the folder reached Drive. The
    change switches only then. A flush with any file that failed sends no close, so it stays
-   pending until a resend lands every file. A flush that has not closed in two minutes, or whose Machine
+   pending until a resend lands every file. The resend first closes the open push it left behind,
+   and treats one the Server never created (a file refused before the push opened) as already
+   gone. A flush that has not closed in two minutes, or whose Machine
    reconnects, is sent again under a new id. Conflicts follow the ordinary push rules.
 3. **Old Machine offline.** The person waits, and the Agent keeps working with no Machine to sync
    until the old one reconnects and flushes; or they move from the last synced revision, which
    switches at once and leaves unpushed edits in the old folder, unmerged. Removing a Device moves
    its Agents this way. A reminder script the old Machine was sent and never answered is fenced:
    its fire is marked failed, its late result is refused, and it does not rerun on the new
-   Machine. A script fire never sent anywhere replays there.
+   Machine. A script fire never sent anywhere replays there. A fire is bound to a Computer under
+   the Server row lock that switches take, and only to the Agent's current Machine at its current
+   generation (`claimReminderScript`). Fires already pending when migration 0157 ran count as
+   sent to their Agent's Computer.
 4. **Switch.** `agents.computer_id` changes and `agents.placement_generation` goes up by one. A
    run records its generation in `agent_run_triggers`, a push in `drive_pushes`, and a push opened
    for a run of an older generation is refused `AGENT_MOVED`, like a push from before a full reset.
