@@ -44,16 +44,11 @@ export function ProjectHeader({ chat, project }: { chat: Chat; project: Project 
                 />
                 <SettingsPageHeader
                     meta={
-                        <span className="flex items-center gap-1.5">
-                            <Chip size="sm" variant="soft">
-                                <Chip.Label>{project.key}</Chip.Label>
+                        chat.archivedAt ? (
+                            <Chip color="warning" size="sm" variant="soft">
+                                <Chip.Label>Archived</Chip.Label>
                             </Chip>
-                            {chat.archivedAt ? (
-                                <Chip color="warning" size="sm" variant="soft">
-                                    <Chip.Label>Archived</Chip.Label>
-                                </Chip>
-                            ) : null}
-                        </span>
+                        ) : undefined
                     }
                     title={`#${project.name}`}
                 />

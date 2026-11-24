@@ -1,11 +1,12 @@
-import { EmptyState, ListView } from '@heroui-pro/react';
+import { ListView } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
-import { Icon } from '../../../components/ui/icon.tsx';
+import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { useArchivedChats } from '../../../hooks/servers/use-archived-chats.ts';
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';
+import { SettingsEmptyState } from '../../settings/layout/settings-empty.tsx';
 import { SettingsPageColumn } from '../../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../../settings/layout/settings-page-header.tsx';
 import { serverChatRoute } from '../server-routes.ts';
@@ -29,17 +30,11 @@ export function ArchivedChatsPage({
                     <span className="sr-only">Loading archived chats</span>
                 </div>
             ) : items.length === 0 ? (
-                <EmptyState>
-                    <EmptyState.Header>
-                        <EmptyState.Media variant="icon">
-                            <Icon aria-hidden="true" icon={ArchiveIcon} />
-                        </EmptyState.Media>
-                        <EmptyState.Title>No archived chats</EmptyState.Title>
-                        <EmptyState.Description>
-                            Archived chats stay readable and can be restored here.
-                        </EmptyState.Description>
-                    </EmptyState.Header>
-                </EmptyState>
+                <SettingsEmptyState
+                    description="Archived chats stay readable and can be restored here."
+                    icon={ArchiveIcon}
+                    title="No archived chats"
+                />
             ) : (
                 <ListView
                     aria-label="Archived chats"
@@ -50,7 +45,7 @@ export function ArchivedChatsPage({
                     {(chat) => (
                         <ListView.Item id={chat.id} textValue={chat.name ?? 'channel'}>
                             <ListView.ItemContent>
-                                <Icon aria-hidden="true" icon={ArchiveIcon} />
+                                <ChannelIconBox color={chat.color} icon={chat.icon} size="topbar" />
                                 <div className="flex min-w-0 flex-col">
                                     <ListView.Title>#{chat.name}</ListView.Title>
                                     <ListView.Description>
@@ -82,7 +77,11 @@ export function ArchivedChatsPage({
                     )}
                 </ListView>
             )}
-            {chats.error ? <p className="text-danger text-sm">{chats.error.message}</p> : null}
+            {chats.error || unarchive.error ? (
+                <p className="text-danger text-sm" role="alert">
+                    {chats.error?.message ?? unarchive.error?.message}
+                </p>
+            ) : null}
         </SettingsPageColumn>
     );
 }

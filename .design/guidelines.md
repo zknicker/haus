@@ -1002,22 +1002,15 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
 - **Settings rows:** Settings pages are stock `ItemCardGroup` lists of `ItemCard` rows, following
   HeroUI Pro's anatomy: a group's `Header` carries its `Title` (and any group-wide
   `Description`); a row carries `Title`, an optional `Description`, and its control or
-  `SettingsFact` in `Action`. Rows are title-only by default. A row that needs explaining puts
-  it in an info tooltip on the title (`SettingsRowTitle`), not a paragraph. A group uses
-  `ItemCard.Description` only when every row in it has a real one — the row's identifying
-  fact in a list (a Server's address, an invitation's status), never filler — because a
-  mixed group stacks rows of two heights. Status and metadata about a control (a catalog's
-  freshness, a connected state the section title already states) never take a row
-  description; they go in that row's info tooltip. The only lines that may break a row's
-  shape are `SettingsRowWarning` and `SettingsRowError`, since the taller row is the alarm.
-  On a page that follows the settings copy rules below (the Device page first), a row may carry
+  `SettingsFact` in `Action`. Rows are title-only by default. A row may carry
   one static description that says what the setting does ("Captains that can run tools on this
   Mac.", "Lets those Captains see the screen and use apps."). It never changes with the value
   (Zach, 2026-11-24, reversing the 2026-11-23 value-describing exception). State ("Not granted")
   and factual detail (an account email, a vault, a browser name) are not descriptions and may
-  change.
-- **Settings copy rules:** The Device page follows these first (2026-11-24); the other Settings
-  pages move to them later, and until then keep the status-chip rule under Settings rows.
+  change. Explanations go in that description, not behind an info icon on the title. Besides
+  the description, the only lines that may break a row's shape are `SettingsRowWarning` and
+  `SettingsRowError`, since the taller row is the alarm.
+- **Settings copy rules:** Every Settings page follows these (the Device page first, 2026-11-24).
   1. One control per row. Give each settings row one `Switch`, `Select`, `Button`, or •••
      menu; never place two controls side by side.
   2. Use `Switch` for booleans. Reserve `Select` for three or more choices; on/off settings use
@@ -1056,10 +1049,10 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   theme", "Add account"), never an icon-only `+`, a ghost button, or an add row at the foot
   of the list; a section's count is a muted tabular number after its title, behind an
   `sr-only` space; a row's leading mark is a bare `EntityAvatar` as the `ItemCard`'s first
-  child (brand tiles keep `ItemCard.Icon` with `ConnectionGlyph`); a row's status is
-  `SettingsStatusTitle` with `SettingsStatusChip`s (soft, `sm`, `Chip.Label`), never a chip
-  in `Action`, a description, or a bare fact, and what that status means goes in its `info`
-  tooltip; every info tooltip is `SettingsInfo` (ghost `sm`, 16px glyph); a disclosure's
+  child (brand tiles keep `ItemCard.Icon` with `ConnectionGlyph`); a row without an action
+  shows a problem as `SettingsStatusTitle` with `SettingsStatusChip`s (soft, `sm`,
+  `Chip.Label`), never a chip in `Action`, and shows nothing when healthy (copy rule 4);
+  every info tooltip is `SettingsInfo` (ghost `sm`, 16px glyph); a disclosure's
   trigger is a ghost `sm` Button with `slot="trigger"`; a settings row's picker is a
   `Select variant="secondary"` at its group's control width, never `InlineSelect`; a record
   page (a Device, a connection) titles itself with `SettingsPageHeader` and puts its •••

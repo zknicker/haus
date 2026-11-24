@@ -1,7 +1,6 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Switch } from '@heroui/react';
 import { useServerIdleCompaction } from '../../../hooks/servers/use-server-idle-compaction.ts';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 
 /**
  * Server-wide Agent settings. Every member sees them; only an Owner flips them. The switch
@@ -18,9 +17,10 @@ export function AgentSettingsGroup({ isOwner, serverId }: { isOwner: boolean; se
             <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
-                        <SettingsRowTitle info="Before an idle Claude Code session's one-hour prompt cache expires, compact it so the next turn resumes from a summary instead of the full history.">
-                            Idle compaction
-                        </SettingsRowTitle>
+                        <ItemCard.Title>Idle compaction</ItemCard.Title>
+                        <ItemCard.Description className="whitespace-normal">
+                            Summarizes an idle Claude Code session before its prompt cache expires.
+                        </ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>
                         {idleCompaction.enabled === null ? null : (

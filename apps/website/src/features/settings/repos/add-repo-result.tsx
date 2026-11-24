@@ -47,9 +47,11 @@ export function AddRepoResult({
                             <ItemCard.Content>
                                 <SettingsStatusTitle
                                     status={
-                                        <SettingsStatusChip color={chip.color}>
-                                            {chip.label}
-                                        </SettingsStatusChip>
+                                        access.status === 'ready' ? null : (
+                                            <SettingsStatusChip color={chip.color}>
+                                                {chip.label}
+                                            </SettingsStatusChip>
+                                        )
                                     }
                                 >
                                     {added.repository}

@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
 import { ComputerIcon, LaptopIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { deviceGroups, deviceMark, deviceStatusLine } from './device-list-model.ts';
+import { deviceGroups, deviceIssue, deviceLastSeen, deviceMark } from './device-list-model.ts';
 
 const now = Date.parse('2026-11-23T12:00:00Z');
 
-function device(overrides: Partial<Parameters<typeof deviceStatusLine>[0]> = {}) {
+function device(overrides: Partial<Parameters<typeof deviceLastSeen>[0]> = {}) {
     return {
         attachedByCurrentUser: true,
         health: 'healthy' as const,
@@ -14,15 +14,27 @@ function device(overrides: Partial<Parameters<typeof deviceStatusLine>[0]> = {})
     };
 }
 
-test('an online device says only that it is online', () => {
-    expect(deviceStatusLine(device(), now)).toBe('Online');
-    expect(deviceStatusLine(device({ health: 'update-required' }), now)).toBe('Update required');
+test('a healthy device is quiet; any other health is an issue to show', () => {
+    expect(deviceIssue(device())).toBeNull();
+    expect(deviceLastSeen(device(), now)).toBeNull();
+    expect(deviceIssue(device({ health: 'update-required' }))).toEqual({
+        color: 'warning',
+        label: 'Update required',
+    });
+    expect(deviceIssue(device({ health: 'degraded' }))).toEqual({
+        color: 'warning',
+        label: 'Needs attention',
+    });
+    expect(deviceIssue(device({ health: 'offline' }))).toEqual({
+        color: 'default',
+        label: 'Offline',
+    });
 });
 
 test('an offline device says when it was last seen', () => {
-    expect(deviceStatusLine(device({ health: 'offline' }), now)).toBe('Offline · last seen 1h ago');
-    expect(deviceStatusLine(device({ health: 'offline', lastConnectedAt: null }), now)).toBe(
-        'Offline · never connected'
+    expect(deviceLastSeen(device({ health: 'offline' }), now)).toBe('Last seen 1h ago');
+    expect(deviceLastSeen(device({ health: 'offline', lastConnectedAt: null }), now)).toBe(
+        'Never connected'
     );
 });
 
