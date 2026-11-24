@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.0.0 - 2026-11-23
+
+- You can move a Captain to another Device. The Captain's profile leads **Runs on** with a Machine row that lists the Devices it may use. A move waits for the Captain's current turn, then the old Device pushes its Drive folder and the next turn runs on the new one. When the old Device is offline, choose **Wait** or **Move now**, which starts from the last synced Drive and leaves unpushed edits on the old Device. **Cancel move** stops a pending move. Worktrees and uncommitted work stay where they were. Moving back to a Device that still holds an older folder sets it aside and pulls a fresh copy instead of merging.
+- A reminder script running on the old Device finishes there before a move completes. When that Device is offline, its sent scripts are marked failed instead of running twice, and unsent ones run on the new Device.
+- **Remove device** asks for a new Machine for each Captain on it instead of refusing, and waits while one of them is mid-turn.
+- The Device page's Access section sets **Captain access** to Selected Captains, picked with **Choose Captains**, or All Captains on this Server. Only the person who attached the Device can widen it. Owners and Admins can narrow it, which stops the Captains it bars. A Captain whose Machine is the Device always has access.
+- Computer use is one switch for every Captain with access, and the per-Captain list is gone. Only the attacher can turn it on or raise the Worker limit. Owners and Admins can still turn either off or lower the limit. A Device whose old computer use list left out a Captain with access is switched off, so the attacher can turn it back on for everyone.
+- The Device page's Workers section holds **Run Workers here**, Claude Code and Codex with their sign-in status and weekly plan usage, and Cursor Cloud and Claude Cloud. A Worker can't start on a Device its Captain has no access to: the start refuses with `WORKER_PLACE_NO_ACCESS`, names the attacher and links the Access section. `haus worker places` marks those places. An Owner or Admin can create a Captain on a Device that allows All Captains.
+- The Server requires Computer protocol 49, so Server 29.0.0 and Haus Computer 26.0.0 ship together. Haus Agent 17.2.0 ships with them: `haus computer list` marks `machine` instead of `home`, tool descriptions say "your Machine", and the `computers` Manual topic explains a move and the `moved` refusal. Once the Server deploys, a 25.x Computer can't attach until you run `haus-computer upgrade`. The deploy applies migrations 0154 through 0157, which add Captain access, drop the computer use list, add Machine changes and bind pending reminder scripts to their Device. Rolling back the Server doesn't reverse them, and Server 28.x still reads the dropped computer use list, so fix forward instead. Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v29.2.1 - 2026-11-23
 
 - Haus for iPhone 13.0.3 makes the composer calm again. The grabber that dragged a draft to full height is gone, because swipes meant to dismiss the keyboard caught it. **Scroll new messages to top** is now off by default, so a sent message lands at the bottom instead of above a screen of empty space. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
