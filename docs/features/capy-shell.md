@@ -1,5 +1,5 @@
 ---
-summary: The App's shell — a sidebar of Captain tiles, the #all team room, Projects, open Tasks and People, with Home as a prompt box; where each sidebar fact comes from.
+summary: The App's shell — a sidebar of Captain tiles, Projects led by the #all team room, Tasks and People, with Home as a prompt box; where each sidebar fact comes from.
 read_when:
   - changing the sidebar, its footer, or Home (Home's background is in appearance.md)
   - changing what a sidebar row reads or shows
@@ -14,25 +14,29 @@ Inbox page in J4; there is no flag.
 ## The shell
 
 - **Sidebar.** Top to bottom: the logo (opens Home) with Search and New task at the right, then
-  Captains as avatar tiles, the #all team room, Projects, Open tasks, and People. On the web the logo and actions ride
+  Captains as avatar tiles, Projects (led by the #all team room, pinned first), Tasks, and People. On the web the logo and actions ride
   the titlebar strip; on the desktop they take the sidebar's first line, since the window band
   holds the strip.
-  - Section headers ("Captains", "Projects", "Open tasks", "People") are plain body-size labels
-    with their actions at the right, as in Capy. Clicking a label folds its section; there is no
-    caret. The logo, the section labels and the row icons share one left edge.
+  - Section headers ("Captains", "Projects", "Tasks", "People") are quiet 13px muted labels
+    whose caret and actions show on hover. Clicking a label folds its section, and a folded
+    section keeps its caret. The logo, the section labels and the row icons share one left edge.
   - Captain tiles sit under their header, the face over the name. A tile shows a dot while the
     Captain works, a danger dot when it needs attention, a muted dot while it is paused, and a
     badge for unread DM messages. A click opens your DM with that Captain; hover warms the DM and
     the Captain's record. Right-click opens the old sidebar's DM menu (open in a new tab or
     pane, View agent profile, Attachments on desktop), and People rows carry the same menu. Owners and Admins get a + that opens New Captain.
-  - #all is the team room (ADR 0059): one row of its own above Projects, never a Project, and
-    never a choice in Home's Project picker.
-  - A Project row is its mark, its name and its unread badge. The + opens New project. Projects
+  - #all is the team room (ADR 0059): pinned as the first row under Projects, outside the
+    drag order, never a Project, and never a choice in Home's Project picker.
+  - A Project row is its mark, its name and an unread dot. The + opens New project. Projects
     reorder by drag or from the keyboard (Space picks a row up, the arrows move it, Space drops),
     through the old sidebar's `SortableChannelList` and its stored order.
-  - An open Task row is one line: the state disc, the key, the title and the unread badge. When
+  - A Task row is one line: the state disc, the key, the title and an unread dot. When
     an unread message in it @mentions you, the key turns accent with a small accent dot and the
     row reads and tooltips "Waiting on you". Waiting Tasks sort first.
+  - Right-clicking a Task row opens it, opens it in a new tab on desktop, and offers the Tasks
+    page's State, Assignee and Copy reference sections (`features/tasks/task-menu-sections.tsx`).
+  - Every row keeps the unread dot's slot whether or not it is unread, so names truncate at one
+    edge down the whole sidebar.
   - People lists person-to-person DMs and appears only when you have any.
   - Alt+Down and Alt+Up open the next or previous row with unread messages, in sidebar order
     across Captains, the team room, Projects, open Tasks and People, wrapping at the ends.

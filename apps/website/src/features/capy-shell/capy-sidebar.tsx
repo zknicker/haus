@@ -13,7 +13,6 @@ import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
 import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { ListedChatNavigationRow } from '../shell/chat-navigation-row.tsx';
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
-import { sidebarActionIconSize } from '../shell/section-header.tsx';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { SortableChannelList } from '../shell/sortable-channel-list.tsx';
 import { CaptainTiles } from './captain-tiles.tsx';
@@ -117,23 +116,22 @@ function CapySidebarSectionView({
                     slug={slug}
                 />
             );
-        case 'team-room':
-            return (
-                <Sidebar.Menu aria-label="Team room">
-                    <ListedChatNavigationRow
-                        chatId={section.chatId}
-                        isCurrent={section.chatId === selection.selectedChatId}
-                        serverId={serverId}
-                        slug={slug}
-                    />
-                </Sidebar.Menu>
-            );
         case 'projects':
             return (
                 <CapySection
                     action={<AddButton label="New project" onPress={onCreateProject} />}
                     label="Projects"
                 >
+                    {section.teamRoomId ? (
+                        <Sidebar.Menu aria-label="Team room">
+                            <ListedChatNavigationRow
+                                chatId={section.teamRoomId}
+                                isCurrent={section.teamRoomId === selection.selectedChatId}
+                                serverId={serverId}
+                                slug={slug}
+                            />
+                        </Sidebar.Menu>
+                    ) : null}
                     {section.chatIds.length > 0 ? (
                         <SortableChannelList
                             channelIds={section.chatIds}
@@ -149,8 +147,8 @@ function CapySidebarSectionView({
             );
         case 'open-tasks':
             return (
-                <CapySection label="Open tasks">
-                    <Sidebar.Menu aria-label="Open tasks">
+                <CapySection label="Tasks">
+                    <Sidebar.Menu aria-label="Tasks">
                         {section.tasks.map((task) => (
                             <OpenTaskNavigationRow
                                 isCurrent={selection.pathname === taskRoute(slug, task.key)}
@@ -185,7 +183,7 @@ function CapySidebarSectionView({
 function AddButton({ label, onPress }: { label: string; onPress: () => void }) {
     return (
         <Button aria-label={label} isIconOnly onPress={onPress} size="sm" variant="ghost">
-            <Icon aria-hidden="true" icon={Add01Icon} size={sidebarActionIconSize} />
+            <Icon aria-hidden="true" icon={Add01Icon} size={16} />
         </Button>
     );
 }

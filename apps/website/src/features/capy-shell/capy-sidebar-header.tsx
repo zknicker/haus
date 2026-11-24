@@ -57,7 +57,7 @@ export function CapySidebarHeader({
     slug: string;
 }) {
     return (
-        <div className="flex h-(--app-shell-band-height) shrink-0 items-center justify-between ps-[calc(var(--spacing-compact)*3+0.5rem)] pe-[calc(var(--spacing-compact)*3)]">
+        <div className="flex h-(--app-shell-band-height) shrink-0 items-center justify-between ps-[calc(var(--spacing-compact)*3+var(--sidebar-mark-inset)+1px)] pe-[calc(var(--spacing-compact)*3)]">
             <HomeMark slug={slug} />
             <CapySidebarActions canOperate={canOperate} serverId={serverId} slug={slug} />
         </div>

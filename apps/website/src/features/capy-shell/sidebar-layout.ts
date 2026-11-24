@@ -22,8 +22,7 @@ export type CapySidebarSection =
           agentIds: readonly string[];
           kind: 'captains';
       }
-    | { chatId: string; kind: 'team-room' }
-    | { chatIds: readonly string[]; kind: 'projects' }
+    | { chatIds: readonly string[]; kind: 'projects'; teamRoomId: string | null }
     | { kind: 'open-tasks'; tasks: readonly OpenTaskSlot[] }
     | { chatIds: readonly string[]; kind: 'people' };
 
@@ -52,8 +51,7 @@ export function buildCapySidebar(sources: CapySidebarSources) {
 export function capySidebarSections(layout: CapySidebarLayout) {
     const sections: CapySidebarSection[] = [
         { agentDmChatIds: layout.agentDmChatIds, agentIds: layout.agentIds, kind: 'captains' },
-        ...(layout.teamRoomId ? [{ chatId: layout.teamRoomId, kind: 'team-room' as const }] : []),
-        { chatIds: layout.projectIds, kind: 'projects' },
+        { chatIds: layout.projectIds, kind: 'projects', teamRoomId: layout.teamRoomId },
         ...(layout.openTasks.length > 0
             ? [{ kind: 'open-tasks' as const, tasks: layout.openTasks }]
             : []),

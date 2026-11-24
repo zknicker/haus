@@ -3,7 +3,7 @@ import { Tooltip } from '@heroui/react';
 import { mergeRefs } from '@react-aria/utils';
 import * as React from 'react';
 import { useHover } from 'react-aria';
-import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
+import { UnreadDot } from '../../components/chats/unread-dot.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -13,6 +13,7 @@ import { serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { DmNavigationContextMenu } from '../shell/dm-navigation-context-menu.tsx';
 import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
 import { taskStateLabels } from '../tasks/task-state.ts';
+import { TaskNavigationContextMenu } from './task-navigation-context-menu.tsx';
 import { useOpenTaskRow, usePersonRow } from './use-capy-sidebar-rows.ts';
 
 interface RowProps {
@@ -42,24 +43,26 @@ export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
             ref={rowRef}
             textValue={`${row.key} ${row.title}`}
         >
-            <Sidebar.MenuIcon>
-                <span aria-label={taskStateLabels[row.state]} role="img">
-                    <TaskStateDisc state={row.state} />
-                </span>
-            </Sidebar.MenuIcon>
-            <Sidebar.MenuItemContent>
-                <Sidebar.MenuLabel
-                    className={cn(row.unreadCount > 0 && 'text-foreground font-medium')}
-                >
-                    {row.waitingOnYou ? (
-                        <WaitingOnYouKey taskKey={row.key} />
-                    ) : (
-                        <span className="text-muted me-1.5 tabular-nums">{row.key}</span>
-                    )}
-                    {row.title}
-                </Sidebar.MenuLabel>
-                {row.unreadCount > 0 ? <UnreadCountChip count={row.unreadCount} /> : null}
-            </Sidebar.MenuItemContent>
+            <TaskNavigationContextMenu href={href} serverId={serverId} taskId={taskId}>
+                <Sidebar.MenuIcon>
+                    <span aria-label={taskStateLabels[row.state]} role="img">
+                        <TaskStateDisc className="size-[18px]" state={row.state} />
+                    </span>
+                </Sidebar.MenuIcon>
+                <Sidebar.MenuItemContent>
+                    <Sidebar.MenuLabel
+                        className={cn(row.unreadCount > 0 && 'text-foreground font-medium')}
+                    >
+                        {row.waitingOnYou ? (
+                            <WaitingOnYouKey taskKey={row.key} />
+                        ) : (
+                            <span className="text-muted me-1.5 tabular-nums">{row.key}</span>
+                        )}
+                        {row.title}
+                    </Sidebar.MenuLabel>
+                    <UnreadDot count={row.unreadCount} />
+                </Sidebar.MenuItemContent>
+            </TaskNavigationContextMenu>
         </Sidebar.MenuItem>
     );
 });
@@ -105,7 +108,7 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
                     >
                         {row.name}
                     </Sidebar.MenuLabel>
-                    {row.unreadCount > 0 ? <UnreadCountChip count={row.unreadCount} /> : null}
+                    <UnreadDot count={row.unreadCount} />
                 </Sidebar.MenuItemContent>
             </DmNavigationContextMenu>
         </Sidebar.MenuItem>

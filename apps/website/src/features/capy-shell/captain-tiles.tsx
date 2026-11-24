@@ -14,7 +14,7 @@ import type { CaptainPresence } from './sidebar-model.ts';
 import { useCaptainTile } from './use-capy-sidebar-rows.ts';
 
 const tileAvatarSize = 38;
-const tileSize = 52;
+const tileSize = tileAvatarSize + 6;
 
 export function CaptainTiles({
     action,
@@ -36,7 +36,11 @@ export function CaptainTiles({
     return (
         <CapySection action={action} label="Captains">
             {agentIds.length > 0 ? (
-                <ul aria-label="Captains" className="flex flex-wrap gap-y-0.5 ps-0.25">
+                <ul
+                    aria-label="Captains"
+                    className="grid grid-cols-[repeat(auto-fill,var(--captain-tile))] justify-between gap-y-0.5"
+                    style={{ '--captain-tile': `${tileSize}px` } as React.CSSProperties}
+                >
                     {agentIds.map((agentId) => (
                         <li key={agentId}>
                             <CaptainTileLink

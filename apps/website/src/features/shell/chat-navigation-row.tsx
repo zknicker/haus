@@ -2,7 +2,7 @@ import { Sidebar } from '@heroui-pro/react';
 import { mergeRefs } from '@react-aria/utils';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
-import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
+import { UnreadDot } from '../../components/chats/unread-dot.tsx';
 import { type ChatNavigationEntry, useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -120,7 +120,7 @@ export function ChatNavigationRowContent({
                 >
                     {name}
                 </Sidebar.MenuLabel>
-                {chat.unreadCount > 0 ? <UnreadCountChip count={chat.unreadCount} /> : null}
+                <UnreadDot count={chat.unreadCount} />
             </Sidebar.MenuItemContent>
         </>
     );

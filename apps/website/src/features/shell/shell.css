@@ -192,13 +192,15 @@
      * 18 rather than the 24 of the marks: a filled box and an open stroke glyph
      * do not carry the same ink at the same measure, so the glyph sits well
      * under the box to weigh the same. HeroUI's 15 read light beside them and
-     * 21 read heavy in a 30px button.
+     * 21 read heavy in a 30px button. The sidebar footer's actions take the same
+     * 18, so header, Task rings and footer read as one size.
      *
      * Icon-only actions only: a button carrying text — the Server switcher, the
      * channel button — keeps its chevron at the text's rank, and ChannelIconBox
      * pins its own glyph inline so the box stays 24 with a 16 inside.
      */
-    .app-shell-band .button.button--icon-only svg:not([data-slot='spinner'] svg) {
+    .app-shell-band .button.button--icon-only svg:not([data-slot='spinner'] svg),
+    .sidebar__footer .button.button--icon-only svg:not([data-slot='spinner'] svg) {
         width: var(--app-shell-band-icon-size, 18px);
         height: var(--app-shell-band-icon-size, 18px);
     }
@@ -219,11 +221,11 @@
      * pitch continues underneath, unbroken.
      *
      * The row's box is HeroUI's `.sidebar__menu-item-content` min-height,
-     * `--spacing * 9`, read here in the sidebar's compact density scope. A
-     * text row is exactly that box; a row led by a 24px mark runs 0.7px past
-     * it, so its midline lands within half a pixel of the topbar's — the
-     * honest cost of deriving the offset from a token instead of measuring
-     * one page's row and freezing the number.
+     * `--spacing * 9`, read here in the sidebar's compact density scope. The
+     * label's line box runs the row 0.9px past that min-height, so this lands
+     * the midline within half a pixel of the topbar's rather than exactly on
+     * it — the honest cost of deriving the offset from a token instead of
+     * measuring one page's row and freezing the number.
      *
      * It is the sidebar's first navigation row that leads the column, whichever
      * page is mounted — Inbox in chat navigation, Back on the settings pages —
@@ -237,6 +239,16 @@
         [data-slot='sidebar-menu-item']:first-child {
         margin-block-start: calc(
             (var(--app-shell-band-height) - var(--spacing) * 9) / 2
+        );
+    }
+
+    /* The Settings rail's rows are shorter (`default-theme.css`), so its lead row centres on that. */
+    .app-shell
+        .settings-rail
+        > [data-slot='sidebar-group']:first-child
+        [data-slot='sidebar-menu-item']:first-child {
+        margin-block-start: calc(
+            (var(--app-shell-band-height) - var(--settings-rail-row)) / 2
         );
     }
 

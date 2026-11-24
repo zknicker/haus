@@ -31,7 +31,7 @@ test('an Agent-started Task previews under its origin, opens as a place, and clo
     await expect(preview).toBeVisible();
 
     const sidebarRow = page
-        .getByLabel('Open tasks')
+        .getByRole('treegrid', { exact: true, name: 'Tasks' })
         .getByRole('row', { exact: true, name: `${key} ${title}` });
     await expect(sidebarRow).toBeVisible();
 
