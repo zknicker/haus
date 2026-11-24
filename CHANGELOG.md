@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.1.0 - 2026-11-24
+
+- The chat sidebar has its own density again: 30px rows, while Settings keeps its compact 26px list. Project icons, section labels, Captain avatars and the Haus logo share one left edge, and each Project's icon sits evenly inside its hover highlight. Section labels are quieter, with their collapse caret and + showing on hover.
+- An unread chat or Task shows a dot instead of a count, and names cut off at the same point whether or not a row is unread. #all sits first under Projects, and Open tasks is now Tasks. Header, Task and footer icons share one size.
+- Task status icons are redrawn in one muted color: a dashed ring for Todo, a ring that fills for Open and In review, a check for Done and a cross for Canceled. When a status changes, the new icon draws itself in. Right-click a Task in the sidebar to open it, change its state or assignee, or copy its reference.
+- In Haus for Desktop, inactive tabs are clickable again instead of dragging the window, a tab dropped mid-detach no longer leaves the tab strip stuck, and clicking anywhere in Home's prompt box focuses it.
+- Server 29.1.0 ships alone. No database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.0.0 - 2026-11-23
 
 - You can move a Captain to another Device. The Captain's profile leads **Runs on** with a Machine row that lists the Devices it may use. A move waits for the Captain's current turn, then the old Device pushes its Drive folder and the next turn runs on the new one. When the old Device is offline, choose **Wait** or **Move now**, which starts from the last synced Drive and leaves unpushed edits on the old Device. **Cancel move** stops a pending move. Worktrees and uncommitted work stay where they were. Moving back to a Device that still holds an older folder sets it aside and pulls a fresh copy instead of merging.
