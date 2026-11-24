@@ -19,42 +19,43 @@ export function AgentHoverTurn({ row, title }: { row: RecentActivityRow; title: 
         status && status.kind !== 'working'
             ? `${status.kind === 'failed' ? 'Failed' : 'Interrupted'}${status.count > 1 ? ` ${status.count}×` : ''}`
             : null;
+    const primary = title.kind === 'none' ? outcome : title.kind === 'text' ? title.text : null;
+    const details = (title.kind === 'none' ? [statusLabel] : [statusLabel, title.place, outcome])
+        .filter(Boolean)
+        .join(' · ');
 
     return (
         <li className="flex min-w-0 items-center gap-2">
-            <span className="flex min-w-0 flex-1 flex-col">
-                {title.kind === 'none' ? (
-                    // Same rule as the turn list: no visible request, one outcome line.
-                    <span className="text-foreground min-w-0 truncate">{outcome}</span>
-                ) : (
-                    <>
-                        <span className="text-foreground min-h-4 min-w-0 truncate">
-                            {title.kind === 'text' ? title.text : null}
-                        </span>
-                        <span className="text-muted min-w-0 truncate">
-                            {title.place ? `${title.place} · ${outcome}` : outcome}
-                        </span>
-                    </>
-                )}
-            </span>
-            {statusLabel ? (
+            <span
+                aria-hidden="true"
+                className={`size-1.5 shrink-0 rounded-full ${statusDots[status?.kind ?? 'settled']}`}
+            />
+            <span className="text-foreground min-h-4 min-w-0 shrink truncate">{primary}</span>
+            {details ? (
                 <span
-                    className={
-                        status?.kind === 'failed' ? 'text-danger shrink-0' : 'text-warning shrink-0'
-                    }
+                    className={`min-w-0 flex-1 truncate ${status?.kind === 'failed' ? 'text-danger' : 'text-muted'}`}
                 >
-                    {statusLabel}
+                    {details}
                 </span>
-            ) : null}
-            <span className={`flex flex-col items-end ${numericColumn}`}>
+            ) : (
+                <span className="flex-1" />
+            )}
+            <span className="text-muted shrink-0 tabular-nums">
                 <TurnDuration turn={row.latest} />
-                <time dateTime={row.latest.startedAt}>
-                    {formatRelativeTime(row.latest.startedAt, now)}
-                </time>
             </span>
+            <time className={numericColumn} dateTime={row.latest.startedAt}>
+                {formatRelativeTime(row.latest.startedAt, now)}
+            </time>
         </li>
     );
 }
+
+const statusDots = {
+    failed: 'bg-danger',
+    interrupted: 'bg-warning',
+    settled: 'bg-success',
+    working: 'bg-accent',
+} as const;
 
 /** Words on the left, their length in the numeric column. */
 export function HoverTimedRow({ className, line }: { className: string; line: HoverTimedLine }) {

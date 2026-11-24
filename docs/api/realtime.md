@@ -42,7 +42,7 @@ ids and small facts, never rows.
 | `imageGeneration.onUpdated` | `useImageGenerationStream` | One event per linking Message in a live Chat. Invalidate that Message's entity |
 | `reminder.onUpdated` (Owner/Admin) | `useReminderStream` | Invalidate the owner Agent's `reminder.list`, `reminder.history`, and the reminder's `reminder.runs` |
 | `agent.onUpdated` | `useAgentUpdateStream` | The Server detail, the named Agent's reads (or every Agent read), `agent.list`, `chat.list` |
-| `agent.onContextUpdated` | `useAgentContextStream` | The named Agent's `agent.context` (every Agent's on recovery), which feeds the composer's context ring |
+| `agent.onContextUpdated` | `useAgentContextStream` | The named Agent's `agent.context` (every Agent's on recovery), which feeds the Context column of the Captain hover card |
 | `computer.onUpdated` | `useComputerUpdateStream` | The Server detail, Computer list and log, Agent activity and delivery, `agent.list`, `stats.live`, `cloudAgentSettings.get` |
 | `mcp.onUpdated` | `useMcpUpdateStream` | `mcp.list`, `mcp.amazonProduct`, `mcp.amazonProductDetail` |
 | `server.onUpdated` | `useServerUpdateStream` | The Server detail and `server.list`; the membership sentinel |

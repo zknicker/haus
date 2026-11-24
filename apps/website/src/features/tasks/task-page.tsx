@@ -57,7 +57,6 @@ function TaskDetailView({
                 }
             >
                 <TaskConversation
-                    captainId={task.assignee?.kind === 'agent' ? task.assignee.agentId : null}
                     chatId={chatId}
                     origin={task.origin}
                     title={`${task.key} ${task.title}`}

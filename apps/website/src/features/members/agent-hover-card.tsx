@@ -2,9 +2,12 @@ import { Spinner } from '@heroui/react';
 import type * as React from 'react';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { useAgentContext } from '../../hooks/agents/use-agent-context.ts';
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useModelConnections } from '../../hooks/servers/use-model-connections.ts';
+import { contextUsageView } from '../agent-context/context-usage-model.ts';
+import { ContextUsagePanel } from '../agent-context/context-usage-panel.tsx';
 import { agentExecutionLabels } from '../computers/presentation.ts';
 import {
     ReferencePreviewHeader,
@@ -36,7 +39,7 @@ export function AgentHoverCard({
 }) {
     return (
         <CursorHoverCard
-            className="haus-hover-card--sectioned w-80"
+            className="haus-hover-card--sectioned w-max max-w-none"
             content={
                 <AgentHoverCardContent
                     agentId={agentId}
@@ -62,10 +65,11 @@ export function AgentHoverCardContent({
     const agent = useAgent(serverId, agentId);
     const computers = useComputers(serverId);
     const connections = useModelConnections(serverId);
+    const context = useAgentContext(serverId, agentId);
 
     if (agent.isPending && !agent.data) {
         return (
-            <span className="haus-hover-card__section text-muted flex min-h-12 items-center justify-center gap-2 text-xs">
+            <span className="haus-hover-card__section text-muted flex min-h-12 w-80 items-center justify-center gap-2 text-xs">
                 <Spinner color="current" size="sm" />
                 Loading Captain…
             </span>
@@ -74,7 +78,7 @@ export function AgentHoverCardContent({
 
     if (!agent.data) {
         return (
-            <div className="haus-hover-card__section">
+            <div className="haus-hover-card__section w-80">
                 <ReferencePreviewHeader mark={null} meta="Captain" title={agentName}>
                     <ReferencePreviewText>Captain details are unavailable.</ReferencePreviewText>
                 </ReferencePreviewHeader>
@@ -142,7 +146,6 @@ export function AgentHoverCardContent({
                     {modelChange}
                 </p>
             ) : null}
-            <AgentHoverActivity agentId={agentId} serverId={serverId} />
         </>
     );
 
@@ -150,10 +153,18 @@ export function AgentHoverCardContent({
         // The section carries the card inset so the banner can run edge to edge.
         <div className="flex min-w-0 flex-col">
             {banner}
-            <div className="haus-hover-card__section flex min-w-0 flex-col gap-2.5">
-                {identity}
-                {body}
+            <div className="flex">
+                <div className="haus-hover-card__section flex w-72 shrink-0 flex-col gap-2">
+                    {identity}
+                    {body}
+                </div>
+                {context ? (
+                    <div className="haus-hover-card__section border-separator w-64 shrink-0 border-l">
+                        <ContextUsagePanel view={contextUsageView(context)} />
+                    </div>
+                ) : null}
             </div>
+            <AgentHoverActivity agentId={agentId} serverId={serverId} />
         </div>
     );
 }
