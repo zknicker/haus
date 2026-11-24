@@ -6,6 +6,7 @@ import {
     reminderAgentAttentionTable,
     reminderFiresTable,
 } from '../postgres/schema.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -19,54 +20,94 @@ export async function sendReminderScript(
     computerId: string,
     command: ReminderScriptCommand
 ) {
-    const [row] = await db
-        .select({
-            dispatchedComputerId: reminderAgentAttentionTable.dispatchedComputerId,
-            placementGeneration: agentsTable.placementGeneration,
-        })
-        .from(reminderAgentAttentionTable)
-        .innerJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, reminderAgentAttentionTable.serverId),
-                eq(agentsTable.id, reminderAgentAttentionTable.agentId)
-            )
-        )
-        .where(eq(reminderAgentAttentionTable.id, command.attentionId))
-        .limit(1);
-    if (!row || (row.dispatchedComputerId !== null && row.dispatchedComputerId !== computerId)) {
-        return;
+    const target = { attentionId: command.attentionId, computerId };
+    const claim = await claimReminderScript(db, target);
+    if (claim && !transport.send(computerId, command) && claim.fresh) {
+        await releaseReminderScript(db, { ...target, ...claim });
     }
-    const fresh = row.dispatchedComputerId === null;
-    if (fresh) {
-        const [claimed] = await db
-            .update(reminderAgentAttentionTable)
-            .set({
-                dispatchedComputerId: computerId,
-                dispatchedPlacementGeneration: row.placementGeneration,
+}
+
+export async function claimReminderScript(
+    db: HausDatabase,
+    input: { attentionId: string; computerId: string }
+) {
+    const [owner] = await db
+        .select({ serverId: reminderAgentAttentionTable.serverId })
+        .from(reminderAgentAttentionTable)
+        .where(eq(reminderAgentAttentionTable.id, input.attentionId))
+        .limit(1);
+    if (!owner) {
+        return null;
+    }
+    return await db.transaction(async (tx) => {
+        await lockServerRow(tx, owner.serverId);
+        const [row] = await tx
+            .select({
+                dispatchedComputerId: reminderAgentAttentionTable.dispatchedComputerId,
+                dispatchedPlacementGeneration:
+                    reminderAgentAttentionTable.dispatchedPlacementGeneration,
+                machineId: agentsTable.computerId,
+                placementGeneration: agentsTable.placementGeneration,
             })
-            .where(
+            .from(reminderAgentAttentionTable)
+            .innerJoin(
+                agentsTable,
                 and(
-                    eq(reminderAgentAttentionTable.id, command.attentionId),
-                    isNull(reminderAgentAttentionTable.dispatchedComputerId)
+                    eq(agentsTable.serverId, reminderAgentAttentionTable.serverId),
+                    eq(agentsTable.id, reminderAgentAttentionTable.agentId)
                 )
             )
-            .returning({ id: reminderAgentAttentionTable.id });
-        if (!claimed) {
-            return;
+            .where(eq(reminderAgentAttentionTable.id, input.attentionId))
+            .limit(1);
+        if (!row) {
+            return null;
         }
+        const claim = { placementGeneration: row.placementGeneration, serverId: owner.serverId };
+        if (row.dispatchedComputerId !== null) {
+            const current =
+                row.dispatchedComputerId === input.computerId &&
+                row.dispatchedPlacementGeneration === row.placementGeneration;
+            return current ? { ...claim, fresh: false } : null;
+        }
+        if (row.machineId !== input.computerId) {
+            return null;
+        }
+        await tx
+            .update(reminderAgentAttentionTable)
+            .set({
+                dispatchedComputerId: input.computerId,
+                dispatchedPlacementGeneration: row.placementGeneration,
+            })
+            .where(eq(reminderAgentAttentionTable.id, input.attentionId));
+        return { ...claim, fresh: true };
+    });
+}
+
+async function releaseReminderScript(
+    db: HausDatabase,
+    input: {
+        attentionId: string;
+        computerId: string;
+        placementGeneration: number;
+        serverId: string;
     }
-    if (!transport.send(computerId, command) && fresh) {
-        await db
+) {
+    await db.transaction(async (tx) => {
+        await lockServerRow(tx, input.serverId);
+        await tx
             .update(reminderAgentAttentionTable)
             .set({ dispatchedComputerId: null, dispatchedPlacementGeneration: null })
             .where(
                 and(
-                    eq(reminderAgentAttentionTable.id, command.attentionId),
-                    eq(reminderAgentAttentionTable.dispatchedComputerId, computerId)
+                    eq(reminderAgentAttentionTable.id, input.attentionId),
+                    eq(reminderAgentAttentionTable.dispatchedComputerId, input.computerId),
+                    eq(
+                        reminderAgentAttentionTable.dispatchedPlacementGeneration,
+                        input.placementGeneration
+                    )
                 )
             );
-    }
+    });
 }
 
 export function scriptsFor(computerId: string) {
