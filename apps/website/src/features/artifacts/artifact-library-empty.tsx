@@ -1,12 +1,15 @@
-import { artifactPathParent } from '@haus/api';
+import { type ArtifactMetadata, artifactPathKey, artifactPathParent } from '@haus/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import {
     FolderLibraryIcon,
     FolderOpenIcon,
+    NoteEditIcon,
     Upload04Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import { HausMascot } from '../../components/haus-mascot.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useAddAreaRules } from '../../hooks/artifacts/use-add-area-rules.ts';
 import {
     driveAcceptsFiles,
     driveFolderIsFixed,
@@ -16,7 +19,9 @@ import {
 
 /**
  * Shown only for a real zero. A filtered zero points at the filters. An empty
- * shelf says what fills it, and an empty area offers the upload that would.
+ * shelf says what fills it. An empty area sits the mascot over the page's
+ * middle, as Capy does, and offers what would fill it: its instructions
+ * (`AGENTS.md`, at the area's root) and an upload.
  * Any other folder exists only while a file sits in it, so an unfiltered zero
  * there is a folder that is not there (a stale link, or its last file moved
  * away): it says so and offers the way back up.
@@ -24,13 +29,19 @@ import {
 export function ArtifactLibraryEmpty({
     filtered,
     folder,
+    folderName,
+    onOpenFile,
     onOpenFolder,
     onUpload,
+    serverId,
 }: {
     filtered: boolean;
     folder: string;
+    folderName: string;
+    onOpenFile: (artifact: ArtifactMetadata) => void;
     onOpenFolder: (path: string) => void;
     onUpload: () => void;
+    serverId: string;
 }) {
     const place = drivePlace(folder);
     if (filtered) {
@@ -71,24 +82,69 @@ export function ArtifactLibraryEmpty({
         return <MissingFolder folder={folder} onOpenFolder={onOpenFolder} />;
     }
     return (
-        <EmptyState>
+        <EmptyArea
+            folder={folder}
+            folderName={folderName}
+            onOpenFile={onOpenFile}
+            onUpload={onUpload}
+            serverId={serverId}
+        />
+    );
+}
+
+function EmptyArea({
+    folder,
+    folderName,
+    onOpenFile,
+    onUpload,
+    serverId,
+}: {
+    folder: string;
+    folderName: string;
+    onOpenFile: (artifact: ArtifactMetadata) => void;
+    onUpload: () => void;
+    serverId: string;
+}) {
+    const addRules = useAddAreaRules(serverId, onOpenFile);
+    const place = drivePlace(folder);
+    const areaRoot =
+        place.kind === 'area' && artifactPathKey(place.folder) === artifactPathKey(place.area.root);
+    const uploads = driveAcceptsFiles(folder);
+    return (
+        <EmptyState className="library-empty">
             <EmptyState.Header>
-                <EmptyState.Media variant="icon">
-                    <Icon icon={FolderLibraryIcon} />
+                <EmptyState.Media>
+                    <HausMascot aria-hidden="true" className="library-empty__mascot" size={88} />
                 </EmptyState.Media>
                 <EmptyState.Title>No files yet</EmptyState.Title>
-                {driveAcceptsFiles(folder) ? (
-                    <EmptyState.Description>Drop files anywhere to upload.</EmptyState.Description>
+                {uploads ? (
+                    <EmptyState.Description>
+                        {areaRoot
+                            ? 'Add instructions by hand, or drop files anywhere to upload.'
+                            : 'Drop files anywhere to upload.'}
+                    </EmptyState.Description>
                 ) : null}
             </EmptyState.Header>
-            {driveAcceptsFiles(folder) ? (
-                <EmptyState.Content>
+            {uploads ? (
+                <EmptyState.Content className="flex-row gap-2">
+                    {areaRoot ? (
+                        <Button
+                            isPending={addRules.isPending}
+                            onPress={() => addRules.mutate({ folder, title: folderName })}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            <Icon aria-hidden="true" icon={NoteEditIcon} size={16} />
+                            Add instructions
+                        </Button>
+                    ) : null}
                     <Button onPress={onUpload} size="sm" variant="secondary">
                         <Icon aria-hidden="true" icon={Upload04Icon} size={16} />
-                        Upload files
+                        Upload
                     </Button>
                 </EmptyState.Content>
             ) : null}
+            {addRules.error ? <p role="alert">{addRules.error.message}</p> : null}
         </EmptyState>
     );
 }

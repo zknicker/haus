@@ -90,6 +90,8 @@ export function useArtifactLibrary(
         loadMore: () => void result.fetchNextPage(),
         /** Public links of the loaded files, keyed by artifact id. */
         publicLinks,
+        /** Exact totals for the open folder under the filters, once the first page lands. */
+        summary: pages?.[0]?.summary ?? null,
     };
 }
 

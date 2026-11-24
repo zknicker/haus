@@ -8,10 +8,11 @@ import {
     sortLibraryFolders,
 } from './library-sort.ts';
 
-const folder = (name: string, files: number, minute: number): ArtifactFolderEntry => ({
-    file_count: files,
+const folder = (name: string, bytes: number, minute: number): ArtifactFolderEntry => ({
+    file_count: 1,
     name,
     path: `designs/${name}`,
+    size_bytes: bytes,
     updated_at: new Date(Date.UTC(2026, 9, 1, 0, minute)).toISOString(),
 });
 
@@ -26,7 +27,7 @@ test('folder names sort naturally, ignoring case', () => {
     ]);
 });
 
-test('folders sort by newest file, by file count, and by name for a kind sort', () => {
+test('folders sort by newest file, by total size, and by name for a kind sort', () => {
     expect(names(sortLibraryFolders(folders, defaultLibrarySort))).toEqual([
         'KEY-010',
         'key-001',

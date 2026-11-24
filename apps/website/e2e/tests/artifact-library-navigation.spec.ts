@@ -1,8 +1,13 @@
-import { libraryRows, librarySection, seedArtifactLibrary } from '../support/artifacts.ts';
+import {
+    libraryRows,
+    librarySection,
+    openWithKeyboard,
+    seedArtifactLibrary,
+} from '../support/artifacts.ts';
 import { createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('Drive selects on click, opens on double click or Return, and Back walks the tab history', async ({
+test('Drive opens on click or Return, selects on Command-click, and Back walks the tab history', async ({
     page,
 }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -26,9 +31,9 @@ test('Drive selects on click, opens on double click or Return, and Back walks th
     await expect(back).toBeEnabled();
     await expect(forward).toBeDisabled();
 
-    // A click selects a folder without opening it; Return opens the selection.
+    // Command-click selects a folder without opening it; Return opens the selection.
     const starterKit = folders.getByRole('row', { name: 'starter-kit' });
-    await starterKit.click();
+    await starterKit.click({ modifiers: ['ControlOrMeta'] });
     await expect(starterKit).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts\\?folder=haus$`, 'u'));
     await page.keyboard.press('Enter');
@@ -42,10 +47,15 @@ test('Drive selects on click, opens on double click or Return, and Back walks th
     await page.getByRole('button', { name: 'File type: Documents', exact: true }).click();
     await page.getByRole('menuitemradio', { name: 'All types', exact: true }).click();
 
-    for (const name of ['scripts', 'a', 'b', 'c']) {
-        await folders.getByRole('row', { name }).dblclick();
+    // A plain click opens a folder.
+    await folders.getByRole('row', { name: 'scripts' }).click();
+    await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
+    let path = 'folder=haus%2Fstarter-kit%2Fscripts';
+    for (const name of ['a', 'b', 'c']) {
+        await openWithKeyboard(folders.getByRole('row', { name }));
+        path = `${path}%2F${name}`;
+        await expect(page).toHaveURL(new RegExp(`${path}$`, 'u'));
     }
-    await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts%2Fa%2Fb%2Fc$/u);
 
     // Every ancestor is a link; the middle of a deep trail folds into a menu; the open folder is not.
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
@@ -72,10 +82,10 @@ test('Drive selects on click, opens on double click or Return, and Back walks th
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts%2Fa%2Fb%2Fc$/u);
     await expect(forward).toBeEnabled();
 
-    // Files follow Finder too: click selects, arrows move, Return opens the viewer.
+    // Files too: Command-click selects, arrows move, Return opens the viewer.
     await page.goto(`/s/${slug}/artifacts?folder=haus`);
     const rows = libraryRows(librarySection(page, 'Today'));
-    await rows.nth(0).click();
+    await rows.nth(0).click({ modifiers: ['ControlOrMeta'] });
     await expect(rows.nth(0)).toHaveAttribute('aria-selected', 'true');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts\\?folder=haus$`, 'u'));
     await page.keyboard.press('ArrowDown');
@@ -83,6 +93,12 @@ test('Drive selects on click, opens on double click or Return, and Back walks th
     await expect(rows.nth(1)).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts/art_`, 'u'));
+
+    // A plain click opens a file in the viewer.
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts\\?folder=haus$`, 'u'));
+    await rows.filter({ hasText: 'notes.txt' }).click();
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts/art_${server.id}_report`, 'u'));
 });
 
 test('right-clicking an item selects it and offers only the actions this member can run', async ({
@@ -119,7 +135,9 @@ test('right-clicking an item selects it and offers only the actions this member 
 
     // Shift+F10 opens the menu for the focused row; Move to… walks folders and keeps the name.
     const setup = today.getByRole('row', { name: /setup\.sh/u });
-    await setup.click();
+    await agentFile.click({ modifiers: ['ControlOrMeta'] });
+    await setup.click({ modifiers: ['ControlOrMeta'] });
+    await expect(today.locator('[role="row"][aria-selected="true"]')).toHaveCount(1);
     await page.keyboard.press('Shift+F10');
     await page.getByRole('menuitem', { name: 'Move to…' }).click();
     const move = page.getByRole('dialog');

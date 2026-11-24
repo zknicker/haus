@@ -3357,8 +3357,9 @@
 
     /* ---- Artifacts library (features/artifacts/) ---- */
 
-    /* ListView sizes every svg in a row's content to 16px; a file sheet carries its own box. */
-    .list-view__item-content .artifact-icon {
+    /* ListView sizes every svg in a row's content to 16px; file and folder icons carry their own box. */
+    .list-view__item-content .artifact-icon,
+    .list-view__item-content .artifact-folder-icon {
         width: auto;
         height: auto;
     }
@@ -3398,6 +3399,30 @@
         font-size: var(--text-xs);
         font-weight: 600;
         color: var(--muted);
+    }
+
+    /*
+     * An empty Drive area, Capy's way: the mascot in a quiet tint over the
+     * page's middle, then the title, the hint, and what would fill it.
+     */
+    .library-empty {
+        flex: 1;
+        justify-content: center;
+        min-height: calc(var(--spacing) * 96);
+    }
+
+    .library-empty__mascot {
+        color: var(--muted);
+        opacity: 0.35;
+    }
+
+    /* How much the open folder holds, under its last row like Finder's status bar. */
+    .artifact-library-footer {
+        padding-inline: var(--artifact-library-inset);
+        font-size: var(--text-xs);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        text-align: end;
     }
 
     .artifact-upload-status {
@@ -3501,8 +3526,9 @@
         gap: calc(var(--spacing) * 1);
     }
 
-    /* A drag of library items over a folder tile it may land in, or over a trail crumb. */
-    .artifact-tile[data-move-target] {
+    /* A drag of library items over a folder it may land in, or over a trail crumb. */
+    .artifact-tile[data-move-target],
+    .artifact-folder-list-row[data-move-target] {
         background: var(--accent-soft);
         box-shadow: inset 0 0 0 2px var(--accent);
     }
@@ -3517,6 +3543,7 @@
     }
 
     .artifact-tile[data-dragging],
+    .artifact-folder-list-row[data-dragging],
     .artifact-file-tile[data-dragging] {
         opacity: 0.5;
     }

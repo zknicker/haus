@@ -23,7 +23,7 @@ test('Drive selects many items Finder-style and acts on the whole selection', as
     await expect(items).toHaveCount(9);
 
     // Shift-click runs a range in visual order, across the folder tiles and the date group.
-    await items.nth(1).click();
+    await items.nth(1).click({ modifiers: ['ControlOrMeta'] });
     await items.nth(4).click({ modifiers: ['Shift'] });
     await expect(selected).toHaveCount(4);
     await expect(bar).toContainText('4 selected');
@@ -48,7 +48,7 @@ test('Drive selects many items Finder-style and acts on the whole selection', as
     const notes = items.filter({ hasText: 'notes.txt' });
     const readme = items.filter({ hasText: 'readme.md' });
     const log = items.filter({ hasText: 'server.log' });
-    await notes.click();
+    await notes.click({ modifiers: ['ControlOrMeta'] });
     await readme.click({ modifiers: ['ControlOrMeta'] });
     await readme.click({ button: 'right' });
     const menu = page.getByRole('menu');
@@ -70,7 +70,9 @@ test('Drive selects many items Finder-style and acts on the whole selection', as
     await expect(menu).toHaveCount(0);
 
     // Command-Shift-M moves the selection through the folder picker, in one request.
-    await notes.click();
+    await log.click({ modifiers: ['ControlOrMeta'] });
+    await expect(selected).toHaveCount(0);
+    await notes.click({ modifiers: ['ControlOrMeta'] });
     await readme.click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('ControlOrMeta+Shift+m');
     const picker = page.getByRole('dialog');
@@ -87,7 +89,7 @@ test('Drive selects many items Finder-style and acts on the whole selection', as
     ]);
 
     // Downloading a selection asks the Server for a zip (no bucket in e2e, so it says why not).
-    await log.click();
+    await log.click({ modifiers: ['ControlOrMeta'] });
     await items.filter({ hasText: 'draft.mp3' }).click({ modifiers: ['ControlOrMeta'] });
     await bar.getByRole('button', { name: 'Download as zip' }).click();
     await expect(page.getByText('Could not download these files')).toBeVisible();
@@ -112,7 +114,7 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
     // Dragging a selected row carries the whole selection onto the folder.
     const concept = items.filter({ hasText: 'concept.png' });
     const large = items.filter({ hasText: 'large.png' });
-    await concept.click();
+    await concept.click({ modifiers: ['ControlOrMeta'] });
     await large.click({ modifiers: ['ControlOrMeta'] });
     await large.dragTo(docs);
     await expect(concept).toHaveCount(0);
@@ -129,7 +131,7 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
     await expect(kit).toHaveCount(1);
 
     // A trail crumb is a drop target too: the assets folder goes back up to Haus.
-    await kit.dblclick();
+    await kit.click();
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit$/u);
     const assets = librarySection(page, 'Folders').getByRole('row', { name: 'assets' });
     // The product crumb is Haus too; the area's crumb follows Drive.
@@ -167,7 +169,7 @@ test('bulk delete says how many of the selection this member may delete', async 
     const items = libraryRows(page.getByRole('grid', { name: 'Drive' }));
     await expect(items).toHaveCount(2);
     await page.keyboard.press('Tab');
-    await items.first().click();
+    await items.first().click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.press('Delete');
     const confirm = page.getByRole('alertdialog');

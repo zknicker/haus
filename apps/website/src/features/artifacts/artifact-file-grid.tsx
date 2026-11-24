@@ -7,7 +7,7 @@ import { PublicLinkMark } from './artifact-public-link-mark.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
 import { type ArtifactRow, ArtifactRowMeta } from './artifact-row-meta.tsx';
 import { ArtifactCover } from './artifact-thumbnail.tsx';
-import { useOpenInTabPress } from './library-selection.ts';
+import { useLibraryItemPress } from './library-selection.ts';
 
 /**
  * One file as a stock Card tile of the library's grid: a preview well that
@@ -24,14 +24,14 @@ export function ArtifactFileTile({
     serverId: string;
 }) {
     const actions = useArtifactActionsContext();
-    const openInTabPress = useOpenInTabPress();
+    const openOnPress = useLibraryItemPress();
     const { artifact, facts, publicLink } = row;
     return (
         <GridListItem
             {...opensPlace}
             className="artifact-file-tile artifact-file-trigger"
             id={artifact.artifact_id}
-            onPress={openInTabPress(onOpen)}
+            onPress={openOnPress(onOpen)}
             textValue={artifact.filename}
         >
             <Card>

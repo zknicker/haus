@@ -46,7 +46,7 @@ const naturalNames = new Intl.Collator(undefined, { numeric: true, sensitivity: 
 
 /**
  * Folders arrive whole on the first page, so they sort here: names naturally
- * (`002` before `010`), time by their newest file, size by how many files they
+ * (`002` before `010`), time by their newest file, size by the bytes they
  * hold. Folders have no kind, so a kind sort keeps them by name.
  */
 export function sortLibraryFolders<F extends ArtifactFolderEntry>(
@@ -59,7 +59,7 @@ export function sortLibraryFolders<F extends ArtifactFolderEntry>(
         kind: byName,
         modified: (a: F, b: F) => a.updated_at.localeCompare(b.updated_at),
         name: byName,
-        size: (a: F, b: F) => a.file_count - b.file_count,
+        size: (a: F, b: F) => a.size_bytes - b.size_bytes,
     }[sort.by];
     return [...folders].sort((a, b) => sign * compare(a, b) || byName(a, b));
 }

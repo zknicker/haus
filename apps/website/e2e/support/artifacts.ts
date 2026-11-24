@@ -112,6 +112,15 @@ export function libraryRows(section: Locator): Locator {
     return section.getByRole('row').filter({ has: section.page().getByRole('gridcell') });
 }
 
+/**
+ * Opens a library item from the keyboard: Command-click selects it, Return opens it. A plain
+ * click right after another click-open is the second half of a double click and is ignored.
+ */
+export async function openWithKeyboard(item: Locator) {
+    await item.click({ modifiers: ['ControlOrMeta'] });
+    await item.page().keyboard.press('Enter');
+}
+
 export async function seedArtifactLibrary(
     page: Page,
     session: { accessToken: string; databaseUrl: string },

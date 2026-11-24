@@ -17,6 +17,7 @@ export interface DriveFolder {
     file_count: number;
     name: string;
     path: string;
+    size_bytes: number;
     updated_at: string | null;
 }
 
@@ -134,6 +135,6 @@ function folderOrEmpty(listed: readonly ArtifactFolderEntry[], path: string, nam
     const found = listed.find((entry) => artifactPathKey(entry.path) === artifactPathKey(path));
     const folder: DriveFolder = found
         ? { ...found, name }
-        : { file_count: 0, name, path, updated_at: null };
+        : { file_count: 0, name, path, size_bytes: 0, updated_at: null };
     return folder;
 }

@@ -156,6 +156,9 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                     ) : (
                         <ArtifactLibraryControls
                             creator={params.creator}
+                            fileFilters={
+                                acceptsFiles || params.kind !== 'all' || params.creator !== null
+                            }
                             folderName={
                                 params.folder ? driveFolderLabel(params.folder, agentName) : null
                             }
@@ -202,7 +205,10 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                     ...drop.dropProps,
                 }}
             >
-                <PageColumn className="artifact-library @container gap-6 pt-4" ref={scrollRef}>
+                <PageColumn
+                    className="artifact-library @container min-h-full gap-6 pt-4"
+                    ref={scrollRef}
+                >
                     <ArtifactUploadStatus
                         onCancel={upload.abort}
                         onDismiss={upload.dismiss}
@@ -213,6 +219,7 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                         dropTarget={drop.moveTarget}
                         filtered={Boolean(params.creator || query.trim() || params.kind !== 'all')}
                         filters={filters}
+                        folderName={driveFolderLabel(params.folder, agentName)}
                         folders={folders}
                         library={library}
                         onOpenFile={openFile}

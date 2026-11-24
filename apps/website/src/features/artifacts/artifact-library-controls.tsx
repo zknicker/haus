@@ -15,10 +15,13 @@ import type { ArtifactKindFilter } from './library-params.ts';
  * placeholder, so it never squeezes or clips; when the band (the `band`
  * container) is too narrow for every control, the menus and the layout switch
  * fold into one Filters menu instead. Search covers the open folder and every
- * folder under it.
+ * folder under it. Where only fixed places stand (the root and its shelves) the
+ * file-type and Created by menus have nothing to narrow, so they stay out of
+ * the band unless one is already set.
  */
 export function ArtifactLibraryControls({
     creator,
+    fileFilters,
     folderName,
     kind,
     onCreatorChange,
@@ -29,6 +32,8 @@ export function ArtifactLibraryControls({
     uploadMenu,
 }: {
     creator: ArtifactCreator | null;
+    /** Whether the band offers the file-type and Created by menus. */
+    fileFilters: boolean;
     /** The open folder's name; null at the drive root. */
     folderName: string | null;
     kind: ArtifactKindFilter;
@@ -54,12 +59,16 @@ export function ArtifactLibraryControls({
                 </SearchField.Group>
             </SearchField>
             <span className="hidden @min-[58rem]/band:contents">
-                <ArtifactKindMenu kind={kind} onKindChange={onKindChange} />
-                <ArtifactCreatorMenu
-                    creator={creator}
-                    onCreatorChange={onCreatorChange}
-                    serverId={serverId}
-                />
+                {fileFilters ? (
+                    <>
+                        <ArtifactKindMenu kind={kind} onKindChange={onKindChange} />
+                        <ArtifactCreatorMenu
+                            creator={creator}
+                            onCreatorChange={onCreatorChange}
+                            serverId={serverId}
+                        />
+                    </>
+                ) : null}
                 <ArtifactSortMenu />
                 <ArtifactLayoutToggle />
             </span>

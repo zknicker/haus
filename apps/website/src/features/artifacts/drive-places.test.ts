@@ -14,6 +14,7 @@ const listed = (path: string, file_count: number) => ({
     file_count,
     name: path.slice(path.lastIndexOf('/') + 1),
     path,
+    size_bytes: file_count * 100,
     updated_at: '2026-11-19T12:00:00.000Z',
 });
 
@@ -61,8 +62,8 @@ test('top folders read by product name and an Agent folder by the Agent', () => 
 
 test('the root always shows Haus, Projects, and Captains, counting what is there', () => {
     expect(driveRootTiles([listed('agents', 4)])).toEqual([
-        { file_count: 0, name: 'Haus', path: 'haus', updated_at: null },
-        { file_count: 0, name: 'Projects', path: 'projects', updated_at: null },
+        { file_count: 0, name: 'Haus', path: 'haus', size_bytes: 0, updated_at: null },
+        { file_count: 0, name: 'Projects', path: 'projects', size_bytes: 0, updated_at: null },
         { ...listed('agents', 4), name: 'Captains' },
     ]);
 });
@@ -75,7 +76,7 @@ test('the Agents shelf holds a folder per Agent, then folders no Agent claims', 
     expect(
         driveAgentTiles([listed('agents/retired', 2), listed('agents/tiny', 3)], agents)
     ).toEqual([
-        { file_count: 0, name: 'Blippy', path: 'agents/blippy', updated_at: null },
+        { file_count: 0, name: 'Blippy', path: 'agents/blippy', size_bytes: 0, updated_at: null },
         { ...listed('agents/tiny', 3), name: 'Tiny' },
         listed('agents/retired', 2),
     ]);
@@ -85,12 +86,12 @@ test('the root keeps pre-Drive folders after the three areas, and areas list wha
     const agents = [{ displayName: 'Blippy', handle: 'blippy' }];
     expect(driveFolderTiles('', [listed('haus', 2), listed('starter-kit', 5)], agents)).toEqual([
         { ...listed('haus', 2), name: 'Haus' },
-        { file_count: 0, name: 'Projects', path: 'projects', updated_at: null },
-        { file_count: 0, name: 'Captains', path: 'agents', updated_at: null },
+        { file_count: 0, name: 'Projects', path: 'projects', size_bytes: 0, updated_at: null },
+        { file_count: 0, name: 'Captains', path: 'agents', size_bytes: 0, updated_at: null },
         listed('starter-kit', 5),
     ]);
     expect(driveFolderTiles('agents', [], agents)).toEqual([
-        { file_count: 0, name: 'Blippy', path: 'agents/blippy', updated_at: null },
+        { file_count: 0, name: 'Blippy', path: 'agents/blippy', size_bytes: 0, updated_at: null },
     ]);
     expect(driveFolderTiles('haus/kit', [listed('haus/kit/scripts', 1)], agents)).toEqual([
         listed('haus/kit/scripts', 1),

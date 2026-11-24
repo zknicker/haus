@@ -1,29 +1,30 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { Tooltip } from '@heroui/react';
 import { GridListItem, GridListSection } from 'react-aria-components';
-import { useArtifactThumbnailUrls } from '../../hooks/artifacts/use-artifact-thumbnails.ts';
 import { useArtifactActionsContext } from './artifact-actions-context.ts';
-import { hasLibraryPreview } from './artifact-format.ts';
+import { ArtifactFolderRow } from './artifact-folder-row.tsx';
 import { ArtifactInlineRename } from './artifact-inline-rename.tsx';
 import { artifactFolderTone, artifactFolderWithin, middleTruncatedName } from './drive-folders.ts';
 import type { DriveFolder } from './drive-places.ts';
-import { artifactFileKind } from './icons/artifact-file-kind.ts';
 import { ArtifactFolderIcon } from './icons/artifact-folder-icon.tsx';
-import { useOpenInTabPress } from './library-selection.ts';
-import { useDecodedImages } from './use-decoded-image.ts';
+import type { ArtifactLibraryLayout } from './library-layout.ts';
+import { useLibraryItemPress } from './library-selection.ts';
+import { folderCountLabel, useFolderPeeks } from './use-folder-peeks.ts';
 
 /**
  * The open folder's child folders (or a search's matching folders) as the
- * first section of the library's collection, Finder's icon view: each tile
- * peeks a few of its newest files and counts what is inside under the current
- * filters. Tiles select, open, and take dropped items like every other item;
- * the tile under a drag of library items lights up (`dropTarget`), and a tile
- * being renamed shows its name as a field.
+ * first section of the library's collection: Finder's icon view in the grid,
+ * where each tile peeks a few of its newest files and counts what is inside
+ * under the current filters, and rows under the file columns in the list.
+ * Folders select, open, and take dropped items like every other item; the one
+ * under a drag of library items lights up (`dropTarget`), and one being
+ * renamed shows its name as a field.
  */
 export function ArtifactFolderSection({
     dropTarget,
     folder,
     folders,
+    layout,
     onOpen,
     previews,
     serverId,
@@ -33,11 +34,29 @@ export function ArtifactFolderSection({
     /** The open folder, so a search hit deeper down names where it sits. */
     folder: string;
     folders: readonly DriveFolder[];
+    layout: ArtifactLibraryLayout;
     onOpen: (path: string) => void;
     previews: ReadonlyMap<string, ArtifactMetadata[]>;
     serverId: string;
 }) {
-    const openInTabPress = useOpenInTabPress();
+    const openOnPress = useLibraryItemPress();
+    if (layout === 'list') {
+        return (
+            <GridListSection aria-label="Folders" className="artifact-file-run" id="folders">
+                {folders.map((entry) => (
+                    <ArtifactFolderRow
+                        dropTarget={dropTarget === entry.path}
+                        folder={entry}
+                        key={entry.path}
+                        onOpen={() => onOpen(entry.path)}
+                        previews={previews.get(entry.path) ?? []}
+                        serverId={serverId}
+                        within={artifactFolderWithin(entry.path, folder)}
+                    />
+                ))}
+            </GridListSection>
+        );
+    }
     return (
         <GridListSection aria-label="Folders" className="artifact-folder-row" id="folders">
             {folders.map((entry) => (
@@ -46,7 +65,7 @@ export function ArtifactFolderSection({
                     data-move-target={dropTarget === entry.path || undefined}
                     id={entry.path}
                     key={entry.path}
-                    onPress={openInTabPress(() => onOpen(entry.path))}
+                    onPress={openOnPress(() => onOpen(entry.path))}
                     textValue={entry.name}
                 >
                     <ArtifactFolderTile
@@ -74,23 +93,8 @@ function ArtifactFolderTile({
     within: string;
 }) {
     const actions = useArtifactActionsContext();
-    const photos = previews.filter(hasLibraryPreview);
-    const urls = useArtifactThumbnailUrls(
-        serverId,
-        photos.map((artifact) => ({
-            artifactId: artifact.artifact_id,
-            revisionId: artifact.revision_id,
-        }))
-    );
-    // A photo peeks out only once decoded; until then, or if its link fails, the kind's sheet does.
-    const decoded = useDecodedImages(
-        photos.map((artifact, index) => ({ id: artifact.artifact_id, url: urls[index] }))
-    );
-    const peeks = previews.map((artifact) => ({
-        imageUrl: hasLibraryPreview(artifact) ? decoded.get(artifact.artifact_id) : undefined,
-        kind: artifactFileKind(artifact),
-    }));
-    const count = folder.file_count === 1 ? '1 file' : `${folder.file_count} files`;
+    const peeks = useFolderPeeks(previews, serverId);
+    const count = folderCountLabel(folder.file_count);
     const renaming = actions.renaming?.kind === 'folder' && actions.renaming.path === folder.path;
     return (
         <>

@@ -13,8 +13,8 @@ import { type LibrarySelection, librarySelectionProps } from './library-selectio
  * of files, as sections of a single grid. One collection means one stock
  * multiple selection in visual order, so Shift-click and Shift+Arrow ranges
  * run across folders and date groups, Command-A takes everything loaded, and
- * dragging a selected item drags the whole selection. Rows are a secondary
- * ListView in the list layout and Card tiles in the grid.
+ * dragging a selected item drags the whole selection. Folders and files are
+ * secondary ListView rows in the list layout, folder and Card tiles in the grid.
  */
 export function ArtifactLibraryCollection({
     dragAndDropHooks,
@@ -65,6 +65,7 @@ export function ArtifactLibraryCollection({
                     dropTarget={dropTarget}
                     folder={folder}
                     folders={folders}
+                    layout={layout}
                     onOpen={onOpenFolder}
                     previews={previews}
                     serverId={serverId}

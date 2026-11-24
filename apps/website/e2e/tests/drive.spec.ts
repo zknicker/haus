@@ -2,6 +2,7 @@ import { seededArtifactText } from '../support/artifact-transport.ts';
 import {
     libraryRows,
     librarySection,
+    openWithKeyboard,
     seedArtifactLibrary,
     seededArtifactAgent,
 } from '../support/artifacts.ts';
@@ -23,22 +24,25 @@ test('a member walks Drive from its areas to a file, compares two revisions, and
 
     await expect(folders.getByRole('row')).toHaveText([
         /Haus\s*12 files/u,
-        /Projects\s*0 files/u,
-        /Captains\s*0 files/u,
+        /Projects\s*Empty/u,
+        /Captains\s*Empty/u,
     ]);
     await expect(upload).toHaveCount(0);
+    const fileType = page.getByRole('button', { name: /^File type:/u });
+    await expect(fileType).toHaveCount(0);
 
-    await folders.getByRole('row', { name: 'Captains' }).dblclick();
+    await openWithKeyboard(folders.getByRole('row', { name: 'Captains' }));
     await expect(page).toHaveURL(/folder=agents$/u);
     await expect(folders.getByRole('row')).toHaveText([
-        new RegExp(`${seededArtifactAgent}\\s*0 files`, 'u'),
+        new RegExp(`${seededArtifactAgent}\\s*Empty`, 'u'),
     ]);
     await expect(upload).toHaveCount(0);
 
     await trail.getByRole('link', { name: 'Drive', exact: true }).click();
-    await folders.getByRole('row', { name: 'Haus' }).dblclick();
+    await openWithKeyboard(folders.getByRole('row', { name: 'Haus' }));
     await expect(upload).toBeVisible();
-    await libraryRows(librarySection(page, 'Today')).filter({ hasText: 'notes.txt' }).dblclick();
+    await expect(fileType).toBeVisible();
+    await libraryRows(librarySection(page, 'Today')).filter({ hasText: 'notes.txt' }).click();
     await expect(page).toHaveURL(new RegExp(`/artifacts/${notesId}\\?in=haus$`, 'u'));
     const preview = page.getByRole('region', { name: 'File preview' });
     await expect(preview).toContainText(seededArtifactText.notes);

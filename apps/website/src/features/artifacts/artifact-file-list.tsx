@@ -7,7 +7,7 @@ import { PublicLinkMark } from './artifact-public-link-mark.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
 import { type ArtifactRow, ArtifactRowMeta } from './artifact-row-meta.tsx';
 import { ArtifactThumbnail } from './artifact-thumbnail.tsx';
-import { useOpenInTabPress } from './library-selection.ts';
+import { useLibraryItemPress } from './library-selection.ts';
 
 export type { ArtifactRow } from './artifact-row-meta.tsx';
 
@@ -27,14 +27,14 @@ export function ArtifactFileRow({
     serverId: string;
 }) {
     const actions = useArtifactActionsContext();
-    const openInTabPress = useOpenInTabPress();
+    const openOnPress = useLibraryItemPress();
     const { artifact, facts, publicLink } = row;
     return (
         <ListView.Item
             {...opensPlace}
             className="artifact-file-trigger"
             id={artifact.artifact_id}
-            onPress={openInTabPress(onOpen)}
+            onPress={openOnPress(onOpen)}
             textValue={artifact.filename}
         >
             <ListView.ItemContent>

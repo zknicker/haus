@@ -5,6 +5,7 @@ import { seededArtifactText } from '../support/artifact-transport.ts';
 import {
     libraryRows,
     librarySection,
+    openWithKeyboard,
     routeArtifactUploads,
     seedArtifactLibrary,
     seededArtifactAgent,
@@ -25,16 +26,18 @@ test('a Server member opens the shared library and reloads its stable address', 
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
     const folders = librarySection(page, 'Folders');
     await expect(folders.getByRole('row')).toHaveText(driveRootTiles);
-    await folders.getByRole('row', { name: 'Haus' }).dblclick();
+    await folders.getByRole('row', { name: 'Haus' }).click();
     await expect(page).toHaveURL(/folder=haus$/u);
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Upload files' })).toBeVisible();
+    const empty = page.locator('.library-empty');
+    await expect(empty.getByRole('button', { name: 'Add instructions' })).toBeVisible();
+    await expect(empty.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
     expect(await client.artifact.list.query({ serverId: server.id })).toEqual({
         artifacts: [],
         folders: [],
         next_offset: null,
         public_links: {},
-        summary: { folders: 0, files_in_folders: 0, files: 0 },
+        summary: { folders: 0, files_in_folders: 0, files: 0, size_bytes: 0 },
     });
     expect(await client.artifact.creators.query({ serverId: server.id })).toEqual({
         creators: [],
@@ -63,7 +66,7 @@ test('members browse folders in Drive, filter by kind and creator, search, and o
     await page.reload();
     await openSection(page, 'Drive');
     const folders = librarySection(page, 'Folders');
-    await folders.getByRole('row', { name: 'Haus' }).dblclick();
+    await folders.getByRole('row', { name: 'Haus' }).click();
     await expect(page).toHaveURL(/folder=haus$/u);
 
     // A folder holds its child folders, then only the files directly in it.
@@ -74,12 +77,12 @@ test('members browse folders in Drive, filter by kind and creator, search, and o
     );
     await expect(folders.getByRole('row')).toHaveText([/docs\s*1 file/u, /starter-kit\s*4 files/u]);
 
-    await folders.getByRole('row', { name: 'starter-kit' }).dblclick();
+    await openWithKeyboard(folders.getByRole('row', { name: 'starter-kit' }));
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit$/u);
     // Newest first: the seed writes scripts after assets.
     await expect(folders.getByRole('row')).toHaveText([/scripts\s*2 files/u, /assets\s*1 file/u]);
     await expect(libraryRows(today)).toHaveText([/README\.md/u]);
-    await folders.getByRole('row', { name: 'scripts' }).dblclick();
+    await openWithKeyboard(folders.getByRole('row', { name: 'scripts' }));
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
     await expect(libraryRows(today)).toHaveCount(2);
     await expect(folders).toHaveCount(0);
@@ -134,7 +137,7 @@ test('members browse folders in Drive, filter by kind and creator, search, and o
     await page.getByRole('searchbox').fill('');
     await page.screenshot({ path: '/tmp/haus-artifacts-library.png', animations: 'disabled' });
 
-    await tile.dblclick();
+    await tile.click();
     await expect(page.getByRole('heading', { name: 'Concept render', exact: true })).toBeVisible();
     await expect(trail).toContainText('concept.png');
     await expect(page.getByRole('img', { name: 'Concept render', exact: true })).toBeVisible();
@@ -243,7 +246,7 @@ test('members upload files and folders into the open folder, replace, and rename
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts\\?folder=`, 'u'));
 
     // F2 renames the selected folder in place.
-    await folders.getByRole('row', { name: 'tools' }).click();
+    await folders.getByRole('row', { name: 'tools' }).click({ modifiers: ['ControlOrMeta'] });
     await page.keyboard.press('F2');
     const folderName = page.getByRole('textbox', { name: 'Rename tools' });
     await folderName.fill('utilities');
@@ -262,20 +265,20 @@ test('text artifacts render inline like workspace files, and oversize text offer
     });
     await seedArtifactLibrary(page, session, server.id);
     await openSection(page, 'Drive');
-    await librarySection(page, 'Folders').getByRole('row', { name: 'Haus' }).dblclick();
+    await librarySection(page, 'Folders').getByRole('row', { name: 'Haus' }).click();
     const today = librarySection(page, 'Today');
     const preview = page.getByRole('region', { name: 'File preview' });
 
-    await today.getByRole('row', { name: 'readme.md' }).dblclick();
+    await openWithKeyboard(today.getByRole('row', { name: 'readme.md' }));
     await expect(preview.getByRole('heading', { name: 'Release notes' })).toBeVisible();
     await expect(preview.locator('strong')).toHaveText('inline text previews');
 
     await page.goBack();
-    await today.getByRole('row', { name: 'notes.txt' }).dblclick();
+    await openWithKeyboard(today.getByRole('row', { name: 'notes.txt' }));
     await expect(preview.locator('pre')).toContainText(seededArtifactText.notes);
 
     await page.goBack();
-    await today.getByRole('row', { name: 'server.log' }).dblclick();
+    await today.getByRole('row', { name: 'server.log' }).click();
     await expect(preview).toContainText('Too large to preview.');
     await expect(preview.getByRole('button', { name: 'Download' })).toBeVisible();
 });
@@ -295,4 +298,4 @@ test('an unavailable fixed revision reports an error within the persistent Serve
     await expect(librarySection(page, 'Folders').getByRole('row')).toHaveText(driveRootTiles);
 });
 
-const driveRootTiles = [/Haus\s*0 files/u, /Projects\s*0 files/u, /Captains\s*0 files/u];
+const driveRootTiles = [/Haus\s*Empty/u, /Projects\s*Empty/u, /Captains\s*Empty/u];

@@ -112,7 +112,7 @@ A folder is a path prefix. There are no folder rows, so empty folders do not exi
 appears while some live file sits under it and disappears with its last file.
 
 `artifact.list` (and `GET /api/agent/artifacts`) takes `prefix` (`''` is the root). By default it
-returns the folder's immediate child folders (`name`, `path`, `file_count`, `updated_at`; first
+returns the folder's immediate child folders (`name`, `path`, `file_count`, `size_bytes`, `updated_at`; first
 page only; newest `updated_at` first, path key breaking ties) and the folder's own files.
 `recursive: true` returns every file under the prefix and no folders, which is the bulk-pull shape;
 `order: 'path'` gives it a stable order. A recursive search (`query` set) also returns, on its first
@@ -127,7 +127,8 @@ most 200) and report `next_offset`, null on the last page.
 
 Every page carries `summary`, exact totals for the listed folder under the same filters and
 independent of the page: `folders` (child folders), `files_in_folders` (files anywhere under them),
-and `files` (files directly in the folder). `recursive` changes the listed files, not the summary.
+`files` (files directly in the folder), and `size_bytes` (every file under the folder). `recursive`
+changes the listed files, not the summary.
 
 ## Revisions and attribution
 
@@ -412,6 +413,14 @@ Each committed move or delete batch announces one `artifact.onUpdated` with a nu
 The v1 Drive page replaces the Files page and keeps its library, viewer, and actions.
 
 - The root lists three folders, Haus, Projects, and Agents. Agents holds one folder per Agent.
+- The list layout (the default) draws folders and files alike as rows under Name, Kind, Modified,
+  and Size; the grid draws folder and file tiles. A footer counts the open folder's files and bytes.
+  Where only fixed places stand (the root and its shelves), the band leaves out the file-type and
+  Created by menus. A plain click opens a folder or file; Command- and Shift-click select.
+- An empty area root shows the mascot with Add instructions, which writes the area's `AGENTS.md`
+  and opens it, and Upload.
+- A wide file viewer shows the file's area as a tree beside the preview, with the file's folders
+  open and a filter over names and paths; picking a file there opens it in place.
 - History is the viewer's revision list. Each row names the author (an Agent, a Worker with its
   Agent, or a person), links the Task, and marks a merged revision.
 - Compare renders any two revisions of a text file with `@pierre/diffs` from two `artifact.text`

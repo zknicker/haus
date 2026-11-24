@@ -87,7 +87,7 @@ under it. `query` searches current titles and paths, `kind` (`all`, `images`, `d
 `media`, `other`) and an optional exact `creator` filter files, `order` (`updated`, `path`,
 `name` in natural order, `size`, `kind`) with `direction` sorts them, and filtering happens before
 offset pagination; results carry `next_offset` and a page-independent `summary` of totals
-(`folders`, `files_in_folders`, `files`, the same with or without `recursive`; see the drive spec). Child folders come newest first. `artifact.creators` returns one entry per creator
+(`folders`, `files_in_folders`, `files`, `size_bytes`, the same with or without `recursive`; see the drive spec). Child folders come newest first. `artifact.creators` returns one entry per creator
 with at least one live artifact on the Server: `creator`, `artifact_count`, `latest_at`, and
 `previews`, the creator's three most recently updated artifacts of any kind. Entries sort by `latest_at` descending, and the
 procedure uses the same membership authorization as `list`.
@@ -104,12 +104,13 @@ and a filter change replaces it, so they walk folders as part of the tab's ordin
 
 Selection follows Finder. The open folder's tiles and every date group of files are one React Aria
 collection (`artifact-library-collection.tsx`, sections of one grid) with stock multiple selection
-in `replace` behavior, so one selection spans folders and files in visual order: a click selects
-one item, Command-click toggles, Shift-click and Shift+Arrow extend a range (across folders and
+in `replace` behavior, so one selection spans folders and files in visual order: a plain click
+opens the item, as in Capy (a press right after an open is ignored, so a habitual double click
+does not open what replaced it), Command-click toggles, Shift-click and Shift+Arrow extend a range (across folders and
 date groups, in the current sort and filters), Command-A selects every loaded item and loads the
 rest of the folder up to `artifactBatchMaxItems` (past that the summary says "loaded files only"),
-Escape or a click on empty space clears, a double click or Return opens, and a touch tap opens at
-once while a long press starts selecting. On desktop a middle click still opens in a new tab;
+Escape or a click on empty space clears, Return opens, and a touch tap opens at once while a
+long press starts selecting. On desktop a middle click still opens in a new tab;
 Command- and Shift-click shape the selection instead. The selection belongs to the open folder:
 opening another starts empty, and live updates keep every selected item that still exists.
 
