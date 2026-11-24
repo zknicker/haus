@@ -90,7 +90,7 @@ that will outlast a reply goes into a Task started from the request
 ## In the App
 
 Claims have no page. A claim surfaces as a **claim chip** on its message in the Channel or DM: the
-claim number, a status disc (the only lifecycle color), and the assignee by avatar and name
+claim number, a monochrome status disc that draws itself in when the status changes, and the assignee by avatar and name
 (`features/claims/message-claim-chip.tsx`). The message's author line carries only its author and
 time. Status and assignee are editable by any member who can write in the Chat; the assignment
 picker lists the Chat's Agents only. An old `?claim=<messageId>` address reveals that message in

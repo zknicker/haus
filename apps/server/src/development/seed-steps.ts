@@ -10,6 +10,7 @@ import {
 } from './seed-computer-attachment.ts';
 import { seedDevelopmentInboxActivity } from './seed-inbox-activity.ts';
 import { seedDevelopmentInboxShowcase } from './seed-inbox-showcase.ts';
+import { seedDevelopmentProjectAppearance } from './seed-project-appearance.ts';
 import { seedDevelopmentUiGallery } from './seed-ui-gallery.ts';
 
 export interface SeedDevelopmentServerOptions {
@@ -37,4 +38,5 @@ export async function ensureDevelopmentSeedSteps(
     await seedDevelopmentInboxShowcase(db, { serverId: server.id, userId });
     await seedDevelopmentUiGallery(db, { serverId: server.id, userId });
     await seedDevelopmentAutomationCauses(db, { serverId: server.id, userId });
+    await seedDevelopmentProjectAppearance(db, { serverId: server.id });
 }

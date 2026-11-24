@@ -44,13 +44,12 @@
    */
   --chat-block-gap: calc(var(--spacing) * 2);
   --spacing: var(--spacing-base);
-  /*
-   * Every sidebar's navigation, one density: HeroUI's ×9 row box plus its ×0.5
-   * row gap lands a single-line row on a ~26px pitch, Capy's Settings rhythm.
-   */
-  --spacing-compact: calc(var(--spacing-base) * 0.73);
+  /* Sidebar navigation rows. */
+  --spacing-compact: calc(var(--spacing-base) * 0.85);
   /* Menu, listbox and popover surfaces — lists to scan, so the tightest step. */
   --spacing-dense: calc(var(--spacing-base) * 0.8);
+  /* The chat sidebar's gap between a 24px mark and its row's hover fill. */
+  --sidebar-mark-inset: 3px;
 
   /* Radius */
   /*
@@ -856,6 +855,21 @@
     }
 
     /*
+     * A row's hover fill sits the same --sidebar-mark-inset off the 24px mark
+     * on every side, with a corner concentric to the mark's. Stock pads 0.5rem
+     * inline against ~2.4px block, so the mark sat off-centre in its fill, and
+     * the column started 18px in. Section labels, the Haus mark, Captain
+     * avatars and the account avatar all start on this same edge (Zach,
+     * 2026-11-24).
+     */
+    .capy-sidebar .sidebar__menu-item-content {
+        min-height: calc(24px + var(--sidebar-mark-inset) * 2);
+        padding-block: var(--sidebar-mark-inset);
+        padding-inline-start: var(--sidebar-mark-inset);
+        border-radius: calc(var(--radius) * 1.5 + var(--sidebar-mark-inset));
+    }
+
+    /*
      * Home's Project and Captain chips lead with a mark, so the trigger keeps
      * Capy's tighter step between the mark and its name.
      */
@@ -968,7 +982,7 @@
      * Nav icons are 16px, paired with the 13px row label, in every sidebar.
      *
      * HeroUI sizes them `calc(var(--spacing) * 4)`, and sidebar rows run on
-     * `--spacing-compact`, so the app's whole navigation drew at 11px. That
+     * `--spacing-compact`, so the app's whole navigation drew at 12.75px. That
      * is a density token driving an optical one: row height should tighten
      * with density, but the glyph beside a label that never changed size
      * should not. Call sites had started guessing around it — a `size-4.5`
@@ -1042,20 +1056,39 @@
     }
 
     /*
-     * A sidebar row is HeroUI's ×9 box. Its ×1.5 block padding is air for
-     * content that outgrows the box, but around the 20px label line it
-     * outgrew it at compact density, so padding, not the box, set every row.
-     * ×0.25 lets the box govern a text row and keeps a hairline around the
-     * 24px channel and task marks. One density for every sidebar (Zach,
-     * 2026-11-23).
+     * Chat sidebar rows: HeroUI's ×1.5 block padding around a 24px Project or
+     * task mark ran those rows ~34px, taller than the ×9 box. ×0.75 lets the
+     * box govern, so mark rows and text rows share a ~30px pitch (Zach,
+     * 2026-11-24).
      */
     .sidebar__menu-item-content {
-        padding-block: calc(var(--spacing) * 0.25);
+        padding-block: calc(var(--spacing) * 0.75);
     }
 
-    /* A search field leading a sidebar is one row tall; stock draws it taller. */
-    .sidebar .search-field__group {
-        height: calc(var(--spacing) * 9);
+    /*
+     * The Settings rail is a list to scan, so it runs tighter than the chat
+     * sidebar: a ~26px row pitch, Capy's, against the chat sidebar's ~30px. Zach chose
+     * Settings-only density (2026-11-22), so the chat sidebar keeps its rows.
+     * HeroUI sizes a row ×9 tall with ×1.5 block padding and a search field
+     * `h-9`; the rail takes ×7.5 and ×0.75 for both, and its group labels lose
+     * a step of block padding to match. Inline insets stay stock, so icons and
+     * labels keep their columns.
+     */
+    .settings-rail {
+        --settings-rail-row: calc(var(--spacing) * 7.5);
+    }
+
+    .settings-rail .sidebar__menu-item-content {
+        min-height: var(--settings-rail-row);
+        padding-block: calc(var(--spacing) * 0.75);
+    }
+
+    .settings-rail .sidebar__group-label {
+        padding-block: var(--spacing);
+    }
+
+    .settings-rail .search-field__group {
+        height: var(--settings-rail-row);
     }
 
     /*
