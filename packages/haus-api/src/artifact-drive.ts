@@ -44,6 +44,8 @@ export const artifactFolderEntrySchema = z
         file_count: z.number().int().positive(),
         name: z.string(),
         path: z.string(),
+        /** Bytes of those files' current revisions. */
+        size_bytes: z.number().int().nonnegative(),
         /** The newest current revision under the folder. */
         updated_at: z.string(),
     })
@@ -61,6 +63,8 @@ export const artifactListSummarySchema = z
         files_in_folders: z.number().int().nonnegative(),
         /** Files directly in the folder, across every page. */
         files: z.number().int().nonnegative(),
+        /** Bytes of every file under the folder (current revisions), nested ones included. */
+        size_bytes: z.number().int().nonnegative(),
     })
     .strict();
 export type ArtifactListSummary = z.infer<typeof artifactListSummarySchema>;

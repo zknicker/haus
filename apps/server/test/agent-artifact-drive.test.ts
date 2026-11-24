@@ -22,7 +22,7 @@ test('Agents browse folders, pull a prefix recursively, resolve paths, and move'
         ['haus/kit', 3],
     ]);
     expect(root.artifacts.map((item) => item.path)).toEqual(['haus/top.md']);
-    expect(root.summary).toEqual({ folders: 1, files_in_folders: 3, files: 1 });
+    expect(root.summary).toMatchObject({ folders: 1, files_in_folders: 3, files: 1 });
     const pull = artifactListResultSchema.parse(
         await get(
             runner.token,
@@ -34,7 +34,7 @@ test('Agents browse folders, pull a prefix recursively, resolve paths, and move'
         'haus/kit/scripts/b.sh',
     ]);
     expect(pull.next_offset).toBe(2);
-    expect(pull.summary).toEqual({ folders: 1, files_in_folders: 2, files: 1 });
+    expect(pull.summary).toMatchObject({ folders: 1, files_in_folders: 2, files: 1 });
     const resolved = artifactPublishResultSchema.parse(
         await get(runner.token, '/api/agent/artifacts/by-path?path=haus/KIT/A.md')
     );

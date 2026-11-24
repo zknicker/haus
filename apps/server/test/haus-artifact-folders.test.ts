@@ -2,6 +2,12 @@ import { beforeAll, expect, test } from 'bun:test';
 import { artifactDriveFixture } from './artifact-drive-fixture.ts';
 
 const { publish, state } = artifactDriveFixture('artifact-folders');
+const starterKit = [
+    'haus/starter-kit/README.md',
+    'haus/starter-kit/scripts/tm_check.py',
+    'haus/starter-kit/scripts/build.sh',
+    'haus/starter-kit/assets/logo.png',
+] as const;
 
 beforeAll(async () => {
     for (const [path, minute] of [
@@ -69,26 +75,42 @@ test('a folder lists its child folders with counts and its own files', async () 
             file_count: 4,
             name: 'starter-kit',
             path: 'haus/starter-kit',
+            size_bytes: bodyBytes(...starterKit),
             updated_at: '2026-10-01T00:04:00.000Z',
         },
     ]);
     expect(root.artifacts.map((item) => item.path)).toContain('haus/notes.md');
     expect(root.artifacts.some((item) => item.path.split('/').length > 2)).toBe(false);
-    expect(root.summary).toEqual({ folders: 1, files_in_folders: 4, files: 2 });
+    expect(root.summary).toEqual({
+        folders: 1,
+        files_in_folders: 4,
+        files: 2,
+        size_bytes: bodyBytes(...starterKit, 'haus/notes.md', 'haus/café.md'),
+    });
     const kit = await listInHaus({ prefix: 'Starter-Kit' });
     expect(kit.folders.map((folder) => [folder.path, folder.file_count])).toEqual([
         ['haus/starter-kit/assets', 1],
         ['haus/starter-kit/scripts', 2],
     ]);
     expect(kit.artifacts.map((item) => item.path)).toEqual(['haus/starter-kit/README.md']);
-    expect(kit.summary).toEqual({ folders: 2, files_in_folders: 3, files: 1 });
+    expect(kit.summary).toEqual({
+        folders: 2,
+        files_in_folders: 3,
+        files: 1,
+        size_bytes: bodyBytes(...starterKit),
+    });
     const images = await listInHaus({ kind: 'images', prefix: 'starter-kit' });
     expect(images.folders.map((folder) => folder.path)).toEqual(['haus/starter-kit/assets']);
     expect(images.artifacts).toEqual([]);
-    expect(images.summary).toEqual({ folders: 1, files_in_folders: 1, files: 0 });
+    expect(images.summary).toEqual({
+        folders: 1,
+        files_in_folders: 1,
+        files: 0,
+        size_bytes: bodyBytes('haus/starter-kit/assets/logo.png'),
+    });
     const missing = await listInHaus({ prefix: 'missing' });
     expect(missing.folders).toEqual([]);
-    expect(missing.summary).toEqual({ folders: 0, files_in_folders: 0, files: 0 });
+    expect(missing.summary).toEqual({ folders: 0, files_in_folders: 0, files: 0, size_bytes: 0 });
 });
 
 test('child folders come newest first, with ties broken by path', async () => {
@@ -123,7 +145,7 @@ test('the summary counts every matching file, whatever the page or recursion', a
     expect(first.artifacts).toHaveLength(1);
     expect(first.next_offset).toBe(1);
     expect(first.folders).toHaveLength(1);
-    expect(first.summary).toEqual({ folders: 1, files_in_folders: 4, files: 2 });
+    expect(first.summary).toMatchObject({ folders: 1, files_in_folders: 4, files: 2 });
     const second = await listInHaus({ limit: 1, offset: 1 });
     expect(second.folders).toEqual([]);
     expect(second.summary).toEqual(first.summary);
@@ -131,10 +153,23 @@ test('the summary counts every matching file, whatever the page or recursion', a
     expect(query.folders.map((folder) => [folder.path, folder.file_count])).toEqual([
         ['haus/starter-kit', 2],
     ]);
-    expect(query.summary).toEqual({ folders: 1, files_in_folders: 2, files: 0 });
+    expect(query.summary).toEqual({
+        folders: 1,
+        files_in_folders: 2,
+        files: 0,
+        size_bytes: bodyBytes(
+            'haus/starter-kit/scripts/tm_check.py',
+            'haus/starter-kit/scripts/build.sh'
+        ),
+    });
     const recursive = await listInHaus({ limit: 2, prefix: 'starter-kit', recursive: true });
     expect(recursive.artifacts).toHaveLength(2);
-    expect(recursive.summary).toEqual({ folders: 2, files_in_folders: 3, files: 1 });
+    expect(recursive.summary).toEqual({
+        folders: 2,
+        files_in_folders: 3,
+        files: 1,
+        size_bytes: bodyBytes(...starterKit),
+    });
 });
 
 test('recursive listing pages every file under a prefix in stable path order', async () => {
@@ -175,4 +210,8 @@ function listInHaus(input: Partial<Parameters<typeof state.owner.trpc.artifact.l
         serverId: state.serverId,
         ...rest,
     });
+}
+
+function bodyBytes(...paths: string[]) {
+    return paths.reduce((total, path) => total + Buffer.byteLength(path), 0);
 }

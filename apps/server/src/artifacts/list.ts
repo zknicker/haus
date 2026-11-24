@@ -59,6 +59,8 @@ export async function listArtifactDrive(
     };
 }
 
+const totalBytes = sql<number>`coalesce(sum(${revisions.byteSize}), 0)::float8`.mapWith(Number);
+
 const segmentCount = sql<number>`array_length(string_to_array(${artifacts.path}, '/'), 1)`;
 
 function filePage(
@@ -116,6 +118,7 @@ async function childFolders(
     const rows = await db
         .select({
             fileCount: sql<number>`count(*)`.mapWith(Number),
+            sizeBytes: totalBytes,
             path: sql<string>`min(array_to_string((string_to_array(${artifacts.path}, '/'))[1:${index}], '/'))`,
             updatedAt: updatedAt.mapWith(revisions.createdAt),
         })
@@ -129,6 +132,7 @@ async function childFolders(
         file_count: row.fileCount,
         name: row.path.slice(row.path.lastIndexOf('/') + 1),
         path: row.path,
+        size_bytes: row.sizeBytes,
         updated_at: row.updatedAt.toISOString(),
     }));
 }
@@ -149,6 +153,7 @@ async function matchingFolders(
     const rows = await db
         .select({
             fileCount: sql<number>`count(*)`.mapWith(Number),
+            sizeBytes: totalBytes,
             path: sql<string>`min(array_to_string((string_to_array(${artifacts.path}, '/'))[1:${level}], '/'))`,
             updatedAt: updatedAt.mapWith(revisions.createdAt),
         })
@@ -168,6 +173,7 @@ async function matchingFolders(
         file_count: row.fileCount,
         name: row.path.slice(row.path.lastIndexOf('/') + 1),
         path: row.path,
+        size_bytes: row.sizeBytes,
         updated_at: row.updatedAt.toISOString(),
     }));
 }
@@ -194,6 +200,7 @@ async function listSummary(
                 Number
             ),
             nested: sql<number>`count(*) filter (where ${nested})`.mapWith(Number),
+            sizeBytes: totalBytes,
         })
         .from(artifacts)
         .innerJoin(revisions, currentRevision())
@@ -201,7 +208,12 @@ async function listSummary(
     if (!row) {
         throw new Error('Artifact list summary returned no row.');
     }
-    return { folders: row.folders, files_in_folders: row.nested, files: row.all - row.nested };
+    return {
+        folders: row.folders,
+        files_in_folders: row.nested,
+        files: row.all - row.nested,
+        size_bytes: row.sizeBytes,
+    };
 }
 
 function currentRevision() {
