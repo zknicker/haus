@@ -119,7 +119,9 @@ creator. People own it.
 
 Agents and Servers that existed before these seeds get the rule files from a Server backfill
 (`startRuleFileBackfill`), a boot sweep that runs at start and hourly. It writes `haus/AGENTS.md`
-for each live Server, and `AGENTS.md` and `WORKER.md` for each live Agent, only where Drive has
+for each live Server, `projects/<key>/AGENTS.md` for each live, unarchived Project (created by the
+Server's earliest active owner, as `haus/AGENTS.md` is), and `AGENTS.md` and `WORKER.md` for each
+live Agent, only where Drive has
 never held a file at that path, live or deleted, so a rule file someone deleted stays deleted. It
 never writes `MEMORY.md`.
 

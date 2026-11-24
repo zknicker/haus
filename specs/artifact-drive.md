@@ -471,7 +471,7 @@ area's counter at the number of its files. Moving Agent workspaces into `agents/
 which writes each file as the Agent that owned the workspace, with no Task. R4d-4 retired D3's
 launch-time run; the Server now seeds a new Agent's factory files (starter `MEMORY.md`, `AGENTS.md`,
 `WORKER.md` and managed skills) as Haus revisions when the Agent is created, and a boot backfill
-writes missing `haus/AGENTS.md`, `AGENTS.md` and `WORKER.md` files
+writes missing `haus/AGENTS.md`, `projects/<key>/AGENTS.md`, `AGENTS.md` and `WORKER.md` files
 ([workspace.md](workspace.md#the-seed-at-creation)). D3 wrote a fresh Agent's
 factory seed the same way, never over a path Drive already holds, and derives each `request_id` as
 the SHA-256 of `drive-migration`, the Agent id, the start frame's run id, the Drive path and the
