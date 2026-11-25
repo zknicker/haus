@@ -78,7 +78,8 @@ and a put in the Project's area for each live file, as a move records them.
 A write stores the area prefix in its canonical spelling, so `HAUS/a.md` lands as `haus/a.md` and
 `Agents/ORBIT/a.md` as `agents/orbit/a.md`. A handle compares without case. Handles are unique only
 among active Agents, so `agents/<handle>/` names the active Agent with that handle, otherwise the
-most recently retired one. A folder move may start or end at an area root such as `haus`, but never
+most recently retired one. `drive.changes` lists only that one area per handle, so once a handle
+passes to a new Agent, the retired owner's change rows never reach a folder again. A folder move may start or end at an area root such as `haus`, but never
 at `projects` or `agents` alone.
 
 The rule and memory files are ordinary files. What reads them, and when, is ADR 0054 decisions 7
@@ -339,8 +340,8 @@ it.
 The Server records each file's outcome under the push id. A push closes on `close`, or when the
 same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
 A full reset increments the Agent's `reset_generation` under the Server lock. Each dispatched run
-records the generation it was dispatched in (`agent_run_triggers.reset_generation`), and its push
-copies it (`drive_pushes.reset_generation`). A put or delete under a push whose generation is not
+records the generation it was dispatched in (`agent_run_triggers.reset_generation`), a dispatched
+Worker turn records its Agent's (`worker_turns.reset_generation`), and its push copies it (`drive_pushes.reset_generation`). A put or delete under a push whose generation is not
 the Agent's current one is refused with `AGENT_RESET`, so a turn the reset interrupted cannot
 revive a deleted file or add one to the reseeded area. The comparison is by counter, not by time,
 because a transaction's `now()` is its start, not the moment it took the lock. Those refusals stay out of the push's
@@ -378,8 +379,8 @@ deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RET
 only while the file is live. A deleted file keeps every revision, large replaced ones included, for
 30 days (`driveDeletedRetentionDays`), then its revisions are purged and its tombstone stays.
 Every soft delete (a single delete, `deleteMany`, a push delete, and a full reset's area delete)
-records `artifacts.deleted_by`, the deleter's author key (`agent:<id>` or `user:<id>`), and a
-revive or restore clears it. `artifact.listDeleted` returns it as `deleted_by`, an author or null
+records `artifacts.deleted_by`, the deleter's author key (`agent:<id>`, `user:<id>`, or `worker:<id>` for a Worker's push, as
+its revisions are keyed), and a revive or restore clears it. `artifact.listDeleted` returns it as `deleted_by`, an author or null
 for files deleted before the column existed.
 `delete-artifact-version` still removes one non-current revision at once. A delete also turns off
 the file's public link, so a restore never re-exposes a link the delete ended.
