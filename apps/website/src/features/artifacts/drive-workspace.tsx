@@ -47,8 +47,8 @@ export function DriveWorkspace({
     const place = resolved ?? shown ?? contextPlace(context?.folder ?? null);
     const filters = artifactId === null ? library : (context ?? library);
     const openFolder = (folder: string) => navigate(libraryHref(slug, { ...filters, folder }));
-    const target = place ? workingFolder(place.open) : library.folder;
-    const upload = useDriveUpload(serverId, (folder) => {
+    const target = place ? workingFolder(place.open) : null;
+    const upload = useDriveUpload(serverId, target, (folder) => {
         if (artifactId !== null) {
             openFolder(folder);
         }
@@ -64,13 +64,13 @@ export function DriveWorkspace({
         );
     });
     const add: DriveAdd = {
-        newFile: () => created.file.mutate(target),
+        newFile: () => (target === null ? undefined : created.file.mutate(target)),
         newFolder: () => {
             created.folder.reset();
             setFolderParent(target);
         },
-        uploadFiles: () => upload.openFiles(target),
-        uploadFolder: () => upload.openFolder(target),
+        uploadFiles: upload.openFiles,
+        uploadFolder: upload.openFolder,
     };
     const addMenu = <DriveAddMenu add={add} />;
 
