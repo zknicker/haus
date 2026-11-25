@@ -2,7 +2,9 @@ import { expect, test } from 'bun:test';
 import {
     computerUseNeedsGrant,
     computerUsePermissions,
+    missingComputerUsePermission,
     supportsComputerUse,
+    wrongMacLine,
 } from './computer-use-model.ts';
 
 const ready = {
@@ -52,4 +54,40 @@ test('pane names follow the macOS version', () => {
 test('computer use is offered only on macOS', () => {
     expect(supportsComputerUse({ operatingSystem: 'darwin' })).toBe(true);
     expect(supportsComputerUse({ operatingSystem: 'linux' })).toBe(false);
+});
+
+test('the first permission macOS has not given is the one to fix; one it could not check is not', () => {
+    expect(missingComputerUsePermission(ready)).toBeUndefined();
+    expect(missingComputerUsePermission({ ...ready, screenRecording: 'unknown' })).toBeUndefined();
+    expect(
+        missingComputerUsePermission({
+            ...ready,
+            accessibility: 'denied',
+            screenRecording: 'denied',
+        })?.id
+    ).toBe('accessibility');
+    expect(missingComputerUsePermission({ ...ready, screenRecording: 'denied' })?.id).toBe(
+        'screen-recording'
+    );
+});
+
+test('the setup steps name the Mac you are on only when the desktop App knows it is another one', () => {
+    const devices = [
+        { id: 'cmp_mini', name: 'Zach’s Mac mini' },
+        { id: 'cmp_book', name: 'Zach’s MacBook Pro' },
+    ];
+    const line = (localComputerId: string | null | undefined) =>
+        wrongMacLine({
+            deviceName: 'Zach’s Mac mini',
+            devices,
+            localComputerId,
+            targetId: 'cmp_mini',
+        });
+    expect(line('cmp_book')).toBe(
+        'You’re on Zach’s MacBook Pro. Do this on Zach’s Mac mini, through Screen Sharing if it has no display.'
+    );
+    expect(line('cmp_mini')).toBeNull();
+    expect(line(null)).toBeNull();
+    expect(line(undefined)).toBeNull();
+    expect(line('cmp_removed')).toBeNull();
 });

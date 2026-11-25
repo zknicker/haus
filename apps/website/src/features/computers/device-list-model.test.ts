@@ -3,13 +3,22 @@ import { ComputerIcon, LaptopIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { deviceGroups, deviceIssue, deviceLastSeen, deviceMark } from './device-list-model.ts';
 
 const now = Date.parse('2026-11-23T12:00:00Z');
+const readiness = {
+    accessibility: 'granted',
+    installed: true,
+    macosVersion: '27.3',
+    screenRecording: 'granted',
+    version: '1.3.1',
+} as const;
 
 function device(overrides: Partial<Parameters<typeof deviceLastSeen>[0]> = {}) {
     return {
         attachedByCurrentUser: true,
+        computerUseEnabled: false,
         health: 'healthy' as const,
         lastConnectedAt: '2026-11-23T11:00:00Z',
         name: 'Zach’s MacBook Pro',
+        reportedInventory: null,
         ...overrides,
     };
 }
@@ -29,6 +38,27 @@ test('a healthy device is quiet; any other health is an issue to show', () => {
         color: 'default',
         label: 'Offline',
     });
+});
+
+test('a Mac with computer use on and a permission macOS has not given needs attention', () => {
+    const denied = { computerUse: { ...readiness, screenRecording: 'denied' as const } };
+    expect(deviceIssue(device({ computerUseEnabled: true, reportedInventory: denied }))).toEqual({
+        color: 'warning',
+        label: 'Needs attention',
+    });
+    expect(
+        deviceIssue(device({ computerUseEnabled: false, reportedInventory: denied }))
+    ).toBeNull();
+    expect(
+        deviceIssue(
+            device({ computerUseEnabled: true, reportedInventory: { computerUse: readiness } })
+        )
+    ).toBeNull();
+    expect(
+        deviceIssue(
+            device({ computerUseEnabled: true, health: 'offline', reportedInventory: denied })
+        )
+    ).toEqual({ color: 'default', label: 'Offline' });
 });
 
 test('an offline device says when it was last seen', () => {

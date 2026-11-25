@@ -54,6 +54,33 @@ export function computerUseNeedsGrant(readiness: ComputerUseReadiness | undefine
     return computerUsePermissions(readiness).some((permission) => permission.state !== 'granted');
 }
 
+export function missingComputerUsePermission(readiness: ComputerUseReadiness | undefined) {
+    return computerUsePermissions(readiness).find((permission) => permission.state === 'denied');
+}
+
+export function computerUseBroken(device: {
+    computerUseEnabled: boolean;
+    reportedInventory: { computerUse?: ComputerUseReadiness } | null;
+}) {
+    return (
+        device.computerUseEnabled &&
+        missingComputerUsePermission(device.reportedInventory?.computerUse) !== undefined
+    );
+}
+
+export function wrongMacLine(input: {
+    deviceName: string;
+    devices: ReadonlyArray<{ id: string; name: string }>;
+    localComputerId: string | null | undefined;
+    targetId: string;
+}) {
+    const local = input.devices.find((device) => device.id === input.localComputerId);
+    if (!local || local.id === input.targetId) {
+        return null;
+    }
+    return `You’re on ${local.name}. Do this on ${input.deviceName}, through Screen Sharing if it has no display.`;
+}
+
 export function permissionStateLabel(state: ComputerUsePermissionState) {
     switch (state) {
         case 'granted':

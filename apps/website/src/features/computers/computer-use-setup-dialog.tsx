@@ -11,12 +11,14 @@ export function ComputerUseSetupDialog({
     isChecking,
     onClose,
     permission,
+    wrongMac,
 }: {
     appPath: string;
     deviceName: string;
     isChecking: boolean;
     onClose: () => void;
     permission: ComputerUsePermission;
+    wrongMac: string | null;
 }) {
     const granted = permission.state === 'granted';
     return (
@@ -38,6 +40,7 @@ export function ComputerUseSetupDialog({
                     </Modal.Header>
                     <Modal.Body>
                         <div className="grid gap-3">
+                            {wrongMac ? <p>{wrongMac}</p> : null}
                             <ol className="grid list-decimal gap-2 ps-5">
                                 <li>{permission.steps}</li>
                                 <li>
@@ -46,10 +49,12 @@ export function ComputerUseSetupDialog({
                                     <code className="block">{breakAtSeparators(appPath)}</code>
                                 </li>
                             </ol>
-                            <p className="text-muted">
-                                Do this on {deviceName} itself, through Screen Sharing if it has no
-                                display.
-                            </p>
+                            {wrongMac ? null : (
+                                <p className="text-muted">
+                                    Do this on {deviceName} itself, through Screen Sharing if it has
+                                    no display.
+                                </p>
+                            )}
                             <p aria-live="polite">
                                 {granted
                                     ? 'Granted'
