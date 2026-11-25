@@ -1,6 +1,7 @@
 import type { DriveRemote } from './drive-remote.ts';
 import type { DriveChangeEntry } from './drive-response-schema.ts';
 import type { FolderFiles } from './folder-files.ts';
+import { placeJournaled } from './folder-placing.ts';
 import {
     type DriveFileRecord,
     type FolderStateStore,
@@ -86,17 +87,10 @@ async function applyPut(context: ChangeContext, change: PutChange) {
     const scratch = await files.scratchFile();
     await context.remote.download(change, scratch);
     return await blockedOnLocalPath(async () => {
-        const mtimeMs = await files.placeIfUnchanged(
-            change.path,
-            scratch,
-            context.readOnlyRoot,
-            local
-        );
-        if (mtimeMs === null) {
+        if ((await placeJournaled(context, facts, scratch, context.readOnlyRoot, local)) === null) {
             await state.markSeen(change.path, change.revision_id);
             return 'kept';
         }
-        await state.record({ ...facts, mtime_ms: mtimeMs });
         return 'applied';
     });
 }

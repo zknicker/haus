@@ -66,7 +66,11 @@ When a turn starts and the Agent's machine is online, the machine pulls while th
    and modification time again right before the replace, so an edit made while the download ran
    is kept the same way.
 5. Each file's bytes and its record are written together, one file at a time, bytes first. The
-   area counters advance only after the whole pull finishes.
+   incoming revision is journaled in `drive.json` (`placing`) before its bytes move into place.
+   A pull or push first settles any journaled revision: a file holding exactly those bytes takes
+   it as its record, and anything else drops the entry, so a stop between the bytes and the
+   record never turns the new bytes into a local edit. Push outcomes place files the same way.
+   The area counters advance only after the whole pull finishes.
 6. A local folder where Drive has a file, or a local file where Drive has a folder, blocks only
    that change. The pull applies the rest and holds the counters, so the change comes again once
    the push has moved the blocking path out.
@@ -87,6 +91,7 @@ push is safe at any point of a failed pull, because every file's base names the 
 holds.
 
 A folder's pull and push never overlap. A pull waits for the previous turn's push to finish.
+Every sync a frame starts is tracked as daemon work, so a stop or an upgrade waits for it.
 
 ## Push after the turn
 
@@ -303,6 +308,7 @@ D2 and D4 add these guards.
 | A replayed request returns its stored outcome, even after its push closed, and makes no second copy or item | `apps/server/test/drive-push-replay.test.ts` |
 | `drive.changes` from any counter returns exactly the paths changed since, tombstones included, and finishes under continuous writes | `apps/server/test/drive-changes.test.ts` |
 | A pull updates unedited files, keeps edited ones, and a pull that fails midway leaves a folder that pushes correctly | `apps/computer/src/drive/pull.test.ts` |
+| A stop between a file's bytes and its record never revives the file after a delete | `apps/computer/src/drive/pull.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
 | A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
@@ -312,6 +318,7 @@ D2 and D4 add these guards.
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |
+| Every drive sync a frame starts is tracked as daemon work | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | Full reset deletes the Agent's area, restorable from Recently deleted, and session reset leaves it | `apps/server/test/agent-full-reset-drive.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
 | A start frame's `driveConflict` renders as the whole turn input | `apps/runner/src/turn/turn-input.test.ts` |

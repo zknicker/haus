@@ -47,10 +47,14 @@ const folderStateSchema = z.object({
         z.string(),
         z.object({ request_id: z.string().min(1), sha256: z.string().min(1) })
     ),
+    placing: z
+        .record(z.string(), fileRecordSchema.omit({ mtime_ms: true, seen_head: true }))
+        .default({}),
     retired: z.record(z.string(), z.string()),
     version: z.literal(1),
 });
 export type DriveFolderState = z.infer<typeof folderStateSchema>;
+export type DrivePlacement = DriveFolderState['placing'][string];
 
 const emptyState: DriveFolderState = {
     areas: [],
@@ -58,6 +62,7 @@ const emptyState: DriveFolderState = {
     files: {},
     openPush: null,
     pendingCreates: {},
+    placing: {},
     retired: {},
     version: 1,
 };
@@ -79,8 +84,15 @@ export async function openFolderState(layout: DriveFolderLayout) {
         record: (record: DriveFileRecord) => {
             const { [record.path]: _revived, ...retired } = state.retired;
             const { [record.path]: _resolved, ...pendingCreates } = state.pendingCreates;
+            const { [record.path]: _placed, ...placing } = state.placing;
             const files = { ...state.files, [record.path]: record };
-            return persist({ ...state, files, pendingCreates, retired });
+            return persist({ ...state, files, pendingCreates, placing, retired });
+        },
+        notePlacing: (placement: DrivePlacement) =>
+            persist({ ...state, placing: { ...state.placing, [placement.path]: placement } }),
+        dropPlacing: (path: string) => {
+            const { [path]: _dropped, ...placing } = state.placing;
+            return path in state.placing ? persist({ ...state, placing }) : Promise.resolve();
         },
         forget: (path: string) => {
             const forgotten = state.files[path];

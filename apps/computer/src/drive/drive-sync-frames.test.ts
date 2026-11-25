@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { startAuthority } from './drive-authority.fixture.ts';
 import { type DriveServer, startDriveServer } from './drive-server.fixture.ts';
 import { driveSyncFrames } from './drive-sync-frames.ts';
 import { driveFolderLayout } from './folder-state.ts';
@@ -169,9 +170,11 @@ test('a sync renews its drive-sync credential as it runs and revokes every one i
     const sync = driveSyncFrames(
         agentsRoot,
         { credential: 'computer-credential', serverOrigin: `http://127.0.0.1:${front.port}` },
-        () => {
-            clock += 11 * 60 * 1000;
-            return clock;
+        {
+            now: () => {
+                clock += 11 * 60 * 1000;
+                return clock;
+            },
         }
     );
 
@@ -186,6 +189,40 @@ test('a sync renews its drive-sync credential as it runs and revokes every one i
 
     expect(authority.minted.length).toBeGreaterThan(1);
     expect(authority.revoked).toHaveLength(authority.minted.length);
+});
+
+test('every drive sync is tracked so a stop or upgrade waits for it', async () => {
+    server = startDriveServer();
+    server.write('agents/alpha/MEMORY.md', 'remember the otter', 'agt_alpha');
+    const authority = startAuthority(server);
+    front = authority.server;
+    agentsRoot = await mkdtemp(join(tmpdir(), 'haus-drive-sync-'));
+    const tracked: Promise<unknown>[] = [];
+    const sync = driveSyncFrames(
+        agentsRoot,
+        { credential: 'computer-credential', serverOrigin: `http://127.0.0.1:${front.port}` },
+        {
+            track: (operation) => {
+                tracked.push(operation);
+                return operation;
+            },
+        }
+    );
+
+    sync.receive({
+        agentId: 'agt_alpha',
+        runId: 'run_1',
+        placementGeneration: 0,
+        sessionGeneration: 1,
+        type: 'drive-pull',
+    });
+    await Promise.all(tracked);
+
+    expect(tracked).toHaveLength(1);
+    const folder = driveFolderLayout(join(agentsRoot, 'agt_alpha'), 'agt_alpha').folder;
+    expect(await readFile(join(folder, 'agents', 'alpha', 'MEMORY.md'), 'utf8')).toBe(
+        'remember the otter'
+    );
 });
 
 test('a queued sync from a replaced session generation never runs', async () => {
@@ -248,34 +285,3 @@ test('a drive-flush frame pushes under its flush id and closes that push', async
     expect(authority.minted.map((mint) => (mint as { runId: string }).runId)).toEqual(['flush_1']);
     expect(server.requests).toContain('POST /api/agent/drive/push/close');
 });
-
-function startAuthority(drive: DriveServer, mintGate: Promise<void> = Promise.resolve()) {
-    const minted: unknown[] = [];
-    const revoked: unknown[] = [];
-    const front = Bun.serve({
-        async fetch(request) {
-            const url = new URL(request.url);
-            if (url.pathname === '/computer/runner/mint') {
-                const body = (await request.json()) as { agentId: string };
-                minted.push(body);
-                await mintGate;
-                return Response.json({
-                    runnerId: `arc_${minted.length}`,
-                    runnerToken: body.agentId,
-                });
-            }
-            if (url.pathname === '/computer/runner/revoke') {
-                revoked.push(await request.json());
-                return Response.json({});
-            }
-            return await fetch(new URL(`${url.pathname}${url.search}`, drive.origin), {
-                body: request.body,
-                headers: request.headers,
-                method: request.method,
-            });
-        },
-        hostname: '127.0.0.1',
-        port: 0,
-    });
-    return { minted, revoked, server: front };
-}

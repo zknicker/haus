@@ -1,5 +1,6 @@
 import { DriveRemoteError, type DriveRemote } from './drive-remote.ts';
 import { folderFiles, sha256File } from './folder-files.ts';
+import { settlePlacing } from './folder-placing.ts';
 import { SymlinkedFolderError } from './folder-spelling.ts';
 import {
     type DriveFileRecord,
@@ -14,6 +15,7 @@ import { type PlannedPut, sendDelete, sendPut } from './push-request.ts';
 export async function planDrivePush(layout: DriveFolderLayout) {
     const state = await openFolderState(layout);
     const files = folderFiles(layout);
+    await settlePlacing({ files, state });
     const local = await files.walk();
     const records = state.current().files;
     const linked: string[] = [];

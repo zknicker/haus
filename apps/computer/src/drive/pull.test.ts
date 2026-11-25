@@ -136,6 +136,34 @@ test('a crash between a file and its record is repaired by the next pull', async
     expect(server.requests.filter((request) => request.includes('/download'))).toHaveLength(1);
 });
 
+test('a crash after a file was placed but before its record never revives it after a delete', async () => {
+    server = startDriveServer();
+    server.write('haus/a.md', 'a1', 'usr');
+    const alpha = alphaFolder();
+    await alpha.pull();
+    const crashed = await alpha.state();
+    const a2 = server.write('haus/a.md', 'a2', 'usr');
+    await alpha.pull();
+    const {
+        mtime_ms: _placed,
+        seen_head: _seen,
+        ...placement
+    } = (await alpha.state()).files['haus/a.md'] ?? { mtime_ms: 0 };
+    await writeFile(
+        alpha.layout.stateFile,
+        JSON.stringify({ ...crashed, placing: { 'haus/a.md': placement } })
+    );
+    server.remove('haus/a.md');
+
+    await alpha.pull();
+    await alpha.push('run_after_crash');
+
+    expect(placement).toMatchObject({ revision_id: a2.revision_id });
+    expect(await alpha.read('haus/a.md')).toBeNull();
+    expect(server.head('haus/a.md')).toBeNull();
+    expect((await alpha.state()).placing).toEqual({});
+});
+
 test('a folder removed under its bookkeeping starts again from zero', async () => {
     server = startDriveServer();
     server.write('haus/a.md', 'a1', 'usr');

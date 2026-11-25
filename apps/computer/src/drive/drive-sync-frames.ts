@@ -12,8 +12,13 @@ import { type DriveRun, flushDriveForRun, pullDriveForRun, pushDriveForRun } fro
 export function driveSyncFrames(
     agentsRoot: string,
     attachment: { credential: string; serverOrigin: string },
-    now: () => number = Date.now
+    options: {
+        now?: () => number;
+        track?: (operation: Promise<void>) => Promise<unknown>;
+    } = {}
 ) {
+    const now = options.now ?? Date.now;
+    const track = options.track ?? ((operation: Promise<void>) => operation);
     const generations = new Map<string, number>();
     return {
         receive(frame: unknown) {
@@ -62,7 +67,7 @@ export function driveSyncFrames(
             };
             const agentRoot = join(agentsRoot, agentPathSegment(command.agentId));
             const sync = syncOf[command.type];
-            void sync(agentRoot, run).catch((error: unknown) =>
+            void track(sync(agentRoot, run)).catch((error: unknown) =>
                 run.warn(
                     'drive-sync-failed',
                     error instanceof Error ? error.message : String(error)

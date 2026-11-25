@@ -1,6 +1,7 @@
 import type { DriveRemote } from './drive-remote.ts';
 import type { DriveRevisionFacts } from './drive-response-schema.ts';
 import type { FolderFiles } from './folder-files.ts';
+import { placeJournaled } from './folder-placing.ts';
 import {
     areaOfPath,
     type DriveFolderLayout,
@@ -76,12 +77,10 @@ export async function converge(
         await state.record(recordOf(current, mtimeMs, path));
         return;
     }
-    const mtimeMs = await files.placeIfUnchanged(path, incoming, lock, expected);
-    if (mtimeMs === null) {
+    const { mtime_ms: _unplaced, ...placement } = recordOf(current, unplacedMtimeMs, path);
+    if ((await placeJournaled(context, placement, incoming, lock, expected)) === null) {
         await state.markSeen(path, current.revision_id);
-        return;
     }
-    await state.record(recordOf(current, mtimeMs, path));
 }
 
 export async function respellTo(

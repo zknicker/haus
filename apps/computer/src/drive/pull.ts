@@ -1,6 +1,7 @@
 import type { DriveAreaCounters } from '@haus/api';
 import type { DriveRemote } from './drive-remote.ts';
 import { folderFiles } from './folder-files.ts';
+import { settlePlacing } from './folder-placing.ts';
 import { SymlinkedFolderError } from './folder-spelling.ts';
 import {
     type DriveFolderArea,
@@ -13,6 +14,7 @@ import { applyChange, type ChangeResult } from './pull-change.ts';
 export async function pullDrive(input: { layout: DriveFolderLayout; remote: DriveRemote }) {
     const state = await openFolderState(input.layout);
     const files = folderFiles(input.layout);
+    await settlePlacing({ files, state });
     const tally: Record<ChangeResult, number> = { applied: 0, blocked: 0, kept: 0, skipped: 0 };
     const held: { message: string; path: string }[] = [];
     let since: DriveAreaCounters = { ...state.current().counters };
