@@ -6,15 +6,17 @@ export const environmentLogins = Object.freeze({
 
 export const evalLoginLabel = 'Agent tests';
 
-let chatgptRefresh = null;
+const chatgptRefreshes = new WeakMap();
 
 export async function ensureModelLogin(harness, provider, env = process.env) {
     const { connections } = await harness.trpc('modelConnections.list', {
         serverId: harness.serverId,
     });
     if (provider === 'chatgpt') {
-        chatgptRefresh ??= refreshChatgptLogin(harness, connections, env);
-        return await chatgptRefresh;
+        if (!chatgptRefreshes.has(harness)) {
+            chatgptRefreshes.set(harness, refreshChatgptLogin(harness, connections, env));
+        }
+        return await chatgptRefreshes.get(harness);
     }
     if (connections.some((connection) => usable(connection, provider))) {
         return 'connected';
