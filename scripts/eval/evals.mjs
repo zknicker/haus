@@ -6,6 +6,7 @@
 import { UsageError } from './args.mjs';
 import {
     attentionProfiles,
+    citationProfiles,
     computerTargetJudge,
     computerTargetProfiles,
     githubTriggerProfiles,
@@ -36,6 +37,14 @@ export const evals = {
         profiles: placementProfiles,
         scenarios: placementScenarios,
         summary: 'Answers land inline where the asker looks, say only what was asked, and stop.',
+    },
+    // ADR 0061: run with `--model` on the runtime whose citations are in question.
+    citations: {
+        judge: null,
+        profiles: citationProfiles,
+        scenarios: ['web-search-cites-links'],
+        summary:
+            'A question that needs a web lookup is answered with its source cited as a Markdown link, and no raw send carries a provider reference marker.',
     },
     // Side work in a purpose channel, with the one-off control that must stay
     // inline. The multi-round scenario asserts its own structure; its rate is

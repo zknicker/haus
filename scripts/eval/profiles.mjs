@@ -158,6 +158,22 @@ export const computerTargetProfiles = {
     },
 };
 
+/**
+ * Citations (ADR 0061). Asked to look up something current, a good teammate
+ * answers in the channel with the fact and cites the page it read as a
+ * Markdown link, once. Wrong: a bare claim with no link, a raw provider
+ * marker, a pasted search-result list, or an offer to do more.
+ */
+export const citationProfiles = {
+    'web-search-cites-links': {
+        cap: 60,
+        channel: [1, 2],
+        maxQuestions: 0,
+        result: (post) => /\[[^\]\n]+\]\(https?:\/\/[^)\s]+\)/u.test(post.content),
+        spec: 'ADR0061',
+    },
+};
+
 export const computerTargetJudge = {
     no: 'The posts never say the MacBook is offline or unreachable, pass off another machine as the MacBook, or add a recap, a plan, or an offer.',
     question:

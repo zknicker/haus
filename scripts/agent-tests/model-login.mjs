@@ -1,13 +1,21 @@
+import { seedChatgptLogin } from './chatgpt-login.mjs';
+
 export const environmentLogins = Object.freeze({
     gemini: { env: 'HAUS_GEMINI_API_KEY' },
 });
 
 export const evalLoginLabel = 'Agent tests';
 
+let chatgptRefresh = null;
+
 export async function ensureModelLogin(harness, provider, env = process.env) {
     const { connections } = await harness.trpc('modelConnections.list', {
         serverId: harness.serverId,
     });
+    if (provider === 'chatgpt') {
+        chatgptRefresh ??= refreshChatgptLogin(harness, connections, env);
+        return await chatgptRefresh;
+    }
     if (connections.some((connection) => usable(connection, provider))) {
         return 'connected';
     }
@@ -58,6 +66,26 @@ export function providerForModel(modelId) {
         }
     }
     return 'chatgpt';
+}
+
+async function refreshChatgptLogin(harness, connections, env) {
+    const others = connections.filter(
+        (connection) => connection.provider === 'chatgpt' && connection.label !== evalLoginLabel
+    );
+    if (others.some((connection) => usable(connection, 'chatgpt'))) {
+        return 'connected';
+    }
+    const own = connections.find(
+        (connection) => connection.provider === 'chatgpt' && connection.label === evalLoginLabel
+    );
+    if (own) {
+        await harness.trpc('modelConnections.remove', {
+            connectionId: own.id,
+            serverId: harness.serverId,
+        });
+    }
+    await seedChatgptLogin(harness, { env, label: evalLoginLabel });
+    return own ? 'repaired' : 'added';
 }
 
 function usable(connection, provider) {

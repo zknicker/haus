@@ -55,10 +55,10 @@ describe('model login', () => {
             { enabled: true, id: 'mc_1', label: 'Mine', provider: 'gemini', status: 'failed' },
         ]);
         await expect(ensureModelLogin(harness, 'chatgpt', env)).rejects.toThrow(
-            'connect one on the stack in Settings → Models'
+            'needs HAUS_SECRETS_KEY'
         );
         await expect(ensureModelLogin(harness, 'claude', env)).rejects.toThrow(
-            'none can be added from the environment'
+            'connect one on the stack in Settings → Models'
         );
         await expect(ensureModelLogin(harness, 'gemini', {})).rejects.toThrow(
             environmentLogins.gemini.env
