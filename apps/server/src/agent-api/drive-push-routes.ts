@@ -69,7 +69,8 @@ export function registerAgentDrivePushRoutes(
                     options.db,
                     options.agentDelivery,
                     access,
-                    input.push_id
+                    input.push_id,
+                    access.worker ? (input.unsent ?? []) : []
                 );
                 push.wake(closed.wakes);
                 if (

@@ -19,6 +19,7 @@ import type { HausDatabase } from '../../postgres/connection.ts';
 import { agentsTable, artifactRevisionsTable as revisions } from '../../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../../realtime/topics.ts';
 import { writableDrivePath } from '../areas.ts';
+import { pusherPlacesMovedFiles } from './moved-file-guard.ts';
 import { isRefusal, pushRevisionRequestId, requirePushPath } from './outcomes.ts';
 import { landPushPut } from './put-land.ts';
 import { type PushRequest, putRequest, recordRefusal, replayPut, storedOutcome } from './replay.ts';
@@ -87,6 +88,7 @@ export async function pushPut(
             handle: await agentHandle(db, access),
             path,
             placed: reservation.placed,
+            placesMovedFiles: await pusherPlacesMovedFiles(db, actor),
             push,
             request: pushRequest,
             requestId: input.request_id,

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { constants } from 'node:fs';
 import { chmod, copyFile, link, lstat, mkdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import {
@@ -134,19 +135,12 @@ export function folderFiles(layout: DriveFolderLayout) {
             if (!inFolder.startsWith('..')) {
                 await refuseSymlinkedParents(layout.folder, inFolder.split(sep).join('/'));
             }
-            await mkdir(dirname(target), { recursive: true });
-            for (let attempt = 1; ; attempt += 1) {
-                const candidate = attempt === 1 ? target : `${target}.${attempt}`;
-                const existing = await lstat(candidate).catch(() => null);
-                if (existing?.isFile() && (await sha256File(candidate)) === sha256) {
-                    return candidate;
-                }
-                if (!existing) {
-                    await link(source, candidate);
-                    return candidate;
-                }
-            }
+            return await placeAside(target, sha256, (candidate) => link(source, candidate));
         },
+        copyAside: (path: string, target: string, sha256: string) =>
+            placeAside(target, sha256, (candidate) =>
+                copyFile(absolute(path), candidate, constants.COPYFILE_EXCL)
+            ),
         async occupant(path: string) {
             const spelling = await spellingOf(layout.folder, path);
             return spelling === 'linked' ? ('other' as const) : spelling;
@@ -206,6 +200,25 @@ export async function sha256File(path: string) {
         hasher.update(chunk);
     }
     return hasher.digest('hex');
+}
+
+async function placeAside(
+    target: string,
+    sha256: string,
+    place: (candidate: string) => Promise<void>
+) {
+    await mkdir(dirname(target), { recursive: true });
+    for (let attempt = 1; ; attempt += 1) {
+        const candidate = attempt === 1 ? target : `${target}.${attempt}`;
+        const existing = await lstat(candidate).catch(() => null);
+        if (existing?.isFile() && (await sha256File(candidate)) === sha256) {
+            return candidate;
+        }
+        if (!existing) {
+            await place(candidate);
+            return candidate;
+        }
+    }
 }
 
 async function pruneEmptyParents(folder: string, target: string) {

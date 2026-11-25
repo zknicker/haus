@@ -117,6 +117,47 @@ test("a Worker push's conflict goes to its Agent as one drive_conflict item nami
     expect(item?.content).toContain(worker.workerId);
 });
 
+test('a Worker that set files aside after its push closed tells its Agent once, naming them', async () => {
+    const worker = await seedWorkerTurn();
+    const path = 'agents/orbit/reports/W-3/late.md';
+    await push.close({ token: worker.token }, worker.turnId);
+    const closed = await push.put(
+        { token: worker.token },
+        { path, push_id: worker.turnId, request_id: 'late-worker' },
+        'late\n'
+    );
+    expect(closed.body).toMatchObject({ code: 'PUSH_CLOSED' });
+
+    const note = () =>
+        push.postJson({ token: worker.token }, '/api/agent/drive/push/close', {
+            push_id: worker.turnId,
+            unsent: [path],
+        });
+    expect((await note()).status).toBe(200);
+    expect((await note()).status).toBe(200);
+
+    const items = (await push.conflictItems(fixture.orbitAgentId)).filter((row) =>
+        row.dedupe_key.includes(worker.turnId)
+    );
+    expect(items.map((row) => row.dedupe_key)).toEqual([`drive-conflict:${worker.turnId}:unsent`]);
+    expect(JSON.parse(items[0]?.content ?? '{}')).toMatchObject({
+        files: [{ outcome: 'refused', path, reason: 'PUSH_CLOSED' }],
+        pushId: worker.turnId,
+        writer: { type: 'worker', workerId: worker.workerId },
+    });
+});
+
+test("an Agent's own push close never queues a set-aside note", async () => {
+    const run = await push.dispatch('run_agent_unsent');
+    const response = await push.postJson(run, '/api/agent/drive/push/close', {
+        push_id: 'run_agent_unsent',
+        unsent: ['agents/orbit/x.md'],
+    });
+    expect(response.status).toBe(200);
+    const items = await push.conflictItems(fixture.orbitAgentId);
+    expect(items.filter((row) => row.dedupe_key.includes('run_agent_unsent'))).toEqual([]);
+});
+
 async function openPushes() {
     const rows = await fixture.harness.sql`
         select id from drive_pushes where server_id = ${fixture.serverId} and closed_at is null

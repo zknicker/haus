@@ -467,7 +467,7 @@ Computer data root ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-a
 servers/<serverId>/worktrees/<worker-id>/<owner>/<name>/    the Worker's git worktree of the repo folder
 servers/<serverId>/repos/<owner>/<name>/                    Haus's own clone, when the Computer has no folder
 servers/<serverId>/workers/<worker-id>/drive/               the Worker's drive/ folder
-servers/<serverId>/workers/<worker-id>/drive-refused/       files a push refused
+servers/<serverId>/worker-drive-refused/<worker-id>/        files a push refused or never sent; outlives the Worker
 servers/<serverId>/workers/<worker-id>/runtime/drive.json   the folder's bookkeeping
 servers/<serverId>/workers/<worker-id>/runtime/turns.json   the turn journal
 servers/<serverId>/workers/<worker-id>/runtime/report/      the last report receipt

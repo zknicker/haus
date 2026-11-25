@@ -9,7 +9,11 @@ import { liveArtifactAtPath } from '../../artifacts/path.ts';
 import { releasePendingPath } from '../../artifacts/publish.ts';
 import { takeNextNumber, takePlaceholderNumber } from '../../artifacts/revision-number.ts';
 import type { ArtifactStorage } from '../../artifacts/storage.ts';
-import { createArtifactAt, deletedArtifactOwning } from '../../artifacts/write-target.ts';
+import {
+    createArtifactAt,
+    deletedArtifactOwning,
+    liveArtifactOwning,
+} from '../../artifacts/write-target.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
 import {
     artifactsTable as artifacts,
@@ -30,6 +34,7 @@ export interface PushPutLanding {
     handle: string;
     path: string;
     placed: string;
+    placesMovedFiles: boolean;
     push: DrivePush;
     request: PushRequest;
     requestId: string;
@@ -118,10 +123,19 @@ async function decide(tx: HausDatabase, landing: PushPutLanding, landed: Revisio
             outcome: { current: driveRevisionOf(occupant, stored), outcome: 'merged', path },
         } satisfies Landed;
     }
+    if (occupant && occupant.id !== landed.artifactId) {
+        return await keepBoth(tx, landing, landed, null, 'both_created');
+    }
+    const moved =
+        base && landing.placesMovedFiles
+            ? await liveArtifactOwning(tx, access.serverId, base)
+            : null;
+    const movedHead = moved ? await headRevision(tx, moved) : null;
+    if (moved && movedHead) {
+        return await keepBoth(tx, landing, landed, driveRevisionOf(moved, movedHead), 'base_gone');
+    }
     if (occupant) {
-        return occupant.id === landed.artifactId
-            ? await commitOnto(tx, landing, occupant, landed, 'committed')
-            : await keepBoth(tx, landing, landed, null, 'both_created');
+        return await commitOnto(tx, landing, occupant, landed, 'committed');
     }
     const deleted = base ? await deletedArtifactOwning(tx, access.serverId, base) : null;
     if (deleted) {

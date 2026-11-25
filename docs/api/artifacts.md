@@ -45,7 +45,8 @@ revision's base differs from its parent; a `request_id` retry compares the bytes
 After a turn, the machine pushes the turn's Drive changes under the run id:
 `POST /api/agent/drive/push/put` (raw bytes; query `push_id`, `path`, `request_id`, optional
 `base_revision_id`, `content_type`), `POST /api/agent/drive/push/delete` (JSON `push_id`, `path`,
-`base_revision_id`, `request_id`), and `POST /api/agent/drive/push/close` (JSON `push_id`). Each
+`base_revision_id`, `request_id`), and `POST /api/agent/drive/push/close` (JSON `push_id`, and for a Worker optional `unsent`, the paths it
+set aside after its push closed). Each
 put or delete answers one push outcome and never a `REVISION_CONFLICT`; a failed merge keeps both
 versions in a `.conflict-<handle>` copy. The code is `apps/server/src/drive/push/`.
 [Artifact drive](../../specs/artifact-drive.md) owns path rules, folders, moves, error codes, and
