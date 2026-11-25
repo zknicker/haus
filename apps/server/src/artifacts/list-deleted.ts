@@ -3,11 +3,12 @@ import {
     type ArtifactDeletedRecord,
     driveDeletedRetentionDays,
 } from '@haus/api';
-import { and, desc, eq, gt } from 'drizzle-orm';
+import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,
     artifactRevisionsTable as revisions,
+    workersTable as workers,
 } from '../postgres/schema.ts';
 import { type ArtifactActor, artifactAccess } from './access.ts';
 import { insideFolder } from './path.ts';
@@ -25,7 +26,7 @@ export async function listDeletedArtifacts(
 ) {
     const access = await artifactAccess(db, actor);
     const rows = await db
-        .select({ artifact: artifacts, revision: revisions })
+        .select({ artifact: artifacts, revision: revisions, workerAgentId: workers.agentId })
         .from(artifacts)
         .innerJoin(
             revisions,
@@ -33,6 +34,13 @@ export async function listDeletedArtifacts(
                 eq(revisions.serverId, artifacts.serverId),
                 eq(revisions.artifactId, artifacts.id),
                 eq(revisions.id, artifacts.currentRevisionId)
+            )
+        )
+        .leftJoin(
+            workers,
+            and(
+                eq(workers.serverId, artifacts.serverId),
+                eq(sql`'worker:' || ${workers.id}`, artifacts.deletedBy)
             )
         )
         .where(
@@ -51,7 +59,7 @@ export async function listDeletedArtifacts(
             ({
                 artifact: artifactRecord(row, origin, access.slug),
                 deleted_at: deletedAt(row.artifact),
-                deleted_by: deletedBy(row.artifact.deletedBy),
+                deleted_by: deletedBy(row.artifact.deletedBy, row.workerAgentId),
             }) satisfies ArtifactDeletedRecord
     );
     return {
@@ -60,7 +68,7 @@ export async function listDeletedArtifacts(
     };
 }
 
-function deletedBy(key: string | null) {
+function deletedBy(key: string | null, workerAgentId: string | null) {
     if (key === null) {
         return null;
     }
@@ -71,6 +79,9 @@ function deletedBy(key: string | null) {
     }
     if (kind === 'user') {
         return { type: 'user', user_id: id } satisfies ArtifactAuthor;
+    }
+    if (kind === 'worker' && workerAgentId) {
+        return { agent_id: workerAgentId, type: 'worker', worker_id: id } satisfies ArtifactAuthor;
     }
     throw new Error(`A deleted file names no deleter shape: ${key}.`);
 }
