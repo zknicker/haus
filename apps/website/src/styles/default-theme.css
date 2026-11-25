@@ -3941,6 +3941,133 @@
     }
 
     /*
+     * Search results, Capy's palette list: the Tasks list's quiet group bar
+     * over single-line 36px rows. A row reads author and the snippet around
+     * the first hit; the Chat and a compact age sit flush right. The filter
+     * bar starts on the rows' text edge, as the Tasks bar does.
+     */
+    .search-filters {
+        padding-inline: calc(var(--spacing) * 3);
+    }
+
+    /* The band's query field wears the browser find field's size and material. */
+    .search-band-field .search-field__group {
+        min-height: 0;
+        height: calc(var(--spacing) * 8);
+    }
+
+    .search-band-field .search-field__group:not(:focus-within) {
+        box-shadow: none;
+    }
+
+    .list-view.search-results {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .search-results__group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .search-results__group-label {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+        min-height: calc(var(--spacing) * 7);
+        margin-block-end: calc(var(--spacing) * 0.5);
+        padding-inline: calc(var(--spacing) * 4);
+        border-radius: calc(var(--radius) * 1.5);
+        background: color-mix(in oklab, var(--foreground) 4%, transparent);
+        font-size: var(--text-sm);
+        font-weight: 500;
+        color: var(--foreground);
+    }
+
+    .search-results__group-count {
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .list-view--secondary.search-results .list-view__item {
+        min-height: 36px;
+        padding-block: calc(var(--spacing) * 0.5);
+    }
+
+    .search-results .list-view__item-content {
+        gap: calc(var(--spacing) * 2);
+    }
+
+    /* A fixed author column, so every snippet starts on one rail. */
+    .search-results__author {
+        flex-shrink: 0;
+        width: 6.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: var(--text-sm);
+        color: var(--muted);
+    }
+
+    .search-results .list-view__title.search-results__snippet {
+        font-weight: 400;
+        color: var(--muted);
+    }
+
+    .search-results__hit {
+        background: transparent;
+        color: var(--foreground);
+        font-weight: 500;
+    }
+
+    .search-results__facts {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+        font-size: var(--text-sm);
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+    .search-results__place {
+        max-width: 12rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .search-results__age {
+        min-width: calc(var(--spacing) * 8);
+        font-variant-numeric: tabular-nums;
+        text-align: end;
+    }
+
+    /*
+     * An Activity log day: the Tasks list's quiet group bar, run edge to edge
+     * like the log's rows, its label on the log's text edge (`--trace-pad`).
+     * The day under the pinned day bar is already named there, so the first
+     * day's bar is screen-reader only.
+     */
+    .activity-log__day {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+        min-height: calc(var(--spacing) * 7);
+        margin-block-start: calc(var(--spacing) * 3);
+        padding-inline: var(--trace-pad);
+        background: color-mix(in oklab, var(--foreground) 4%, transparent);
+        font-size: var(--text-sm);
+        font-weight: 500;
+        color: var(--foreground);
+    }
+
+    .activity-log__day-count {
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /*
      * A Task's facts are Capy's property list: a muted label column and an
      * inline control per row, at 32px.
      */

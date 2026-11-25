@@ -95,30 +95,32 @@ export function ActivityStrip({
                     ) : null}
                 </div>
                 {happeningNow !== null && running > 0 ? (
-                    <ActivityStripPopover
-                        heading="Happening now"
-                        label={`${running} running now`}
-                        trigger={
-                            <>
-                                <span
-                                    aria-hidden="true"
-                                    className="bg-success size-2 shrink-0 rounded-full"
+                    <span className="-me-2 flex shrink-0">
+                        <ActivityStripPopover
+                            heading="Happening now"
+                            label={`${running} running now`}
+                            trigger={
+                                <>
+                                    <span
+                                        aria-hidden="true"
+                                        className="bg-success size-2 shrink-0 rounded-full"
+                                    />
+                                    {`${running} running`}
+                                </>
+                            }
+                        >
+                            {(close) => (
+                                <HappeningNowList
+                                    listId="strip-happening-now-popover"
+                                    onOpenRow={(row) => {
+                                        close();
+                                        onOpenRow(row);
+                                    }}
+                                    rows={happeningNow}
                                 />
-                                {`${running} running`}
-                            </>
-                        }
-                    >
-                        {(close) => (
-                            <HappeningNowList
-                                listId="strip-happening-now-popover"
-                                onOpenRow={(row) => {
-                                    close();
-                                    onOpenRow(row);
-                                }}
-                                rows={happeningNow}
-                            />
-                        )}
-                    </ActivityStripPopover>
+                            )}
+                        </ActivityStripPopover>
+                    </span>
                 ) : null}
             </div>
         </aside>
@@ -146,7 +148,7 @@ function AgentWeekChip({ entry, onOpen }: { entry: ActiveAgent; onOpen: () => vo
         >
             <Chip
                 color={spike ? 'warning' : 'default'}
-                size="md"
+                size="sm"
                 variant={spike ? 'soft' : 'secondary'}
             >
                 <EntityAvatar

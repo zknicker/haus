@@ -73,13 +73,12 @@ export function readLogDays(
     return days;
 }
 
-/** The newest populated day's latest turns open on arrival. */
-const openOnArrival = 10;
-
+/** The newest turn and every running one open on arrival; the rest stay one line each. */
 export function readOpenOnArrival(days: readonly ActivityLogDay[]): ReadonlySet<string> {
+    const entries = days.flatMap((day) => day.entries);
     return new Set(
-        (days.find((day) => day.entries.length > 0)?.entries ?? [])
-            .slice(0, openOnArrival)
+        entries
+            .filter((entry, index) => index === 0 || entry.row.latest.kind === 'active')
             .map((entry) => entry.row.latest.runId)
     );
 }

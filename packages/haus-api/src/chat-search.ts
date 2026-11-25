@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 import { chatMessageSchema } from './chat.ts';
+import { taskKeySchema } from './task-key.ts';
 
 export const chatSearchInputSchema = z
     .object({
@@ -17,6 +18,8 @@ export const chatSearchInputSchema = z
 
 export const chatSearchResultSchema = chatMessageSchema.extend({
     chatArchivedAt: timestampSchema.nullable(),
+    /** The Task whose chat holds the message (`GEN-1`); null in a Channel or DM. */
+    taskKey: taskKeySchema.nullable(),
 });
 
 export type ChatSearchResult = z.infer<typeof chatSearchResultSchema>;

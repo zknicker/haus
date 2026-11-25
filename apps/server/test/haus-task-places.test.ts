@@ -289,3 +289,11 @@ test('the Channel previews each Task under its origin Message', async () => {
         'Prod key is in the vault.',
     ]);
 });
+
+test('search names a Task Chat message by its Task key', async () => {
+    const [hit] = await fixture.owner.trpc.chat.search.query({
+        query: 'vault',
+        serverId: fixture.serverId,
+    });
+    expect(hit).toMatchObject({ chatId: first.chatId, taskKey: 'SEC-1' });
+});

@@ -96,26 +96,28 @@ export function ActivityLogOverview({
                 ref={ref}
             >
                 <div className="flex min-w-0 items-center gap-1">
-                    <Button
-                        aria-label={older ? `Show ${older.label}` : 'No earlier days'}
-                        isDisabled={!older}
-                        isIconOnly
-                        onPress={() => older && onDayChange(older)}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Icon icon={ArrowLeft01Icon} size={16} />
-                    </Button>
-                    <Button
-                        aria-label={newer ? `Show ${newer.label}` : 'No later days'}
-                        isDisabled={!newer}
-                        isIconOnly
-                        onPress={() => newer && onDayChange(newer)}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Icon icon={ArrowRight01Icon} size={16} />
-                    </Button>
+                    <span className="-ms-2 flex items-center gap-1">
+                        <Button
+                            aria-label={older ? `Show ${older.label}` : 'No earlier days'}
+                            isDisabled={!older}
+                            isIconOnly
+                            onPress={() => older && onDayChange(older)}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <Icon icon={ArrowLeft01Icon} size={16} />
+                        </Button>
+                        <Button
+                            aria-label={newer ? `Show ${newer.label}` : 'No later days'}
+                            isDisabled={!newer}
+                            isIconOnly
+                            onPress={() => newer && onDayChange(newer)}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <Icon icon={ArrowRight01Icon} size={16} />
+                        </Button>
+                    </span>
                     <h3 aria-live="polite" className="ms-1 shrink-0 text-sm font-medium">
                         {day.label}
                     </h3>
@@ -126,7 +128,9 @@ export function ActivityLogOverview({
                             <span className="text-danger">{` · ${failed} failed`}</span>
                         ) : null}
                     </OverviewReadout>
-                    {action}
+                    {action ? (
+                        <span className="-me-2 flex shrink-0 items-center">{action}</span>
+                    ) : null}
                 </div>
                 {/* Below 42rem the strip's folded breaks crowd; the day bar carries the day. */}
                 <div
@@ -136,7 +140,7 @@ export function ActivityLogOverview({
                     {timeline.spans.map((span) => (
                         <span
                             aria-hidden
-                            className="border-border absolute top-1/2 border-t border-dotted"
+                            className="border-trace-axis absolute top-1/2 border-t border-dotted"
                             key={`lane-${span.left}`}
                             style={{ left: `${span.left}%`, width: `${span.width}%` }}
                         />
@@ -181,7 +185,7 @@ function TimelineTurn({ block, startedAt }: { block: TimelineBlock; startedAt: s
         >
             <span
                 className={cn(
-                    'relative h-4 w-full overflow-hidden rounded-xs',
+                    'relative h-3 w-full overflow-hidden rounded-xs',
                     // Cut from the lane like a waterfall bar from its leader.
                     'shadow-[0_0_0_2px_var(--trace-ground)]',
                     // Solid: the quiet tone over the ground, so the lane never shows through.

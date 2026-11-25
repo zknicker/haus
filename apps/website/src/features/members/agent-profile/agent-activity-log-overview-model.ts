@@ -104,14 +104,15 @@ export function buildDayTimeline(
                   0.5 * ((window.end - window.start) / busy) + 0.5 * (window.turns / ordered.length)
               )
     );
+    const gaps = readGapShares(windows, measure.labelGap);
     const total =
-        weights.reduce((sum, weight) => sum + weight, 0) + breakShare * (windows.length - 1);
+        weights.reduce((sum, weight) => sum + weight, 0) + gaps.reduce((sum, gap) => sum + gap, 0);
 
     let cursor = 0;
     const placed: Placed[] = windows.map((window, index) => {
         const width = ((weights[index] ?? 0) / total) * 100;
         const entry = { ...window, left: cursor, width };
-        cursor += width + (breakShare / total) * 100;
+        cursor += width + ((gaps[index] ?? 0) / total) * 100;
         return entry;
     });
     const at = (time: number) => {
@@ -136,6 +137,21 @@ export function buildDayTimeline(
             .map(({ left, width }) => ({ left, width })),
         ticks: readTicks(placed, at, isToday ? now : null, measure.labelGap),
     };
+}
+
+/**
+ * Each break's share after its stretch. The break before today's empty Now
+ * stretch is wide enough that its mark clears the right-aligned Now label.
+ */
+function readGapShares(windows: readonly Window[], labelGap: number) {
+    const endsAtNow = windows.at(-1)?.turns === 0;
+    const nowShare = Math.max(breakShare, (2 * labelGap) / 100);
+    return windows.map((_, index) => {
+        if (index === windows.length - 1) {
+            return 0;
+        }
+        return endsAtNow && index === windows.length - 2 ? nowShare : breakShare;
+    });
 }
 
 /** Real positions, then a floor width and a slide past any neighbour they would cover. */

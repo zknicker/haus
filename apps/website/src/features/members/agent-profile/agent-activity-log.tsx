@@ -113,6 +113,9 @@ export function ActivityLog({
                             // The page gutter: the shell band's, as other full-bleed lists use.
                             '[--trace-pad:calc(var(--spacing)*3)]',
                             '[--trace-lead:calc(4.5rem+var(--spacing)*2)]',
+                            showAgent
+                                ? '[--log-title-inset:calc(var(--spacing)*32)]'
+                                : '[--log-title-inset:calc(var(--spacing)*6)]',
                             '@max-2xl/activity-log:[--trace-lead:calc(3.75rem+var(--spacing)*2)]'
                         )}
                         data-activity-log
@@ -143,8 +146,15 @@ export function ActivityLog({
                                 data-log-day={logDay.key}
                                 key={logDay.key}
                             >
-                                <h3 className="border-separator border-b px-(--trace-pad) pt-4 pb-2 text-sm font-semibold">
+                                <h3
+                                    className={cn('activity-log__day', dayIndex === 0 && 'sr-only')}
+                                >
                                     {logDay.label}
+                                    {logDay.entries.length > 0 ? (
+                                        <span className="activity-log__day-count">
+                                            {logDay.entries.length}
+                                        </span>
+                                    ) : null}
                                 </h3>
                                 {logDay.entries.length === 0 ? (
                                     <p className="text-muted px-(--trace-pad) py-3 text-sm">

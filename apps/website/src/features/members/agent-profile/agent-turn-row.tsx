@@ -84,7 +84,7 @@ export function TurnRowTitleLine({
             <span className="text-foreground min-w-0 truncate">
                 {title.kind === 'text' ? title.text : null}
             </span>
-            {/* Regular weight even after a log header's semibold title. */}
+            {/* Regular weight even after a log header's medium title. */}
             {title.place ? (
                 <span className="text-muted shrink-0 font-normal">{title.place}</span>
             ) : null}

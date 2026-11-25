@@ -86,14 +86,14 @@ export function OverviewRuler({
         <div aria-hidden className="relative h-5 @max-2xl/activity-log:hidden">
             {spans.map((span) => (
                 <span
-                    className="bg-separator absolute top-0 h-px"
+                    className="bg-trace-axis absolute top-0 h-px"
                     key={`span-${span.left}`}
                     style={{ left: `${span.left}%`, width: `${span.width}%` }}
                 />
             ))}
             {breaks.map((gap) => (
                 <span
-                    className="border-muted absolute -top-1 h-2.5 w-1.5 -translate-x-1/2 -skew-x-[20deg] border-x"
+                    className="border-muted absolute -top-1 h-2 w-1.5 -translate-x-1/2 -skew-x-[20deg] border-x"
                     key={`break-${gap.at}`}
                     style={{ left: `${gap.at}%` }}
                     title={`${gap.label} idle`}
@@ -104,14 +104,14 @@ export function OverviewRuler({
                     <span
                         className={cn(
                             'absolute top-0 h-1 w-px',
-                            tick.rank === 'now' ? 'bg-accent' : 'bg-separator',
+                            tick.rank === 'now' ? 'bg-accent' : 'bg-trace-axis',
                             tick.rank === 'now' && '-translate-x-full'
                         )}
                         style={{ left: `${tick.at}%` }}
                     />
                     <span
                         className={cn(
-                            'absolute top-1.5 text-xs leading-none whitespace-nowrap tabular-nums',
+                            'absolute top-2 text-xs leading-none whitespace-nowrap tabular-nums',
                             tick.rank === 'now' ? 'text-accent font-medium' : 'text-muted',
                             tick.rank === 'start' && 'text-foreground',
                             tick.rank === 'minor' && '-translate-x-1/2',

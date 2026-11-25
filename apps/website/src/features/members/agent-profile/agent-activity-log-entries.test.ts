@@ -33,20 +33,21 @@ test('the log sorts newest first, groups by local day, and keeps only filtered A
     ]);
 });
 
-test('only the newest day opens on arrival, at most ten turns of it', () => {
+test('only the newest turn and running turns open on arrival', () => {
     const now = Date.now();
     const newest = Array.from({ length: 12 }, (_, index) =>
         entry(`run_${index}`, now - index * 60_000)
     );
+    const settled = entry('run_running', now - 30 * 60_000);
+    const running = {
+        ...settled,
+        row: { ...settled.row, latest: { ...settled.row.latest, kind: 'active' } },
+    } satisfies ActivityLogEntry;
     const days = [
-        { entries: newest, key: 'today', label: 'Today' },
+        { entries: [...newest, running], key: 'today', label: 'Today' },
         { entries: [entry('run_yesterday', now - 86_400_000)], key: 'y', label: 'Yesterday' },
     ];
-    const open = readOpenOnArrival(days);
-    expect(open.size).toBe(10);
-    expect(open.has('run_0')).toBe(true);
-    expect(open.has('run_10')).toBe(false);
-    expect(open.has('run_yesterday')).toBe(false);
+    expect([...readOpenOnArrival(days)]).toEqual(['run_0', 'run_running']);
     expect(readOpenOnArrival([]).size).toBe(0);
 });
 

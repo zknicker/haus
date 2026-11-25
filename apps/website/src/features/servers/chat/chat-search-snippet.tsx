@@ -1,12 +1,15 @@
 import type * as React from 'react';
+import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 
 // Snippets center on the first term hit so long messages still show why they
-// matched; every term occurrence inside the window is highlighted.
+// matched; every term occurrence inside the window is highlighted. The
+// message reads as its one plain line, so a link shows its label, not its
+// Markdown target.
 const snippetWindowChars = 220;
-const snippetLeadInChars = 60;
+const snippetLeadInChars = 40;
 
 export function renderSnippet(content: string, query: string): React.ReactNode {
-    const text = content.replaceAll(/\s+/gu, ' ').trim();
+    const text = messagePreviewLine(content);
     const terms = query.split(/\s+/u).filter(Boolean).map(escapeRegExp);
     if (terms.length === 0) {
         return clipSnippet(text, 0);
@@ -40,10 +43,7 @@ export function renderSnippet(content: string, query: string): React.ReactNode {
             nodes.push(window.slice(cursor, run.start));
         }
         nodes.push(
-            <mark
-                className="bg-accent/15 text-accent rounded-sm px-0.5 font-medium"
-                key={start + run.start}
-            >
+            <mark className="search-results__hit" key={start + run.start}>
                 {window.slice(run.start, run.end)}
             </mark>
         );

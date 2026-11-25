@@ -1,6 +1,5 @@
 import { Disclosure } from '@heroui/react';
 import * as React from 'react';
-import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import { TraceNested } from '../../turn-trace/turn-trace-depth.tsx';
@@ -19,16 +18,12 @@ import { useTurnTraceNow } from '../../turn-trace/use-turn-trace-now.ts';
 import { type ActivityLogEntry, readStepMarks } from './agent-activity-log-entries.ts';
 import { useLogTurnJournal } from './agent-activity-log-journal.ts';
 import { useActivityLogStores, useIsLinkedFromOverview } from './agent-activity-log-stores.ts';
-import {
-    ChatButtonRoom,
-    LogChatButton,
-    readChatTarget,
-    TurnRuler,
-} from './agent-activity-log-turn-parts.tsx';
+import { TurnHeaderLabel } from './agent-activity-log-turn-header.tsx';
+import { LogChatButton, readChatTarget, TurnRuler } from './agent-activity-log-turn-parts.tsx';
 import type { TurnDetailAccess, TurnJournalPresentation } from './agent-activity-model.ts';
 import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import { getTurnRowStatus } from './agent-turn-row-model.ts';
-import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
+import { TurnDuration } from './agent-turn-row.tsx';
 
 /**
  * One turn as a group in the flat log: a header row on the log's columns
@@ -85,7 +80,7 @@ export function ActivityLogTurn({
 
     return (
         <div
-            className={cn('grid min-w-0 scroll-mt-40 pt-1.5 pb-1', traceTurnClass(isLinked))}
+            className={cn('grid min-w-0 scroll-mt-40 py-0.5', traceTurnClass(isLinked))}
             data-log-turn={turn.runId}
             onPointerLeave={() => hover.set(null)}
             onPointerOver={(event) => {
@@ -111,35 +106,17 @@ export function ActivityLogTurn({
                                 data-log-header
                             >
                                 <time
-                                    className="text-foreground text-sm whitespace-nowrap tabular-nums"
+                                    className="text-muted text-sm whitespace-nowrap tabular-nums"
                                     dateTime={turn.startedAt}
                                 >
                                     {formatShortTime(turn.startedAt)}
                                 </time>
-                                <span className="flex min-w-0 items-center gap-2 font-semibold">
-                                    {status ? <TurnStatusGlyph status={status} /> : null}
-                                    {showAgent ? (
-                                        <span className="flex shrink-0 items-center gap-1.5">
-                                            <EntityAvatar
-                                                name={agent.displayName}
-                                                size={16}
-                                                src={agent.avatarUrl}
-                                            />
-                                            {agent.displayName}
-                                        </span>
-                                    ) : null}
-                                    <TurnRowTitleLine
-                                        count={status?.kind === 'failed' ? status.count : 1}
-                                        title={title}
-                                        turn={turn}
-                                    />
-                                    {chatTarget ? <ChatButtonRoom /> : null}
-                                </span>
-                                {/* The track column stays empty: the Chat button shows here on hover. */}
-                                <span
-                                    aria-hidden
-                                    className="@max-2xl/activity-log:hidden"
-                                    data-trace-cell="track"
+                                <TurnHeaderLabel
+                                    agent={showAgent ? agent : null}
+                                    hasChat={chatTarget !== null}
+                                    status={status}
+                                    title={title}
+                                    turn={turn}
                                 />
                                 <span className="text-muted text-end text-sm whitespace-nowrap tabular-nums">
                                     <TurnDuration turn={turn} />
@@ -161,6 +138,7 @@ export function ActivityLogTurn({
                         {ruler ? <TurnRuler scale={ruler} /> : null}
                         <TurnSteps
                             access={access}
+                            headerSaysOutcome={title.kind === 'none'}
                             outcome={formatTurnOutcome(turn)}
                             presentation={presentation}
                             view={view}
@@ -172,26 +150,32 @@ export function ActivityLogTurn({
     );
 }
 
-function TurnSteps({
+export function TurnSteps({
     access,
+    headerSaysOutcome,
     outcome,
     presentation,
     view,
 }: {
     access: TurnDetailAccess;
+    headerSaysOutcome: boolean;
     outcome: string;
     presentation: TurnJournalPresentation | null;
     view: TurnTraceView;
 }) {
     if (access === 'summary') {
-        return <LogNote>{outcome}</LogNote>;
+        return <LogNote>{headerSaysOutcome ? summaryOnlyNote : outcome}</LogNote>;
     }
     // Blank while the journal reads; never a skeleton.
     if (!presentation) {
         return null;
     }
     if (presentation.kind !== 'available') {
-        return <LogNote>{`${outcome} · ${presentation.title}`}</LogNote>;
+        return (
+            <LogNote>
+                {headerSaysOutcome ? presentation.title : `${outcome} · ${presentation.title}`}
+            </LogNote>
+        );
     }
     if (view.steps.length === 0) {
         return (
@@ -208,12 +192,17 @@ function TurnSteps({
     );
 }
 
+const summaryOnlyNote = 'Step details are visible to owners and admins.';
+
 /** A muted line on the step depth, where a step's label would start. */
 function LogNote({ children }: { children: React.ReactNode }) {
     return (
         <p
             className="text-muted pe-(--trace-pad) pb-1 text-sm"
-            style={{ paddingInlineStart: 'calc(var(--trace-lead) + var(--trace-pad) + 0.75rem)' }}
+            style={{
+                paddingInlineStart:
+                    'calc(var(--trace-lead) + var(--trace-pad) + var(--log-title-inset, calc(var(--spacing) * 6)))',
+            }}
         >
             {children}
         </p>

@@ -1,25 +1,22 @@
-import type { Chat, ChatSearchResult } from '@haus/api';
-import { EmptyState, ItemCard, PressableFeedback } from '@heroui-pro/react';
-import { Button, Chip, SearchField } from '@heroui/react';
-import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import type { ChatSearchResult } from '@haus/api';
+import { SearchField } from '@heroui/react';
 import * as React from 'react';
-import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
-import { Icon } from '../../../components/ui/icon.tsx';
-import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useChatSearch } from '../../../hooks/servers/use-chat-search.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';
-import { formatRelativeTime, truncate } from '../../../lib/format.ts';
 import { PageBand } from '../../shell/page-band.tsx';
+import { PageColumn } from '../../shell/page-column.tsx';
 import {
     ChatSearchFilterRow,
     defaultSearchFilterSelection,
-    searchResultLabel,
+    isSearchFiltered,
     useSearchApiFilters,
 } from './chat-search-filters.tsx';
-import { renderSnippet } from './chat-search-snippet.tsx';
+import { SearchEmptyState, SearchResults } from './chat-search-results.tsx';
+
+export { messageAuthor } from './message-author.ts';
 
 export function ChatSearch({
     initialQuery = '',
@@ -38,8 +35,9 @@ export function ChatSearch({
     const chats = useChats(serverId);
     const agents = useAgents(serverId);
     const members = useMembers(serverId);
-    const matches = search.data ?? [];
     const inputRef = React.useRef<HTMLInputElement | null>(null);
+    const filtered = isSearchFiltered(filterSelection);
+    const clearFilters = () => setFilterSelection(defaultSearchFilterSelection);
     const chatById = React.useMemo(
         () => new Map((chats.data ?? []).map((chat) => [chat.id, chat])),
         [chats.data]
@@ -69,7 +67,7 @@ export function ChatSearch({
                     <SearchField
                         aria-label="Search messages"
                         autoFocus
-                        className="w-full max-w-96"
+                        className="search-band-field w-full max-w-96"
                         onChange={setDraft}
                         onClear={() => setQuery('')}
                         onSubmit={(value) => setQuery(value.trim())}
@@ -84,183 +82,35 @@ export function ChatSearch({
                 </PageBand.Center>
             </PageBand>
             <div className="min-h-0 flex-1 overflow-y-auto">
-                <div className="flex min-h-full w-full flex-col px-6 py-6">
-                    <div className="mb-4">
+                <PageColumn className="@container min-h-full max-w-none gap-2 px-3 pt-1">
+                    {query.length > 0 || filtered ? (
                         <ChatSearchFilterRow
                             agents={agents.data ?? []}
                             chats={chats.data ?? []}
                             members={members.data?.members ?? []}
                             onChange={setFilterSelection}
+                            onClear={clearFilters}
                             selection={filterSelection}
                         />
-                    </div>
+                    ) : null}
                     {query.length > 0 ? (
                         <SearchResults
                             chatById={chatById}
-                            filtersActive={
-                                filterSelection.from !== 'all' ||
-                                filterSelection.chatId !== 'all' ||
-                                filterSelection.time !== 'any'
-                            }
-                            matches={matches}
-                            onClearFilters={() => setFilterSelection(defaultSearchFilterSelection)}
+                            filtered={filtered}
+                            matches={search.data ?? []}
+                            onClearFilters={clearFilters}
                             onOpenResult={onOpenResult}
                             query={query}
                             searching={search.isFetching}
                         />
                     ) : (
                         <SearchEmptyState
-                            description="Type to find messages in projects, Tasks, and DMs."
+                            description="Messages in Projects, Tasks, and DMs."
                             title="Search this Server"
                         />
                     )}
-                </div>
+                </PageColumn>
             </div>
         </section>
     );
-}
-
-function SearchResults({
-    chatById,
-    filtersActive,
-    matches,
-    onClearFilters,
-    onOpenResult,
-    query,
-    searching,
-}: {
-    chatById: Map<string, Chat>;
-    filtersActive: boolean;
-    matches: ChatSearchResult[];
-    onClearFilters(): void;
-    onOpenResult(result: ChatSearchResult): void;
-    query: string;
-    searching: boolean;
-}) {
-    if (matches.length === 0) {
-        return searching ? null : (
-            <SearchEmptyState
-                action={
-                    filtersActive ? (
-                        <Button onPress={onClearFilters} size="sm" variant="outline">
-                            Clear Filters
-                        </Button>
-                    ) : undefined
-                }
-                description={
-                    filtersActive
-                        ? 'Try different keywords, or broaden the filters.'
-                        : 'Try different keywords or check the spelling.'
-                }
-                title={`No results for “${truncate(query, 40)}”`}
-            />
-        );
-    }
-
-    return (
-        <>
-            <p className="text-muted mb-3 text-xs font-medium tabular-nums">
-                {matches.length === 1 ? '1 result' : `${matches.length} results`}
-            </p>
-            <ul className="flex flex-col gap-2">
-                {matches.map((message) => (
-                    <li key={message.id}>
-                        <SearchResultRow
-                            chat={chatById.get(message.chatId)}
-                            message={message}
-                            onOpen={() => onOpenResult(message)}
-                            query={query}
-                        />
-                    </li>
-                ))}
-            </ul>
-        </>
-    );
-}
-
-function SearchResultRow({
-    chat,
-    message,
-    onOpen,
-    query,
-}: {
-    chat: Chat | undefined;
-    message: ChatSearchResult;
-    onOpen(): void;
-    query: string;
-}) {
-    const author = messageAuthor(message);
-    // A DM's agent is already the author; repeating it as the label stutters.
-    const rawLabel = searchResultLabel(chat);
-    const label = rawLabel === author.name ? null : rawLabel;
-
-    // Stock ItemCard rendered as a button per its Pressable pattern. Its
-    // Title/Description slots are single-line truncating spans, so the
-    // wrapping highlighted snippet is custom content inside ItemCard.Content.
-    return (
-        <ItemCard<'button'>
-            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
-            render={(props) => <button onClick={onOpen} type="button" {...props} {...opensPlace} />}
-            variant="default"
-        >
-            <PressableFeedback.Highlight />
-            <ItemCard.Content>
-                <span className="flex min-w-0 items-center gap-2">
-                    {label ? <span className="text-muted shrink-0 text-sm">{label}</span> : null}
-                    <EntityAvatar name={author.name} size={18} src={author.avatarUrl} />
-                    <span className="min-w-0 truncate text-sm font-medium">{author.name}</span>
-                    <span className="text-muted shrink-0 text-xs">
-                        {formatRelativeTime(message.createdAt)}
-                    </span>
-                    {message.chatArchivedAt ? (
-                        <Chip className="ml-auto shrink-0" size="sm">
-                            Archived
-                        </Chip>
-                    ) : null}
-                </span>
-                <span className="text-foreground/90 mt-1 block text-base leading-6">
-                    {renderSnippet(message.content, query)}
-                </span>
-            </ItemCard.Content>
-        </ItemCard>
-    );
-}
-
-function SearchEmptyState({
-    action,
-    description,
-    title,
-}: {
-    action?: React.ReactNode;
-    description: string;
-    title: string;
-}) {
-    return (
-        <div className="flex flex-1 items-center justify-center py-16">
-            <EmptyState>
-                <EmptyState.Header>
-                    <EmptyState.Media variant="icon">
-                        <Icon className="size-5" icon={Search01Icon} />
-                    </EmptyState.Media>
-                    <EmptyState.Title>{title}</EmptyState.Title>
-                    <EmptyState.Description className="max-w-xs text-pretty">
-                        {description}
-                    </EmptyState.Description>
-                </EmptyState.Header>
-                {action ? <EmptyState.Content>{action}</EmptyState.Content> : null}
-            </EmptyState>
-        </div>
-    );
-}
-
-export function messageAuthor(message: ChatSearchResult): {
-    avatarUrl: string | null;
-    name: string;
-} {
-    const author = message.author;
-
-    return {
-        avatarUrl: author.profile?.avatarUrl ?? null,
-        name: author.profile?.displayName ?? (author.kind === 'agent' ? 'Captain' : 'Member'),
-    };
 }

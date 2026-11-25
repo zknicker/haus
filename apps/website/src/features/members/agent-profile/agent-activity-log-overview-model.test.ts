@@ -53,6 +53,8 @@ test("today's axis ends at now, with a break when now is far from the last turn"
     const far = buildDayTimeline([turn('a', 0, 5)], start + 90 * minute, true, measure);
     expect(far.breaks.map((gap) => gap.label)).toEqual(['1h']);
     expect(far.ticks.at(-1)).toMatchObject({ at: 100, rank: 'now' });
+    // The break's mark sits left of the right-aligned Now label.
+    expect(far.breaks[0]?.at ?? 100).toBeLessThan(100 - measure.labelGap * 0.6);
 });
 
 test('each stretch names its first turn; labels never overlap', () => {
