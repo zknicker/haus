@@ -1,6 +1,6 @@
 import { driveRemote } from '../../drive/drive-remote.ts';
 import { pullDrive } from '../../drive/pull.ts';
-import { planDrivePush, sendDrivePush } from '../../drive/push.ts';
+import { type FileFailure, planDrivePush, sendDrivePush } from '../../drive/push.ts';
 import { serialized } from '../serialized.ts';
 import { mintPushCredential, type WorkerServer } from './credentials.ts';
 import { seedWorkerDrive } from './drive-seed.ts';
@@ -52,7 +52,9 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
             warn('worker.drive-push-refused', folder, minted.reason);
             return 'finished' satisfies WorkerPushResult;
         }
-        const pushed = await sendDrivePush(plan, remoteOf(folder, minted.token), turnId);
+        const pushed = await sendDrivePush(plan, remoteOf(folder, minted.token), turnId, {
+            closeIf: allNeverWrite,
+        });
         if (pushed.pushClosed) {
             warn('worker.drive-push-closed', folder, `Push ${turnId} was already closed.`);
         }
@@ -62,11 +64,25 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
         for (const file of pushed.unrestored) {
             warn('worker.drive-restore-failed', folder, `${file.path}: ${file.message}`);
         }
-        return 'finished' satisfies WorkerPushResult;
+        return allNeverWrite(pushed.failed)
+            ? ('finished' satisfies WorkerPushResult)
+            : ('retry' satisfies WorkerPushResult);
     }).catch((error: unknown) => {
         warn('worker.drive-push-failed', folder, messageOf(error));
         return 'retry' satisfies WorkerPushResult;
     });
+}
+
+const neverWrites = new Set([
+    'AGENT_MOVED',
+    'AGENT_RESET',
+    'ESYMLINKFOLDER',
+    'FORBIDDEN',
+    'NOT_FOUND',
+]);
+
+function allNeverWrite(failed: readonly FileFailure[]) {
+    return failed.every((file) => neverWrites.has(file.code));
 }
 
 async function closeStalePush(folder: WorkerDriveFolder, pushId: string) {

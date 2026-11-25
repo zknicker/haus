@@ -69,14 +69,14 @@ export async function sendDrivePush(
     plan: DrivePushPlan,
     remote: DriveRemote,
     pushId: string,
-    options: { closeWithFailures: boolean } = { closeWithFailures: true }
+    options: { closeIf: (failed: readonly FileFailure[]) => boolean } = { closeIf: () => true }
 ) {
     const { files, layout, state } = plan;
     const context: OutcomeContext = { files, layout, remote, state };
-    const failed: FileFailure[] = plan.linked.map((path) => ({
-        message: new SymlinkedFolderError(path).message,
-        path,
-    }));
+    const failed: FileFailure[] = plan.linked.map((path) => {
+        const error = new SymlinkedFolderError(path);
+        return { code: error.code, message: error.message, path };
+    });
     const unrestored: FileFailure[] = [];
     const isolate = async (into: FileFailure[], path: string, send: () => Promise<void>) => {
         await send().catch(async (error: unknown) => {
@@ -86,7 +86,11 @@ export async function sendDrivePush(
             if (isFatal(error)) {
                 throw error;
             }
-            into.push({ message: error instanceof Error ? error.message : String(error), path });
+            into.push({
+                code: (error as { code?: unknown }).code?.toString() ?? 'ERROR',
+                message: error instanceof Error ? error.message : String(error),
+                path,
+            });
         });
     };
     await files.clearScratch();
@@ -112,7 +116,7 @@ export async function sendDrivePush(
             await isolate(failed, put.path, () => sendPut(context, put, pushId));
         }
         const sent = plan.deletes.length + plan.puts.length + plan.linked.length - failed.length;
-        if (failed.length > 0 && !options.closeWithFailures) {
+        if (!options.closeIf(failed)) {
             return { failed, listed: [], pushClosed: false, sent, unrestored };
         }
         const closed = await ignoreGonePush(remote.close(pushId));
@@ -129,16 +133,23 @@ export async function sendDrivePush(
     }
 }
 
-interface FileFailure {
+export interface FileFailure {
+    code: string;
     message: string;
     path: string;
 }
 
 const unsentCreateCodes = new Set(['IDEMPOTENCY_KEY_REUSED', 'NOT_FOUND', 'PUSH_CLOSED']);
+const retryableStatuses = new Set([401, 408, 429]);
 
 function isFatal(error: unknown) {
     if (error instanceof DriveRemoteError) {
-        return error.code === 'PUSH_CLOSED' || error.status === 401 || error.status >= 500;
+        return (
+            error.code === 'PUSH_CLOSED' ||
+            error.code === 'UPLOAD_CONFLICT' ||
+            retryableStatuses.has(error.status) ||
+            error.status >= 500
+        );
     }
     return typeof (error as NodeJS.ErrnoException | null)?.syscall !== 'string';
 }

@@ -151,8 +151,9 @@ after never reaching the folder lands under the head's spelling, and the old spe
 A delete removes only a file whose path matches exactly in every segment, so the delete half of a
 case-only rename of a file or a folder on a case-insensitive disk never removes the renamed file,
 and a folder that replaced a file stays. A request that fails for that one file, a local file error or a 4xx answer
-other than `PUSH_CLOSED` or 401, is logged and skipped, and the rest of the push goes on. A
-network failure, a 5xx, or a 401 stops the push. A full Drive answers 507 `STORAGE_LIMIT`,
+other than `PUSH_CLOSED`, `UPLOAD_CONFLICT`, 401, 408, or 429, is logged and skipped, and the rest
+of the push goes on. A network failure, a 5xx, a 401, a 408, a 429, or a 409 `UPLOAD_CONFLICT`
+(another upload of the path is still settling) stops the push, and the next push sends the edit. A full Drive answers 507 `STORAGE_LIMIT`,
 which stops the push like `STORAGE_UNAVAILABLE`, so the edit stays and the next push sends it. A
 409 `IDEMPOTENCY_KEY_REUSED` on a create drops its stored request id, so the next push sends the
 create under a fresh one. A push whose run already sent everything still
@@ -285,8 +286,11 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
   credential it mints itself, which never enters the harness environment, then closes the push
   before it reports the turn ended. A Worker push never closes the Agent's own run push or another
   Worker's, because open pushes are keyed by source (`drive_pushes.worker_id`).
-- **Push before end.** A push that cannot finish, from a network failure, a 5xx or 401, or a
-  failed mint, leaves the turn `pushing` and sends no end. The Computer keeps the turn and pushes
+- **Push before end.** A push that cannot finish, from a network failure, a 5xx, 401, 408, 429 or
+  `UPLOAD_CONFLICT`, a failed mint, or any file it could not send, leaves the turn `pushing` and
+  sends no end, and its push stays open so the next attempt lands under the same turn id. Only a
+  file the Server says this turn can never write (`AGENT_RESET`, `AGENT_MOVED`, `FORBIDDEN`,
+  `NOT_FOUND`) or a record under a symlinked folder lets the turn end with it unsent. The Computer keeps the turn and pushes
   again under the same turn id after 5 seconds, 30 seconds, 2 minutes, then every 10 minutes, and
   a connect, restart, or `worker-stop` pushes at once. The first push that finishes ends the turn.
   `worker-close` and shutdown cancel the wait and leave the turn for the next connect or restart. A per-file `refused` outcome is a result, not a
@@ -315,6 +319,7 @@ D2 and D4 add these guards.
 | An edit made while a pull downloads or a push waits is never overwritten or recorded as synced | `apps/computer/src/drive/sync-races.test.ts` |
 | A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
+| A Worker push that could not send a file, transient or per file, retries and never ends the turn | `apps/computer/src/workers/computer/drive-sync.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |

@@ -90,7 +90,9 @@ export function flushDriveForRun(agentRoot: string, run: DriveRun) {
             const remote = driveRemote({ serverOrigin: run.serverOrigin, token });
             const pushed = plan.isEmpty
                 ? { failed: [], unrestored: [] }
-                : await sendDrivePush(plan, remote, run.runId, { closeWithFailures: false });
+                : await sendDrivePush(plan, remote, run.runId, {
+                      closeIf: (failed) => failed.length === 0,
+                  });
             for (const file of pushed.failed) {
                 run.warn('drive-flush-file-failed', `${file.path}: ${file.message}`);
             }
