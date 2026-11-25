@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.6.0 - 2026-11-24
+
+- Inside a Drive area, a file tree stays on the left while the right side shows the open folder or file, so moving between them keeps your place. The tree filters names and paths across the whole area, and its header has **New file**, which creates `untitled.md` and opens it ready to type, and **Upload**.
+- Opening a file shows a slim path row over a centered reading column. Markdown edits in place: click into the text and type, and **Save ⌘S** appears once you change something. **View source** edits the raw text, and Markdown that wouldn't survive in-place editing opens read-only with View source to edit it. History and Details open as tabs in a side panel. The path row has View source, History, one-click Copy for text files, Download and a ⋯ menu.
+- Drive lists are single-line rows with a Files column at the root and an Updated by column inside folders, and their headers line up with their values. File type and Created by are one Filter button, and Upload and the list/grid switch no longer use the accent color. Drive pages run the full width of the window.
+- Server 29.5.0 ships alone. No database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.5.0 - 2026-11-24
 
 - A new Captain starts with three files in its Drive folder: `MEMORY.md`, which holds the brief it was created with, `AGENTS.md` for its own rules, and `WORKER.md` for the rules its Workers follow. A Full reset writes them again. The Captain's profile always lists all three.
