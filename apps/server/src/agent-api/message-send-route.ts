@@ -10,6 +10,7 @@ import { AttachmentAssociationError } from '../attachments/message-attachments.t
 import { resolveAgentMessageCause } from '../automations/infer-message-cause.ts';
 import { MessageCauseError } from '../automations/message-cause.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
+import { stripProviderReferenceMarkers } from '../chats/provider-reference-markers.ts';
 import { InvalidInlineReplyError } from '../chats/reply-context.ts';
 import {
     AgentMessageContentTooLongError,
@@ -54,9 +55,13 @@ export function registerAgentMessageSendRoute(
                 'The message send request was invalid.'
             );
         }
+        const content = parsed.data.content;
         const input = {
             ...parsed.data,
-            content: parsed.data.content?.trimEnd(),
+            content:
+                content === undefined
+                    ? undefined
+                    : stripProviderReferenceMarkers(content).trimEnd(),
         };
 
         try {

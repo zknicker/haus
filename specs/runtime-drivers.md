@@ -634,6 +634,10 @@ sources. The shim reads a search from each wire API:
 Every source URL drops its fragment and its `utm_*`, `ref`, and similar tracking parameters, so
 one page cited twice is one source. An Agent with a hosted search has no `web_search` tool.
 
+These sources reach the turn's events, never the message: an Agent posts through
+`haus message send`, so it cites a page as a Markdown link in the body, and the Server strips
+ChatGPT's private-use reference markers at send ([ADR 0061](../docs/adr/0061-citations-are-markdown-links.md)).
+
 Each search belongs to the request that ran it. A request that ends in an error or a stop drops
 its searches, and every turn starts and ends with an empty search log, so a retried attempt or a
 stopped turn never reports a search in a later answer or turn on the same warm session.

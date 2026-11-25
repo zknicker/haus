@@ -197,10 +197,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // example list. Raised by operator decision (32,496 → 32,579) when Agents came to set their own
     // finished tasks `done`, keeping `in_review` for requested sign-off or a pending human decision;
     // the Raft review-then-done sentence and the same-turn `done` exception it made redundant went.
-    // Raised (32,579 → 33,513) on the Raft v1.21.2 re-pin: Raft's suspect-the-CLI-first paragraph
-    // adopted verbatim, and Discovering's `server info` sentences rewritten for its paged listing.
-    // Lowered (33,513 → 33,056) when Raft's three private-channel clauses (Discovering's two, the
-    // Visibility bullet) were omitted: Haus has no private channels.
+    // Raised (32,579 → 33,513) on the Raft v1.21.2 re-pin: Raft's suspect-the-CLI-first paragraph adopted verbatim, and Discovering's `server info` sentences rewritten for its paged listing.
+    // Lowered (33,513 → 33,056) when Raft's three private-channel clauses (Discovering's two, the Visibility bullet) were omitted: Haus has no private channels.
     // Raised by exactly 332 (33,056 → 33,388): the Inbox entry adopted Raft's `inbox check` text.
     // Raised by 522 (33,388 → 33,910) for quiet agreements, one confirmation and reaction-only acknowledgments.
     // Raised by 1,201 (33,910 → 35,111) by the 2026-10-06 personality work (house Personality,
@@ -226,8 +224,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // E2d (ADR 0059): -1 for the #all welcome rule, +37 for "You always hear #all, the team room."; W3: +22 for `haus worker places`. Measured after all three: 37,648.
     // Raised by exactly 128 (37,648 → 37,776): the Computers family entry (ADR 0057 decision 4).
     // Raised by exactly 116 (37,776 → 37,892): the Repos family entry (ADR 0060 decision 5).
-    expect(prompt.length).toBeLessThanOrEqual(37_892);
+    // Raised by exactly 59 (37,892 → 37,951): web sources are cited as Markdown links (ADR 0061).
+    expect(prompt.length).toBeLessThanOrEqual(37_951);
     expect(prompt).toContain('You always hear #all, the team room.');
+    expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 
