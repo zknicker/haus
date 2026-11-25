@@ -1,5 +1,5 @@
 import { type ArtifactPublishInput, artifactPathKey } from '@haus/api';
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, type SQL } from 'drizzle-orm';
 import { writableDrivePath } from '../drive/areas.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -125,10 +125,19 @@ async function isMergeBase(
     return Boolean(revision);
 }
 
-export async function deletedArtifactOwning(
+export function deletedArtifactOwning(tx: HausDatabase, serverId: string, revisionId: string) {
+    return artifactOwning(tx, serverId, revisionId, isNotNull(artifacts.deletedAt));
+}
+
+export function liveArtifactOwning(tx: HausDatabase, serverId: string, revisionId: string) {
+    return artifactOwning(tx, serverId, revisionId, isNull(artifacts.deletedAt));
+}
+
+async function artifactOwning(
     tx: HausDatabase,
     serverId: string,
-    revisionId: string
+    revisionId: string,
+    state: SQL
 ) {
     const [row] = await tx
         .select({ artifact: artifacts })
@@ -141,7 +150,7 @@ export async function deletedArtifactOwning(
             and(
                 eq(revisions.serverId, serverId),
                 eq(revisions.id, revisionId),
-                isNotNull(artifacts.deletedAt),
+                state,
                 isNotNull(artifacts.currentRevisionId)
             )
         )
