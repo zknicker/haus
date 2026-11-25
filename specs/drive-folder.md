@@ -127,7 +127,10 @@ because a replayed stored outcome can name a revision older than one the pull al
 
 Outcomes apply under Drive's spelling of the path. A delete's outcome never touches a file that
 only folds to its path, such as the renamed half of a case-only rename, so an edit made under the
-new spelling reaches Drive as its own put or as a conflict copy.
+new spelling reaches Drive as its own put or as a conflict copy. The Server deletes only a file
+spelled exactly as the delete names it, so a stale spelling left by a case-only rename never
+deletes the renamed file. A case-only rename reaches the pull as one put at the new spelling with
+the file's own `artifact_id`.
 
 A delete removes only a file whose name matches the path exactly, so the delete half of a
 case-only rename on a case-insensitive disk never removes the renamed file, and a folder that

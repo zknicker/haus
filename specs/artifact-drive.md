@@ -299,7 +299,9 @@ that names a different file than the one at the path, keeps both with reason `bo
 whose base names a file that moved to another path since creates the pushed path as a new file and
 answers `committed`, because History does not follow a rename yet. A delete onto a path that holds
 another file than its base's leaves that file alone and answers `deleted` with it as `current`. A
-delete onto a path where nothing is live answers `deleted`. A transient failure, such as storage
+delete onto a path where nothing is live answers `deleted`. So does a delete whose path spells the
+live file differently, as the old half of a case-only rename does: it matches the path key but not
+the canonical spelling, so it deletes nothing and answers with no `current`. A transient failure, such as storage
 being unavailable, the storage budget being exhausted (`STORAGE_LIMIT`), or a duplicate request
 still uploading, answers an error and stores nothing, so the machine sends the file again. A stored
 `STORAGE_LIMIT` refusal would outlive the shortage, because the same bytes keep the same
