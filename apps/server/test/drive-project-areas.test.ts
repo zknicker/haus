@@ -119,6 +119,40 @@ test("changing a Project's key moves its Drive folder", async () => {
     ]);
 });
 
+test("a key reused after a rename keeps the old tombstone on the old Project's file", async () => {
+    const renamed = await createTestProject(fixture.owner, {
+        key: 'RUA',
+        name: 'reuse-first',
+        serverId: fixture.serverId,
+    });
+    const old = await byPath('projects/RUA/AGENTS.md');
+    await fixture.owner.trpc.project.update.mutate({
+        chatId: renamed.id,
+        key: 'RUB',
+        serverId: fixture.serverId,
+    });
+    const taker = await createTestProject(fixture.owner, {
+        key: 'RUA',
+        name: 'reuse-second',
+        serverId: fixture.serverId,
+    });
+    const fresh = await byPath('projects/RUA/AGENTS.md');
+
+    const changes = await fixture.owner.trpc.drive.changes.query({ serverId: fixture.serverId });
+    expect(
+        changes.changes
+            .filter((change) => change.path === 'projects/RUA/AGENTS.md')
+            .map((change) => [change.area, change.change, change.artifact_id])
+            .sort()
+    ).toEqual(
+        [
+            [`project:${renamed.id}`, 'delete', old.artifact_id],
+            [`project:${taker.id}`, 'put', fresh.artifact_id],
+        ].sort()
+    );
+    expect(fresh.artifact_id).not.toBe(old.artifact_id);
+});
+
 async function projectOf(chatId: string) {
     const projects = await fixture.owner.trpc.project.list.query({ serverId: fixture.serverId });
     const project = projects.find((candidate) => candidate.chatId === chatId);

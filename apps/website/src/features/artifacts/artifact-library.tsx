@@ -1,5 +1,6 @@
 import { type ArtifactRecord, artifactBatchMaxItems, artifactPathParent } from '@haus/api';
 import * as React from 'react';
+import type { ReactNode } from 'react';
 import type { Selection } from 'react-aria-components';
 import { useNavigate } from 'react-router-dom';
 import { useArtifactLibrary } from '../../hooks/artifacts/use-artifact-library.ts';
@@ -11,6 +12,7 @@ import { ArtifactLibraryContent } from './artifact-library-content.tsx';
 import { ArtifactLibraryContextMenu } from './artifact-library-context-menu.tsx';
 import { ArtifactLibraryFolderRow } from './artifact-library-folder-row.tsx';
 import { ArtifactLibraryTools } from './artifact-library-tools.tsx';
+import type { DriveAdd } from './drive-add-menu.tsx';
 import {
     driveAcceptsFiles,
     driveAgentName,
@@ -36,7 +38,9 @@ import { useSelectionActions } from './use-selection-actions.tsx';
 
 /** What an area's workspace lends the library it hosts. */
 export interface LibraryWorkspace {
-    newFile: { isPending: boolean; run: () => void };
+    add: DriveAdd;
+    addMenu: ReactNode;
+    creating: boolean;
     root: string;
     upload: DriveUpload;
 }
@@ -189,6 +193,7 @@ export function ArtifactLibrary({
                     slug={slug}
                 >
                     {tools}
+                    <span className="contents @3xl/viewer:hidden">{workspace.addMenu}</span>
                 </ArtifactLibraryFolderRow>
             ) : null}
             <ArtifactLibraryContextMenu
@@ -229,7 +234,15 @@ export function ArtifactLibrary({
                         folderName={driveFolderLabel(params.folder, agentName)}
                         folders={folders}
                         library={library}
-                        newFile={workspace?.newFile}
+                        create={
+                            workspace
+                                ? {
+                                      isPending: workspace.creating,
+                                      newFile: workspace.add.newFile,
+                                      newFolder: workspace.add.newFolder,
+                                  }
+                                : undefined
+                        }
                         onOpenFile={openFile}
                         onOpenFolder={params.openFolder}
                         onShowFolder={(artifact: ArtifactRecord) => {

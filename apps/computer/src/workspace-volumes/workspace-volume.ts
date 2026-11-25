@@ -1,6 +1,7 @@
-import { lstat, mkdir, readdir, rm } from 'node:fs/promises';
+import { lstat, mkdir, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { removeTree } from '../workers/computer/remove-tree.ts';
 import { hostWorkspaceDisk, type WorkspaceDisk } from './disk-image.ts';
 import { isMissing, readJson, withStorageLock } from './storage-ledger.ts';
 import {
@@ -74,7 +75,7 @@ async function clearExcept(path: string, kept: ReadonlySet<string>) {
         throw error;
     });
     for (const entry of entries.filter((name) => !kept.has(join(path, name)))) {
-        await rm(join(path, entry), { force: true, recursive: true });
+        await removeTree(join(path, entry));
     }
 }
 

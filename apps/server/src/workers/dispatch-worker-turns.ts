@@ -16,6 +16,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
+    agentsTable,
     computersTable,
     workerPlaceLimitsTable,
     workerTurnsTable,
@@ -51,7 +52,12 @@ export async function dispatchWorkerTurns(
         free.set(key, slots - 1);
         await tx
             .update(workerTurnsTable)
-            .set({ dispatchedAt: sql`now()` })
+            .set({
+                dispatchedAt: sql`now()`,
+                resetGeneration: sql`(select ${agentsTable.resetGeneration} from ${agentsTable}
+                    where ${agentsTable.serverId} = ${serverId}
+                        and ${agentsTable.id} = ${candidate.worker.agentId})`,
+            })
             .where(
                 and(
                     eq(workerTurnsTable.serverId, serverId),

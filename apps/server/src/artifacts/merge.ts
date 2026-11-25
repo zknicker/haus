@@ -39,7 +39,8 @@ export async function mergeOntoHead(
     const texts: string[] = [];
     for (const revision of [base, head, write.incoming]) {
         const read = artifactTextFromBytes(
-            await storage.read(revision.objectKey, artifactTextMaxBytes + 1)
+            await storage.read(revision.objectKey, artifactTextMaxBytes + 1),
+            'keep'
         );
         if (read.status !== 'text') {
             return conflict('binary');

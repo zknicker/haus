@@ -26,6 +26,7 @@ import { artifactFileKind } from './icons/artifact-file-kind.ts';
 import { useArtifactTextSession } from './use-artifact-text-session.ts';
 
 export interface ArtifactFilePaneView {
+    addMenu: React.ReactNode;
     compareFrom: string | null;
     crumbs: readonly ArtifactPathCrumb[];
     glyph: React.ReactNode;
@@ -219,6 +220,7 @@ function FilePathRow({
             {text === null ? null : <ArtifactCopyButton text={text} />}
             <ArtifactDownloadButton artifact={artifact} />
             {save}
+            <span className="contents @3xl/viewer:hidden">{view.addMenu}</span>
             <ArtifactFileOptions
                 artifact={artifact}
                 canDiscard={dirty && onDiscard !== undefined}

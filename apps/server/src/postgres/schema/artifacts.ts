@@ -24,7 +24,7 @@ export const artifactsTable = pgTable(
         creatorUserId: text('creator_user_id'),
         currentRevisionId: text('current_revision_id'),
         deletedAt: timestamp('deleted_at', { withTimezone: true }),
-        /** Who deleted the file, as an author key (`agent:<id>` or `user:<id>`); null while live. */
+        /** Who deleted the file, as an author key (`agent:<id>`, `user:<id>`, or `worker:<id>`); null while live. */
         deletedBy: text('deleted_by'),
         id: text('id').primaryKey(),
         nextRevision: integer('next_revision').notNull().default(1),
@@ -51,7 +51,7 @@ export const artifactsTable = pgTable(
             .where(sql`${table.deletedAt} is null`),
         check(
             'artifacts_deleted_by_shape',
-            sql`${table.deletedBy} is null or ${table.deletedBy} ~ '^(agent|user):.+$'`
+            sql`${table.deletedBy} is null or ${table.deletedBy} ~ '^(agent|user|worker):.+$'`
         ),
         check(
             'artifacts_creator_shape',

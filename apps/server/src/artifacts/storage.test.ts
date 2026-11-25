@@ -101,6 +101,30 @@ test('R2 adapter reads a bounded prefix with one ranged GET', async () => {
         await server.stop(true);
     }
 });
+test('R2 adapter reads an empty object as no bytes, though its ranged GET is unsatisfiable', async () => {
+    const server = Bun.serve({
+        port: 0,
+        fetch: () =>
+            new Response(
+                '<Error><Code>InvalidRange</Code><Message>The requested range is not satisfiable</Message></Error>',
+                {
+                    headers: { 'content-range': 'bytes */0', 'content-type': 'application/xml' },
+                    status: 416,
+                }
+            ),
+    });
+    try {
+        const storage = createR2ArtifactStorage({
+            accessKeyId: 'test-access',
+            bucket: 'test',
+            endpoint: server.url.href,
+            secretAccessKey: 'test-secret',
+        });
+        expect(await storage.read('empty.md', 5)).toEqual(new Uint8Array());
+    } finally {
+        await server.stop(true);
+    }
+});
 async function* chunks(bytes: Uint8Array) {
     yield bytes;
 }

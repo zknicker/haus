@@ -78,7 +78,8 @@ and a put in the Project's area for each live file, as a move records them.
 A write stores the area prefix in its canonical spelling, so `HAUS/a.md` lands as `haus/a.md` and
 `Agents/ORBIT/a.md` as `agents/orbit/a.md`. A handle compares without case. Handles are unique only
 among active Agents, so `agents/<handle>/` names the active Agent with that handle, otherwise the
-most recently retired one. A folder move may start or end at an area root such as `haus`, but never
+most recently retired one. `drive.changes` lists only that one area per handle, so once a handle
+passes to a new Agent, the retired owner's change rows never reach a folder again. A folder move may start or end at an area root such as `haus`, but never
 at `projects` or `agents` alone.
 
 The rule and memory files are ordinary files. What reads them, and when, is ADR 0054 decisions 7
@@ -297,9 +298,14 @@ The path rules apply after the request parses, so a bad path is a `refused` outc
 A clean merge whose result equals the head answers `unchanged`. A create at a filled path, or a base
 that names a different file than the one at the path, keeps both with reason `both_created`. A put
 whose base names a file that moved to another path since creates the pushed path as a new file and
-answers `committed`, because History does not follow a rename yet. A delete onto a path that holds
+answers `committed`, because History does not follow a rename yet. That splits an edit made during
+a person's move into two files. Answering with the moved file as `current` instead waits on a
+Computer guard: the folder places `current` at its path, which would overwrite an unpushed local
+file already there. A delete onto a path that holds
 another file than its base's leaves that file alone and answers `deleted` with it as `current`. A
-delete onto a path where nothing is live answers `deleted`. A transient failure, such as storage
+delete onto a path where nothing is live answers `deleted`. So does a delete whose path spells the
+live file differently, as the old half of a case-only rename does: it matches the path key but not
+the canonical spelling, so it deletes nothing and answers with no `current`. A transient failure, such as storage
 being unavailable, the storage budget being exhausted (`STORAGE_LIMIT`), or a duplicate request
 still uploading, answers an error and stores nothing, so the machine sends the file again. A stored
 `STORAGE_LIMIT` refusal would outlive the shortage, because the same bytes keep the same
@@ -337,8 +343,8 @@ it.
 The Server records each file's outcome under the push id. A push closes on `close`, or when the
 same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
 A full reset increments the Agent's `reset_generation` under the Server lock. Each dispatched run
-records the generation it was dispatched in (`agent_run_triggers.reset_generation`), and its push
-copies it (`drive_pushes.reset_generation`). A put or delete under a push whose generation is not
+records the generation it was dispatched in (`agent_run_triggers.reset_generation`), a dispatched
+Worker turn records its Agent's (`worker_turns.reset_generation`), and its push copies it (`drive_pushes.reset_generation`). A put or delete under a push whose generation is not
 the Agent's current one is refused with `AGENT_RESET`, so a turn the reset interrupted cannot
 revive a deleted file or add one to the reseeded area. The comparison is by counter, not by time,
 because a transaction's `now()` is its start, not the moment it took the lock. Those refusals stay out of the push's
@@ -376,8 +382,8 @@ deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RET
 only while the file is live. A deleted file keeps every revision, large replaced ones included, for
 30 days (`driveDeletedRetentionDays`), then its revisions are purged and its tombstone stays.
 Every soft delete (a single delete, `deleteMany`, a push delete, and a full reset's area delete)
-records `artifacts.deleted_by`, the deleter's author key (`agent:<id>` or `user:<id>`), and a
-revive or restore clears it. `artifact.listDeleted` returns it as `deleted_by`, an author or null
+records `artifacts.deleted_by`, the deleter's author key (`agent:<id>`, `user:<id>`, or `worker:<id>` for a Worker's push, as
+its revisions are keyed), and a revive or restore clears it. `artifact.listDeleted` returns it as `deleted_by`, an author or null
 for files deleted before the column existed.
 `delete-artifact-version` still removes one non-current revision at once. A delete also turns off
 the file's public link, so a restore never re-exposes a link the delete ended.
@@ -436,17 +442,21 @@ The v1 Drive page replaces the Files page and keeps its library, viewer, and act
   (`?folder=` for a folder, `/artifacts/<id>?in=` for a file).
 - Inside the workspace the band is only the trail, stopping at the area, and reads the same for a
   folder and a file. A slim path row over the right pane owns the rest of the path, from All
-  files down; its folder crumbs take dropped library items. A folder's path row carries its
+  files down; its folder crumbs take dropped library items. A deep path folds its middle into one
+  menu, as the band does, keeping All files and the parent as crumbs. A folder's path row carries its
   controls: Filter, list or grid, and Upload. An empty folder with no filter set shows none of
   them, since its empty state offers the same.
-- The tree's header reads All files, with New file, Upload, and one Expand all / Collapse all
-  toggle (only when the area has folders). Its filter over names and paths is the area's search
+- The tree's header reads All files, with one Add menu (New file, New folder, Upload files,
+  Upload folder) and one Expand all / Collapse all toggle (only when the area has folders). While
+  the tree is hidden at narrow widths, the same Add menu sits on the folder's or file's path row. Its filter over names and paths is the area's search
   and covers the whole area. Pressing a folder opens and unfolds it; pressing a file opens it.
   An empty area's tree says nothing; the right pane owns the empty state.
 - New file writes `untitled.md` (then `untitled-2.md`, …) into the open folder, or the open file's
-  folder, and opens it with the cursor in the document.
+  folder, and opens it with the cursor in the document. A folder exists only while a file sits in
+  it, so New folder asks for a name (refusing one the path rules refuse or one already used
+  there) and writes `<name>/untitled.md`, opened the same way. An empty file reads as empty text.
 - An empty area root shows the mascot with Add instructions, which writes the area's `AGENTS.md`
-  and opens it, New file, and Upload.
+  and opens it, New file, New folder, and Upload.
 - A file's path row has the area's glyph and crumbs, then View source, History, Copy (a text
   file's contents, in one click), Download, Save (only while edits are unsaved), and ⋯ File
   options, which holds the links and the path to copy; Previous and Next show only while the tree

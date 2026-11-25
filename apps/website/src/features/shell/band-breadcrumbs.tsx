@@ -34,7 +34,7 @@ export function BandBreadcrumbs({
     const trail = collapseTrail(crumbs);
     return (
         <nav aria-label="Breadcrumb" className="min-w-0 overflow-hidden">
-            <Breadcrumbs separator={separator}>
+            <Breadcrumbs separator={bandCrumbSeparator}>
                 <Breadcrumbs.Item href={home}>Haus</Breadcrumbs.Item>
                 {trail.leading.map(linkedCrumb)}
                 {trail.hidden.length > 0 ? <FoldedCrumbs crumbs={trail.hidden} /> : null}
@@ -50,7 +50,7 @@ export function BandBreadcrumbs({
     );
 }
 
-function linkedCrumb(crumb: BandCrumb) {
+export function linkedCrumb(crumb: BandCrumb) {
     return (
         <Breadcrumbs.Item href={crumb.href} key={crumbKey(crumb)} onPress={crumb.onPress}>
             <CrumbLabel crumb={crumb} />
@@ -84,10 +84,10 @@ function CrumbLabel({ crumb }: { crumb: BandCrumb }) {
 const separatorClassName = breadcrumbsVariants().separator();
 
 // One glyph for every separator, so the folded crumb can draw the same one.
-const separator = <Icon icon={ArrowRight01Icon} />;
+export const bandCrumbSeparator = <Icon icon={ArrowRight01Icon} />;
 
 /** The folded middle of a deep trail: an ellipsis whose menu lists each hidden crumb, outermost first. */
-function FoldedCrumbs({ crumbs }: { crumbs: readonly BandCrumb[] }) {
+export function FoldedCrumbs({ crumbs }: { crumbs: readonly BandCrumb[] }) {
     return (
         <Breadcrumbs.Item>
             {() => (

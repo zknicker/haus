@@ -86,7 +86,8 @@ async function deleteIn(
         }
         await requireRunSinceReset(tx, write.push);
         const placement = await writableDrivePath(tx, access, requirePushPath(write.path));
-        const occupant = await liveArtifactAtPath(tx, access.serverId, placement.path);
+        const found = await liveArtifactAtPath(tx, access.serverId, placement.path);
+        const occupant = found?.path === placement.path ? found : undefined;
         const current = occupant ? await headOf(tx, occupant) : null;
         const deletes = occupant?.currentRevisionId === write.base;
         if (occupant && deletes) {
