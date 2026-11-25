@@ -1,5 +1,5 @@
 ---
-summary: The Device page's layout — a macOS permissions section only while one is missing, with its setup steps in a Modal, Access (Captains, an avatar stack of who has access and a + chooser with All Captains on this Server at its top; Computer use, one switch for every Captain with access), Workers (Run Workers here, Claude Code and Codex with plan usage or a Fix popover, the cloud providers), then Folders, Tools, Captains using this device by default, and Diagnostics — plus Stop Agent Input and what a refused Captain is told. Rows stay quiet when healthy; a row that needs a look states it in plain text beside its button, or with a status chip when it has no button.
+summary: The Device page's layout — a warning with one Fix button and a macOS permissions section only while computer use is on and a permission is missing, with its setup steps in a Modal, Access (Captains, an avatar stack of who has access and a + chooser with All Captains on this Server at its top; Computer use, one switch for every Captain with access), Workers (Run Workers here, Claude Code and Codex with plan usage or a Fix popover, the cloud providers), then Folders, Tools, Captains using this device by default, and Diagnostics — plus Stop Agent Input and what a refused Captain is told. Rows stay quiet when healthy; a row that needs a look states it in plain text beside its button, or with a status chip when it has no button.
 read_when:
   - changing the Device page's sections, its ⋯ menu, or when its Software update row shows
   - changing Settings → Devices → (Device) → Access, the Captains chooser, or what a Captain sees when it lacks access
@@ -20,14 +20,19 @@ contract and [Computer use API](../api/computer-use.md) lists the procedures.
 
 **Settings → Devices → (Device)** runs, in order:
 
-1. A Software update row, only while an update is available, in flight, failed, or required.
-2. **macOS permissions**, only while computer use is on and a permission it needs is missing or
-   couldn't be checked. When everything is granted it is not there at all.
-3. **Access**.
-4. **Workers**: "Coding sessions using this Mac's logins."
-5. **Folders**, **Tools** (Chrome and 1Password), and **Captains using this device by default**,
+1. While computer use is on and macOS hasn't given a permission it needs, a warning leads the
+   page: "Computer use can't work on this Mac", one sentence, and one **Fix** button that opens
+   the setup Modal for the first missing permission. A permission that couldn't be checked keeps
+   its row but raises no warning.
+2. A Software update row, only while an update is available, in flight, failed, or required.
+3. **macOS permissions**, only while computer use is on and a permission it needs is missing or
+   couldn't be checked. When everything is granted, or computer use is off, it is not there at
+   all.
+4. **Access**.
+5. **Workers**: "Coding sessions using this Mac's logins."
+6. **Folders**, **Tools** (Chrome and 1Password), and **Captains using this device by default**,
    whose rows open each Captain's profile.
-6. **Diagnostics** (the system log and recovery commands), closed until opened.
+7. **Diagnostics** (the system log and recovery commands), closed until opened.
 
 Refresh status, Check for updates, and Remove device live in the page's `⋯` menu. The page never
 calls a Device a Captain's home.
@@ -100,7 +105,10 @@ reading Not granted or Couldn't check:
 the steps for that macOS version. On 27.3 the steps are + → Override System Protections → Choose
 Apps → Haus Computer → Control Your Entire Mac and All Apps. Haus Computer lives in a hidden
 folder, so the Modal gives its path with **Copy path**; paste it into the file picker with ⌘⇧G.
-Do this on the Device itself. For a Mac mini or another Mac without a display, connect with
+Do this on the Device itself. When the desktop App knows it runs on another attached Device,
+the Modal opens with "You're on Zach's MacBook Pro. Do this on Zach's Mac mini, through Screen
+Sharing if it has no display." The web App can't tell which Mac it is on, so it says only "Do
+this on (Device) itself". For a Mac mini or another Mac without a display, connect with
 Screen Sharing first ([headless Devices](../operations/computer-use-headless-devices.md)). The
 Modal ends with the permission's live state in plain text: Waiting for macOS, Checking…, or Granted.
 

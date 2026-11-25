@@ -135,8 +135,8 @@ export const appPlaces: readonly AppPlace[] = [
         anchors: [
             settingsEntry(),
             settingsSection('projects'),
-            label('features/settings/projects/project-workers-section.tsx', 'Workers'),
-            label('features/settings/projects/project-workers-section.tsx', 'Default place'),
+            label('features/settings/projects/project-worker-place-row.tsx', 'Workers'),
+            label('features/settings/projects/project-worker-place-row.tsx', 'Default place'),
         ],
     },
     {

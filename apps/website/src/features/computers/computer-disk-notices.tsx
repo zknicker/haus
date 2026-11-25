@@ -4,11 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { serverComputerRoute } from '../servers/server-routes.ts';
-import {
-    computerDiskWarning,
-    computerDiskWarningDescription,
-    shouldShowDiskNotice,
-} from './computer-disk.ts';
+import { computerDiskWarning, shouldShowDiskNotice } from './computer-disk.ts';
 import { computerLabel } from './presentation.ts';
 
 /** The person who attached a Computer owns its host disk warning. */
@@ -67,14 +63,12 @@ function ComputerDiskNotice({
         <Alert status="warning">
             <Alert.Indicator />
             <Alert.Content>
-                <Alert.Title>{name} is low on disk space</Alert.Title>
-                <Alert.Description>
-                    {warning.label}. {computerDiskWarningDescription}
-                </Alert.Description>
-                <Button onPress={() => navigate(destination)} size="sm" variant="tertiary">
-                    View device
-                </Button>
+                <Alert.Title>{name} is low on disk space.</Alert.Title>
+                <Alert.Description>{warning.label}.</Alert.Description>
             </Alert.Content>
+            <Button onPress={() => navigate(destination)} size="sm" variant="ghost">
+                View device
+            </Button>
             <Tooltip>
                 <CloseButton aria-label={`Dismiss disk warning for ${name}`} onPress={dismiss} />
                 <Tooltip.Content>Dismiss</Tooltip.Content>

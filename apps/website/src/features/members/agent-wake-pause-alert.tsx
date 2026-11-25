@@ -37,7 +37,7 @@ function AgentWakePauseRestart({ agent }: { agent: Agent }) {
             isPending={restart.isPending}
             onPress={() => void restart.restart()}
             size="sm"
-            variant="outline"
+            variant="ghost"
         >
             Restart
         </Button>

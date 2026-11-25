@@ -2421,19 +2421,88 @@
         padding: calc(var(--spacing) * 3);
     }
 
+    /*
+     * Alerts are compact tinted callouts: the status's soft fill instead of a
+     * white card, the title in the ink, and the status color left to the icon
+     * and the action. A title with a short description runs on one line and
+     * wraps when it can't fit. An action placed beside `Alert.Content`
+     * (HeroUI's pattern) is a ghost Button on the right, and the row centers
+     * on it so one line of text sits level with the button.
+     */
+    .alert {
+        box-shadow: none;
+        gap: calc(var(--spacing) * 2);
+        padding-block: calc(var(--spacing) * 2);
+        padding-inline: calc(var(--spacing) * 3);
+    }
+
+    .alert:has(> .button) {
+        align-items: center;
+        padding-block: calc(var(--spacing) * 1.5);
+        padding-inline-end: calc(var(--spacing) * 2);
+    }
+
+    .alert--default {
+        background: var(--default);
+        --alert-action: var(--default-foreground);
+        --alert-action-hover: var(--default-hover);
+    }
+
+    .alert--accent {
+        background: var(--accent-soft);
+        --alert-action: var(--accent-soft-foreground);
+        --alert-action-hover: var(--accent-soft-hover);
+    }
+
+    .alert--success {
+        background: var(--success-soft);
+        --alert-action: var(--success-soft-foreground);
+        --alert-action-hover: var(--success-soft-hover);
+    }
+
+    .alert--warning {
+        background: var(--warning-soft);
+        --alert-action: var(--warning-soft-foreground);
+        --alert-action-hover: var(--warning-soft-hover);
+    }
+
+    .alert--danger {
+        background: var(--danger-soft);
+        --alert-action: var(--danger-soft-foreground);
+        --alert-action-hover: var(--danger-soft-hover);
+    }
+
+    .alert__indicator {
+        padding: 0;
+        height: calc(var(--text-sm) * var(--text-sm--line-height));
+    }
+
+    .alert .alert__title {
+        color: var(--foreground);
+        line-height: var(--text-sm--line-height);
+    }
+
+    .alert__content:has(> .alert__title:first-child + .alert__description:last-child) {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: baseline;
+        column-gap: calc(var(--spacing) * 1.5);
+    }
+
+    .alert .button--ghost {
+        --button-fg: var(--alert-action);
+        --button-bg-hover: var(--alert-action-hover);
+        --button-bg-pressed: var(--alert-action-hover);
+    }
+
     .alert.haus-hover-card__banner {
         border-radius: 0;
-        box-shadow: none;
         gap: calc(var(--spacing) * 2.5);
         padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3);
     }
 
     .alert.haus-hover-card__banner .alert__indicator {
         padding-inline: 0;
-    }
-
-    .alert--danger.haus-hover-card__banner {
-        background: var(--danger-soft);
     }
 
     .alert--danger.haus-hover-card__banner .alert__description {

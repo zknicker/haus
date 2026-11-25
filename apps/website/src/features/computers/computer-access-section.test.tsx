@@ -208,6 +208,8 @@ function Permissions({ readiness }: { readiness: ComputerUseReadiness }) {
         <ComputerUsePermissions
             computerId={computerId}
             deviceName="Studio Mac"
+            onOpenChange={() => undefined}
+            openId={null}
             readiness={readiness}
             serverId={serverId}
         />

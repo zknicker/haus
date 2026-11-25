@@ -1,4 +1,5 @@
 import { Chip } from '@heroui/react';
+import { useState } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { ProfileFact, ProfileFacts } from '../../components/ui/profile-facts.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
@@ -13,7 +14,9 @@ import { ComputerRepoFoldersCard } from './computer-repo-folders-card.tsx';
 import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
 import { ComputerToolsSection } from './computer-tools-section.tsx';
 import type { ComputerUpdatePreviewState } from './computer-update-preview.tsx';
+import type { ComputerUsePermission } from './computer-use-model.ts';
 import { ComputerUsePermissions } from './computer-use-permissions.tsx';
+import { ComputerUseWarning } from './computer-use-warning.tsx';
 import { ComputerWorkersSection } from './computer-workers-section.tsx';
 import {
     computerHealthColor,
@@ -38,6 +41,7 @@ export function ComputerDetail({
 }) {
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
+    const [setupId, setSetupId] = useState<ComputerUsePermission['id'] | null>(null);
 
     if (!computer) {
         return null;
@@ -91,6 +95,12 @@ export function ComputerDetail({
                 title={computerLabel(computer)}
             />
 
+            {computer.computerUseEnabled ? (
+                <ComputerUseWarning
+                    onFix={setSetupId}
+                    readiness={computer.reportedInventory?.computerUse}
+                />
+            ) : null}
             <ComputerDiskWarning computerId={computerId} serverId={serverId} />
             <ComputerRuntimeIssues computerId={computerId} serverId={serverId} />
             <ComputerUpdates
@@ -102,6 +112,8 @@ export function ComputerDetail({
                 <ComputerUsePermissions
                     computerId={computerId}
                     deviceName={computerLabel(computer)}
+                    onOpenChange={setSetupId}
+                    openId={setupId}
                     readiness={computer.reportedInventory?.computerUse}
                     serverId={serverId}
                 />

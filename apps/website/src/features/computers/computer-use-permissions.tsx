@@ -1,29 +1,38 @@
 import type { ComputerUseReadiness } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Alert, Button, Separator } from '@heroui/react';
-import { Fragment, useState } from 'react';
+import { Fragment } from 'react';
 import { useComputerUseRecheck } from '../../hooks/computer-use/use-computer-use-recheck.ts';
+import { useLocalComputerId } from '../../hooks/repos/use-local-computer-id.ts';
+import { useComputers } from '../../hooks/servers/use-computers.ts';
 import {
     type ComputerUsePermission,
     computerUseNeedsGrant,
     computerUsePermissions,
     defaultComputerAppPath,
     permissionStateLabel,
+    wrongMacLine,
 } from './computer-use-model.ts';
 import { ComputerUseSetupDialog } from './computer-use-setup-dialog.tsx';
+import { computerLabel } from './presentation.ts';
 
 export function ComputerUsePermissions({
     computerId,
     deviceName,
+    onOpenChange,
+    openId,
     readiness,
     serverId,
 }: {
     computerId: string;
     deviceName: string;
+    onOpenChange: (id: ComputerUsePermission['id'] | null) => void;
+    openId: ComputerUsePermission['id'] | null;
     readiness: ComputerUseReadiness | undefined;
     serverId: string;
 }) {
-    const [openId, setOpenId] = useState<ComputerUsePermission['id'] | null>(null);
+    const computers = useComputers(serverId);
+    const localComputerId = useLocalComputerId(serverId);
     const needsGrant = computerUseNeedsGrant(readiness);
     const recheck = useComputerUseRecheck({
         active: needsGrant || openId !== null,
@@ -34,13 +43,23 @@ export function ComputerUsePermissions({
     const missing = permissions.filter((permission) => permission.state !== 'granted');
     const open = permissions.find((permission) => permission.id === openId);
     const notInstalled = readiness !== undefined && !readiness.installed;
+    const wrongMac = wrongMacLine({
+        deviceName,
+        devices: (computers.data ?? []).map((device) => ({
+            id: device.id,
+            name: computerLabel(device),
+        })),
+        localComputerId,
+        targetId: computerId,
+    });
     const dialog = open ? (
         <ComputerUseSetupDialog
             appPath={readiness?.appPath ?? defaultComputerAppPath}
             deviceName={deviceName}
             isChecking={recheck.isPending}
-            onClose={() => setOpenId(null)}
+            onClose={() => onOpenChange(null)}
             permission={open}
+            wrongMac={wrongMac}
         />
     ) : null;
     if (!(notInstalled || needsGrant)) {
@@ -71,7 +90,7 @@ export function ComputerUsePermissions({
                                 {index > 0 ? <Separator /> : null}
                                 <PermissionRow
                                     onOpenSettings={() => {
-                                        setOpenId(permission.id);
+                                        onOpenChange(permission.id);
                                         window.location.assign(permission.settingsUrl);
                                     }}
                                     permission={permission}
