@@ -297,10 +297,8 @@ or an author to fill it.
 The path rules apply after the request parses, so a bad path is a `refused` outcome, not a 400.
 A clean merge whose result equals the head answers `unchanged`. A create at a filled path, or a base
 that names a different file than the one at the path, keeps both with reason `both_created`. A put
-whose base names a file that moved to another path since, with nothing at the pushed path, keeps
-both with reason `base_gone`: the moved file stays as it is, `current` names it at its new path,
-and the incoming bytes land in a copy beside the pushed path, so an edit made during a person's
-move never silently splits the file in two. A delete onto a path that holds
+whose base names a file that moved to another path since creates the pushed path as a new file and
+answers `committed`, because History does not follow a rename yet. A delete onto a path that holds
 another file than its base's leaves that file alone and answers `deleted` with it as `current`. A
 delete onto a path where nothing is live answers `deleted`. So does a delete whose path spells the
 live file differently, as the old half of a case-only rename does: it matches the path key but not
