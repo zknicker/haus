@@ -1,7 +1,7 @@
 import type { AgentCommand } from '@haus/api';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentTurnsTable } from '../postgres/schema.ts';
+import { agentRunTriggersTable, agentTurnsTable, drivePushesTable } from '../postgres/schema.ts';
 import { listComputerAgents } from './dispatch-config.ts';
 import { readDeliveryState } from './store.ts';
 
@@ -11,31 +11,52 @@ export async function driveReconcileFrames(db: HausDatabase, machineId: string) 
         if (agent.retiredAt) {
             continue;
         }
-        const state = await readDeliveryState(db, agent.agentId);
-        const runId = state?.activeRunId ?? (await lastRunId(db, agent.agentId));
-        if (!runId) {
-            continue;
-        }
         const run = {
             agentId: agent.agentId,
             placementGeneration: agent.placementGeneration,
-            runId,
             sessionGeneration: agent.sessionGeneration,
         };
-        frames.push({ ...run, type: 'drive-push' });
-        if (state?.activeRunId) {
-            frames.push({ ...run, type: 'drive-pull' });
+        const activeRunId = (await readDeliveryState(db, agent.agentId))?.activeRunId;
+        if (activeRunId) {
+            frames.push({ ...run, runId: activeRunId, type: 'drive-pull' });
+            continue;
+        }
+        const runId = await unclosedLastRunId(db, agent);
+        if (runId) {
+            frames.push({ ...run, runId, type: 'drive-push' });
         }
     }
     return frames;
 }
 
-async function lastRunId(db: HausDatabase, agentId: string) {
+async function unclosedLastRunId(db: HausDatabase, agent: { agentId: string; serverId: string }) {
     const [turn] = await db
-        .select({ runId: agentTurnsTable.runId })
+        .select({ closedAt: drivePushesTable.closedAt, runId: agentTurnsTable.runId })
         .from(agentTurnsTable)
-        .where(eq(agentTurnsTable.agentId, agentId))
+        .innerJoin(
+            agentRunTriggersTable,
+            and(
+                eq(agentRunTriggersTable.serverId, agentTurnsTable.serverId),
+                eq(agentRunTriggersTable.agentId, agentTurnsTable.agentId),
+                eq(agentRunTriggersTable.runId, agentTurnsTable.runId)
+            )
+        )
+        .leftJoin(
+            drivePushesTable,
+            and(
+                eq(drivePushesTable.serverId, agentTurnsTable.serverId),
+                eq(drivePushesTable.agentId, agentTurnsTable.agentId),
+                eq(drivePushesTable.id, agentTurnsTable.runId),
+                isNull(drivePushesTable.workerId)
+            )
+        )
+        .where(
+            and(
+                eq(agentTurnsTable.serverId, agent.serverId),
+                eq(agentTurnsTable.agentId, agent.agentId)
+            )
+        )
         .orderBy(desc(agentTurnsTable.endedAt))
         .limit(1);
-    return turn?.runId ?? null;
+    return turn && turn.closedAt === null ? turn.runId : null;
 }

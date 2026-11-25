@@ -1027,8 +1027,12 @@ R2 bumps the protocol to 39 for these frames. Their schemas live in
 Server sends `drive-pull` beside each `runner-start`, and `drive-push` when the runner's `turn`
 reports the Agent's active run, before settling it starts the next run. Each goes only to the
 Agent's Computer when it is online, and the Computer ignores frames from an older session
-generation than one it has seen. When the Computer reconnects, the Server sends `drive-push` for each
-Agent's active run, or else its last settled run, and `drive-pull` for an active run. Those
+generation than one it has seen. When the Computer reconnects, the Server sends `drive-pull` for
+each Agent's active run, and for an Agent with no active run, `drive-push` for its last settled
+dispatched run whose push has not closed. An active run gets no reconnect push, because a push
+closes when it ends and the run's own push after it settles would then be refused
+`PUSH_CLOSED`; that settle push sends any earlier leftovers too. An idle compaction's turn names
+no dispatched run and a closed push takes no more files, so neither gets a reconnect push. Those
 frames go out right after the bootstrap, before the connection carries any other frame.
 Settling or stopping a run revokes its run credentials but not a `drive-sync` one, so a push
 still landing the run's edits completes. The Computer mints its own

@@ -3,11 +3,13 @@ import type { DriveRemote } from './drive-remote.ts';
 import type { DriveChangeEntry } from './drive-response-schema.ts';
 import { type FolderFiles, folderFiles } from './folder-files.ts';
 import {
+    type DriveFileRecord,
     type DriveFolderArea,
     type DriveFolderLayout,
     type FolderStateStore,
     isReadOnlyArea,
     openFolderState,
+    unplacedMtimeMs,
 } from './folder-state.ts';
 
 type ChangeResult = 'applied' | 'blocked' | 'kept' | 'skipped';
@@ -85,8 +87,7 @@ async function applyChange(context: ChangeContext, change: DriveChangeEntry) {
         await state.record({ ...facts, mtime_ms: local.mtimeMs });
         return 'applied';
     }
-    if (!record && state.current().pendingCreates[change.path]?.sha256 === change.sha256) {
-        await state.record({ ...facts, mtime_ms: -1 });
+    if (!record && (await adoptPendingCreate(state, facts, local !== null))) {
         return 'kept';
     }
     const unedited = record ? local?.sha256 === record.sha256 : local === null;
@@ -101,6 +102,22 @@ async function applyChange(context: ChangeContext, change: DriveChangeEntry) {
         await state.record({ ...facts, mtime_ms: mtimeMs });
         return 'applied';
     });
+}
+
+async function adoptPendingCreate(
+    state: FolderStateStore,
+    facts: Omit<DriveFileRecord, 'mtime_ms'>,
+    isLocal: boolean
+) {
+    if (state.current().pendingCreates[facts.path]?.sha256 !== facts.sha256) {
+        return false;
+    }
+    if (!isLocal) {
+        await state.dropPendingCreate(facts.path);
+        return false;
+    }
+    await state.record({ ...facts, mtime_ms: unplacedMtimeMs });
+    return true;
 }
 
 const localPathErrors = new Set(['EEXIST', 'EISDIR', 'ENOTDIR', 'ENOTEMPTY']);
