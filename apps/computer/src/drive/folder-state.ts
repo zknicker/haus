@@ -45,7 +45,11 @@ const folderStateSchema = z.object({
     openPush: z.string().min(1).nullable(),
     pendingCreates: z.record(
         z.string(),
-        z.object({ request_id: z.string().min(1), sha256: z.string().min(1) })
+        z.object({
+            request_id: z.string().min(1),
+            seen_head: z.string().min(1).optional(),
+            sha256: z.string().min(1),
+        })
     ),
     placing: z
         .record(z.string(), fileRecordSchema.omit({ mtime_ms: true, seen_head: true }))
@@ -121,7 +125,13 @@ export async function openFolderState(layout: DriveFolderLayout) {
             return persist({ ...state, files, pendingCreates });
         },
         notePendingCreate: (path: string, create: { request_id: string; sha256: string }) =>
-            persist({ ...state, pendingCreates: { ...state.pendingCreates, [path]: create } }),
+            persist({
+                ...state,
+                pendingCreates: {
+                    ...state.pendingCreates,
+                    [path]: { ...create, seen_head: state.pendingCreates[path]?.seen_head },
+                },
+            }),
         adopt: (records: readonly DriveFileRecord[]) =>
             persist({
                 ...state,
@@ -132,10 +142,22 @@ export async function openFolderState(layout: DriveFolderLayout) {
             }),
         markSeen: (path: string, head: string) => {
             const record = state.files[path];
-            return record && record.seen_head !== head
+            const pending = state.pendingCreates[path];
+            if (record) {
+                return record.seen_head === head
+                    ? Promise.resolve()
+                    : persist({
+                          ...state,
+                          files: { ...state.files, [path]: { ...record, seen_head: head } },
+                      });
+            }
+            return pending && pending.seen_head !== head
                 ? persist({
                       ...state,
-                      files: { ...state.files, [path]: { ...record, seen_head: head } },
+                      pendingCreates: {
+                          ...state.pendingCreates,
+                          [path]: { ...pending, seen_head: head },
+                      },
                   })
                 : Promise.resolve();
         },

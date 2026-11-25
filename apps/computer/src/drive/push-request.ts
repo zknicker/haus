@@ -24,6 +24,8 @@ export async function sendDelete(context: OutcomeContext, record: DriveFileRecor
 }
 
 export async function sendPut(context: OutcomeContext, put: PlannedPut, pushId: string) {
+    const seenHead =
+        put.record?.seen_head ?? context.state.current().pendingCreates[put.path]?.seen_head;
     const snapshot = await context.files.snapshot(put.path);
     const head = new Uint8Array(await Bun.file(snapshot.file).slice(0, 4096).arrayBuffer());
     const outcome = await context.remote.put(
@@ -37,9 +39,10 @@ export async function sendPut(context: OutcomeContext, put: PlannedPut, pushId: 
         snapshot.file
     );
     await applyPushOutcome(context, outcome, snapshot);
-    if (put.record?.seen_head) {
+    if (seenHead) {
         await catchUpSkippedHead(context, put.path);
     }
+    return outcome;
 }
 
 async function putRequestId(context: OutcomeContext, put: PlannedPut, sha256: string) {

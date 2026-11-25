@@ -78,7 +78,7 @@ export async function sendDrivePush(
         return { code: error.code, message: error.message, path };
     });
     const unrestored: FileFailure[] = [];
-    const isolate = async (into: FileFailure[], path: string, send: () => Promise<void>) => {
+    const isolate = async (into: FileFailure[], path: string, send: () => Promise<unknown>) => {
         await send().catch(async (error: unknown) => {
             if (error instanceof DriveRemoteError && unsentCreateCodes.has(error.code)) {
                 await state.dropPendingCreate(path);

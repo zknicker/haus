@@ -57,7 +57,9 @@ When a turn starts and the Agent's machine is online, the machine pulls while th
 
 1. It calls `drive.changes` with the folder's counters, then once per further page under the
    first page's `until` ([Change counter](artifact-drive.md#change-counter)).
-2. It skips a change whose revision the folder already records.
+2. It skips a change whose revision the folder already records, and a tombstone whose
+   `artifact_id` is not the one recorded at its path, such as an old Project's file under a key a
+   new Project reused.
 3. A file whose local bytes still match its record takes the new revision by atomic replace, or is
    removed for a delete. A local file with no record whose bytes equal the incoming revision is
    recorded as that revision.
@@ -130,7 +132,8 @@ A record whose file never reached the folder (`mtime_ms` of `-1`) is never pushe
 The push reads that path's head and downloads it, or forgets the record when Drive no longer has
 the path or another file holds it. A restore that fails is logged and tried again next push.
 
-A pull that keeps a locally edited file notes the newer revision it skipped. After that file's
+A pull that keeps a locally edited file notes the newer revision it skipped, on the file's record
+or, for a file whose create has not resolved, on its pending create, a tombstone included. After that file's
 push outcome is applied, the folder reads the path's current head and moves to it when it differs,
 because a replayed stored outcome can name a revision older than one the pull already passed.
 
@@ -319,6 +322,8 @@ D2 and D4 add these guards.
 | A stop between a file's bytes and its record never revives the file after a delete | `apps/computer/src/drive/pull.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
+| A create whose answer was lost catches up to a later edit or delete once it resolves | `apps/computer/src/drive/push-recovery.test.ts` |
+| A tombstone for another artifact at a recorded path leaves the file alone | `apps/computer/src/drive/pull.test.ts` |
 | A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
 | A respell never removes another file, and an edit to a moved file lands as a copy beside it | `apps/computer/src/drive/push-moves.test.ts` |
 | An edit made while a pull downloads or a push waits is never overwritten or recorded as synced | `apps/computer/src/drive/sync-races.test.ts` |

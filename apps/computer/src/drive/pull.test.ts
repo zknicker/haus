@@ -3,6 +3,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { writerFolder } from './drive-folder.test-utils.ts';
 import { type DriveServer, startDriveServer } from './drive-server.fixture.ts';
+import { areas } from './drive-wire.fixture.ts';
 
 let server: DriveServer;
 const folders: ReturnType<typeof writerFolder>[] = [];
@@ -162,6 +163,45 @@ test('a crash after a file was placed but before its record never revives it aft
     expect(await alpha.read('haus/a.md')).toBeNull();
     expect(server.head('haus/a.md')).toBeNull();
     expect((await alpha.state()).placing).toEqual({});
+});
+
+test('a tombstone for another file once at the same path leaves the folder file alone', async () => {
+    let tombstone: object | null = null;
+    server = startDriveServer({
+        route: (_request, url) => {
+            const page = url.pathname === '/api/agent/drive/changes' ? tombstone : null;
+            if (page) {
+                tombstone = null;
+            }
+            return page && Response.json(page);
+        },
+    });
+    const agents = server.write('haus/OLD/AGENTS.md', 'the new project', 'usr');
+    const alpha = alphaFolder();
+    await alpha.pull();
+    tombstone = {
+        areas,
+        changes: [
+            {
+                area: 'agent:agt_beta',
+                artifact_id: 'art_renamed_away',
+                change: 'delete',
+                content_type: null,
+                path: 'haus/OLD/AGENTS.md',
+                revision_id: null,
+                sequence: 1,
+                sha256: null,
+                size_bytes: null,
+            },
+        ],
+        complete: true,
+        until: { 'agent:agt_alpha': 0, 'agent:agt_beta': 1, haus: 1 },
+    };
+
+    expect(await alpha.pull()).toMatchObject({ applied: 0, skipped: 1 });
+
+    expect(await alpha.read('haus/OLD/AGENTS.md')).toBe('the new project');
+    expect((await alpha.state()).files['haus/OLD/AGENTS.md']?.revision_id).toBe(agents.revision_id);
 });
 
 test('a folder removed under its bookkeeping starts again from zero', async () => {

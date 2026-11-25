@@ -30,7 +30,11 @@ export async function applyChange(context: ChangeContext, change: DriveChangeEnt
 async function applyDelete(context: ChangeContext, change: DeleteChange) {
     const { files, state } = context;
     const record = state.current().files[change.path];
-    if (!record) {
+    if (!record && change.path in state.current().pendingCreates) {
+        await state.markSeen(change.path, 'deleted');
+        return 'kept' satisfies ChangeResult;
+    }
+    if (record?.artifact_id !== change.artifact_id) {
         return 'skipped' satisfies ChangeResult;
     }
     const local = await files.inspect(change.path, record);
