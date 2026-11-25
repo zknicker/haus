@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { visualsSkillFiles } from '@haus/agent-workspace';
@@ -8,6 +8,7 @@ import { resetAgentState } from './agent-reset.ts';
 import { prepareAgentDrive } from './drive-migration/prepare-agent-drive.ts';
 import { createDriveRoutes, serveDrive } from './drive-migration/testing/drive-server.ts';
 import { agentDrive } from './drive/agent-drive.ts';
+import { removeTree } from './workers/computer/remove-tree.ts';
 
 const agentId = 'agt_resetxxxxxxxxxxx';
 const memory = '# Durable memory\n\nBluebird remains active.\n';
@@ -17,7 +18,7 @@ beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-agent-reset-'));
 });
 afterEach(async () => {
-    await rm(dataRoot, { force: true, recursive: true });
+    await removeTree(dataRoot);
 });
 
 test('a reset command parses only the two reset kinds', () => {
@@ -150,6 +151,25 @@ test('full reset of an unmigrated Agent keeps every legacy source for the next l
             'utf8'
         )
     ).toBe('refused bytes');
+});
+
+test("full reset removes other Agents' read-only folders and the folder's bookkeeping", async () => {
+    const { agentRoot, drive } = await seedResetFixture();
+    const peer = join(drive.folder, 'agents', 'peer', 'notes');
+    await mkdir(peer, { recursive: true });
+    await mkdir(join(drive.folder, 'haus'), { recursive: true });
+    await writeFile(join(peer, 'brief.md'), 'peer\n');
+    await writeFile(join(drive.folder, 'haus', 'AGENTS.md'), 'rules\n');
+    await chmod(join(peer, 'brief.md'), 0o444);
+    await chmod(peer, 0o555);
+    await chmod(join(drive.folder, 'agents', 'peer'), 0o555);
+    const stateFile = join(agentRoot, 'runtime', 'drive.json');
+    await writeFile(stateFile, '{"files":{"haus/AGENTS.md":{}}}\n');
+
+    await resetAgentState({ agentId, dataRoot, serverId: 'srv_reset' });
+
+    await expect(stat(drive.folder)).rejects.toThrow();
+    await expect(stat(stateFile)).rejects.toThrow();
 });
 
 async function seedResetFixture() {

@@ -40,7 +40,9 @@ of each path whose record was dropped, and, per file, `path`, `artifact_id`, `re
 `sha256`, `size_bytes`, and the `mtime_ms` the file had when it was recorded. Downloads land in `runtime/drive-scratch/` and move into place by rename. Nothing
 inside `drive/` is Haus bookkeeping. A `drive.json` whose `drive/` folder is gone, as after a full
 reset that clears the workspace, is replaced with empty bookkeeping the moment the Computer sees it,
-so a folder that reappears never pushes deletes from stale records. A file name in decomposed
+so a folder that reappears never pushes deletes from stale records. A full reset, and a retired
+Agent's purge, remove `drive.json` before anything else and make read-only folders writable before
+removing them, so a reset that stops partway never leaves records for files it removed. A file name in decomposed
 Unicode is renamed to its NFC form, the form Drive paths take.
 `apps/computer/src/drive/` owns the folder on a Computer. A runner-hosted Agent works in Drive
 through the runner, and the Computer syncs a machine folder for invocations and Workers
