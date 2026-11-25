@@ -7,17 +7,25 @@ import {
     type DriveFileRecord,
     type DriveFolderLayout,
     openFolderState,
+    unplacedMtimeMs,
 } from './folder-state.ts';
-import { applyPushOutcome, catchUpSkippedHead, type OutcomeContext } from './push-outcome.ts';
+import {
+    applyPushOutcome,
+    catchUpSkippedHead,
+    type OutcomeContext,
+    restoreUnplaced,
+} from './push-outcome.ts';
 
 export async function planDrivePush(layout: DriveFolderLayout) {
     const state = await openFolderState(layout);
     const files = folderFiles(layout);
     const local = await files.walk();
     const records = state.current().files;
-    const deletes = Object.values(records)
+    const missing = Object.values(records)
         .filter((record) => !(isSkippedPath(record.path) || local.has(record.path)))
         .sort((a, b) => a.path.localeCompare(b.path));
+    const deletes = missing.filter((record) => record.mtime_ms !== unplacedMtimeMs);
+    const restores = missing.filter((record) => record.mtime_ms === unplacedMtimeMs);
     const puts: { path: string; record: DriveFileRecord | null; sha256: string }[] = [];
     for (const [path, stat] of [...local].sort(([a], [b]) => a.localeCompare(b))) {
         const record = records[path] ?? null;
@@ -35,9 +43,14 @@ export async function planDrivePush(layout: DriveFolderLayout) {
     return {
         deletes,
         files,
-        isEmpty: deletes.length === 0 && puts.length === 0 && stalePush === null,
+        isEmpty:
+            deletes.length === 0 &&
+            puts.length === 0 &&
+            restores.length === 0 &&
+            stalePush === null,
         layout,
         puts,
+        restores,
         stalePush,
         state,
     };
@@ -53,33 +66,37 @@ export async function sendDrivePush(
     const { files, layout, state } = plan;
     const context: OutcomeContext = { files, layout, remote, state };
     const writer = layout.writer;
-    const failed: { message: string; path: string }[] = [];
-    const isolate = async (path: string, send: () => Promise<void>) => {
+    const failed: FileFailure[] = [];
+    const unrestored: FileFailure[] = [];
+    const isolate = async (into: FileFailure[], path: string, send: () => Promise<void>) => {
         await send().catch(async (error: unknown) => {
+            if (error instanceof DriveRemoteError && unsentCreateCodes.has(error.code)) {
+                await state.dropPendingCreate(path);
+            }
             if (isFatal(error)) {
                 throw error;
             }
-            if (error instanceof DriveRemoteError && error.code === 'IDEMPOTENCY_KEY_REUSED') {
-                await state.dropPendingCreate(path);
-            }
-            failed.push({ message: error instanceof Error ? error.message : String(error), path });
+            into.push({ message: error instanceof Error ? error.message : String(error), path });
         });
     };
     await files.clearScratch();
     try {
+        for (const record of plan.restores) {
+            await isolate(unrestored, record.path, () => restoreUnplaced(context, record.path));
+        }
         if (plan.stalePush !== null && plan.stalePush !== pushId) {
             await ignoreGonePush(remote.close(plan.stalePush));
             await state.openPush(null);
         }
         if (plan.deletes.length === 0 && plan.puts.length === 0) {
             const closed =
-                plan.stalePush === pushId ? await ignorePushClosed(remote.close(pushId)) : null;
+                plan.stalePush === pushId ? await ignoreGonePush(remote.close(pushId)) : null;
             await state.openPush(null);
-            return { failed, listed: closed?.listed ?? [], sent: 0 };
+            return { failed, listed: closed?.listed ?? [], pushClosed: false, sent: 0, unrestored };
         }
         await state.openPush(pushId);
         for (const record of plan.deletes) {
-            await isolate(record.path, async () => {
+            await isolate(failed, record.path, async () => {
                 const outcome = await remote.delete({
                     base_revision_id: record.revision_id,
                     path: record.path,
@@ -93,7 +110,7 @@ export async function sendDrivePush(
             });
         }
         for (const put of plan.puts) {
-            await isolate(put.path, async () => {
+            await isolate(failed, put.path, async () => {
                 const file = files.absolute(put.path);
                 const head = new Uint8Array(await Bun.file(file).slice(0, 4096).arrayBuffer());
                 const outcome = await remote.put(
@@ -114,21 +131,28 @@ export async function sendDrivePush(
         }
         const sent = plan.deletes.length + plan.puts.length - failed.length;
         if (failed.length > 0 && !options.closeWithFailures) {
-            return { failed, listed: [], sent };
+            return { failed, listed: [], pushClosed: false, sent, unrestored };
         }
-        const closed = await ignorePushClosed(remote.close(pushId));
+        const closed = await ignoreGonePush(remote.close(pushId));
         await state.openPush(null);
-        return { failed, listed: closed?.listed ?? [], sent };
+        return { failed, listed: closed?.listed ?? [], pushClosed: false, sent, unrestored };
     } catch (error) {
         if (error instanceof DriveRemoteError && error.code === 'PUSH_CLOSED') {
             await state.openPush(null);
-            return { failed, listed: [], sent: 0 };
+            return { failed, listed: [], pushClosed: true, sent: 0, unrestored };
         }
         throw error;
     } finally {
         await files.relock();
     }
 }
+
+interface FileFailure {
+    message: string;
+    path: string;
+}
+
+const unsentCreateCodes = new Set(['IDEMPOTENCY_KEY_REUSED', 'NOT_FOUND', 'PUSH_CLOSED']);
 
 function isFatal(error: unknown) {
     if (error instanceof DriveRemoteError) {
@@ -168,15 +192,6 @@ async function ignoreGonePush<T>(request: Promise<T>) {
             error instanceof DriveRemoteError &&
             (error.code === 'PUSH_CLOSED' || error.code === 'NOT_FOUND')
         ) {
-            return null;
-        }
-        throw error;
-    });
-}
-
-async function ignorePushClosed<T>(request: Promise<T>) {
-    return await request.catch((error: unknown) => {
-        if (error instanceof DriveRemoteError && error.code === 'PUSH_CLOSED') {
             return null;
         }
         throw error;

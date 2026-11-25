@@ -74,6 +74,16 @@ export async function catchUpSkippedHead(context: OutcomeContext, path: string) 
     }
 }
 
+export async function restoreUnplaced(context: OutcomeContext, path: string) {
+    const { files, state } = context;
+    const head = await context.remote.head(path);
+    if (head === null || (await files.occupant(path)) !== 'none') {
+        await state.forget(path);
+        return;
+    }
+    await converge(context, path, head, await download(context, head), readOnlyRoot(context, path));
+}
+
 async function converge(
     context: OutcomeContext,
     path: string,

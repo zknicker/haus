@@ -22,6 +22,8 @@ export function driveFolderLayout(agentRoot: string, agentId: string) {
     } satisfies DriveFolderLayout;
 }
 
+export const unplacedMtimeMs = -1;
+
 const fileRecordSchema = z.object({
     artifact_id: z.string().min(1),
     mtime_ms: z.number(),

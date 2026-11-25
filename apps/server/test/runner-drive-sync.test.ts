@@ -94,15 +94,13 @@ test('after a full reset the next runner start carries the new generation and it
     activeRunId = (start.start as { runId: string }).runId;
 });
 
-test('a Computer that reconnects during a runner run pushes and then pulls the Agent folder', async () => {
+test('a Computer that reconnects during a runner run pulls the Agent folder and leaves its push to the settle', async () => {
     computer.close();
     computer = await connectComputer(setup.harness, setup.computerCredential);
 
-    const push = await computer.next((frame) => frame.type === 'drive-push');
     const pull = await computer.next((frame) => frame.type === 'drive-pull');
-    expect(push).toMatchObject({ agentId: setup.agentId, runId: activeRunId });
     expect(pull).toMatchObject({ agentId: setup.agentId, runId: activeRunId });
-    expect(computer.frames.indexOf(push)).toBeLessThan(computer.frames.indexOf(pull));
+    expect(computer.frames.some((frame) => frame.type === 'drive-push')).toBe(false);
 });
 
 test('a Computer that reconnects after the run settled pushes the folder for that last run', async () => {

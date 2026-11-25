@@ -50,8 +50,14 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
             return 'finished' satisfies WorkerPushResult;
         }
         const pushed = await sendDrivePush(plan, remoteOf(folder, minted.token), turnId);
+        if (pushed.pushClosed) {
+            warn('worker.drive-push-closed', folder, `Push ${turnId} was already closed.`);
+        }
         for (const file of pushed.failed) {
             warn('worker.drive-push-file-failed', folder, `${file.path}: ${file.message}`);
+        }
+        for (const file of pushed.unrestored) {
+            warn('worker.drive-restore-failed', folder, `${file.path}: ${file.message}`);
         }
         return 'finished' satisfies WorkerPushResult;
     }).catch((error: unknown) => {

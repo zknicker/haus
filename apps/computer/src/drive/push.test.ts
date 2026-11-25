@@ -37,7 +37,13 @@ test('a push sends deletes before puts, renames as a delete plus an add, and rec
         join(alpha.layout.folder, 'haus', 'link.md')
     );
 
-    expect(await alpha.push('run_one')).toEqual({ failed: [], listed: [], sent: 5 });
+    expect(await alpha.push('run_one')).toEqual({
+        failed: [],
+        listed: [],
+        pushClosed: false,
+        sent: 5,
+        unrestored: [],
+    });
 
     expect(pushRequests()).toEqual([
         'POST /api/agent/drive/push/delete',

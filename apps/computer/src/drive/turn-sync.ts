@@ -64,8 +64,14 @@ export function pushDriveForRun(agentRoot: string, run: DriveRun) {
         await withRunToken(run, 'drive-push-failed', async (token) => {
             const remote = driveRemote({ serverOrigin: run.serverOrigin, token });
             const pushed = await sendDrivePush(plan, remote, run.runId);
+            if (pushed.pushClosed) {
+                run.warn('drive-push-closed', `Push ${run.runId} was already closed.`);
+            }
             for (const file of pushed.failed) {
                 run.warn('drive-push-file-failed', `${file.path}: ${file.message}`);
+            }
+            for (const file of pushed.unrestored) {
+                run.warn('drive-restore-failed', `${file.path}: ${file.message}`);
             }
         });
     });
@@ -80,10 +86,13 @@ export function flushDriveForRun(agentRoot: string, run: DriveRun) {
         await withRunToken(run, 'drive-flush-failed', async (token) => {
             const remote = driveRemote({ serverOrigin: run.serverOrigin, token });
             const pushed = plan.isEmpty
-                ? { failed: [] }
+                ? { failed: [], unrestored: [] }
                 : await sendDrivePush(plan, remote, run.runId, { closeWithFailures: false });
             for (const file of pushed.failed) {
                 run.warn('drive-flush-file-failed', `${file.path}: ${file.message}`);
+            }
+            for (const file of pushed.unrestored) {
+                run.warn('drive-restore-failed', `${file.path}: ${file.message}`);
             }
             if (pushed.failed.length === 0) {
                 await remote.close(run.runId);

@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import {
-    type DriveConflictFile,
     type DrivePushOutcome,
     type DriveRevision,
     artifactPathKey,
     driveChangesPageMax,
 } from '@haus/api';
+import { drivePushSessions, notDispatched } from './drive-push-sessions.fixture.ts';
 import {
     areaOf,
     areas,
@@ -37,7 +37,7 @@ export function startDriveServer(
     const rows = new Map<string, Row>();
     const counters: Record<string, number> = Object.fromEntries(areas.map((a) => [a.area, 0]));
     const replies = new Map<string, { change: string; outcome: DrivePushOutcome }>();
-    const pushes = new Map<string, { closed: boolean; listed: DriveConflictFile[] }>();
+    const pushes = drivePushSessions();
     const failing = new Set<string>();
     const requests: string[] = [];
     const requestIds: string[] = [];
@@ -163,9 +163,12 @@ export function startDriveServer(
         const body = (
             isPut ? Object.fromEntries(url.searchParams) : await request.clone().json()
         ) as Record<string, string>;
-        const push = pushes.get(body.push_id) ?? { closed: false, listed: [] };
-        pushes.set(body.push_id, push);
+        const writer = writerOf(request);
         if (url.pathname.endsWith('/close')) {
+            const push = pushes.open(body.push_id, writer);
+            if (!push) {
+                return notDispatched();
+            }
             push.closed = true;
             return Response.json({ listed: push.listed });
         }
@@ -179,13 +182,16 @@ export function startDriveServer(
                       { status: 409 }
                   );
         }
-        if (storageFull && isPut) {
-            return Response.json({ code: 'STORAGE_LIMIT', message: 'full' }, { status: 507 });
+        const push = pushes.open(body.push_id, writer);
+        if (!push) {
+            return notDispatched();
         }
         if (push.closed) {
             return Response.json({ code: 'PUSH_CLOSED', message: 'closed' }, { status: 409 });
         }
-        const writer = writerOf(request);
+        if (storageFull && isPut) {
+            return Response.json({ code: 'STORAGE_LIMIT', message: 'full' }, { status: 507 });
+        }
         const bytes = isPut ? new Uint8Array(await request.arrayBuffer()) : null;
         const outcome: DrivePushOutcome = decide(writer, body.path, body.base_revision_id, bytes);
         replies.set(body.request_id, { change, outcome });
@@ -261,6 +267,7 @@ export function startDriveServer(
         failPushes: (fail: boolean) => {
             pushesFail = fail;
         },
+        undispatched: pushes.undispatched,
         requests,
         text: (path: string) => {
             const head = live.get(artifactPathKey(path));

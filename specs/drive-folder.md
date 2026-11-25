@@ -112,7 +112,14 @@ content hash. The dropped revision keeps a re-create distinct even while a count
 A create's request id is stored in `drive.json` when it is first sent and reused until the create
 resolves, so a create whose answer was lost replays its stored outcome after a pull moved the
 counter, instead of making a second copy. A pull that sees a revision equal to a pending create's
-bytes records it as the file's base.
+bytes, while the file is still in the folder, records it as the file's base. When the file is
+gone, the pull drops the pending create and downloads the revision, so a create the Server never
+took cannot turn a later upload of the same bytes into a delete. A put answered `NOT_FOUND` or
+`PUSH_CLOSED` was never stored, so it drops its pending create too.
+
+A record whose file never reached the folder (`mtime_ms` of `-1`) is never pushed as a delete.
+The push reads that path's head and downloads it, or forgets the record when Drive no longer has
+the path or another file holds it. A restore that fails is logged and tried again next push.
 
 A pull that keeps a locally edited file notes the newer revision it skipped. After that file's
 push outcome is applied, the folder reads the path's current head and moves to it when it differs,
@@ -130,7 +137,9 @@ network failure, a 5xx, or a 401 stops the push. A full Drive answers 507 `STORA
 which stops the push like `STORAGE_UNAVAILABLE`, so the edit stays and the next push sends it. A
 409 `IDEMPOTENCY_KEY_REUSED` on a create drops its stored request id, so the next push sends the
 create under a fresh one. A push whose run already sent everything still
-closes on a relaunch. One Computer process runs a folder's pulls and pushes one at a time.
+closes on a relaunch. A `PUSH_CLOSED` answer stops the push and is logged, and the edits go in
+the next push. A close answered `NOT_FOUND` names a push the Server never opened, so the folder
+treats it as already gone. One Computer process runs a folder's pulls and pushes one at a time.
 
 | Outcome | What the folder does |
 | --- | --- |
@@ -273,6 +282,8 @@ D2 and D4 add these guards.
 | `drive.changes` from any counter returns exactly the paths changed since, tombstones included, and finishes under continuous writes | `apps/server/test/drive-changes.test.ts` |
 | A pull updates unedited files, keeps edited ones, and a pull that fails midway leaves a folder that pushes correctly | `apps/computer/src/drive/pull.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
+| A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
+| A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |
