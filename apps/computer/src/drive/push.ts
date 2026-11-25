@@ -1,21 +1,15 @@
-import { createHash } from 'node:crypto';
-import { inferAttachmentMediaType } from '@haus/api';
 import { DriveRemoteError, type DriveRemote } from './drive-remote.ts';
-import { folderFiles, isSkippedPath, sha256File } from './folder-files.ts';
+import { folderFiles, sha256File } from './folder-files.ts';
 import { SymlinkedFolderError } from './folder-spelling.ts';
 import {
-    areaOfPath,
     type DriveFileRecord,
     type DriveFolderLayout,
     openFolderState,
     unplacedMtimeMs,
 } from './folder-state.ts';
-import {
-    applyPushOutcome,
-    catchUpSkippedHead,
-    type OutcomeContext,
-    restoreUnplaced,
-} from './push-outcome.ts';
+import { isSkippedPath } from './folder-walk.ts';
+import { type OutcomeContext, restoreUnplaced } from './outcome-converge.ts';
+import { type PlannedPut, sendDelete, sendPut } from './push-request.ts';
 
 export async function planDrivePush(layout: DriveFolderLayout) {
     const state = await openFolderState(layout);
@@ -36,7 +30,7 @@ export async function planDrivePush(layout: DriveFolderLayout) {
     }
     const deletes = missing.filter((record) => record.mtime_ms !== unplacedMtimeMs);
     const restores = missing.filter((record) => record.mtime_ms === unplacedMtimeMs);
-    const puts: { path: string; record: DriveFileRecord | null; sha256: string }[] = [];
+    const puts: PlannedPut[] = [];
     for (const [path, stat] of [...local].sort(([a], [b]) => a.localeCompare(b))) {
         const record = records[path] ?? null;
         if (record && stat.size === record.size_bytes && stat.mtimeMs === record.mtime_ms) {
@@ -77,7 +71,6 @@ export async function sendDrivePush(
 ) {
     const { files, layout, state } = plan;
     const context: OutcomeContext = { files, layout, remote, state };
-    const writer = layout.writer;
     const failed: FileFailure[] = plan.linked.map((path) => ({
         message: new SymlinkedFolderError(path).message,
         path,
@@ -111,38 +104,10 @@ export async function sendDrivePush(
         }
         await state.openPush(pushId);
         for (const record of plan.deletes) {
-            await isolate(failed, record.path, async () => {
-                const outcome = await remote.delete({
-                    base_revision_id: record.revision_id,
-                    path: record.path,
-                    push_id: pushId,
-                    request_id: requestId([writer, record.path, record.revision_id, null]),
-                });
-                await applyPushOutcome(context, outcome, null);
-                if (record.seen_head) {
-                    await catchUpSkippedHead(context, record.path);
-                }
-            });
+            await isolate(failed, record.path, () => sendDelete(context, record, pushId));
         }
         for (const put of plan.puts) {
-            await isolate(failed, put.path, async () => {
-                const file = files.absolute(put.path);
-                const head = new Uint8Array(await Bun.file(file).slice(0, 4096).arrayBuffer());
-                const outcome = await remote.put(
-                    {
-                        base_revision_id: put.record?.revision_id,
-                        content_type: inferAttachmentMediaType(put.path, head),
-                        path: put.path,
-                        push_id: pushId,
-                        request_id: await putRequestId(plan, put),
-                    },
-                    file
-                );
-                await applyPushOutcome(context, outcome, put.sha256);
-                if (put.record?.seen_head) {
-                    await catchUpSkippedHead(context, put.path);
-                }
-            });
+            await isolate(failed, put.path, () => sendPut(context, put, pushId));
         }
         const sent = plan.deletes.length + plan.puts.length + plan.linked.length - failed.length;
         if (failed.length > 0 && !options.closeWithFailures) {
@@ -174,31 +139,6 @@ function isFatal(error: unknown) {
         return error.code === 'PUSH_CLOSED' || error.status === 401 || error.status >= 500;
     }
     return typeof (error as NodeJS.ErrnoException | null)?.syscall !== 'string';
-}
-
-async function putRequestId(plan: DrivePushPlan, put: DrivePushPlan['puts'][number]) {
-    const { layout, state } = plan;
-    if (put.record) {
-        return requestId([layout.writer, put.path, put.record.revision_id, put.sha256]);
-    }
-    const pending = state.current().pendingCreates[put.path];
-    if (pending?.sha256 === put.sha256) {
-        return pending.request_id;
-    }
-    const id = requestId([layout.writer, put.path, createSlot(plan, put.path), put.sha256]);
-    await state.notePendingCreate(put.path, { request_id: id, sha256: put.sha256 });
-    return id;
-}
-
-function createSlot(plan: DrivePushPlan, path: string) {
-    const { areas, counters, retired } = plan.state.current();
-    const area = areaOfPath(areas, path);
-    const slot = area ? `${area.area}@${counters[area.area] ?? 0}` : 'outside@0';
-    return `${slot}:${retired[path] ?? ''}`;
-}
-
-function requestId(parts: (string | null)[]) {
-    return `dp_${createHash('sha256').update(JSON.stringify(parts)).digest('hex').slice(0, 48)}`;
 }
 
 async function ignoreGonePush<T>(request: Promise<T>) {

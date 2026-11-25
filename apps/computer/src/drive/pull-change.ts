@@ -86,7 +86,16 @@ async function applyPut(context: ChangeContext, change: PutChange) {
     const scratch = await files.scratchFile();
     await context.remote.download(change, scratch);
     return await blockedOnLocalPath(async () => {
-        const mtimeMs = await files.place(change.path, scratch, context.readOnlyRoot);
+        const mtimeMs = await files.placeIfUnchanged(
+            change.path,
+            scratch,
+            context.readOnlyRoot,
+            local
+        );
+        if (mtimeMs === null) {
+            await state.markSeen(change.path, change.revision_id);
+            return 'kept';
+        }
         await state.record({ ...facts, mtime_ms: mtimeMs });
         return 'applied';
     });

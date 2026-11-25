@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { chmod, link, lstat, mkdir, readdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
+import { chmod, copyFile, link, lstat, mkdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import {
     refuseSymlinkedParents,
@@ -8,17 +8,15 @@ import {
     spellingOf,
 } from './folder-spelling.ts';
 import type { DriveFileRecord, DriveFolderLayout } from './folder-state.ts';
+import { type FileStamp, sameStamp, stampOf, walkFolder } from './folder-walk.ts';
 
-export interface LocalFile {
-    mtimeMs: number;
+export interface LocalFile extends FileStamp {
     sha256: string;
-    size: number;
 }
 
-const skippedNames = new Set(['.git', 'node_modules', '__pycache__', '.DS_Store']);
-
-export function isSkippedPath(path: string) {
-    return path.split('/').some((segment) => skippedNames.has(segment));
+export class LocalEditError extends Error {
+    readonly code = 'ECHANGED';
+    readonly syscall = 'copyfile';
 }
 
 export function folderFiles(layout: DriveFolderLayout) {
@@ -66,13 +64,46 @@ export function folderFiles(layout: DriveFolderLayout) {
                 return 'variant' as const;
             }
             if (record && stat.size === record.size_bytes && stat.mtimeMs === record.mtime_ms) {
-                return { mtimeMs: stat.mtimeMs, sha256: record.sha256, size: stat.size };
+                return { ...stampOf(stat), sha256: record.sha256 } satisfies LocalFile;
             }
             return {
-                mtimeMs: stat.mtimeMs,
+                ...stampOf(stat),
                 sha256: await sha256File(absolute(path)),
-                size: stat.size,
             } satisfies LocalFile;
+        },
+        async stamp(path: string) {
+            await refuseSymlinkedParents(layout.folder, path);
+            const stat = await lstat(absolute(path)).catch(() => null);
+            return stat ? stampOf(stat) : null;
+        },
+        async snapshot(path: string) {
+            const source = absolute(path);
+            await refuseSymlinkedParents(layout.folder, path);
+            const before = stampOf(await lstat(source));
+            await mkdir(layout.scratch, { mode: 0o700, recursive: true });
+            const file = join(layout.scratch, randomUUID());
+            await copyFile(source, file);
+            const after = stampOf(await lstat(source));
+            if (!sameStamp(before, after)) {
+                throw new LocalEditError(`${path} changed while it was read, so it waits a push.`);
+            }
+            return { file, sha256: await sha256File(file), stamp: after };
+        },
+        async placeIfUnchanged(
+            path: string,
+            source: string,
+            readOnlyRoot: string | null,
+            expected: FileStamp | null
+        ) {
+            const target = absolute(path);
+            await openParents(target, readOnlyRoot);
+            const stat = await lstat(target).catch(() => null);
+            if (!sameStamp(stat && stampOf(stat), expected)) {
+                return null;
+            }
+            await chmod(source, readOnlyRoot === null ? 0o644 : 0o444);
+            await rename(source, target);
+            return (await lstat(target)).mtimeMs;
         },
         clearScratch: () => rm(layout.scratch, { force: true, recursive: true }),
         scratchFile: async () => {
@@ -183,53 +214,6 @@ export async function sha256File(path: string) {
         hasher.update(chunk);
     }
     return hasher.digest('hex');
-}
-
-async function walkFolder(folder: string) {
-    const files = new Map<string, { mtimeMs: number; size: number }>();
-    const visit = async (dir: string, prefix: string) => {
-        const entries = await readdir(dir, { withFileTypes: true }).catch(
-            (error: NodeJS.ErrnoException) => {
-                if (error.code === 'ENOENT') {
-                    return [];
-                }
-                throw error;
-            }
-        );
-        for (const entry of entries) {
-            if (skippedNames.has(entry.name)) {
-                continue;
-            }
-            const onDisk = await composeName(dir, entry.name);
-            const name = `${prefix}${onDisk}`;
-            if (entry.isDirectory()) {
-                await visit(join(dir, onDisk), `${name}/`);
-            } else if (entry.isFile()) {
-                const stat = await lstat(join(dir, onDisk));
-                files.set(name, { mtimeMs: stat.mtimeMs, size: stat.size });
-            }
-        }
-    };
-    await visit(folder, '');
-    return files;
-}
-
-async function composeName(dir: string, name: string) {
-    const composed = name.normalize('NFC');
-    if (composed === name) {
-        return name;
-    }
-    const [raw, existing] = await Promise.all([
-        lstat(join(dir, name)),
-        lstat(join(dir, composed)).catch(() => null),
-    ]);
-    if (existing && existing.ino !== raw.ino) {
-        return name;
-    }
-    if (!existing) {
-        await rename(join(dir, name), join(dir, composed));
-    }
-    return composed;
 }
 
 async function pruneEmptyParents(folder: string, target: string) {

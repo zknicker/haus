@@ -1,51 +1,49 @@
-import { lstat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { DriveRemote } from './drive-remote.ts';
-import type { DrivePushOutcomeEntry, DriveRevisionFacts } from './drive-response-schema.ts';
-import type { FolderFiles } from './folder-files.ts';
+import type { DrivePushOutcomeEntry } from './drive-response-schema.ts';
+import { type FileStamp, sameStamp } from './folder-walk.ts';
 import {
-    areaOfPath,
-    type DriveFolderLayout,
-    type FolderStateStore,
-    isReadOnlyArea,
-} from './folder-state.ts';
+    converge,
+    download,
+    type OutcomeContext,
+    readOnlyRoot,
+    recordOf,
+    respellTo,
+} from './outcome-converge.ts';
 
-export interface OutcomeContext {
-    files: FolderFiles;
-    layout: DriveFolderLayout;
-    remote: DriveRemote;
-    state: FolderStateStore;
+export interface OwnBytes {
+    sha256: string;
+    stamp: FileStamp;
 }
 
 export async function applyPushOutcome(
     context: OutcomeContext,
     outcome: DrivePushOutcomeEntry,
-    ownSha256: string | null
+    own: OwnBytes | null
 ) {
+    if (own === null) {
+        await applyDeleteOutcome(context, outcome);
+        return;
+    }
     const { files, state } = context;
     const { current, path } = outcome;
     const target = current?.path ?? path;
-    if (ownSha256 === null && (await files.occupant(target)) === 'variant') {
-        await state.forget(path);
+    const lock = readOnlyRoot(context, target);
+    const asideTarget = asideTargetOf(context, outcome);
+    const atPath = asideTarget ? null : own.sha256;
+    const incoming = current && atPath !== current.sha256 ? await download(context, current) : null;
+    if (!sameStamp(await files.stamp(path), own.stamp)) {
+        await keepNewerEdit(context, outcome, own, incoming === null && asideTarget === null);
         return;
     }
-    const lock = readOnlyRoot(context, target);
-    const asideTarget = asideTargetOf(context, outcome, ownSha256);
-    const atPath = asideTarget ? null : ownSha256;
-    const incoming = current && atPath !== current.sha256 ? await download(context, current) : null;
-    const aside =
-        asideTarget && ownSha256
-            ? await files.setAside(path, asideTarget, ownSha256, readOnlyRoot(context, path))
-            : null;
+    const aside = asideTarget
+        ? await files.setAside(path, asideTarget, own.sha256, readOnlyRoot(context, path))
+        : null;
     if (current === null) {
         await files.remove(path, lock);
         await state.forget(path);
     } else {
-        if (target !== path) {
-            await state.rename((await files.respell(path, target, lock)) ?? []);
-            await state.forget(path);
-        }
-        await converge(context, target, current, incoming, lock);
+        await respellTo(context, path, target, lock);
+        await converge(context, target, current, incoming, lock, own.stamp);
     }
     if (aside) {
         const mtimeMs = await files.release(aside);
@@ -55,87 +53,45 @@ export async function applyPushOutcome(
     }
 }
 
-export async function catchUpSkippedHead(context: OutcomeContext, path: string) {
-    const { files, state } = context;
-    const head = await context.remote.head(path);
-    const record = state.current().files[path];
-    const occupant = await files.occupant(path);
-    const lock = readOnlyRoot(context, path);
-    if (head === null) {
-        if (record && occupant === 'exact') {
-            await files.remove(path, lock);
-        }
-        await state.forget(path);
-        return;
-    }
-    const replaceable = occupant === 'none' || (record !== undefined && occupant === 'exact');
-    if (record?.revision_id !== head.revision_id && replaceable) {
-        await converge(context, path, head, await download(context, head), lock);
-    }
-}
-
-export async function restoreUnplaced(context: OutcomeContext, path: string) {
-    const { files, state } = context;
-    const head = await context.remote.head(path);
-    if (head === null || (await files.occupant(head.path)) !== 'none') {
-        await state.forget(path);
-        return;
-    }
-    const incoming = await download(context, head);
-    if (head.path !== path) {
-        await state.forget(path);
-    }
-    await converge(context, head.path, head, incoming, readOnlyRoot(context, head.path));
-}
-
-async function converge(
-    context: OutcomeContext,
-    path: string,
-    current: DriveRevisionFacts,
-    incoming: string | null,
-    lock: string | null
-) {
-    const { files, state } = context;
-    const mtimeMs = incoming
-        ? await files.place(path, incoming, lock)
-        : (await lstat(files.absolute(path))).mtimeMs;
-    await state.record(recordOf(current, mtimeMs, path));
-}
-
-function asideTargetOf(
+async function keepNewerEdit(
     context: OutcomeContext,
     outcome: DrivePushOutcomeEntry,
-    ownSha256: string | null
+    own: OwnBytes,
+    landedOwnBytes: boolean
 ) {
-    if (ownSha256 === null) {
-        return null;
+    const { current, path } = outcome;
+    if (current && landedOwnBytes) {
+        await respellTo(context, path, current.path, readOnlyRoot(context, current.path));
+        await context.state.record(recordOf(current, own.stamp.mtimeMs));
+        return;
     }
+    await context.state.markSeen(path, current?.revision_id ?? 'deleted');
+}
+
+async function applyDeleteOutcome(context: OutcomeContext, outcome: DrivePushOutcomeEntry) {
+    const { files, state } = context;
+    const { current, path } = outcome;
+    const target = current?.path ?? path;
+    const occupant = await files.occupant(target);
+    if (occupant === 'variant' || current === null) {
+        await state.forget(path);
+        return;
+    }
+    if (occupant === 'exact') {
+        await state.markSeen(path, current.revision_id);
+        return;
+    }
+    const lock = readOnlyRoot(context, target);
+    const incoming = await download(context, current);
+    await respellTo(context, path, target, lock);
+    await converge(context, target, current, incoming, lock, null);
+}
+
+function asideTargetOf(context: OutcomeContext, outcome: DrivePushOutcomeEntry) {
     if (outcome.outcome === 'kept_both') {
         return context.files.absolute(outcome.copy.path);
     }
     return outcome.outcome === 'refused'
         ? join(context.layout.refused, ...outcome.path.split('/'))
         : null;
-}
-
-async function download(context: OutcomeContext, revision: DriveRevisionFacts) {
-    const scratch = await context.files.scratchFile();
-    await context.remote.download(revision, scratch);
-    return scratch;
-}
-
-function recordOf(revision: DriveRevisionFacts, mtimeMs: number, path = revision.path) {
-    return {
-        artifact_id: revision.artifact_id,
-        mtime_ms: mtimeMs,
-        path,
-        revision_id: revision.revision_id,
-        sha256: revision.sha256,
-        size_bytes: revision.size_bytes,
-    };
-}
-
-function readOnlyRoot(context: OutcomeContext, path: string) {
-    const area = areaOfPath(context.state.current().areas, path);
-    return area && isReadOnlyArea(area.area, context.layout.writer) ? area.root : null;
 }

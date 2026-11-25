@@ -62,7 +62,9 @@ When a turn starts and the Agent's machine is online, the machine pulls while th
    removed for a delete. A local file with no record whose bytes equal the incoming revision is
    recorded as that revision.
 4. A file the Agent changed locally keeps its bytes and its recorded base. The next push merges it
-   on the Server, so a pull never makes a local conflict.
+   on the Server, so a pull never makes a local conflict. The pull checks the file's inode, size,
+   and modification time again right before the replace, so an edit made while the download ran
+   is kept the same way.
 5. Each file's bytes and its record are written together, one file at a time, bytes first. The
    area counters advance only after the whole pull finishes.
 6. A local folder where Drive has a file, or a local file where Drive has a folder, blocks only
@@ -160,6 +162,14 @@ treats it as already gone. One Computer process runs a folder's pulls and pushes
 | `kept_both` | Moves its own bytes to the copy path, writes `current` at the path, and records both |
 | `kept_edit` | Writes `current` at the path and records it |
 | `refused` | Moves its own bytes to `agents/<agent-id>/workspace/drive-refused/<path>` and restores the Drive state at the path |
+
+A put uploads a snapshot copied to `runtime/drive-scratch/`, and a file that changes while it is
+copied waits for the next push. Before an outcome replaces, moves, or records a file, it checks the
+file against the snapshot's inode, size, and modification time. A file edited since keeps its
+bytes: when Drive now holds exactly the snapshot, the record takes that revision with the
+snapshot's time, so the next push sends the newer edit on top of it; otherwise the record keeps its
+old base and notes the newer revision. A delete's outcome never removes a file created at the path
+since the push was planned.
 
 A refused file leaves the folder, so the next push does not send it again and the conflict item
 that names it cannot repeat every turn. Any download an outcome needs happens before the writer's
@@ -296,6 +306,7 @@ D2 and D4 add these guards.
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
 | A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
+| An edit made while a pull downloads or a push waits is never overwritten or recorded as synced | `apps/computer/src/drive/sync-races.test.ts` |
 | A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
