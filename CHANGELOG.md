@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.7.3 - 2026-11-25
+
+- Files you upload or drop in Drive land in the folder you're viewing, at its full path. Uploads inside a folder such as `haus/` no longer go to the Drive root and get refused, and moving to another folder no longer leaves uploads aimed at the old one.
+- On a file's page, New file, New folder and Upload work in that file's folder instead of falling back to the Drive root.
+- Server 29.6.2 ships alone. No database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.7.2 - 2026-11-25
 
 - A Captain's Drive sync no longer deletes a file from Drive after Drive refused its upload, or after someone renamed it by changing only its capitalization. A capitalization-only rename of a file or folder now renames it in the Captain's folder too.
