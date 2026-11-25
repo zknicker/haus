@@ -75,7 +75,10 @@ When a turn starts and the Agent's machine is online, the machine pulls while th
    The area counters advance only after the whole pull finishes.
 6. A local folder where Drive has a file, or a local file where Drive has a folder, blocks only
    that change. The pull applies the rest and holds the counters, so the change comes again once
-   the push has moved the blocking path out.
+   the push has moved the blocking path out. A change the disk cannot take is held the same way
+   and warned with its path (`drive-pull-held`): a name or path too long for the disk
+   (`ENAMETOOLONG`), a full disk (`ENOSPC`), a download that timed out, or one whose bytes did not
+   match their hash (`DOWNLOAD_MISMATCH`). Every later change still lands.
 
 The pull downloads every changed file, whatever its size. Fetching large files on first use is
 deferred.
@@ -320,6 +323,7 @@ D2 and D4 add these guards.
 | `drive.changes` from any counter returns exactly the paths changed since, tombstones included, and finishes under continuous writes | `apps/server/test/drive-changes.test.ts` |
 | A pull updates unedited files, keeps edited ones, and a pull that fails midway leaves a folder that pushes correctly | `apps/computer/src/drive/pull.test.ts` |
 | A stop between a file's bytes and its record never revives the file after a delete | `apps/computer/src/drive/pull.test.ts` |
+| A change the disk cannot take is held with a warning and never blocks later changes | `apps/computer/src/drive/pull-held.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
 | A create whose answer was lost catches up to a later edit or delete once it resolves | `apps/computer/src/drive/push-recovery.test.ts` |

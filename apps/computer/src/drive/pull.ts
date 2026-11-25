@@ -52,8 +52,19 @@ export async function pullDrive(input: { layout: DriveFolderLayout; remote: Driv
     return { ...tally, advanced: tally.blocked === 0, held };
 }
 
+const unplaceableCodes = new Set(['DOWNLOAD_MISMATCH', 'ENAMETOOLONG', 'ENOSPC']);
+
 function isHeld(error: unknown): error is Error {
-    return error instanceof SymlinkedFolderError;
+    if (error instanceof SymlinkedFolderError) {
+        return true;
+    }
+    if (!(error instanceof Error)) {
+        return false;
+    }
+    const code = (error as { code?: unknown }).code;
+    return (
+        error.name === 'TimeoutError' || (typeof code === 'string' && unplaceableCodes.has(code))
+    );
 }
 
 function readOnlyRootOf(areas: readonly DriveFolderArea[], area: string, writer: string) {
