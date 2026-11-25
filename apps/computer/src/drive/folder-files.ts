@@ -151,12 +151,7 @@ export function folderFiles(layout: DriveFolderLayout) {
             const spelling = await spellingOf(layout.folder, path);
             return spelling === 'linked' ? ('other' as const) : spelling;
         },
-        async respell(
-            from: string,
-            to: string,
-            readOnlyRoot: string | null,
-            options: { keepTarget: boolean } = { keepTarget: false }
-        ) {
+        async respell(from: string, to: string, readOnlyRoot: string | null) {
             const source = absolute(from);
             const target = absolute(to);
             await refuseSymlinkedParents(layout.folder, from);
@@ -165,18 +160,15 @@ export function folderFiles(layout: DriveFolderLayout) {
                 lstat(source).catch(() => null),
                 lstat(target).catch(() => null),
             ]);
-            const sameFile = toStat !== null && toStat.ino === fromStat?.ino;
-            if (!fromStat || (options.keepTarget && toStat && !sameFile)) {
-                return fromStat ? null : [{ from, to }];
+            if (!fromStat) {
+                return [{ from, to }];
+            }
+            if (toStat && toStat.ino !== fromStat.ino) {
+                return null;
             }
             await openParents(target, readOnlyRoot);
             const parents = await respellParents(layout.folder, to);
-            if (!toStat || sameFile) {
-                await rename(source, target);
-            } else {
-                await unlink(source);
-                await pruneEmptyParents(layout.folder, source);
-            }
+            await rename(source, target);
             return [...parents, { from, to }];
         },
         async release(target: string) {

@@ -136,7 +136,11 @@ because a replayed stored outcome can name a revision older than one the pull al
 
 Outcomes apply under Drive's spelling of the path. Respelling a file also renames any parent folder
 whose casing differs and moves the records under it, so the folder never keeps a spelling Drive
-does not have. A delete's outcome never touches a file that only folds to its path, such as the
+does not have. A respell never removes a file: when another file already holds the new spelling,
+both stay and the outcome records under the pushed spelling. A `kept_both` whose `current` lives
+at another path, as `base_gone` answers when a person moved the file the edit started from, moves
+the writer's bytes to the copy, removes the old path, and places `current` at its own path only
+where the folder holds nothing there. A delete's outcome never touches a file that only folds to its path, such as the
 renamed half of a case-only rename, so an edit made under the new spelling reaches Drive as its
 own put or as a conflict copy.
 
@@ -316,6 +320,7 @@ D2 and D4 add these guards.
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
 | A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
+| A respell never removes another file, and an edit to a moved file lands as a copy beside it | `apps/computer/src/drive/push-moves.test.ts` |
 | An edit made while a pull downloads or a push waits is never overwritten or recorded as synced | `apps/computer/src/drive/sync-races.test.ts` |
 | A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |

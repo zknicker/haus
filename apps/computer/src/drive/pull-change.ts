@@ -100,9 +100,7 @@ async function respelledRecord(context: ChangeContext, change: PutChange) {
     if (folded?.artifact_id !== change.artifact_id) {
         return undefined;
     }
-    const moves = await context.files.respell(folded.path, change.path, context.readOnlyRoot, {
-        keepTarget: true,
-    });
+    const moves = await context.files.respell(folded.path, change.path, context.readOnlyRoot);
     if (moves === null) {
         return undefined;
     }

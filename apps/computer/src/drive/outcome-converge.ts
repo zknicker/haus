@@ -90,10 +90,15 @@ export async function respellTo(
     lock: string | null
 ) {
     if (target === path) {
-        return;
+        return path;
     }
-    await context.state.rename((await context.files.respell(path, target, lock)) ?? []);
+    const moves = await context.files.respell(path, target, lock);
+    if (moves === null) {
+        return path;
+    }
+    await context.state.rename(moves);
     await context.state.forget(path);
+    return target;
 }
 
 export async function download(context: OutcomeContext, revision: DriveRevisionFacts) {
