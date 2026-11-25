@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { chmod, link, lstat, mkdir, readdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
-import { basename, dirname, join, relative, sep } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
+import { respellParents, spellingOf } from './folder-spelling.ts';
 import type { DriveFileRecord, DriveFolderLayout } from './folder-state.ts';
 
 export interface LocalFile {
@@ -50,6 +51,9 @@ export function folderFiles(layout: DriveFolderLayout) {
             if (!stat.isFile()) {
                 return 'blocked' as const;
             }
+            if ((await spellingOf(layout.folder, path)) !== 'exact') {
+                return 'variant' as const;
+            }
             if (record && stat.size === record.size_bytes && stat.mtimeMs === record.mtime_ms) {
                 return { mtimeMs: stat.mtimeMs, sha256: record.sha256, size: stat.size };
             }
@@ -73,7 +77,7 @@ export function folderFiles(layout: DriveFolderLayout) {
         },
         async remove(path: string, readOnlyRoot: string | null) {
             const target = absolute(path);
-            if (!(await holdsExactFile(target))) {
+            if ((await spellingOf(layout.folder, path)) !== 'exact') {
                 return;
             }
             await openParents(target, readOnlyRoot);
@@ -97,34 +101,34 @@ export function folderFiles(layout: DriveFolderLayout) {
             }
         },
         async occupant(path: string) {
-            const stat = await lstat(absolute(path)).catch(() => null);
-            if (!stat) {
-                return 'none' as const;
-            }
-            if (!stat.isFile()) {
-                return 'other' as const;
-            }
-            return (await holdsExactFile(absolute(path)))
-                ? ('exact' as const)
-                : ('variant' as const);
+            const spelling = await spellingOf(layout.folder, path);
+            return spelling === 'linked' ? ('other' as const) : spelling;
         },
-        async respell(from: string, to: string, readOnlyRoot: string | null) {
+        async respell(
+            from: string,
+            to: string,
+            readOnlyRoot: string | null,
+            options: { keepTarget: boolean } = { keepTarget: false }
+        ) {
             const source = absolute(from);
             const target = absolute(to);
             const [fromStat, toStat] = await Promise.all([
                 lstat(source).catch(() => null),
                 lstat(target).catch(() => null),
             ]);
-            if (!fromStat) {
-                return;
+            const sameFile = toStat !== null && toStat.ino === fromStat?.ino;
+            if (!fromStat || (options.keepTarget && toStat && !sameFile)) {
+                return fromStat ? null : [{ from, to }];
             }
             await openParents(target, readOnlyRoot);
-            if (!toStat || toStat.ino === fromStat.ino) {
+            const parents = await respellParents(layout.folder, to);
+            if (!toStat || sameFile) {
                 await rename(source, target);
-                return;
+            } else {
+                await unlink(source);
+                await pruneEmptyParents(layout.folder, source);
             }
-            await unlink(source);
-            await pruneEmptyParents(layout.folder, source);
+            return [...parents, { from, to }];
         },
         async release(target: string) {
             await chmod(target, 0o644);
@@ -198,15 +202,6 @@ async function composeName(dir: string, name: string) {
         await rename(join(dir, name), join(dir, composed));
     }
     return composed;
-}
-
-async function holdsExactFile(target: string) {
-    const stat = await lstat(target).catch(() => null);
-    if (!stat?.isFile()) {
-        return false;
-    }
-    const names = await readdir(dirname(target));
-    return names.some((name) => name.normalize('NFC') === basename(target));
 }
 
 async function pruneEmptyParents(folder: string, target: string) {

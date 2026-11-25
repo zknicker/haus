@@ -42,7 +42,7 @@ export async function applyPushOutcome(
         await state.forget(path);
     } else {
         if (target !== path) {
-            await files.respell(path, target, lock);
+            await state.rename((await files.respell(path, target, lock)) ?? []);
             await state.forget(path);
         }
         await converge(context, target, current, incoming, lock);
@@ -77,11 +77,15 @@ export async function catchUpSkippedHead(context: OutcomeContext, path: string) 
 export async function restoreUnplaced(context: OutcomeContext, path: string) {
     const { files, state } = context;
     const head = await context.remote.head(path);
-    if (head === null || (await files.occupant(path)) !== 'none') {
+    if (head === null || (await files.occupant(head.path)) !== 'none') {
         await state.forget(path);
         return;
     }
-    await converge(context, path, head, await download(context, head), readOnlyRoot(context, path));
+    const incoming = await download(context, head);
+    if (head.path !== path) {
+        await state.forget(path);
+    }
+    await converge(context, head.path, head, incoming, readOnlyRoot(context, head.path));
 }
 
 async function converge(

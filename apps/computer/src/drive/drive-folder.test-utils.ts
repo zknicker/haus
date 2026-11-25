@@ -1,5 +1,5 @@
-import { mkdtempSync } from 'node:fs';
-import { lstat, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { driveRemote } from './drive-remote.ts';
@@ -7,6 +7,14 @@ import type { DriveServer } from './drive-server.fixture.ts';
 import { driveFolderLayout, type DriveFolderState } from './folder-state.ts';
 import { pullDrive } from './pull.ts';
 import { planDrivePush, sendDrivePush } from './push.ts';
+
+export const caseInsensitiveDisk = (() => {
+    const probe = mkdtempSync(join(tmpdir(), 'haus-drive-case-'));
+    writeFileSync(join(probe, 'Probe'), '');
+    const folds = existsSync(join(probe, 'probe'));
+    rmSync(probe, { force: true, recursive: true });
+    return folds;
+})();
 
 export function writerFolder(server: DriveServer, agentId: string) {
     const root = mkdtempSync(join(tmpdir(), `haus-drive-${agentId}-`));
@@ -28,6 +36,8 @@ export function writerFolder(server: DriveServer, agentId: string) {
             await writeFile(local(path), text);
         },
         remove: (path: string) => rm(local(path)),
+        rename: (from: string, to: string) => rename(local(from), local(to)),
+        names: (path: string) => readdir(local(path)),
         mode: async (path: string) => (await lstat(local(path))).mode & 0o777,
         state: async () => JSON.parse(await readFile(layout.stateFile, 'utf8')) as DriveFolderState,
         async cleanup() {

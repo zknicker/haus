@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import type { DriveAreaCounters } from '@haus/api';
+import { type DriveAreaCounters, artifactPathKey } from '@haus/api';
 import * as z from 'zod';
 
 export interface DriveFolderLayout {
@@ -100,6 +100,14 @@ export async function openFolderState(layout: DriveFolderLayout) {
                 ? persist({ ...state, pendingCreates })
                 : Promise.resolve();
         },
+        rename: (moves: readonly { from: string; to: string }[]) => {
+            let { files, pendingCreates } = state;
+            for (const move of moves) {
+                files = renamedKeys(files, move, (record, path) => ({ ...record, path }));
+                pendingCreates = renamedKeys(pendingCreates, move, (create) => create);
+            }
+            return persist({ ...state, files, pendingCreates });
+        },
         notePendingCreate: (path: string, create: { request_id: string; sha256: string }) =>
             persist({ ...state, pendingCreates: { ...state.pendingCreates, [path]: create } }),
         adopt: (records: readonly DriveFileRecord[]) =>
@@ -134,6 +142,15 @@ export function isReadOnlyArea(area: string | null, writer: string) {
     return area !== null && area.startsWith('agent:') && area !== `agent:${writer}`;
 }
 
+export function foldedRecord(state: DriveFolderState, path: string) {
+    const key = artifactPathKey(path);
+    return (
+        Object.values(state.files).find(
+            (record) => record.path !== path && artifactPathKey(record.path) === key
+        ) ?? null
+    );
+}
+
 export async function readFolderState(layout: DriveFolderLayout) {
     const loaded = await loadFolderState(layout);
     return loaded === 'orphaned' ? null : loaded;
@@ -151,6 +168,27 @@ async function loadFolderState(layout: DriveFolderLayout) {
     }
     const folder = await lstat(layout.folder).catch(() => null);
     return folder?.isDirectory() ? folderStateSchema.parse(JSON.parse(raw)) : ('orphaned' as const);
+}
+
+function renamedKeys<Entry>(
+    entries: Record<string, Entry>,
+    move: { from: string; to: string },
+    respelled: (entry: Entry, path: string) => Entry
+) {
+    const moved = (path: string) => {
+        if (path === move.from) {
+            return move.to;
+        }
+        return path.startsWith(`${move.from}/`)
+            ? `${move.to}${path.slice(move.from.length)}`
+            : path;
+    };
+    return Object.fromEntries(
+        Object.entries(entries).map(([path, entry]) => {
+            const to = moved(path);
+            return [to, to === path ? entry : respelled(entry, to)];
+        })
+    );
 }
 
 async function writeJsonAtomic(path: string, value: unknown) {

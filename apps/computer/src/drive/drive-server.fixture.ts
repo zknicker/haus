@@ -71,6 +71,15 @@ export function startDriveServer(
             touch(head.path, head.artifact_id, null);
         }
     }
+    function move(from: string, to: string) {
+        const head = live.get(artifactPathKey(from));
+        if (head) {
+            remove(from);
+            const moved = { ...head, path: to };
+            live.set(artifactPathKey(to), moved);
+            touch(to, head.artifact_id, moved);
+        }
+    }
     function touch(path: string, artifactId: string, revision: Revision | null) {
         const area = areaOf(path)?.area ?? 'haus';
         counters[area] = (counters[area] ?? 0) + 1;
@@ -274,6 +283,7 @@ export function startDriveServer(
             return head ? new TextDecoder().decode(blobs.get(head.revision_id)) : null;
         },
         head: (path: string) => live.get(artifactPathKey(path)) ?? null,
+        move,
         remove,
         stop: () => server.stop(true),
         write,

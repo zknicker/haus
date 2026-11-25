@@ -125,13 +125,23 @@ A pull that keeps a locally edited file notes the newer revision it skipped. Aft
 push outcome is applied, the folder reads the path's current head and moves to it when it differs,
 because a replayed stored outcome can name a revision older than one the pull already passed.
 
-Outcomes apply under Drive's spelling of the path. A delete's outcome never touches a file that
-only folds to its path, such as the renamed half of a case-only rename, so an edit made under the
-new spelling reaches Drive as its own put or as a conflict copy.
+Outcomes apply under Drive's spelling of the path. Respelling a file also renames any parent folder
+whose casing differs and moves the records under it, so the folder never keeps a spelling Drive
+does not have. A delete's outcome never touches a file that only folds to its path, such as the
+renamed half of a case-only rename, so an edit made under the new spelling reaches Drive as its
+own put or as a conflict copy.
 
-A delete removes only a file whose name matches the path exactly, so the delete half of a
-case-only rename on a case-insensitive disk never removes the renamed file, and a folder that
-replaced a file stays. A request that fails for that one file, a local file error or a 4xx answer
+Drive's change log keeps one row per case-folded path, so a case-only rename in the App reaches the
+pull as a put alone. A put whose `artifact_id` already has a record at a path that folds to it is a
+respell: the pull renames the file and its parent folders to the new spelling and moves the record.
+The pull adopts a local file only when every segment of its name matches exactly. A file that only
+folds to an incoming put of another file is the file Drive replaced: unedited, it is removed and
+the new file downloaded; edited, it stays with its base for the push to merge. A record restored
+after never reaching the folder lands under the head's spelling, and the old spelling is forgotten.
+
+A delete removes only a file whose path matches exactly in every segment, so the delete half of a
+case-only rename of a file or a folder on a case-insensitive disk never removes the renamed file,
+and a folder that replaced a file stays. A request that fails for that one file, a local file error or a 4xx answer
 other than `PUSH_CLOSED` or 401, is logged and skipped, and the rest of the push goes on. A
 network failure, a 5xx, or a 401 stops the push. A full Drive answers 507 `STORAGE_LIMIT`,
 which stops the push like `STORAGE_UNAVAILABLE`, so the edit stays and the next push sends it. A
@@ -283,6 +293,7 @@ D2 and D4 add these guards.
 | A pull updates unedited files, keeps edited ones, and a pull that fails midway leaves a folder that pushes correctly | `apps/computer/src/drive/pull.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
+| A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
