@@ -77,6 +77,8 @@ export const workerTurnsTable = pgTable(
         rawStatus: text('raw_status'),
         /** The report `haus worker report` recorded, replaced on each call until settle. */
         reportDraft: bunJsonb('report_draft').$type<WorkerReportDraft | null>(),
+        /** The Agent's `reset_generation` when the turn was dispatched; its Drive push is fenced by it. */
+        resetGeneration: integer('reset_generation'),
         serverId: text('server_id').notNull(),
         /** Why a live turn is stuck, and since when; a settled turn has neither. */
         stallCode: text('stall_code').$type<WorkerStallCode>(),

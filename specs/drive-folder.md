@@ -40,7 +40,9 @@ of each path whose record was dropped, and, per file, `path`, `artifact_id`, `re
 `sha256`, `size_bytes`, and the `mtime_ms` the file had when it was recorded. Downloads land in `runtime/drive-scratch/` and move into place by rename. Nothing
 inside `drive/` is Haus bookkeeping. A `drive.json` whose `drive/` folder is gone, as after a full
 reset that clears the workspace, is replaced with empty bookkeeping the moment the Computer sees it,
-so a folder that reappears never pushes deletes from stale records. A file name in decomposed
+so a folder that reappears never pushes deletes from stale records. A full reset, and a retired
+Agent's purge, remove `drive.json` before anything else and make read-only folders writable before
+removing them, so a reset that stops partway never leaves records for files it removed. A file name in decomposed
 Unicode is renamed to its NFC form, the form Drive paths take.
 `apps/computer/src/drive/` owns the folder on a Computer. A runner-hosted Agent works in Drive
 through the runner, and the Computer syncs a machine folder for invocations and Workers
@@ -127,7 +129,10 @@ because a replayed stored outcome can name a revision older than one the pull al
 
 Outcomes apply under Drive's spelling of the path. A delete's outcome never touches a file that
 only folds to its path, such as the renamed half of a case-only rename, so an edit made under the
-new spelling reaches Drive as its own put or as a conflict copy.
+new spelling reaches Drive as its own put or as a conflict copy. The Server deletes only a file
+spelled exactly as the delete names it, so a stale spelling left by a case-only rename never
+deletes the renamed file. A case-only rename reaches the pull as one put at the new spelling with
+the file's own `artifact_id`.
 
 A delete removes only a file whose name matches the path exactly, so the delete half of a
 case-only rename on a case-insensitive disk never removes the renamed file, and a folder that
@@ -288,5 +293,10 @@ D2 and D4 add these guards.
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | Full reset deletes the Agent's area, restorable from Recently deleted, and session reset leaves it | `apps/server/test/agent-full-reset-drive.test.ts` |
+| Full reset and retirement remove other Agents' read-only folders and `drive.json` | `apps/computer/src/agent-reset.test.ts`, `apps/computer/src/agent-retirement.test.ts` |
+| A delete under a spelling a case-only rename replaced leaves the renamed file live | `apps/server/test/drive-push-case-rename.test.ts` |
+| A Worker deletes as itself, and a Worker dispatched before a full reset pushes nothing | `apps/server/test/worker-drive-fences.test.ts` |
+| A handle passed to a new Agent lists only the new owner's area | `apps/server/test/drive-areas.test.ts` |
+| A clean merge keeps a BOM | `apps/server/test/drive-push-bom.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
 | A start frame's `driveConflict` renders as the whole turn input | `apps/runner/src/turn/turn-input.test.ts` |

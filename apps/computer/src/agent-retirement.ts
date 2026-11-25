@@ -1,7 +1,9 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AgentRetireCommand } from '@haus/api';
+import { driveFolderLayout } from './drive/folder-state.ts';
 import { removeAgentWorktrees } from './repos/agent-worktrees.ts';
+import { removeTree } from './workers/computer/remove-tree.ts';
 import { detachMountsUnder } from './workspace-volumes/computer-volumes.ts';
 import type { WorkspaceDisk } from './workspace-volumes/disk-image.ts';
 import { releaseWorkspace, withStorageLock } from './workspace-volumes/storage-ledger.ts';
@@ -67,7 +69,8 @@ export async function purgeRetiredAgent(input: {
     if (stuck.length > 0) {
         throw new Error(`Agent partition kept: ${stuck.join(', ')} is still mounted.`);
     }
-    await rm(agentRoot, { force: true, recursive: true });
+    await rm(driveFolderLayout(agentRoot, input.agentId).stateFile, { force: true });
+    await removeTree(agentRoot);
     // Also releases a reservation an earlier replay leaked after its rm succeeded.
     await withStorageLock(input.dataRoot, () => releaseWorkspace(input.dataRoot, agentRoot));
 }

@@ -2,7 +2,9 @@ import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { legacyRoots } from './drive-migration/drive-sources.ts';
 import { hasDriveSeedReceipt } from './drive-migration/prepare-agent-drive.ts';
+import { driveFolderLayout } from './drive/folder-state.ts';
 import { settleDriveFolder } from './drive/turn-sync.ts';
+import { removeTree } from './workers/computer/remove-tree.ts';
 import {
     ensureAgentWorkspace,
     exists,
@@ -23,6 +25,7 @@ export async function resetAgentState(input: {
 }): Promise<void> {
     const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
     await settleDriveFolder(agentRoot);
+    await rm(driveFolderLayout(agentRoot, input.agentId).stateFile, { force: true });
     if (await exists(workspaceVolumePaths(agentRoot).manifest)) {
         await ensureAgentWorkspace({ agentRoot, dataRoot: input.dataRoot });
     }
@@ -36,6 +39,6 @@ export async function resetAgentState(input: {
         ['home', 'runtime', 'skills', '.agent-runs', 'session.json']
             .map((entry) => join(agentRoot, entry))
             .filter((path) => !kept.has(path))
-            .map((path) => rm(path, { force: true, recursive: true }))
+            .map((path) => removeTree(path))
     );
 }

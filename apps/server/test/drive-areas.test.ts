@@ -144,6 +144,24 @@ test("a retired Agent's area stays a valid path and an area", async () => {
     );
 });
 
+test("a handle passed to a new Agent lists only the new owner's area and changes", async () => {
+    await fixture.harness
+        .sql`update agents set retired_at = now() where id = ${fixture.peerAgentId}`;
+    expect((await memberPublish({ path: 'agents/peer/old.md' })).status).toBe(200);
+    await fixture.harness.sql`update agents set handle = 'peer' where id = ${fixture.coveAgentId}`;
+    expect((await memberPublish({ path: 'agents/peer/new.md' })).status).toBe(200);
+
+    const listed = await fixture.owner.trpc.drive.changes.query({ serverId: fixture.serverId });
+    expect(listed.areas.filter((area) => area.root === 'agents/peer')).toMatchObject([
+        { area: `agent:${fixture.coveAgentId}` },
+    ]);
+    expect(
+        listed.changes
+            .filter((change) => change.path.startsWith('agents/peer/'))
+            .map((change) => [change.area, change.path])
+    ).toEqual([[`agent:${fixture.coveAgentId}`, 'agents/peer/new.md']]);
+});
+
 function publish(token: string, query: Record<string, string>) {
     requests += 1;
     const url = new URL('/api/agent/artifacts/publish-artifact-raw', fixture.harness.url);

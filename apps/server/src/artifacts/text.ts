@@ -27,8 +27,14 @@ export async function readArtifactText(
     return artifactTextFromBytes(bytes);
 }
 
-/** Decode strictly: a NUL byte or invalid UTF-8 means the file is not text. */
-export function artifactTextFromBytes(bytes: Uint8Array): ArtifactTextResult {
+/**
+ * Decode strictly: a NUL byte or invalid UTF-8 means the file is not text. `bom: 'keep'` leaves a
+ * leading byte order mark in the text, so a merge writes it back.
+ */
+export function artifactTextFromBytes(
+    bytes: Uint8Array,
+    bom: 'keep' | 'strip' = 'strip'
+): ArtifactTextResult {
     if (bytes.byteLength > artifactTextMaxBytes) {
         return tooLarge;
     }
@@ -36,7 +42,8 @@ export function artifactTextFromBytes(bytes: Uint8Array): ArtifactTextResult {
         return { status: 'binary' };
     }
     try {
-        return { status: 'text', text: new TextDecoder('utf-8', { fatal: true }).decode(bytes) };
+        const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: bom === 'keep' });
+        return { status: 'text', text: decoder.decode(bytes) };
     } catch {
         return { status: 'binary' };
     }

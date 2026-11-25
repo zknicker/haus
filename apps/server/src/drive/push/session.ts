@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull, ne, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../../agent-delivery/delivery.ts';
 import { readFlushSource } from '../../agent-machine/machine-change-store.ts';
 import type { ArtifactAccess } from '../../artifacts/access.ts';
@@ -10,6 +10,7 @@ import {
     agentsTable,
     drivePushesTable,
     workersTable,
+    workerTurnsTable,
 } from '../../postgres/schema.ts';
 import { taskIdOfAssignmentKey } from '../../tasks/task-assignment-envelope.ts';
 import { findTaskByChatId } from '../../tasks/task-chat.ts';
@@ -145,28 +146,36 @@ async function pushSource(
         if (access.worker.turnId !== pushId) {
             throw notDispatched(pushId);
         }
-        const [worker] = await tx
-            .select({ taskId: workersTable.taskId })
-            .from(workersTable)
+        const [turn] = await tx
+            .select({
+                placementGeneration: agentsTable.placementGeneration,
+                resetGeneration: sql<number>`coalesce(${workerTurnsTable.resetGeneration}, ${agentsTable.resetGeneration})`,
+                taskId: workersTable.taskId,
+            })
+            .from(workerTurnsTable)
+            .innerJoin(
+                workersTable,
+                and(
+                    eq(workersTable.serverId, workerTurnsTable.serverId),
+                    eq(workersTable.id, workerTurnsTable.workerId)
+                )
+            )
+            .innerJoin(
+                agentsTable,
+                and(eq(agentsTable.serverId, workersTable.serverId), eq(agentsTable.id, agentId))
+            )
             .where(
                 and(
-                    eq(workersTable.serverId, access.serverId),
-                    eq(workersTable.id, access.worker.workerId)
+                    eq(workerTurnsTable.serverId, access.serverId),
+                    eq(workerTurnsTable.id, pushId),
+                    eq(workerTurnsTable.workerId, access.worker.workerId)
                 )
             )
             .limit(1);
-        const [agent] = await tx
-            .select({
-                placementGeneration: agentsTable.placementGeneration,
-                resetGeneration: agentsTable.resetGeneration,
-            })
-            .from(agentsTable)
-            .where(and(eq(agentsTable.serverId, access.serverId), eq(agentsTable.id, agentId)))
-            .limit(1);
-        if (!(worker && agent)) {
+        if (!turn) {
             throw notDispatched(pushId);
         }
-        return { ...agent, taskId: worker.taskId };
+        return turn;
     }
     const [trigger] = await tx
         .select()

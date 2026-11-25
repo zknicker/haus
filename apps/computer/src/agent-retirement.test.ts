@@ -1,8 +1,9 @@
 import { expect, spyOn, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
+import { removeTree } from './workers/computer/remove-tree.ts';
 import { fakeHdiutil, holderListing } from './workspace-volumes/disk-fixtures.ts';
 import { withStorageLock } from './workspace-volumes/storage-ledger.ts';
 import { exists } from './workspace-volumes/workspace-volume.ts';
@@ -43,6 +44,24 @@ test('retirement cleanup is idempotent and preserves standing Agent partitions',
         await expect(stat(join(standingRoot, 'workspace', 'MEMORY.md'))).resolves.toBeTruthy();
     } finally {
         await rm(dataRoot, { force: true, recursive: true });
+    }
+});
+
+test("retirement removes other Agents' read-only Drive folders", async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'haus-retirement-locked-'));
+    const agentRoot = join(dataRoot, 'servers', serverId, 'agents', agentId);
+    const locked = join(agentRoot, 'workspace', 'drive', 'agents', 'peer');
+    try {
+        await mkdir(locked, { recursive: true });
+        await writeFile(join(locked, 'AGENTS.md'), 'peer\n');
+        await chmod(join(locked, 'AGENTS.md'), 0o444);
+        await chmod(locked, 0o555);
+
+        await purgeRetiredAgent({ agentId, dataRoot, serverId });
+
+        await expect(stat(agentRoot)).rejects.toThrow();
+    } finally {
+        await removeTree(dataRoot);
     }
 });
 

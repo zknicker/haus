@@ -64,10 +64,12 @@ export async function writableDriveFolder(
 }
 
 export async function serverDriveAreas(db: HausDatabase, serverId: string) {
+    const handleKey = sql`lower(${agentsTable.handle})`;
     const agents = await db
-        .select({ handle: agentsTable.handle, id: agentsTable.id })
+        .selectDistinctOn([handleKey], { handle: agentsTable.handle, id: agentsTable.id })
         .from(agentsTable)
-        .where(eq(agentsTable.serverId, serverId));
+        .where(eq(agentsTable.serverId, serverId))
+        .orderBy(handleKey, sql`${agentsTable.retiredAt} desc nulls first`);
     const projects = await projectKeys(db, serverId);
     const areas: DriveArea[] = [
         { area: 'haus', root: 'haus' },
