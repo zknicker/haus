@@ -3726,6 +3726,249 @@
         flex-direction: column;
     }
 
+    /*
+     * The Tasks list, Capy's Issues list: one quiet full-width bar per state
+     * (label and count, inset to the rows' icon edge) over single-line 36px
+     * rows. A row reads state, key, title and labels on the left; due,
+     * priority, assignee, age and ⋮ sit flush right in fixed boxes so every
+     * row's facts line up.
+     */
+    .list-view.task-list {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 3);
+    }
+
+    .task-list__group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .task-list__group-label {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+        min-height: calc(var(--spacing) * 7);
+        margin-block-end: calc(var(--spacing) * 0.5);
+        padding-inline: calc(var(--spacing) * 4);
+        border-radius: calc(var(--radius) * 1.5);
+        background: color-mix(in oklab, var(--foreground) 4%, transparent);
+        font-size: var(--text-sm);
+        font-weight: 500;
+        color: var(--foreground);
+    }
+
+    .task-list__group-count {
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /*
+     * The filter bar starts on the rows' text edge: the list inset (spacing ×4)
+     * less the InlineSelect trigger's own spacing ×1.
+     */
+    .tasks-toolbar {
+        padding-inline: calc(var(--spacing) * 3);
+    }
+
+    .list-view--secondary.task-list .list-view__item {
+        min-height: 36px;
+        padding-block: calc(var(--spacing) * 0.5);
+    }
+
+    .task-list .list-view__item-content {
+        gap: calc(var(--spacing) * 2);
+    }
+
+    .task-list__key {
+        flex-shrink: 0;
+        min-width: 3rem;
+        font-size: var(--text-sm);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .task-list__labels {
+        display: none;
+        flex-shrink: 0;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+    }
+
+    @container (min-width: 40rem) {
+        .task-list__labels {
+            display: flex;
+        }
+    }
+
+    .task-list__facts {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+    }
+
+    /* The age column is the ⋮ button's box, so the menu can take its place. */
+    .task-list__age {
+        min-width: calc(var(--spacing) * 8);
+        font-size: var(--text-xs);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        text-align: end;
+    }
+
+    /*
+     * Capy shows no row menu at rest. The ⋮ sits over the age column, out of
+     * the flow, so the age ends on the row's inset; while the row is hovered,
+     * focused, or its menu is open, the ⋮ replaces the age. Without hover
+     * the ⋮ always shows.
+     */
+    .task-list__menu {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-end: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .task-list
+        .list-view__item:is(:hover, [data-hovered], :focus-within, [data-focus-visible])
+        .task-list__age,
+    .task-list .list-view__item:has([aria-expanded="true"]) .task-list__age {
+        opacity: 0;
+    }
+
+    @media (hover: hover) {
+        .task-list
+            .list-view__item:not(:hover, [data-hovered], :focus-within, [data-focus-visible])
+            .task-list__menu:not(:has([aria-expanded="true"])) {
+            opacity: 0;
+            pointer-events: none;
+        }
+    }
+
+    @media (hover: none) {
+        .task-list__age {
+            visibility: hidden;
+        }
+    }
+
+    /*
+     * A Task's facts are Capy's property list: a muted label column and an
+     * inline control per row, at 32px.
+     */
+    .task-facts {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: calc(var(--spacing) * 1);
+    }
+
+    .task-fact {
+        display: grid;
+        grid-template-columns: 4.5rem minmax(0, 1fr);
+        align-items: start;
+        gap: calc(var(--spacing) * 2);
+        font-size: var(--text-sm);
+
+        > dt,
+        > dd {
+            display: flex;
+            align-items: center;
+            min-height: calc(var(--spacing) * 8);
+        }
+    }
+
+    /* The description's prose sits on the rail's text edge, its Edit button on the heading's. */
+    .task-description-body {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: calc(var(--spacing) * 1);
+
+        > :not(.button) {
+            padding-inline: calc(var(--spacing) * 3);
+        }
+    }
+
+    /* An empty description is a placeholder, so it reads muted, not as the rail's loudest line. */
+    .button.task-description-add {
+        --button-fg: var(--muted);
+        font-weight: 400;
+    }
+
+    /*
+     * The Task page's right rail is one unframed column, no card: facts, the
+     * description, then Workers and Pull requests under quiet muted headings.
+     * Every part starts on the ghost `sm` button's text edge (spacing ×3), so
+     * fact labels, "Add description", section headings and the work rows'
+     * glyphs share one left line.
+     */
+    .task-rail {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 4);
+        overflow-y: auto;
+        padding-block: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
+    }
+
+    .task-facts .task-fact {
+        padding-inline: calc(var(--spacing) * 3);
+    }
+
+    .task-rail-section .disclosure__heading .button {
+        --button-fg: var(--muted);
+    }
+
+    .task-rail-section .disclosure__body {
+        padding: calc(var(--spacing) * 0.5) 0 0;
+    }
+
+    .task-work .list-view--secondary .list-view__item {
+        padding-inline: calc(var(--spacing) * 3);
+        padding-block: calc(var(--spacing) * 1.5);
+    }
+
+    /* The facts, then the description as its own section at the rail's section rhythm. */
+    .task-details {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 4);
+    }
+
+    /*
+     * A plain fact value (no control) takes the InlineSelect and DatePicker
+     * triggers' spacing ×1 inset, so every value starts on one column.
+     */
+    .task-fact__text {
+        padding-inline: calc(var(--spacing) * 1);
+    }
+
+    .task-fact .date-picker__trigger {
+        gap: calc(var(--spacing) * 1.5);
+    }
+
+    /* A pull request's meta truncates its words, never its diff. */
+    .list-view__description.pull-request-meta {
+        display: flex;
+        gap: calc(var(--spacing) * 1.5);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .pull-request-meta__facts {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .pull-request-meta__diff {
+        flex-shrink: 0;
+    }
+
     /* A drag of library items over a folder it may land in, or over a trail crumb. */
     .artifact-tile[data-move-target],
     .artifact-folder-list-row[data-move-target] {

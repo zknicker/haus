@@ -19,7 +19,7 @@ export function TaskWorkPanel({
     }
 
     return (
-        <aside aria-label="Attached work" className="flex min-w-0 flex-col gap-3">
+        <aside aria-label="Attached work" className="task-work flex min-w-0 flex-col gap-3">
             {task.attachedWork.length > 0 ? (
                 <PanelSection count={task.attachedWork.length} title="Workers">
                     <WorkerRows label="Workers" works={task.attachedWork} />
@@ -31,7 +31,10 @@ export function TaskWorkPanel({
                 </PanelSection>
             ) : null}
             {reminders.length > 0 ? (
-                <ul aria-label="Reminders" className="text-muted flex flex-col gap-1 pt-1 text-sm">
+                <ul
+                    aria-label="Reminders"
+                    className="text-muted flex flex-col gap-1 px-3 pt-1 text-sm"
+                >
                     {reminders.map((reminder) => (
                         <li key={reminder.reminderId} title={reminder.title}>
                             {reminderLine(reminder.setBy.displayName, reminder.nextFireAt)}

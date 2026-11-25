@@ -28,19 +28,22 @@ export function PullRequestRows({ readings }: { readings: readonly PullRequestRe
                     <ListView.ItemContent data-testid="pull-request-row">
                         <Icon
                             aria-label={pullRequestStateChip[reading.state].label}
-                            className={stateTones[pullRequestStateChip[reading.state].color]}
+                            className={`${stateTones[pullRequestStateChip[reading.state].color]} mt-0.5 self-start`}
                             icon={GitPullRequestIcon}
                             size={16}
                         />
                         <div className="flex min-w-0 flex-1 flex-col">
                             <ListView.Title>
-                                <span className="text-muted font-normal">{`${repositoryName(reading)}#${reading.number} `}</span>
-                                {reading.title ?? ''}
+                                {reading.title ?? `${repositoryName(reading)}#${reading.number}`}
                             </ListView.Title>
-                            <ListView.Description>
-                                {`${pullRequestStateChip[reading.state].label} · ${pullRequestCheckLabels[reading.checks]} `}
-                                <span className="text-success">+{reading.additions}</span>
-                                <span className="text-danger"> −{reading.deletions}</span>
+                            <ListView.Description className="pull-request-meta">
+                                <span className="pull-request-meta__facts">
+                                    {`${repositoryName(reading)}#${reading.number} · ${pullRequestStateChip[reading.state].label} · ${pullRequestCheckLabels[reading.checks]}`}
+                                </span>
+                                <span className="pull-request-meta__diff">
+                                    <span className="text-success">+{reading.additions}</span>
+                                    <span className="text-danger"> −{reading.deletions}</span>
+                                </span>
                             </ListView.Description>
                         </div>
                     </ListView.ItemContent>

@@ -1,7 +1,4 @@
-import { InlineSelect } from '@heroui-pro/react/inline-select';
 import { Label, ListBox, Toolbar } from '@heroui/react';
-import type * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useTaskLabels } from '../../hooks/servers/use-task-labels.ts';
 import { useTaskKeys } from '../../hooks/tasks/use-task-keys.ts';
 import { useServerContext } from '../servers/server-context.ts';
@@ -10,15 +7,25 @@ import { unassignedKey } from './task-assignee.ts';
 import { PersonListBox } from './task-pickers.tsx';
 import { TaskStateDisc } from './task-state-disc.tsx';
 import { taskStateLabels, taskStateOrder } from './task-state.ts';
-import type { TasksPageFilters } from './tasks-page-model.ts';
+import {
+    AnyItem,
+    anyFilter,
+    ClearFiltersButton,
+    FilterSelect,
+    useSetFilter,
+} from './tasks-filter-select.tsx';
+import { isFiltered, type TasksPageFilters } from './tasks-page-model.ts';
 import { useTaskPeople } from './use-task-people.ts';
 
-const any = 'any';
+export { ClearFiltersButton } from './tasks-filter-select.tsx';
 
 export function TasksToolbar({ filters }: { filters: TasksPageFilters }) {
     const setFilter = useSetFilter();
     return (
-        <Toolbar aria-label="Task filters" className="flex flex-wrap items-center gap-3">
+        <Toolbar
+            aria-label="Task filters"
+            className="tasks-toolbar flex flex-wrap items-center gap-4"
+        >
             <FilterSelect
                 label="State"
                 onChange={(next) => setFilter('state', next)}
@@ -42,6 +49,7 @@ export function TasksToolbar({ filters }: { filters: TasksPageFilters }) {
                 onChange={(next) => setFilter('assignee', next)}
             />
             <LabelFilter labelId={filters.labelId} onChange={(next) => setFilter('label', next)} />
+            {isFiltered(filters) ? <ClearFiltersButton /> : null}
         </Toolbar>
     );
 }
@@ -88,6 +96,9 @@ function KeyFilter({
 }) {
     const { server } = useServerContext();
     const keys = useTaskKeys(server.id).data ?? [];
+    if (keys.length <= 1 && keyId === null) {
+        return null;
+    }
     return (
         <FilterSelect
             label="Key"
@@ -127,68 +138,11 @@ function AssigneeFilter({
         <FilterSelect label="Assignee" onChange={onChange} selected={selected} value={assignee}>
             <PersonListBox
                 leading={[
-                    { id: any, label: 'Anyone' },
+                    { id: anyFilter, label: 'Anyone' },
                     { id: unassignedKey, label: 'Unassigned' },
                 ]}
                 people={people}
             />
         </FilterSelect>
     );
-}
-
-function FilterSelect({
-    children,
-    label,
-    onChange,
-    selected,
-    value,
-}: {
-    children: React.ReactNode;
-    label: string;
-    onChange: (next: null | string) => void;
-    selected: string;
-    value: null | string;
-}) {
-    return (
-        <InlineSelect
-            aria-label={`Filter by ${label.toLowerCase()}`}
-            onChange={(next) => onChange(next === null || next === any ? null : String(next))}
-            value={value ?? any}
-        >
-            <InlineSelect.Trigger className="gap-1.5">
-                <span className="text-muted text-sm">{label}</span>
-                <span className="truncate text-sm">{selected}</span>
-                <InlineSelect.Indicator />
-            </InlineSelect.Trigger>
-            <InlineSelect.Popover className="w-56" placement="bottom start">
-                {children}
-            </InlineSelect.Popover>
-        </InlineSelect>
-    );
-}
-
-function AnyItem() {
-    return (
-        <ListBox.Item id={any} textValue="Any">
-            <Label>Any</Label>
-            <ListBox.ItemIndicator />
-        </ListBox.Item>
-    );
-}
-
-function useSetFilter() {
-    const [, setParams] = useSearchParams();
-    return (name: 'assignee' | 'key' | 'label' | 'state', value: null | string) =>
-        setParams(
-            (params) => {
-                const next = new URLSearchParams(params);
-                if (value === null) {
-                    next.delete(name);
-                } else {
-                    next.set(name, value);
-                }
-                return next;
-            },
-            { replace: true }
-        );
 }

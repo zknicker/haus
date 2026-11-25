@@ -11,7 +11,7 @@ import { useSetTaskFollow } from '../../hooks/tasks/use-set-task-follow.ts';
 import { useTask } from '../../hooks/tasks/use-task.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { copyTaskReference } from './copy-task-reference.ts';
-import { TaskDetails } from './details/task-details-card.tsx';
+import { TaskDetails } from './details/task-details.tsx';
 import { TaskAssigneeSelect, TaskStateSelect } from './task-properties.tsx';
 import { TaskStateDisc } from './task-state-disc.tsx';
 import { taskStateLabels } from './task-state.ts';

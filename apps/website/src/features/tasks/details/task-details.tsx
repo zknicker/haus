@@ -1,26 +1,20 @@
 import type { TaskDetail } from '@haus/api';
 import type * as React from 'react';
-import { InlineCard } from '../../../components/ui/inline-card.tsx';
 import { TaskDescription } from './task-description.tsx';
 import { TaskDuePicker, TaskLabelsPicker, TaskPrioritySelect } from './task-detail-pickers.tsx';
 
-export function TaskDetailsCard({ task }: { task: TaskDetail }) {
+export function TaskDetailsSection({ task }: { task: TaskDetail }) {
     return (
-        <InlineCard
-            aria-label="Details"
-            className="border-separator bg-nested-surface border p-3"
-            role="region"
-            tone="plain"
-        >
+        <section aria-label="Details">
             <TaskDetails task={task} />
-        </InlineCard>
+        </section>
     );
 }
 
 export function TaskDetails({ task }: { task: TaskDetail }) {
     return (
-        <div className="flex min-w-0 flex-col gap-1">
-            <dl className="flex min-w-0 flex-col">
+        <div className="task-details">
+            <dl className="task-facts">
                 <TaskFact label="Priority">
                     <TaskPrioritySelect task={task} />
                 </TaskFact>
@@ -38,7 +32,7 @@ export function TaskDetails({ task }: { task: TaskDetail }) {
 
 export function TaskFact({ children, label }: { children: React.ReactNode; label: string }) {
     return (
-        <div className="grid min-h-8 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-2 text-sm">
+        <div className="task-fact">
             <dt className="text-muted">{label}</dt>
             <dd className="flex min-w-0 items-center">{children}</dd>
         </div>

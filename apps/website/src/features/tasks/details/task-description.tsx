@@ -3,7 +3,6 @@ import { Button, Disclosure, TextArea, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUpdateTask } from '../../../hooks/tasks/use-update-task.ts';
-import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { ReferenceMarkdown } from '../../mentions/reference-markdown.tsx';
 import { readReferenceMentions } from '../../mentions/reference-mentions.ts';
 import { useReferenceDirectory } from '../../mentions/use-reference-directory.ts';
@@ -25,21 +24,26 @@ export function TaskDescription({ task }: { task: DescribedTask }) {
     }
     if (!task.description) {
         return (
-            <Button onPress={() => setDraft('')} size="sm" variant="ghost">
+            <Button
+                className="task-description-add"
+                onPress={() => setDraft('')}
+                size="sm"
+                variant="ghost"
+            >
                 Add description
             </Button>
         );
     }
     return (
-        <Disclosure>
+        <Disclosure aria-label="Description" className="task-rail-section" defaultExpanded>
             <Disclosure.Heading>
-                <Button className="max-w-full" size="sm" slot="trigger" variant="ghost">
+                <Button size="sm" slot="trigger" variant="ghost">
+                    Description
                     <Disclosure.Indicator />
-                    <span className="min-w-0 truncate">{messagePreviewLine(task.description)}</span>
                 </Button>
             </Disclosure.Heading>
             <Disclosure.Content>
-                <Disclosure.Body className="flex flex-col items-start gap-2 pt-1">
+                <Disclosure.Body className="task-description-body">
                     <DescriptionBody task={task} />
                     <Button onPress={() => setDraft(task.description)} size="sm" variant="ghost">
                         Edit description

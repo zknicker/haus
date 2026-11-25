@@ -1,20 +1,24 @@
 import type { Task } from '@haus/api';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
 import { Button, Calendar, DatePicker, Label, ListBox } from '@heroui/react';
-import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Cancel01Icon, UnfoldMoreIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { parseDate } from '@internationalized/date';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useTaskLabels } from '../../../hooks/servers/use-task-labels.ts';
 import { useUpdateTask } from '../../../hooks/tasks/use-update-task.ts';
+import { cn } from '../../../lib/utils.ts';
 import { LabelDot } from '../label-chip.tsx';
-import { formatDueOn, TaskLabelChips } from '../task-facts.tsx';
+import { formatDueOn, isOverdue, TaskLabelChips } from '../task-facts.tsx';
 import { isTaskPriority, PriorityListBox } from '../task-pickers.tsx';
 import { taskPriorityLabels } from '../task-presentation.ts';
 import { TaskPriorityIcon } from '../task-priority-icon.tsx';
 import { showTaskUpdateError } from '../task-update-error.ts';
 
-type TaskFields = Pick<Task, 'dueOn' | 'id' | 'labelIds' | 'priority' | 'serverId' | 'version'>;
+type TaskFields = Pick<
+    Task,
+    'completedAt' | 'dueOn' | 'id' | 'labelIds' | 'priority' | 'serverId' | 'version'
+>;
 interface TaskPatch {
     dueOn?: null | string;
     labelIds?: string[];
@@ -55,9 +59,18 @@ export function TaskDuePicker({ task }: { task: TaskFields }) {
                 value={task.dueOn ? parseDate(task.dueOn) : null}
             >
                 <DatePicker.Trigger>
-                    <span className={task.dueOn ? 'text-sm' : 'text-muted text-sm'}>
+                    <span
+                        className={cn(
+                            'text-sm',
+                            task.dueOn === null && 'text-muted',
+                            isOverdue(task) && 'text-danger'
+                        )}
+                    >
                         {task.dueOn ? formatDueOn(task.dueOn) : 'No due date'}
                     </span>
+                    <DatePicker.TriggerIndicator>
+                        <Icon aria-hidden="true" icon={UnfoldMoreIcon} size={12} />
+                    </DatePicker.TriggerIndicator>
                 </DatePicker.Trigger>
                 <DatePicker.Popover>
                     <Calendar aria-label="Due date">
@@ -96,10 +109,12 @@ export function TaskLabelsPicker({ task }: { task: TaskFields }) {
     const labels = useTaskLabels(task.serverId).data ?? [];
     const patch = useTaskPatch(task);
 
+    if (labels.length === 0 && task.labelIds.length === 0) {
+        return <span className="task-fact__text text-muted text-sm">No labels</span>;
+    }
     return (
         <InlineSelect
             aria-label="Labels"
-            isDisabled={labels.length === 0}
             onChange={(keys) => patch({ labelIds: (keys as React.Key[]).map(String) })}
             selectionMode="multiple"
             value={task.labelIds}
@@ -110,9 +125,7 @@ export function TaskLabelsPicker({ task }: { task: TaskFields }) {
                         <TaskLabelChips labelIds={task.labelIds} />
                     </span>
                 ) : (
-                    <span className="text-muted truncate text-sm">
-                        {labels.length === 0 ? 'No labels yet' : 'Add labels'}
-                    </span>
+                    <span className="text-muted truncate text-sm">Add labels</span>
                 )}
                 <InlineSelect.Indicator />
             </InlineSelect.Trigger>

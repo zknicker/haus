@@ -62,6 +62,6 @@ export function formatDueOn(dueOn: string) {
 
 const dueFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
 
-function isOverdue({ completedAt, dueOn }: Pick<Task, 'completedAt' | 'dueOn'>) {
+export function isOverdue({ completedAt, dueOn }: Pick<Task, 'completedAt' | 'dueOn'>) {
     return dueOn !== null && completedAt === null && dueOn < today(getLocalTimeZone()).toString();
 }

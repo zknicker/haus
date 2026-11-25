@@ -3,9 +3,11 @@ import type { Task } from '@haus/api';
 import { assigneeFilterFromKey, assigneeFromKey, assigneeKey } from './task-assignee.ts';
 import { isTaskState, taskStateLabels, taskStateOrder } from './task-state.ts';
 import {
+    groupTasksByState,
     isFiltered,
     orderTasksForPage,
     readTasksPageFilters,
+    taskAge,
     taskListFilters,
 } from './tasks-page-model.ts';
 
@@ -81,6 +83,48 @@ test('the flat list leads with open work, then todo, then what ended, newest fir
         'SEC-6',
         'SEC-4',
     ]);
+});
+
+test('Tasks made at the same moment fall back to key order, numerically', () => {
+    const task = (key: string) =>
+        ({
+            completedAt: null,
+            createdAt: '2026-11-01T00:00:00Z',
+            key,
+            labelIds: [],
+            state: 'todo',
+        }) as unknown as Task;
+    expect(
+        orderTasksForPage([task('GEN-10'), task('GEN-2'), task('GEN-1')]).map((entry) => entry.key)
+    ).toEqual(['GEN-1', 'GEN-2', 'GEN-10']);
+});
+
+test('the ordered list splits into one run per state, in order', () => {
+    const task = (key: string, state: Task['state']) => ({ key, state }) as unknown as Task;
+    const groups = groupTasksByState([
+        task('SEC-5', 'open'),
+        task('SEC-3', 'open'),
+        task('SEC-2', 'todo'),
+        task('SEC-1', 'done'),
+    ]);
+    expect(groups.map((group) => [group.state, group.tasks.map((entry) => entry.key)])).toEqual([
+        ['open', ['SEC-5', 'SEC-3']],
+        ['todo', ['SEC-2']],
+        ['done', ['SEC-1']],
+    ]);
+    expect(groupTasksByState([])).toEqual([]);
+});
+
+test('a row ages in the largest whole unit', () => {
+    const now = Date.parse('2026-11-25T12:00:00Z');
+    const age = (createdAt: string) => taskAge({ createdAt }, now);
+    expect(age('2026-11-25T11:59:30Z')).toBe('now');
+    expect(age('2026-11-25T11:15:00Z')).toBe('45m');
+    expect(age('2026-11-25T02:00:00Z')).toBe('10h');
+    expect(age('2026-11-22T12:00:00Z')).toBe('3d');
+    expect(age('2026-11-04T12:00:00Z')).toBe('3w');
+    expect(age('2026-08-25T12:00:00Z')).toBe('3mo');
+    expect(age('2024-11-01T12:00:00Z')).toBe('2y');
 });
 
 test('a label narrows the flat list to the Tasks carrying it', () => {

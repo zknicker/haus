@@ -30,7 +30,7 @@ export function TaskStateSelect({ task }: { task: TaskVersion }) {
                 <span className="truncate text-sm">{taskStateLabels[task.state]}</span>
                 <InlineSelect.Indicator />
             </InlineSelect.Trigger>
-            <InlineSelect.Popover className="w-44" placement="bottom start">
+            <InlineSelect.Popover className="w-44" placement="bottom end">
                 <TaskStateListBox />
             </InlineSelect.Popover>
         </InlineSelect>
@@ -74,7 +74,7 @@ export function TaskAssigneeSelect({ task }: { task: TaskVersion }) {
                 )}
                 <InlineSelect.Indicator />
             </InlineSelect.Trigger>
-            <InlineSelect.Popover className="w-64" placement="bottom start">
+            <InlineSelect.Popover className="w-64" placement="bottom end">
                 <PersonListBox
                     leading={[{ id: unassignedKey, label: 'Unassigned' }]}
                     people={people}

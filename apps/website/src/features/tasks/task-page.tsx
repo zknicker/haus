@@ -10,7 +10,7 @@ import { tasksRoute } from '../servers/server-routes.ts';
 import { PageColumn } from '../shell/page-column.tsx';
 import { WorkerSummariesProvider } from '../workers/worker-summaries.tsx';
 import { TaskConversation } from './conversation/task-conversation.tsx';
-import { TaskDetailsCard } from './details/task-details-card.tsx';
+import { TaskDetailsSection } from './details/task-details.tsx';
 import { TaskHistoryDetails } from './details/task-history-details.tsx';
 import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
@@ -62,8 +62,8 @@ function TaskDetailView({
                     title={`${task.key} ${task.title}`}
                 />
                 {panelShown ? (
-                    <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6">
-                        <TaskDetailsCard task={task} />
+                    <div className="task-rail">
+                        <TaskDetailsSection task={task} />
                         <TaskWorkPanel task={task} />
                     </div>
                 ) : null}

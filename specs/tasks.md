@@ -123,8 +123,8 @@ the Task gets no join context quoting it.
 
 - **Sidebar:** every `open` Task on the Server that the reader can see (`task.listOpen`). Todo
   Tasks are not listed, and a Task leaves as soon as it is done or canceled.
-- **Tasks page:** one flat list of todo, open, done, and canceled Tasks, with no boards and no
-  columns, filterable by Project. People change state, reassign, and file Tasks there.
+- **Tasks page:** one list of todo, open, done, and canceled Tasks, grouped by state (open first)
+  under a label and count, with no boards and no columns, filterable by Project. People change state, reassign, and file Tasks there.
 - **Channel and DM previews:** under its origin Message, each Task shows its key, title, state,
   message count, the viewer's unread, and its newest messages (`TaskPreview`, at most three),
   riding `chat.messages` pages as `tasks`. A filed Task has no origin and no preview.

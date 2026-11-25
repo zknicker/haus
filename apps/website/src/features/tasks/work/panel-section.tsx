@@ -11,16 +11,11 @@ export function PanelSection({
     title: string;
 }) {
     return (
-        <Disclosure aria-label={title} defaultExpanded>
+        <Disclosure aria-label={title} className="task-rail-section" defaultExpanded>
             <Disclosure.Heading>
-                <Button
-                    className="w-full justify-start"
-                    size="sm"
-                    slot="trigger"
-                    variant="tertiary"
-                >
+                <Button size="sm" slot="trigger" variant="ghost">
                     {title}
-                    <span className="text-muted tabular-nums">{count}</span>
+                    <span className="tabular-nums">{count}</span>
                     <Disclosure.Indicator />
                 </Button>
             </Disclosure.Heading>

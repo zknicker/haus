@@ -45,7 +45,8 @@ test('cold Tasks navigation paints its shell before the Tasks module arrives', a
     } finally {
         release();
     }
-    await expect(page.getByRole('toolbar', { name: 'Task filters' })).toBeVisible();
+    await expect(page.getByText('No tasks yet', { exact: true })).toBeVisible();
+    await expect(page.getByRole('toolbar', { name: 'Task filters' })).toHaveCount(0);
     await expect(
         page.locator('section[aria-label="Tasks"]').getByRole('button', { name: 'New task' })
     ).toHaveCount(0);
