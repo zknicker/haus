@@ -148,7 +148,9 @@ does not have. A respell never removes a file: when another file already holds t
 both stay and the outcome records under the pushed spelling. A `kept_both` whose `current` lives
 at another path, as `base_gone` answers when a person moved the file the edit started from, moves
 the writer's bytes to the copy, removes the old path, and places `current` at its own path only
-where the folder holds nothing there. A delete's outcome never touches a file that only folds to
+where the folder holds nothing there. An unpushed local file already at that path stays, and the
+same push sends it as a create, which Drive keeps beside the moved file as a `both_created` copy.
+A delete's outcome never touches a file that only folds to
 its path, such as the renamed half of a case-only rename, so an edit made under the new spelling
 reaches Drive as its own put or as a conflict copy. The Server deletes only a file spelled exactly
 as the delete names it, so a stale spelling left by a case-only rename never deletes the renamed
@@ -339,6 +341,7 @@ D2 and D4 add these guards.
 | A tombstone for another artifact at a recorded path leaves the file alone | `apps/computer/src/drive/pull.test.ts` |
 | A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
 | A respell never removes another file, and an edit to a moved file lands as a copy beside it | `apps/computer/src/drive/push-moves.test.ts` |
+| An edit to a file a person moved keeps both (`base_gone`) only for a guarded Computer, and never overwrites an unsynced local file at the moved-to path | `apps/server/test/drive-push-moved-base.test.ts`, `apps/server/test/drive-folder-sync.test.ts` |
 | An edit made while a pull downloads or a push waits is never overwritten or recorded as synced | `apps/computer/src/drive/sync-races.test.ts` |
 | A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |

@@ -24,16 +24,11 @@ test('a respell onto a path another file holds keeps both files', async () => {
 });
 
 test('an edit to a file a person moved lands as a copy and the moved file is kept', async () => {
-    let moved = false;
-    server = startDriveServer({
-        route: (request, url) =>
-            moved && url.pathname.endsWith('/push/put') ? answerBaseGone(request) : null,
-    });
+    server = startDriveServer();
     server.write('haus/a.md', 'v1', 'usr');
     alpha = writerFolder(server, 'agt_alpha');
     await alpha.pull();
     server.move('haus/a.md', 'haus/b.md');
-    moved = true;
     await alpha.write('haus/a.md', 'mine');
 
     expect(await alpha.push('run_moved')).toMatchObject({ failed: [] });
@@ -41,19 +36,30 @@ test('an edit to a file a person moved lands as a copy and the moved file is kep
     expect((await alpha.names('haus')).sort()).toEqual(['a.conflict-alpha.md', 'b.md']);
     expect(await alpha.read('haus/b.md')).toBe('v1');
     expect(await alpha.read('haus/a.conflict-alpha.md')).toBe('mine');
-    moved = false;
     expect(await alpha.push('run_after')).toBeNull();
     expect(server.text('haus/b.md')).toBe('v1');
+    expect(server.head('haus/a.md')).toBeNull();
 });
 
-async function answerBaseGone(request: Request) {
-    const bytes = new Uint8Array(await request.arrayBuffer());
-    const copy = server.write('haus/a.conflict-alpha.md', bytes, 'agt_alpha');
-    return Response.json({
-        copy,
-        current: server.head('haus/b.md'),
-        outcome: 'kept_both',
-        path: 'haus/a.md',
-        reason: 'base_gone',
-    });
-}
+test('an edit to a moved file never overwrites an unsynced local file at the moved-to path', async () => {
+    server = startDriveServer();
+    server.write('haus/a.md', 'v1', 'usr');
+    alpha = writerFolder(server, 'agt_alpha');
+    await alpha.pull();
+    server.move('haus/a.md', 'haus/b.md');
+    await alpha.write('haus/a.md', 'mine');
+    await alpha.write('haus/b.md', 'unsynced b');
+
+    expect(await alpha.push('run_moved')).toMatchObject({ failed: [], sent: 2 });
+
+    expect((await alpha.names('haus')).sort()).toEqual([
+        'a.conflict-alpha.md',
+        'b.conflict-alpha.md',
+        'b.md',
+    ]);
+    expect(await alpha.read('haus/a.conflict-alpha.md')).toBe('mine');
+    expect(await alpha.read('haus/b.conflict-alpha.md')).toBe('unsynced b');
+    expect(await alpha.read('haus/b.md')).toBe('v1');
+    expect(await alpha.push('run_after')).toBeNull();
+    expect(server.text('haus/b.conflict-alpha.md')).toBe('unsynced b');
+});

@@ -10,7 +10,7 @@ import {
     areaOf,
     areas,
     changeOf,
-    copyPath,
+    freeCopyPath,
     handles,
     listed,
     metadataOf,
@@ -33,6 +33,7 @@ export function startDriveServer(
     };
     const pageSize = options.pageSize ?? driveChangesPageMax;
     const blobs = new Map<string, Uint8Array>();
+    const owners = new Map<string, string>();
     const live = new Map<string, Revision>();
     const rows = new Map<string, Row>();
     const counters: Record<string, number> = Object.fromEntries(areas.map((a) => [a.area, 0]));
@@ -60,6 +61,7 @@ export function startDriveServer(
             size_bytes: bytes.length,
         };
         blobs.set(revision.revision_id, bytes);
+        owners.set(revision.revision_id, revision.artifact_id);
         live.set(artifactPathKey(path), revision);
         touch(revision.path, revision.artifact_id, revision);
         return revision;
@@ -99,23 +101,22 @@ export function startDriveServer(
             return { code, current: head, message: code, outcome: 'refused', path } as const;
         }
         if (bytes === null) {
-            if (head === null) {
-                return { current: null, outcome: 'deleted', path } as const;
-            }
-            if (head.revision_id !== base) {
-                return {
-                    current: head,
-                    outcome: 'kept_edit',
-                    path,
-                    reason: 'edit_over_delete',
-                } as const;
-            }
-            remove(path);
-            return { current: null, outcome: 'deleted', path } as const;
+            return decideDelete(path, head, base);
         }
         const sha = createHash('sha256').update(bytes).digest('hex');
         if (head?.sha256 === sha) {
             return { current: head, outcome: 'unchanged', path } as const;
+        }
+        const moved = base && head === null ? movedOwnerOf(base) : null;
+        if (moved) {
+            const copy = write(copyFor(path, writer), bytes, writer);
+            return {
+                copy,
+                current: moved,
+                outcome: 'kept_both',
+                path,
+                reason: 'base_gone',
+            } as const;
         }
         if (head === null || head.revision_id === base) {
             const current = write(path, bytes, writer);
@@ -129,18 +130,32 @@ export function startDriveServer(
         if (merged !== null) {
             return { current: write(path, merged, writer), outcome: 'merged', path } as const;
         }
-        const copy = write(freeCopyPath(path, handles[writer] ?? writer), bytes, writer);
+        const copy = write(copyFor(path, writer), bytes, writer);
         const reason = base ? 'same_lines' : 'both_created';
         return { copy, current: head, outcome: 'kept_both', path, reason } as const;
     }
-
-    function freeCopyPath(path: string, handle: string) {
-        for (let attempt = 1; ; attempt += 1) {
-            const candidate = copyPath(path, attempt === 1 ? handle : `${handle}-${attempt}`);
-            if (!live.has(artifactPathKey(candidate))) {
-                return candidate;
-            }
+    function decideDelete(path: string, head: Revision | null, base: string | undefined) {
+        if (head && head.revision_id !== base) {
+            return {
+                current: head,
+                outcome: 'kept_edit',
+                path,
+                reason: 'edit_over_delete',
+            } as const;
         }
+        if (head) {
+            remove(path);
+        }
+        return { current: null, outcome: 'deleted', path } as const;
+    }
+    function copyFor(path: string, writer: string) {
+        return freeCopyPath(path, handles[writer] ?? writer, (candidate) =>
+            live.has(artifactPathKey(candidate))
+        );
+    }
+    function movedOwnerOf(base: string) {
+        const owner = owners.get(base);
+        return [...live.values()].find((revision) => revision.artifact_id === owner) ?? null;
     }
     function changes(url: URL) {
         const since = JSON.parse(url.searchParams.get('since') ?? '{}');

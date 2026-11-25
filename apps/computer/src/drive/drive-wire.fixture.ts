@@ -55,7 +55,16 @@ export function changeOf(row: Row) {
     };
 }
 
-export function copyPath(path: string, handle: string) {
+export function freeCopyPath(path: string, handle: string, taken: (path: string) => boolean) {
+    for (let attempt = 1; ; attempt += 1) {
+        const candidate = copyPath(path, attempt === 1 ? handle : `${handle}-${attempt}`);
+        if (!taken(candidate)) {
+            return candidate;
+        }
+    }
+}
+
+function copyPath(path: string, handle: string) {
     const slash = path.lastIndexOf('/');
     const dot = path.lastIndexOf('.');
     return dot > slash + 1
