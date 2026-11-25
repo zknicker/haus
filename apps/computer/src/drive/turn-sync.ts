@@ -94,10 +94,8 @@ export function flushDriveForRun(agentRoot: string, run: DriveRun) {
                 : await sendDrivePush(plan, remote, run.runId, {
                       closeIf: ({ failed, refused }) =>
                           failed.length === 0 && refused.length === 0 && leftBehind().length === 0,
+                      onRefused: (path) => plan.state.noteLeftBehind([path]),
                   });
-            if (pushed.refused.length > 0) {
-                await plan.state.noteLeftBehind(pushed.refused);
-            }
             for (const file of pushed.failed) {
                 run.warn('drive-flush-file-failed', `${file.path}: ${file.message}`);
             }

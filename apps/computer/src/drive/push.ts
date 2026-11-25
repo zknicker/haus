@@ -70,7 +70,10 @@ export async function sendDrivePush(
     plan: DrivePushPlan,
     remote: DriveRemote,
     pushId: string,
-    options: { closeIf: (result: PushResult) => boolean } = { closeIf: () => true }
+    options: {
+        closeIf: (result: PushResult) => boolean;
+        onRefused?: (path: string) => Promise<void>;
+    } = { closeIf: () => true }
 ) {
     const { files, layout, state } = plan;
     const context: OutcomeContext = { files, layout, remote, state };
@@ -112,18 +115,19 @@ export async function sendDrivePush(
             return { failed, listed, pushClosed: false, refused, sent: 0, unrestored };
         }
         await state.openPush(pushId);
-        const noteRefused = (outcome: DrivePushOutcomeEntry) => {
+        const noteRefused = async (outcome: DrivePushOutcomeEntry) => {
             if (outcome.outcome === 'refused') {
                 refused.push(outcome.path);
+                await options.onRefused?.(outcome.path);
             }
         };
         for (const record of plan.deletes) {
             await isolate(failed, record.path, () =>
-                sendDelete(context, record, pushId).then(noteRefused)
+                sendDelete(context, record, pushId, noteRefused)
             );
         }
         for (const put of plan.puts) {
-            await isolate(failed, put.path, () => sendPut(context, put, pushId).then(noteRefused));
+            await isolate(failed, put.path, () => sendPut(context, put, pushId, noteRefused));
         }
         const sent = plan.deletes.length + plan.puts.length + plan.linked.length - failed.length;
         if (!options.closeIf({ failed, refused })) {

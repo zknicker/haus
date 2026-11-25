@@ -96,6 +96,32 @@ test('a flush that had a file refused never closes, so the handoff knows an edit
     );
 });
 
+test('a refusal is kept even when a later upload in the same flush fails', async () => {
+    let failLater = true;
+    server = startDriveServer({
+        route: (_request, url) =>
+            failLater && url.searchParams.get('path') === 'haus/later.md'
+                ? Response.json({ code: 'STORAGE_UNAVAILABLE' }, { status: 503 })
+                : null,
+    });
+    agentRoot = await mkdtemp(join(tmpdir(), 'haus-machine-change-'));
+    await pullDriveForRun(agentRoot, run({ runId: 'run_1' }));
+    await mkdir(join(folder(), 'agents', 'beta'), { recursive: true });
+    await writeFile(join(folder(), 'agents', 'beta', 'mine.md'), 'not allowed');
+    await mkdir(join(folder(), 'haus'), { recursive: true });
+    await writeFile(join(folder(), 'haus', 'later.md'), 'later');
+    const warnings: string[] = [];
+    const closesBefore = closes();
+
+    await flushDriveForRun(agentRoot, run({ runId: 'flush_1', warnings }));
+    failLater = false;
+    await flushDriveForRun(agentRoot, run({ runId: 'flush_2', warnings }));
+
+    expect(server.text('haus/later.md')).toBe('later');
+    expect(closes()).toBe(closesBefore + 1);
+    expect(warnings).toEqual(['drive-flush-failed', 'drive-flush-left-behind']);
+});
+
 test('moving back sets the old folder aside and pulls a fresh one, and an older frame does nothing', async () => {
     server = startDriveServer();
     server.write('agents/alpha/MEMORY.md', 'remember the otter', 'agt_alpha');

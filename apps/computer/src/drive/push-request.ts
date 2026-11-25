@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { inferAttachmentMediaType } from '@haus/api';
+import type { DrivePushOutcomeEntry } from './drive-response-schema.ts';
 import { areaOfPath, type DriveFileRecord } from './folder-state.ts';
 import { catchUpSkippedHead, type OutcomeContext } from './outcome-converge.ts';
 import { applyPushOutcome } from './push-outcome.ts';
@@ -10,21 +11,33 @@ export interface PlannedPut {
     sha256: string;
 }
 
-export async function sendDelete(context: OutcomeContext, record: DriveFileRecord, pushId: string) {
+type BeforeApply = (outcome: DrivePushOutcomeEntry) => Promise<void>;
+
+export async function sendDelete(
+    context: OutcomeContext,
+    record: DriveFileRecord,
+    pushId: string,
+    beforeApply: BeforeApply
+) {
     const outcome = await context.remote.delete({
         base_revision_id: record.revision_id,
         path: record.path,
         push_id: pushId,
         request_id: requestId([context.layout.writer, record.path, record.revision_id, null]),
     });
+    await beforeApply(outcome);
     await applyPushOutcome(context, outcome, null);
     if (record.seen_head) {
         await catchUpSkippedHead(context, record.path);
     }
-    return outcome;
 }
 
-export async function sendPut(context: OutcomeContext, put: PlannedPut, pushId: string) {
+export async function sendPut(
+    context: OutcomeContext,
+    put: PlannedPut,
+    pushId: string,
+    beforeApply: BeforeApply
+) {
     const seenHead =
         put.record?.seen_head ?? context.state.current().pendingCreates[put.path]?.seen_head;
     const snapshot = await context.files.snapshot(put.path);
@@ -39,11 +52,11 @@ export async function sendPut(context: OutcomeContext, put: PlannedPut, pushId: 
         },
         snapshot.file
     );
+    await beforeApply(outcome);
     await applyPushOutcome(context, outcome, snapshot);
     if (seenHead) {
         await catchUpSkippedHead(context, put.path);
     }
-    return outcome;
 }
 
 async function putRequestId(context: OutcomeContext, put: PlannedPut, sha256: string) {
