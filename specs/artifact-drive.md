@@ -78,8 +78,15 @@ and a put in the Project's area for each live file, as a move records them.
 A write stores the area prefix in its canonical spelling, so `HAUS/a.md` lands as `haus/a.md` and
 `Agents/ORBIT/a.md` as `agents/orbit/a.md`. A handle compares without case. Handles are unique only
 among active Agents, so `agents/<handle>/` names the active Agent with that handle, otherwise the
-most recently retired one. `drive.changes` lists only that one area per handle, so once a handle
-passes to a new Agent, the retired owner's change rows never reach a folder again. A folder move may start or end at an area root such as `haus`, but never
+most recently retired one. When a new Agent takes a retired Agent's handle, the create moves the
+retired owner's files, deleted ones included, to `agents/<handle>.retired-<id>/`, where `<id>` is
+its Agent id without `agt_`, in the same transaction and the way a Project key change moves its
+folder: paths only, with a delete and a put in the retired Agent's area for each live file
+(`archiveRetiredAgentFolder` in `apps/server/src/drive/agent-folder.ts`). Handles have no dots, so
+that folder never names a live handle. It stays the retired Agent's area: its files keep their
+revisions and authors, everyone reads them, people can restore and write them, and `drive.changes`
+lists it beside the new owner's `agents/<handle>/`, which starts empty, so the new Agent is seeded
+fresh and never inherits the old one's `AGENTS.md` or `MEMORY.md`. A folder move may start or end at an area root such as `haus`, but never
 at `projects` or `agents` alone.
 
 The rule and memory files are ordinary files. What reads them, and when, is ADR 0054 decisions 7
@@ -277,7 +284,7 @@ assignment that led it.
 | --- | --- |
 | `POST /api/agent/drive/push/put` | Raw bytes; query `push_id`, `path`, `request_id`, optional `base_revision_id`, `content_type` |
 | `POST /api/agent/drive/push/delete` | JSON `push_id`, `path`, `base_revision_id`, `request_id` |
-| `POST /api/agent/drive/push/close` | JSON `push_id`; answers `{ listed }`, the files the conflict item lists |
+| `POST /api/agent/drive/push/close` | JSON `push_id`, optional `unsent` (a Worker's set-aside paths); answers `{ listed }`, the files the conflict item lists |
 
 Each put or delete answers one `drivePushOutcomeSchema` (`packages/haus-api/src/drive.ts`). Every
 outcome carries `current`, the revision now at the path with its author. When nothing is live at
@@ -297,11 +304,15 @@ or an author to fill it.
 The path rules apply after the request parses, so a bad path is a `refused` outcome, not a 400.
 A clean merge whose result equals the head answers `unchanged`. A create at a filled path, or a base
 that names a different file than the one at the path, keeps both with reason `both_created`. A put
-whose base names a file that moved to another path since creates the pushed path as a new file and
-answers `committed`, because History does not follow a rename yet. That splits an edit made during
-a person's move into two files. Answering with the moved file as `current` instead waits on a
-Computer guard: the folder places `current` at its path, which would overwrite an unpushed local
-file already there. A delete onto a path that holds
+whose base names a file that moved to another path since, with nothing at the pushed path, keeps
+both with reason `base_gone`: the moved file stays as it is, `current` names it at its new path,
+and the incoming bytes land in a copy beside the pushed path, so an edit made during a person's
+move never splits the file in two. The folder places `current` only where it holds nothing, so an
+unpushed local file at the moved-to path stays and reaches Drive as its own `both_created` copy.
+Only a Computer newer than 26.0.2, the last release without that guard, gets `base_gone`; the
+Server reads the pushing Computer's reported `product_version` (the run credential's Computer, or
+a Worker's carrier). Any other pusher gets the old answer: the pushed path is created as a new file
+and answers `committed` (`apps/server/src/drive/push/moved-file-guard.ts`). A delete onto a path that holds
 another file than its base's leaves that file alone and answers `deleted` with it as `current`. A
 delete onto a path where nothing is live answers `deleted`. So does a delete whose path spells the
 live file differently, as the old half of a case-only rename does: it matches the path key but not
@@ -351,7 +362,10 @@ because a transaction's `now()` is its start, not the moment it took the lock. T
 `drive_conflict` item. Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
 machine sends that file in its next push. On close, a push with any `kept_both`, `kept_edit`, or
 `refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)). A Worker's item goes
-to its Agent.
+to its Agent. A Worker's close may name `unsent` paths, files it set aside on its machine because
+its push closed before they landed. Those queue one more `drive_conflict` item, keyed
+`drive-conflict:<push id>:unsent`, listing each as `refused` with reason `PUSH_CLOSED`; a repeat
+adds nothing, and an Agent's own close ignores the field.
 
 ## Citations
 

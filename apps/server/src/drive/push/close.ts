@@ -15,7 +15,7 @@ import {
     usersTable,
 } from '../../postgres/schema.ts';
 import { type DriveCitationBinding, rebindPushCitations } from '../citations.ts';
-import { driveConflictKey, queueDriveConflict } from '../conflict-item.ts';
+import { driveConflictKey, driveUnsentKey, queueDriveConflict } from '../conflict-item.ts';
 
 type DrivePush = typeof drivePushesTable.$inferSelect;
 
@@ -55,6 +55,40 @@ export async function closePushIn(
         serverId: push.serverId,
     });
     return { listed, wakes };
+}
+
+export async function queueUnsentFiles(
+    tx: HausDatabase,
+    delivery: Pick<AgentDelivery, 'enqueue'>,
+    push: DrivePush,
+    paths: readonly string[]
+) {
+    if (paths.length === 0) {
+        return [];
+    }
+    const files = paths.map(
+        (path) =>
+            ({
+                copyPath: null,
+                currentAuthorHandle: null,
+                currentRevisionId: null,
+                outcome: 'refused',
+                path,
+                reason: 'PUSH_CLOSED',
+            }) satisfies DriveConflictFile
+    );
+    return [
+        await queueDriveConflict(tx, delivery, {
+            attention: {
+                files,
+                id: driveUnsentKey(push.id),
+                pushId: push.id,
+                writer: pushWriter(push),
+            },
+            recipientAgentId: push.agentId,
+            serverId: push.serverId,
+        }),
+    ];
 }
 
 const fencedCodes = new Set<string>(['AGENT_MOVED', 'AGENT_RESET']);

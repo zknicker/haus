@@ -123,3 +123,50 @@ test('two Computer drive/ folders sync through the Server: create, pull, merge, 
     ]);
     expect(await peer.read('agents/orbit/notes/mine.md')).toBe('orbit notes');
 });
+
+test('an edit to a file a person moved onto an unsynced local file keeps all three versions', async () => {
+    await fixture.harness.sql`
+        update computers set product_version = '26.0.3' where id = ${fixture.computerId}
+    `;
+    const orbit = await writer(fixture.orbitAgentId);
+    await orbit.write('haus/moved/a.md', 'title\nalpha\n');
+    expect(await orbit.push('run_moved_create')).toMatchObject({ failed: [], sent: 1 });
+    await fixture.owner.trpc.artifact.move.mutate({
+        from: 'haus/moved/a.md',
+        serverId: fixture.serverId,
+        to: 'haus/moved/b.md',
+    });
+    await orbit.write('haus/moved/a.md', 'title\nalpha\nedited\n');
+    await orbit.write('haus/moved/b.md', 'unsynced local b\n');
+
+    const pushed = await orbit.push('run_moved_edit');
+
+    expect(pushed).toMatchObject({ failed: [], sent: 2 });
+    expect(pushed?.listed).toMatchObject([
+        {
+            copyPath: 'haus/moved/a.conflict-orbit.md',
+            outcome: 'kept_both',
+            path: 'haus/moved/a.md',
+        },
+        {
+            copyPath: 'haus/moved/b.conflict-orbit.md',
+            outcome: 'kept_both',
+            path: 'haus/moved/b.md',
+        },
+    ]);
+    expect(await orbit.read('haus/moved/a.md')).toBeNull();
+    expect(await orbit.read('haus/moved/a.conflict-orbit.md')).toBe('title\nalpha\nedited\n');
+    expect(await orbit.read('haus/moved/b.md')).toBe('title\nalpha\n');
+    expect(await orbit.read('haus/moved/b.conflict-orbit.md')).toBe('unsynced local b\n');
+    const live = await fixture.harness.sql`
+        select path from artifacts
+        where server_id = ${fixture.serverId} and path like 'haus/moved/%' and deleted_at is null
+        order by path
+    `;
+    expect(live).toEqual([
+        { path: 'haus/moved/a.conflict-orbit.md' },
+        { path: 'haus/moved/b.conflict-orbit.md' },
+        { path: 'haus/moved/b.md' },
+    ]);
+    expect(await orbit.push('run_moved_after')).toBeNull();
+});

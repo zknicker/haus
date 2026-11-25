@@ -148,7 +148,9 @@ does not have. A respell never removes a file: when another file already holds t
 both stay and the outcome records under the pushed spelling. A `kept_both` whose `current` lives
 at another path, as `base_gone` answers when a person moved the file the edit started from, moves
 the writer's bytes to the copy, removes the old path, and places `current` at its own path only
-where the folder holds nothing there. A delete's outcome never touches a file that only folds to
+where the folder holds nothing there. An unpushed local file already at that path stays, and the
+same push sends it as a create, which Drive keeps beside the moved file as a `both_created` copy.
+A delete's outcome never touches a file that only folds to
 its path, such as the renamed half of a case-only rename, so an edit made under the new spelling
 reaches Drive as its own put or as a conflict copy. The Server deletes only a file spelled exactly
 as the delete names it, so a stale spelling left by a case-only rename never deletes the renamed
@@ -283,7 +285,8 @@ starts a machine's pull.
 ## Workers
 
 A Worker on a Computer keeps its own folder, with its bookkeeping in that Worker's
-`runtime/drive.json` and refused files in its `drive-refused/`
+`runtime/drive.json` and refused files in `servers/<serverId>/worker-drive-refused/<worker-id>/`,
+outside the Worker's folder, so closing the Worker never removes them
 ([Workers](workers.md#layout)). The folder's writer is the delegating Agent, so it reads and
 writes exactly what that Agent does. Each revision it pushes names the Worker as author with its
 Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the Worker.
@@ -316,6 +319,19 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
   failure, and does not hold the end. A refused mint means the turn is no longer this Computer's,
   so the turn ends without a push. `worker-close` leaves a Worker whose turn is `pushing` in place,
   and the next `worker-held` round closes it.
+- **Nothing unsent is lost.** Before a push lets the turn end, every file whose bytes Drive does not
+  hold is copied into the Worker's `worker-drive-refused/` folder under its Drive path: after a
+  refused mint, a never-write failure, or a `PUSH_CLOSED` answer, which a closed Worker push always
+  gives because it never reopens under the same turn id. The copy is its own file, never a link,
+  so nothing done later at the path changes it. After `PUSH_CLOSED` the Computer also
+  closes the push again with those paths as `unsent`, and the Server queues one `drive_conflict`
+  item for the Agent (`drive-conflict:<turn id>:unsent`) listing each as `refused` with reason
+  `PUSH_CLOSED`. Then the original leaves the Worker's folder: a new file is removed with its
+  pending create, and an edited one goes back to Drive's version (its record is marked unplaced
+  and restored from the head, now or on the next push), so a later turn never sends it. The Agent
+  decides what to do with the set-aside files; nothing pushes them automatically. A close that
+  fails holds the end like any other push failure, before the originals leave, and the repeat
+  sends the same note, which the item's dedupe key absorbs.
 
 A cloud Worker has no folder ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
 
@@ -339,11 +355,13 @@ D2 and D4 add these guards.
 | A tombstone for another artifact at a recorded path leaves the file alone | `apps/computer/src/drive/pull.test.ts` |
 | A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
 | A respell never removes another file, and an edit to a moved file lands as a copy beside it | `apps/computer/src/drive/push-moves.test.ts` |
+| An edit to a file a person moved keeps both (`base_gone`) only for a guarded Computer, and never overwrites an unsynced local file at the moved-to path | `apps/server/test/drive-push-moved-base.test.ts`, `apps/server/test/drive-folder-sync.test.ts` |
 | An edit made while a pull downloads or a push waits is never overwritten or recorded as synced | `apps/computer/src/drive/sync-races.test.ts` |
 | A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
 | A Machine flush that had a file refused never closes, on the first send or any resend | `apps/computer/src/drive/machine-change.test.ts` |
 | A Worker push that could not send a file, transient or per file, retries and never ends the turn | `apps/computer/src/workers/computer/drive-sync.test.ts` |
+| A Worker whose push was closed sets unsent files aside outside its folder and its Agent gets one `drive_conflict` item naming them | `apps/computer/src/workers/computer/drive-sync.test.ts`, `apps/server/test/worker-drive-push.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |
@@ -352,7 +370,7 @@ D2 and D4 add these guards.
 | Full reset and retirement remove other Agents' read-only folders and `drive.json` | `apps/computer/src/agent-reset.test.ts`, `apps/computer/src/agent-retirement.test.ts` |
 | A delete under a spelling a case-only rename replaced leaves the renamed file live | `apps/server/test/drive-push-case-rename.test.ts` |
 | A Worker deletes as itself, and a Worker dispatched before a full reset pushes nothing | `apps/server/test/worker-drive-fences.test.ts` |
-| A handle passed to a new Agent lists only the new owner's area | `apps/server/test/drive-areas.test.ts` |
+| A handle passed to a new Agent moves the retired owner's files to `agents/<handle>.retired-<id>/` and seeds the new one fresh | `apps/server/test/drive-areas.test.ts` |
 | A clean merge keeps a BOM | `apps/server/test/drive-push-bom.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
 | A start frame's `driveConflict` renders as the whole turn input | `apps/runner/src/turn/turn-input.test.ts` |

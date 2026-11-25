@@ -1,3 +1,4 @@
+import { drivePushUnsentMax } from '@haus/api';
 import { driveRemote } from '../../drive/drive-remote.ts';
 import { pullDrive } from '../../drive/pull.ts';
 import { type FileFailure, planDrivePush, sendDrivePush } from '../../drive/push.ts';
@@ -5,6 +6,7 @@ import { serialized } from '../serialized.ts';
 import { mintPushCredential, type WorkerServer } from './credentials.ts';
 import { seedWorkerDrive } from './drive-seed.ts';
 import type { WorkerLayout } from './layout.ts';
+import { copyUnsentAside, takeUnsentOut } from './unsent-files.ts';
 
 export interface WorkerDriveFolder {
     agentId: string;
@@ -50,9 +52,12 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
         const minted = await mintPushCredential(folder.server, turnId);
         if (minted.state === 'refused') {
             warn('worker.drive-push-refused', folder, minted.reason);
+            noteSetAside(folder, await copyUnsentAside(plan));
+            await takeUnsentOut(plan, null);
             return 'finished' satisfies WorkerPushResult;
         }
-        const pushed = await sendDrivePush(plan, remoteOf(folder, minted.token), turnId, {
+        const remote = remoteOf(folder, minted.token);
+        const pushed = await sendDrivePush(plan, remote, turnId, {
             closeIf: ({ failed }) => allNeverWrite(failed),
         });
         if (pushed.pushClosed) {
@@ -64,9 +69,19 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
         for (const file of pushed.unrestored) {
             warn('worker.drive-restore-failed', folder, `${file.path}: ${file.message}`);
         }
-        return allNeverWrite(pushed.failed)
-            ? ('finished' satisfies WorkerPushResult)
-            : ('retry' satisfies WorkerPushResult);
+        if (!allNeverWrite(pushed.failed)) {
+            return 'retry' satisfies WorkerPushResult;
+        }
+        const left = await planDrivePush(layout);
+        const unsent = await copyUnsentAside(left);
+        noteSetAside(folder, unsent);
+        if (pushed.pushClosed && unsent.length > 0) {
+            await remote.close(turnId, unsent.slice(0, drivePushUnsentMax));
+        }
+        for (const file of await takeUnsentOut(left, remote)) {
+            warn('worker.drive-restore-failed', folder, `${file.path}: ${file.message}`);
+        }
+        return 'finished' satisfies WorkerPushResult;
     }).catch((error: unknown) => {
         warn('worker.drive-push-failed', folder, messageOf(error));
         return 'retry' satisfies WorkerPushResult;
@@ -83,6 +98,13 @@ const neverWrites = new Set([
 
 function allNeverWrite(failed: readonly FileFailure[]) {
     return failed.every((file) => neverWrites.has(file.code));
+}
+
+function noteSetAside(folder: WorkerDriveFolder, unsent: readonly string[]) {
+    if (unsent.length > 0) {
+        const { refused } = folder.layout.driveFolder(folder.agentId);
+        warn('worker.drive-set-aside', folder, `${refused}: ${unsent.join(', ')}`);
+    }
 }
 
 async function closeStalePush(folder: WorkerDriveFolder, pushId: string) {

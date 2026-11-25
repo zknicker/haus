@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import type { DriveFolderLayout } from '../../drive/folder-state.ts';
 
 const pathSafeId = /^[A-Za-z0-9_-]{1,128}$/u;
@@ -29,7 +29,7 @@ export function workerLayoutIn(workersFolder: string, workerId: string) {
         driveFolder: (writer: string) =>
             ({
                 folder: join(root, 'drive'),
-                refused: join(root, 'drive-refused'),
+                refused: join(dirname(workersFolder), 'worker-drive-refused', workerId),
                 scratch: join(runtime, 'drive-scratch'),
                 stateFile: join(runtime, 'drive.json'),
                 writer,

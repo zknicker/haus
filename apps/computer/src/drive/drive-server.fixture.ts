@@ -9,8 +9,8 @@ import { drivePushSessions, notDispatched } from './drive-push-sessions.fixture.
 import {
     areaOf,
     areas,
-    changeOf,
-    copyPath,
+    changesPage,
+    freeCopyPath,
     handles,
     listed,
     metadataOf,
@@ -33,6 +33,7 @@ export function startDriveServer(
     };
     const pageSize = options.pageSize ?? driveChangesPageMax;
     const blobs = new Map<string, Uint8Array>();
+    const owners = new Map<string, string>();
     const live = new Map<string, Revision>();
     const rows = new Map<string, Row>();
     const counters: Record<string, number> = Object.fromEntries(areas.map((a) => [a.area, 0]));
@@ -60,6 +61,7 @@ export function startDriveServer(
             size_bytes: bytes.length,
         };
         blobs.set(revision.revision_id, bytes);
+        owners.set(revision.revision_id, revision.artifact_id);
         live.set(artifactPathKey(path), revision);
         touch(revision.path, revision.artifact_id, revision);
         return revision;
@@ -99,23 +101,22 @@ export function startDriveServer(
             return { code, current: head, message: code, outcome: 'refused', path } as const;
         }
         if (bytes === null) {
-            if (head === null) {
-                return { current: null, outcome: 'deleted', path } as const;
-            }
-            if (head.revision_id !== base) {
-                return {
-                    current: head,
-                    outcome: 'kept_edit',
-                    path,
-                    reason: 'edit_over_delete',
-                } as const;
-            }
-            remove(path);
-            return { current: null, outcome: 'deleted', path } as const;
+            return decideDelete(path, head, base);
         }
         const sha = createHash('sha256').update(bytes).digest('hex');
         if (head?.sha256 === sha) {
             return { current: head, outcome: 'unchanged', path } as const;
+        }
+        const moved = base && head === null ? movedOwnerOf(base) : null;
+        if (moved) {
+            const copy = write(copyFor(path, writer), bytes, writer);
+            return {
+                copy,
+                current: moved,
+                outcome: 'kept_both',
+                path,
+                reason: 'base_gone',
+            } as const;
         }
         if (head === null || head.revision_id === base) {
             const current = write(path, bytes, writer);
@@ -129,33 +130,32 @@ export function startDriveServer(
         if (merged !== null) {
             return { current: write(path, merged, writer), outcome: 'merged', path } as const;
         }
-        const copy = write(freeCopyPath(path, handles[writer] ?? writer), bytes, writer);
+        const copy = write(copyFor(path, writer), bytes, writer);
         const reason = base ? 'same_lines' : 'both_created';
         return { copy, current: head, outcome: 'kept_both', path, reason } as const;
     }
-
-    function freeCopyPath(path: string, handle: string) {
-        for (let attempt = 1; ; attempt += 1) {
-            const candidate = copyPath(path, attempt === 1 ? handle : `${handle}-${attempt}`);
-            if (!live.has(artifactPathKey(candidate))) {
-                return candidate;
-            }
+    function decideDelete(path: string, head: Revision | null, base: string | undefined) {
+        if (head && head.revision_id !== base) {
+            return {
+                current: head,
+                outcome: 'kept_edit',
+                path,
+                reason: 'edit_over_delete',
+            } as const;
         }
+        if (head) {
+            remove(path);
+        }
+        return { current: null, outcome: 'deleted', path } as const;
     }
-    function changes(url: URL) {
-        const since = JSON.parse(url.searchParams.get('since') ?? '{}');
-        const until = JSON.parse(url.searchParams.get('until') ?? 'null') ?? { ...counters };
-        const all = [...rows.values()]
-            .filter(
-                (row) => row.sequence > (since[row.area] ?? 0) && row.sequence <= until[row.area]
-            )
-            .sort((a, b) => a.area.localeCompare(b.area) || a.sequence - b.sequence);
-        return Response.json({
-            areas: areas.map((area) => ({ ...area, counter: counters[area.area] })),
-            changes: all.slice(0, pageSize).map(changeOf),
-            complete: all.length <= pageSize,
-            until,
-        });
+    function copyFor(path: string, writer: string) {
+        return freeCopyPath(path, handles[writer] ?? writer, (candidate) =>
+            live.has(artifactPathKey(candidate))
+        );
+    }
+    function movedOwnerOf(base: string) {
+        const owner = owners.get(base);
+        return [...live.values()].find((revision) => revision.artifact_id === owner) ?? null;
     }
     function blob(url: URL) {
         const revision = url.pathname.slice('/blob/'.length);
@@ -174,12 +174,9 @@ export function startDriveServer(
         ) as Record<string, string>;
         const writer = writerOf(request);
         if (url.pathname.endsWith('/close')) {
-            const push = pushes.open(body.push_id, writer);
-            if (!push) {
-                return notDispatched();
-            }
-            push.closed = true;
-            return Response.json({ listed: push.listed });
+            const unsent = (body as { unsent?: string[] }).unsent;
+            const push = pushes.close(body.push_id, writer, unsent);
+            return push ? Response.json({ listed: push.listed }) : notDispatched();
         }
         const change = JSON.stringify([body.path, body.base_revision_id ?? null, isPut]);
         const stored = replies.get(body.request_id);
@@ -243,7 +240,7 @@ export function startDriveServer(
                 return routed;
             }
             if (url.pathname === '/api/agent/drive/changes') {
-                return changes(url);
+                return changesPage(url, rows, counters, pageSize);
             }
             if (url.pathname === '/api/agent/artifacts/publish-artifact-raw') {
                 return publishRaw(request, url);
@@ -276,7 +273,9 @@ export function startDriveServer(
         failPushes: (fail: boolean) => {
             pushesFail = fail;
         },
+        closePush: (pushId: string, writer: string) => pushes.close(pushId, writer),
         undispatched: pushes.undispatched,
+        unsentNotes: pushes.unsentNotes,
         requests,
         text: (path: string) => {
             const head = live.get(artifactPathKey(path));

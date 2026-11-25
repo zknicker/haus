@@ -139,9 +139,12 @@ export function driveRemote(input: {
                 await postJson('/api/agent/drive/push/delete', request)
             );
         },
-        async close(pushId: string) {
+        async close(pushId: string, unsent: readonly string[] = []) {
             return drivePushCloseResponseSchema.parse(
-                await postJson('/api/agent/drive/push/close', { push_id: pushId })
+                await postJson('/api/agent/drive/push/close', {
+                    push_id: pushId,
+                    ...(unsent.length > 0 ? { unsent } : {}),
+                })
             );
         },
     };

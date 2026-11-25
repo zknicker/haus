@@ -3,10 +3,12 @@ import { artifactPublishResultSchema } from '@haus/api';
 import { deleteManyArtifacts } from '../src/artifacts/delete-many.ts';
 import { resolveRunnerCredential } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
+import { seedAgentStarterFiles } from '../src/starter-files/agent-files.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 
-const fixture = agentCreationFixture(undefined, { artifactStorage: new MemoryArtifactStorage() });
+const storage = new MemoryArtifactStorage();
+const fixture = agentCreationFixture(undefined, { artifactStorage: storage });
 let connection: Awaited<ReturnType<typeof connectHausDatabase>>;
 let requests = 0;
 
@@ -144,22 +146,72 @@ test("a retired Agent's area stays a valid path and an area", async () => {
     );
 });
 
-test("a handle passed to a new Agent lists only the new owner's area and changes", async () => {
+test("a handle passed to a new Agent archives the retired owner's files and seeds the new one fresh", async () => {
     await fixture.harness
         .sql`update agents set retired_at = now() where id = ${fixture.peerAgentId}`;
-    expect((await memberPublish({ path: 'agents/peer/old.md' })).status).toBe(200);
-    await fixture.harness.sql`update agents set handle = 'peer' where id = ${fixture.coveAgentId}`;
-    expect((await memberPublish({ path: 'agents/peer/new.md' })).status).toBe(200);
+    const memory = await published(memberPublish({ path: 'agents/peer/MEMORY.md' }));
+    await published(memberPublish({ path: 'agents/peer/AGENTS.md' }));
+    const gone = await published(memberPublish({ path: 'agents/peer/gone.md' }));
+    await fixture.owner.trpc.artifact.delete.mutate({
+        artifact_id: gone.artifact_id,
+        serverId: fixture.serverId,
+    });
 
-    const listed = await fixture.owner.trpc.drive.changes.query({ serverId: fixture.serverId });
-    expect(listed.areas.filter((area) => area.root === 'agents/peer')).toMatchObject([
-        { area: `agent:${fixture.coveAgentId}` },
+    const successor = await fixture.createAgent('Peer Two', 'peer');
+
+    const archive = `agents/peer.retired-${fixture.peerAgentId.slice(4)}`;
+    const rows = await fixture.harness.sql`
+        select id, path, deleted_at is not null as deleted from artifacts
+        where server_id = ${fixture.serverId} and path_key like 'agents/peer%'
+        order by path
+    `;
+    expect(rows.map((row: { deleted: boolean; path: string }) => [row.path, row.deleted])).toEqual([
+        [`${archive}/AGENTS.md`, false],
+        [`${archive}/MEMORY.md`, false],
+        [`${archive}/archive.md`, false],
+        [`${archive}/gone.md`, true],
+        [`${archive}/notes.md`, false],
+        [`${archive}/people.md`, true],
     ]);
+    expect(rows).toContainEqual({
+        deleted: false,
+        id: memory.artifact_id,
+        path: `${archive}/MEMORY.md`,
+    });
+    expect(rows).toContainEqual({
+        deleted: true,
+        id: gone.artifact_id,
+        path: `${archive}/gone.md`,
+    });
+    const listed = await fixture.owner.trpc.drive.changes.query({ serverId: fixture.serverId });
+    expect(
+        listed.areas
+            .filter((area) => area.root.startsWith('agents/peer'))
+            .map((area) => [area.area, area.root])
+            .sort()
+    ).toEqual(
+        [
+            [`agent:${successor}`, 'agents/peer'],
+            [`agent:${fixture.peerAgentId}`, archive],
+        ].sort()
+    );
+    expect(listed.changes.filter((change) => change.area === `agent:${successor}`)).toEqual([]);
     expect(
         listed.changes
-            .filter((change) => change.path.startsWith('agents/peer/'))
-            .map((change) => [change.area, change.path])
-    ).toEqual([[`agent:${fixture.coveAgentId}`, 'agents/peer/new.md']]);
+            .filter((change) => change.path.endsWith('MEMORY.md'))
+            .map((change) => [change.area, change.change, change.path])
+    ).toEqual([
+        [`agent:${fixture.peerAgentId}`, 'delete', 'agents/peer/MEMORY.md'],
+        [`agent:${fixture.peerAgentId}`, 'put', `${archive}/MEMORY.md`],
+    ]);
+    expect((await memberPublish({ path: `${archive}/later.md` })).status).toBe(200);
+
+    expect(
+        await seedAgentStarterFiles(connection.db, storage, {
+            agentId: successor,
+            serverId: fixture.serverId,
+        })
+    ).toEqual({ 'AGENTS.md': 'written', 'MEMORY.md': 'written', 'WORKER.md': 'written' });
 });
 
 function publish(token: string, query: Record<string, string>) {
