@@ -320,14 +320,18 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
   so the turn ends without a push. `worker-close` leaves a Worker whose turn is `pushing` in place,
   and the next `worker-held` round closes it.
 - **Nothing unsent is lost.** Before a push lets the turn end, every file whose bytes Drive does not
-  hold is hard-linked into the Worker's `worker-drive-refused/` folder under its Drive path: after a
+  hold is copied into the Worker's `worker-drive-refused/` folder under its Drive path: after a
   refused mint, a never-write failure, or a `PUSH_CLOSED` answer, which a closed Worker push always
-  gives because it never reopens under the same turn id. After `PUSH_CLOSED` the Computer also
+  gives because it never reopens under the same turn id. The copy is its own file, never a link,
+  so nothing done later at the path changes it. After `PUSH_CLOSED` the Computer also
   closes the push again with those paths as `unsent`, and the Server queues one `drive_conflict`
   item for the Agent (`drive-conflict:<turn id>:unsent`) listing each as `refused` with reason
-  `PUSH_CLOSED`. The Agent decides what to do with them; nothing pushes them automatically. A close
-  that fails holds the end like any other push failure, and the repeat sends the same note, which
-  the item's dedupe key absorbs.
+  `PUSH_CLOSED`. Then the original leaves the Worker's folder: a new file is removed with its
+  pending create, and an edited one goes back to Drive's version (its record is marked unplaced
+  and restored from the head, now or on the next push), so a later turn never sends it. The Agent
+  decides what to do with the set-aside files; nothing pushes them automatically. A close that
+  fails holds the end like any other push failure, before the originals leave, and the repeat
+  sends the same note, which the item's dedupe key absorbs.
 
 A cloud Worker has no folder ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
 
