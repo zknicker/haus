@@ -293,5 +293,10 @@ D2 and D4 add these guards.
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | Full reset deletes the Agent's area, restorable from Recently deleted, and session reset leaves it | `apps/server/test/agent-full-reset-drive.test.ts` |
+| Full reset and retirement remove other Agents' read-only folders and `drive.json` | `apps/computer/src/agent-reset.test.ts`, `apps/computer/src/agent-retirement.test.ts` |
+| A delete under a spelling a case-only rename replaced leaves the renamed file live | `apps/server/test/drive-push-case-rename.test.ts` |
+| A Worker deletes as itself, and a Worker dispatched before a full reset pushes nothing | `apps/server/test/worker-drive-fences.test.ts` |
+| A handle passed to a new Agent lists only the new owner's area | `apps/server/test/drive-areas.test.ts` |
+| An edit to a file a person moved keeps both, and a clean merge keeps a BOM | `apps/server/test/drive-push-moved-base.test.ts`, `apps/server/test/drive-push-bom.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
 | A start frame's `driveConflict` renders as the whole turn input | `apps/runner/src/turn/turn-input.test.ts` |

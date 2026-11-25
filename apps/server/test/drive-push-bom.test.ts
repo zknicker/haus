@@ -25,7 +25,10 @@ test('a clean merge keeps the byte order mark every side started with', async ()
             },
             bytesOf(body)
         );
-    expectOutcome(await put(first, 'run_bom_first', `${bom}name,count\nalpha,10\nmid,0\nbeta,2\n`), 'committed');
+    expectOutcome(
+        await put(first, 'run_bom_first', `${bom}name,count\nalpha,10\nmid,0\nbeta,2\n`),
+        'committed'
+    );
     const merged = expectOutcome(
         await put(second, 'run_bom_second', `${bom}name,count\nalpha,1\nmid,0\nbeta,20\n`),
         'merged'
@@ -36,9 +39,9 @@ test('a clean merge keeps the byte order mark every side started with', async ()
     expect([...(storage.objects.get(row?.object_key) ?? []).slice(0, 3)]).toEqual([
         0xef, 0xbb, 0xbf,
     ]);
-    expect(new TextDecoder('utf-8', { ignoreBOM: true }).decode(storage.objects.get(row?.object_key))).toBe(
-        `${bom}name,count\nalpha,10\nmid,0\nbeta,20\n`
-    );
+    expect(
+        new TextDecoder('utf-8', { ignoreBOM: true }).decode(storage.objects.get(row?.object_key))
+    ).toBe(`${bom}name,count\nalpha,10\nmid,0\nbeta,20\n`);
 });
 
 function bytesOf(text: string) {

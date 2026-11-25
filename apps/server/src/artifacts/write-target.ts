@@ -133,12 +133,7 @@ export function liveArtifactOwning(tx: HausDatabase, serverId: string, revisionI
     return artifactOwning(tx, serverId, revisionId, isNull(artifacts.deletedAt));
 }
 
-async function artifactOwning(
-    tx: HausDatabase,
-    serverId: string,
-    revisionId: string,
-    state: SQL
-) {
+async function artifactOwning(tx: HausDatabase, serverId: string, revisionId: string, state: SQL) {
     const [row] = await tx
         .select({ artifact: artifacts })
         .from(revisions)

@@ -43,6 +43,10 @@ test('an edit to a file a person moved keeps both and lists the conflict instead
     `;
     expect(live).toEqual([{ path: 'haus/moves/a.conflict-orbit.md' }, { path: 'haus/moves/b.md' }]);
     expect(await push.close(run, 'run_moved_base')).toMatchObject([
-        { copyPath: 'haus/moves/a.conflict-orbit.md', outcome: 'kept_both', path: 'haus/moves/a.md' },
+        {
+            copyPath: 'haus/moves/a.conflict-orbit.md',
+            outcome: 'kept_both',
+            path: 'haus/moves/a.md',
+        },
     ]);
 });
