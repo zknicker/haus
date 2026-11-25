@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.8.0 - 2026-11-25
+
+- The Tasks list runs the full width of the window, grouped by state with a count on each group. Each Task is one row: state, key, title and labels, then due date, assignee, priority and how long ago it was created, with the row's menu in place of the age on hover. The filter bar lines up with the rows, waits for Tasks to load, and has **Clear filters**.
+- A Task's side panel is one list of properties with no card around it. Due shows an indicator and is tinted when overdue, the description has its own section, and pull request rows no longer cut off their line counts.
+- A Project's page has three sections: General, with Name, Description, Task key and Worker place; Captains, with a count; and Context, with `AGENTS.md` and the Server's repositories. A Name, Description or Task key that's invalid or refused keeps what you typed and shows its error instead of snapping back. Add Captain and a Captain's ••• menu appear only when you can use them.
+- Drive's Projects and Captains folders open in the file tree like every other folder, listing each Project and Captain by name. Drive's column headers, footer, group labels and path are a size larger.
+- Alerts across the App are compact and tinted with their status color, with any action as a matching button on the right.
+- When computer use is on and macOS hasn't given Haus Computer a permission it needs, the Device page opens with "Computer use can't work on this Mac" and a **Fix** button that opens the setup steps. In Haus for Desktop on a different Mac, the steps name the Mac you're on and the Device to do them on.
+- Server 29.7.0 ships alone. No database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.7.3 - 2026-11-25
 
 - Files you upload or drop in Drive land in the folder you're viewing, at its full path. Uploads inside a folder such as `haus/` no longer go to the Drive root and get refused, and moving to another folder no longer leaves uploads aimed at the old one.
