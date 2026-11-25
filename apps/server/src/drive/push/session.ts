@@ -14,7 +14,7 @@ import {
 } from '../../postgres/schema.ts';
 import { taskIdOfAssignmentKey } from '../../tasks/task-assignment-envelope.ts';
 import { findTaskByChatId } from '../../tasks/task-chat.ts';
-import { closePushIn } from './close.ts';
+import { closePushIn, queueUnsentFiles } from './close.ts';
 
 export type DrivePush = typeof drivePushesTable.$inferSelect;
 export type PushAgentAccess = Pick<ArtifactAccess, 'agentId' | 'serverId' | 'worker'>;
@@ -36,7 +36,8 @@ export async function closePush(
     db: HausDatabase,
     delivery: ConflictDelivery,
     access: PushAgentAccess,
-    pushId: string
+    pushId: string,
+    unsent: readonly string[] = []
 ) {
     return await db.transaction(async (tx) => {
         await lockLiveServer(tx, access.serverId);
@@ -45,7 +46,11 @@ export async function closePush(
             ? { push: existing, wakes: [] }
             : await openPushIn(tx, delivery, access, pushId);
         const closed = await closePushIn(tx, delivery, opened.push);
-        return { listed: closed.listed, wakes: [...opened.wakes, ...closed.wakes] };
+        const noted = await queueUnsentFiles(tx, delivery, opened.push, unsent);
+        return {
+            listed: closed.listed,
+            wakes: [...opened.wakes, ...closed.wakes, ...noted],
+        };
     });
 }
 

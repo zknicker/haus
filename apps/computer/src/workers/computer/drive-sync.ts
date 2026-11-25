@@ -1,6 +1,13 @@
+import { join } from 'node:path';
+import { drivePushUnsentMax } from '@haus/api';
 import { driveRemote } from '../../drive/drive-remote.ts';
 import { pullDrive } from '../../drive/pull.ts';
-import { type FileFailure, planDrivePush, sendDrivePush } from '../../drive/push.ts';
+import {
+    type DrivePushPlan,
+    type FileFailure,
+    planDrivePush,
+    sendDrivePush,
+} from '../../drive/push.ts';
 import { serialized } from '../serialized.ts';
 import { mintPushCredential, type WorkerServer } from './credentials.ts';
 import { seedWorkerDrive } from './drive-seed.ts';
@@ -50,9 +57,11 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
         const minted = await mintPushCredential(folder.server, turnId);
         if (minted.state === 'refused') {
             warn('worker.drive-push-refused', folder, minted.reason);
+            await setAsideUnsent(folder, plan);
             return 'finished' satisfies WorkerPushResult;
         }
-        const pushed = await sendDrivePush(plan, remoteOf(folder, minted.token), turnId, {
+        const remote = remoteOf(folder, minted.token);
+        const pushed = await sendDrivePush(plan, remote, turnId, {
             closeIf: ({ failed }) => allNeverWrite(failed),
         });
         if (pushed.pushClosed) {
@@ -64,9 +73,14 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
         for (const file of pushed.unrestored) {
             warn('worker.drive-restore-failed', folder, `${file.path}: ${file.message}`);
         }
-        return allNeverWrite(pushed.failed)
-            ? ('finished' satisfies WorkerPushResult)
-            : ('retry' satisfies WorkerPushResult);
+        if (!allNeverWrite(pushed.failed)) {
+            return 'retry' satisfies WorkerPushResult;
+        }
+        const unsent = await setAsideUnsent(folder, await planDrivePush(layout));
+        if (pushed.pushClosed && unsent.length > 0) {
+            await remote.close(turnId, unsent.slice(0, drivePushUnsentMax));
+        }
+        return 'finished' satisfies WorkerPushResult;
     }).catch((error: unknown) => {
         warn('worker.drive-push-failed', folder, messageOf(error));
         return 'retry' satisfies WorkerPushResult;
@@ -83,6 +97,23 @@ const neverWrites = new Set([
 
 function allNeverWrite(failed: readonly FileFailure[]) {
     return failed.every((file) => neverWrites.has(file.code));
+}
+
+async function setAsideUnsent(folder: WorkerDriveFolder, plan: DrivePushPlan) {
+    const { files, layout } = plan;
+    for (const put of plan.puts) {
+        await files.setAside(
+            put.path,
+            join(layout.refused, ...put.path.split('/')),
+            put.sha256,
+            null
+        );
+    }
+    const unsent = plan.puts.map((put) => put.path);
+    if (unsent.length > 0) {
+        warn('worker.drive-set-aside', folder, `${layout.refused}: ${unsent.join(', ')}`);
+    }
+    return unsent;
 }
 
 async function closeStalePush(folder: WorkerDriveFolder, pushId: string) {

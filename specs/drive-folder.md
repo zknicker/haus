@@ -285,7 +285,8 @@ starts a machine's pull.
 ## Workers
 
 A Worker on a Computer keeps its own folder, with its bookkeeping in that Worker's
-`runtime/drive.json` and refused files in its `drive-refused/`
+`runtime/drive.json` and refused files in `servers/<serverId>/worker-drive-refused/<worker-id>/`,
+outside the Worker's folder, so closing the Worker never removes them
 ([Workers](workers.md#layout)). The folder's writer is the delegating Agent, so it reads and
 writes exactly what that Agent does. Each revision it pushes names the Worker as author with its
 Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the Worker.
@@ -318,6 +319,15 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
   failure, and does not hold the end. A refused mint means the turn is no longer this Computer's,
   so the turn ends without a push. `worker-close` leaves a Worker whose turn is `pushing` in place,
   and the next `worker-held` round closes it.
+- **Nothing unsent is lost.** Before a push lets the turn end, every file whose bytes Drive does not
+  hold is hard-linked into the Worker's `worker-drive-refused/` folder under its Drive path: after a
+  refused mint, a never-write failure, or a `PUSH_CLOSED` answer, which a closed Worker push always
+  gives because it never reopens under the same turn id. After `PUSH_CLOSED` the Computer also
+  closes the push again with those paths as `unsent`, and the Server queues one `drive_conflict`
+  item for the Agent (`drive-conflict:<turn id>:unsent`) listing each as `refused` with reason
+  `PUSH_CLOSED`. The Agent decides what to do with them; nothing pushes them automatically. A close
+  that fails holds the end like any other push failure, and the repeat sends the same note, which
+  the item's dedupe key absorbs.
 
 A cloud Worker has no folder ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
 
@@ -347,6 +357,7 @@ D2 and D4 add these guards.
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
 | A Machine flush that had a file refused never closes, on the first send or any resend | `apps/computer/src/drive/machine-change.test.ts` |
 | A Worker push that could not send a file, transient or per file, retries and never ends the turn | `apps/computer/src/workers/computer/drive-sync.test.ts` |
+| A Worker whose push was closed sets unsent files aside outside its folder and its Agent gets one `drive_conflict` item naming them | `apps/computer/src/workers/computer/drive-sync.test.ts`, `apps/server/test/worker-drive-push.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |

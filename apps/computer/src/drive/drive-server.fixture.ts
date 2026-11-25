@@ -9,7 +9,7 @@ import { drivePushSessions, notDispatched } from './drive-push-sessions.fixture.
 import {
     areaOf,
     areas,
-    changeOf,
+    changesPage,
     freeCopyPath,
     handles,
     listed,
@@ -157,21 +157,6 @@ export function startDriveServer(
         const owner = owners.get(base);
         return [...live.values()].find((revision) => revision.artifact_id === owner) ?? null;
     }
-    function changes(url: URL) {
-        const since = JSON.parse(url.searchParams.get('since') ?? '{}');
-        const until = JSON.parse(url.searchParams.get('until') ?? 'null') ?? { ...counters };
-        const all = [...rows.values()]
-            .filter(
-                (row) => row.sequence > (since[row.area] ?? 0) && row.sequence <= until[row.area]
-            )
-            .sort((a, b) => a.area.localeCompare(b.area) || a.sequence - b.sequence);
-        return Response.json({
-            areas: areas.map((area) => ({ ...area, counter: counters[area.area] })),
-            changes: all.slice(0, pageSize).map(changeOf),
-            complete: all.length <= pageSize,
-            until,
-        });
-    }
     function blob(url: URL) {
         const revision = url.pathname.slice('/blob/'.length);
         const bytes = blobs.get(revision);
@@ -189,12 +174,9 @@ export function startDriveServer(
         ) as Record<string, string>;
         const writer = writerOf(request);
         if (url.pathname.endsWith('/close')) {
-            const push = pushes.open(body.push_id, writer);
-            if (!push) {
-                return notDispatched();
-            }
-            push.closed = true;
-            return Response.json({ listed: push.listed });
+            const unsent = (body as { unsent?: string[] }).unsent;
+            const push = pushes.close(body.push_id, writer, unsent);
+            return push ? Response.json({ listed: push.listed }) : notDispatched();
         }
         const change = JSON.stringify([body.path, body.base_revision_id ?? null, isPut]);
         const stored = replies.get(body.request_id);
@@ -258,7 +240,7 @@ export function startDriveServer(
                 return routed;
             }
             if (url.pathname === '/api/agent/drive/changes') {
-                return changes(url);
+                return changesPage(url, rows, counters, pageSize);
             }
             if (url.pathname === '/api/agent/artifacts/publish-artifact-raw') {
                 return publishRaw(request, url);
@@ -291,7 +273,9 @@ export function startDriveServer(
         failPushes: (fail: boolean) => {
             pushesFail = fail;
         },
+        closePush: (pushId: string, writer: string) => pushes.close(pushId, writer),
         undispatched: pushes.undispatched,
+        unsentNotes: pushes.unsentNotes,
         requests,
         text: (path: string) => {
             const head = live.get(artifactPathKey(path));

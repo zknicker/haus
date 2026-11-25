@@ -10,6 +10,8 @@ const sha256 = z.string().regex(/^[a-f0-9]{64}$/u);
 export const driveDeletedRetentionDays = 30;
 /** Most changes one `drive.changes` page returns. */
 export const driveChangesPageMax = 1000;
+/** Most set-aside files one push close names. */
+export const drivePushUnsentMax = 1000;
 
 /** `haus`, `project:<projectId>`, or `agent:<agentId>`. */
 export const driveAreaIdSchema = z
@@ -183,7 +185,13 @@ export const drivePushDeleteInputSchema = z
     .strict();
 export type DrivePushDeleteInput = z.infer<typeof drivePushDeleteInputSchema>;
 
-export const drivePushCloseInputSchema = z.object({ push_id: id }).strict();
+/** `unsent` names files a Worker set aside because its push closed before they landed. */
+export const drivePushCloseInputSchema = z
+    .object({
+        push_id: id,
+        unsent: z.array(artifactPathSchema).min(1).max(drivePushUnsentMax).optional(),
+    })
+    .strict();
 
 /** One file a `drive_conflict` item lists. Null current fields mean nothing is live there. */
 export const driveConflictFileSchema = z

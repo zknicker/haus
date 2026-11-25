@@ -55,6 +55,25 @@ export function changeOf(row: Row) {
     };
 }
 
+export function changesPage(
+    url: URL,
+    rows: ReadonlyMap<string, Row>,
+    counters: Record<string, number>,
+    pageSize: number
+) {
+    const since = JSON.parse(url.searchParams.get('since') ?? '{}');
+    const until = JSON.parse(url.searchParams.get('until') ?? 'null') ?? { ...counters };
+    const all = [...rows.values()]
+        .filter((row) => row.sequence > (since[row.area] ?? 0) && row.sequence <= until[row.area])
+        .sort((a, b) => a.area.localeCompare(b.area) || a.sequence - b.sequence);
+    return Response.json({
+        areas: areas.map((area) => ({ ...area, counter: counters[area.area] })),
+        changes: all.slice(0, pageSize).map(changeOf),
+        complete: all.length <= pageSize,
+        until,
+    });
+}
+
 export function freeCopyPath(path: string, handle: string, taken: (path: string) => boolean) {
     for (let attempt = 1; ; attempt += 1) {
         const candidate = copyPath(path, attempt === 1 ? handle : `${handle}-${attempt}`);

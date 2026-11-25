@@ -284,7 +284,7 @@ assignment that led it.
 | --- | --- |
 | `POST /api/agent/drive/push/put` | Raw bytes; query `push_id`, `path`, `request_id`, optional `base_revision_id`, `content_type` |
 | `POST /api/agent/drive/push/delete` | JSON `push_id`, `path`, `base_revision_id`, `request_id` |
-| `POST /api/agent/drive/push/close` | JSON `push_id`; answers `{ listed }`, the files the conflict item lists |
+| `POST /api/agent/drive/push/close` | JSON `push_id`, optional `unsent` (a Worker's set-aside paths); answers `{ listed }`, the files the conflict item lists |
 
 Each put or delete answers one `drivePushOutcomeSchema` (`packages/haus-api/src/drive.ts`). Every
 outcome carries `current`, the revision now at the path with its author. When nothing is live at
@@ -362,7 +362,10 @@ because a transaction's `now()` is its start, not the moment it took the lock. T
 `drive_conflict` item. Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
 machine sends that file in its next push. On close, a push with any `kept_both`, `kept_edit`, or
 `refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)). A Worker's item goes
-to its Agent.
+to its Agent. A Worker's close may name `unsent` paths, files it set aside on its machine because
+its push closed before they landed. Those queue one more `drive_conflict` item, keyed
+`drive-conflict:<push id>:unsent`, listing each as `refused` with reason `PUSH_CLOSED`; a repeat
+adds nothing, and an Agent's own close ignores the field.
 
 ## Citations
 

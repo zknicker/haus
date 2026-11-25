@@ -6,6 +6,10 @@ export function driveConflictKey(pushId: string) {
     return `drive-conflict:${pushId}`;
 }
 
+export function driveUnsentKey(pushId: string) {
+    return `${driveConflictKey(pushId)}:unsent`;
+}
+
 export async function queueDriveConflict(
     tx: HausDatabase,
     agentDelivery: Pick<AgentDelivery, 'enqueue'>,
@@ -15,7 +19,10 @@ export async function queueDriveConflict(
     if (recipientAgentId !== attention.writer.agentId) {
         throw new Error(`Drive conflict ${attention.id} belongs to the writer's own Agent.`);
     }
-    if (attention.id !== driveConflictKey(attention.pushId)) {
+    if (
+        attention.id !== driveConflictKey(attention.pushId) &&
+        attention.id !== driveUnsentKey(attention.pushId)
+    ) {
         throw new Error(`Drive conflict ${attention.id} does not name push ${attention.pushId}.`);
     }
     await agentDelivery.enqueue(tx, {
