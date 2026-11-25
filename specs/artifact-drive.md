@@ -78,8 +78,15 @@ and a put in the Project's area for each live file, as a move records them.
 A write stores the area prefix in its canonical spelling, so `HAUS/a.md` lands as `haus/a.md` and
 `Agents/ORBIT/a.md` as `agents/orbit/a.md`. A handle compares without case. Handles are unique only
 among active Agents, so `agents/<handle>/` names the active Agent with that handle, otherwise the
-most recently retired one. `drive.changes` lists only that one area per handle, so once a handle
-passes to a new Agent, the retired owner's change rows never reach a folder again. A folder move may start or end at an area root such as `haus`, but never
+most recently retired one. When a new Agent takes a retired Agent's handle, the create moves the
+retired owner's files, deleted ones included, to `agents/<handle>.retired-<id>/`, where `<id>` is
+its Agent id without `agt_`, in the same transaction and the way a Project key change moves its
+folder: paths only, with a delete and a put in the retired Agent's area for each live file
+(`archiveRetiredAgentFolder` in `apps/server/src/drive/agent-folder.ts`). Handles have no dots, so
+that folder never names a live handle. It stays the retired Agent's area: its files keep their
+revisions and authors, everyone reads them, people can restore and write them, and `drive.changes`
+lists it beside the new owner's `agents/<handle>/`, which starts empty, so the new Agent is seeded
+fresh and never inherits the old one's `AGENTS.md` or `MEMORY.md`. A folder move may start or end at an area root such as `haus`, but never
 at `projects` or `agents` alone.
 
 The rule and memory files are ordinary files. What reads them, and when, is ADR 0054 decisions 7

@@ -16,6 +16,10 @@ export interface DrivePlacement extends DriveArea {
 
 type PathShape = 'file' | 'folder';
 
+const agentIdPrefix = 'agt_';
+const retiredSuffix = '.retired-';
+const retiredFolderPattern = /^(.+)\.retired-([A-Za-z0-9_-]{16})$/u;
+
 export async function driveAreaOfPath(tx: HausDatabase, serverId: string, path: string) {
     return await placeInArea(tx, serverId, path, 'file');
 }
@@ -64,19 +68,25 @@ export async function writableDriveFolder(
 }
 
 export async function serverDriveAreas(db: HausDatabase, serverId: string) {
-    const handleKey = sql`lower(${agentsTable.handle})`;
-    const agents = await db
-        .selectDistinctOn([handleKey], { handle: agentsTable.handle, id: agentsTable.id })
-        .from(agentsTable)
-        .where(eq(agentsTable.serverId, serverId))
-        .orderBy(handleKey, sql`${agentsTable.retiredAt} desc nulls first`);
+    const agents = await agentsByHandle(db, serverId);
     const projects = await projectKeys(db, serverId);
     const areas: DriveArea[] = [
         { area: 'haus', root: 'haus' },
         ...projects.map((project) => projectArea(project)),
-        ...agents.map((agent) => agentArea(agent)),
+        ...agents.map((agent, index) =>
+            index > 0 && sameHandle(agents[index - 1], agent)
+                ? retiredAgentArea(agent)
+                : agentArea(agent)
+        ),
     ];
     return areas.sort((left, right) => byteOrder(left.area, right.area));
+}
+
+export function retiredAgentArea(agent: { handle: string; id: string }) {
+    return {
+        area: `agent:${agent.id}`,
+        root: `agents/${agent.handle}${retiredSuffix}${agent.id.slice(agentIdPrefix.length)}`,
+    } satisfies DriveArea;
 }
 
 async function placeInArea(tx: HausDatabase, serverId: string, path: string, shape: PathShape) {
@@ -91,11 +101,11 @@ async function placeInArea(tx: HausDatabase, serverId: string, path: string, sha
         second !== undefined &&
         (segments.length > 2 || shape === 'folder')
     ) {
-        const agent = await agentByHandle(tx, serverId, second);
-        if (!agent) {
+        const area = await agentAreaOfFolder(tx, serverId, second);
+        if (!area) {
             throw invalidPath(`No Agent has the handle \`${second}\`, so \`${path}\` has no area.`);
         }
-        return placement(agentArea(agent), segments, 2, shape, path);
+        return placement(area, segments, 2, shape, path);
     }
     if (
         folder === 'projects' &&
@@ -137,19 +147,33 @@ function placement(
     } satisfies DrivePlacement;
 }
 
-async function agentByHandle(tx: HausDatabase, serverId: string, handle: string) {
-    const [agent] = await tx
+async function agentAreaOfFolder(tx: HausDatabase, serverId: string, folder: string) {
+    const retired = retiredFolderPattern.exec(folder);
+    const holders = await agentsByHandle(tx, serverId, retired?.[1] ?? folder);
+    if (!retired) {
+        return holders[0] ? agentArea(holders[0]) : null;
+    }
+    const id = `${agentIdPrefix}${retired[2]}`.toLowerCase();
+    const agent = holders.slice(1).find((holder) => holder.id.toLowerCase() === id);
+    return agent ? retiredAgentArea(agent) : null;
+}
+
+export async function agentsByHandle(tx: HausDatabase, serverId: string, handle?: string) {
+    const handleKey = sql`lower(${agentsTable.handle})`;
+    return await tx
         .select({ handle: agentsTable.handle, id: agentsTable.id })
         .from(agentsTable)
         .where(
             and(
                 eq(agentsTable.serverId, serverId),
-                eq(sql`lower(${agentsTable.handle})`, artifactPathKey(handle))
+                handle === undefined ? undefined : eq(handleKey, artifactPathKey(handle))
             )
         )
-        .orderBy(sql`${agentsTable.retiredAt} desc nulls first`)
-        .limit(1);
-    return agent;
+        .orderBy(handleKey, sql`${agentsTable.retiredAt} desc nulls first`, agentsTable.id);
+}
+
+function sameHandle(left: { handle: string } | undefined, right: { handle: string }) {
+    return left?.handle.toLowerCase() === right.handle.toLowerCase();
 }
 
 async function projectKeys(tx: HausDatabase, serverId: string, key?: string) {

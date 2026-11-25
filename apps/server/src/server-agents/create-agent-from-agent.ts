@@ -151,6 +151,7 @@ export async function createAgentFromAgent(
             events: [
                 ...(dmCreatedEvent ? [dmCreatedEvent] : []),
                 ...homeChangeEvents(runner.serverId, [created.homeProjectId]),
+                ...created.driveEvents,
             ],
             receipt: {
                 agent: summary,

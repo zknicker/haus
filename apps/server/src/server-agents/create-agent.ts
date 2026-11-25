@@ -2,6 +2,7 @@ import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api'
 import { and, eq } from 'drizzle-orm';
 import { enqueueAgentGreeting } from '../agent-delivery/greeting.ts';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
+import { archiveRetiredAgentFolder } from '../drive/agent-folder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -12,6 +13,7 @@ import {
     requireHomeProject,
 } from '../projects/agent-home.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { participantHandleConstraint } from '../servers/participant-handles.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -63,7 +65,10 @@ export async function createAgent(
         );
         return {
             agent: created.agent,
-            events: homeChangeEvents(input.serverId, [created.homeProjectId]),
+            events: [
+                ...homeChangeEvents(input.serverId, [created.homeProjectId]),
+                ...created.driveEvents,
+            ],
         };
     });
 }
@@ -78,7 +83,7 @@ export async function createAgentInTransaction(
     },
     avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null,
     catalog: AgentModelCatalog
-): Promise<AgentCreated & { homeProjectId: string }> {
+): Promise<AgentCreated & { driveEvents: PreparedRealtimeEvent[]; homeProjectId: string }> {
     const createdByAgentId = creator.kind === 'agent' ? creator.agentId : null;
     const createdByUserId = creator.kind === 'human' ? creator.user.id : null;
 
@@ -131,6 +136,10 @@ export async function createAgentInTransaction(
         }
         throw cause;
     }
+    const archivedFiles = await archiveRetiredAgentFolder(db, {
+        handle: input.handle,
+        serverId: input.serverId,
+    });
 
     await openAgentHomeReads(db, { agentId, projectId: homeProjectId, serverId: input.serverId });
     // The new Agent introduces itself once in `#all`, as soon as it can run,
@@ -142,6 +151,10 @@ export async function createAgentInTransaction(
     });
 
     return {
+        driveEvents:
+            archivedFiles > 0
+                ? [artifactUpdatedTopic.prepare({ artifactId: null, serverId: input.serverId })]
+                : [],
         homeProjectId,
         agent: toAgent({
             activeRunId: null,

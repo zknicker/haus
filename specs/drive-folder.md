@@ -355,7 +355,7 @@ D2 and D4 add these guards.
 | Full reset and retirement remove other Agents' read-only folders and `drive.json` | `apps/computer/src/agent-reset.test.ts`, `apps/computer/src/agent-retirement.test.ts` |
 | A delete under a spelling a case-only rename replaced leaves the renamed file live | `apps/server/test/drive-push-case-rename.test.ts` |
 | A Worker deletes as itself, and a Worker dispatched before a full reset pushes nothing | `apps/server/test/worker-drive-fences.test.ts` |
-| A handle passed to a new Agent lists only the new owner's area | `apps/server/test/drive-areas.test.ts` |
+| A handle passed to a new Agent moves the retired owner's files to `agents/<handle>.retired-<id>/` and seeds the new one fresh | `apps/server/test/drive-areas.test.ts` |
 | A clean merge keeps a BOM | `apps/server/test/drive-push-bom.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
 | A start frame's `driveConflict` renders as the whole turn input | `apps/runner/src/turn/turn-input.test.ts` |
