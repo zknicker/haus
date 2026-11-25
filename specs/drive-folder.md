@@ -217,7 +217,11 @@ The Server keeps the request in `agent_machine_changes` and moves it a step at a
    Computer pushes the folder under that id and closes the push even when nothing changed
    (`flushDriveForRun`), and the close is what tells the Server the folder reached Drive. The
    change switches only then. A flush with any file that failed sends no close, so it stays
-   pending until a resend lands every file. The resend first closes the open push it left behind,
+   pending until a resend lands every file. A file the flush had refused moves to
+   `drive-refused/` as usual and is noted in `drive.json` (`leftBehind`), so neither that flush nor
+   any resend closes, and each warns with the path (`drive-flush-left-behind`). The change waits
+   until the person moves from the last synced revision, knowing the edit stays on the old Mac. A
+   flush whose push the Server already closed sends no close either. The resend first closes the open push it left behind,
    and treats one the Server never created (a file refused before the push opened) as already
    gone. A flush that has not closed in two minutes, or whose Machine
    reconnects, is sent again under a new id. Conflicts follow the ordinary push rules.
@@ -333,6 +337,7 @@ D2 and D4 add these guards.
 | An edit made while a pull downloads or a push waits is never overwritten or recorded as synced | `apps/computer/src/drive/sync-races.test.ts` |
 | A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
+| A Machine flush that had a file refused never closes, on the first send or any resend | `apps/computer/src/drive/machine-change.test.ts` |
 | A Worker push that could not send a file, transient or per file, retries and never ends the turn | `apps/computer/src/workers/computer/drive-sync.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |

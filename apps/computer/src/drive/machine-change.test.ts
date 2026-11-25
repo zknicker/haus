@@ -75,6 +75,27 @@ test('a flush with a failed file sends no close, and the resend lands it with a 
     expect(server.requests.at(-1)).toBe('POST /api/agent/drive/push/close');
 });
 
+test('a flush that had a file refused never closes, so the handoff knows an edit stayed behind', async () => {
+    server = startDriveServer();
+    agentRoot = await mkdtemp(join(tmpdir(), 'haus-machine-change-'));
+    await pullDriveForRun(agentRoot, run({ runId: 'run_1' }));
+    await mkdir(folder(), { recursive: true });
+    await writeFile(join(folder(), 'stray.md'), 'no area');
+    const warnings: string[] = [];
+    const closesBefore = closes();
+
+    await flushDriveForRun(agentRoot, run({ runId: 'flush_1', warnings }));
+    const afterFirst = closes();
+    await flushDriveForRun(agentRoot, run({ runId: 'flush_2', warnings }));
+
+    expect(afterFirst).toBe(closesBefore);
+    expect(closes()).toBe(closesBefore + 1);
+    expect(warnings).toEqual(['drive-flush-left-behind', 'drive-flush-left-behind']);
+    expect(await readFile(join(agentRoot, 'workspace', 'drive-refused', 'stray.md'), 'utf8')).toBe(
+        'no area'
+    );
+});
+
 test('moving back sets the old folder aside and pulls a fresh one, and an older frame does nothing', async () => {
     server = startDriveServer();
     server.write('agents/alpha/MEMORY.md', 'remember the otter', 'agt_alpha');

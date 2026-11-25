@@ -1,4 +1,5 @@
 import { DriveRemoteError, type DriveRemote } from './drive-remote.ts';
+import type { DrivePushOutcomeEntry } from './drive-response-schema.ts';
 import { folderFiles, sha256File } from './folder-files.ts';
 import { settlePlacing } from './folder-placing.ts';
 import { SymlinkedFolderError } from './folder-spelling.ts';
@@ -69,10 +70,11 @@ export async function sendDrivePush(
     plan: DrivePushPlan,
     remote: DriveRemote,
     pushId: string,
-    options: { closeIf: (failed: readonly FileFailure[]) => boolean } = { closeIf: () => true }
+    options: { closeIf: (result: PushResult) => boolean } = { closeIf: () => true }
 ) {
     const { files, layout, state } = plan;
     const context: OutcomeContext = { files, layout, remote, state };
+    const refused: string[] = [];
     const failed: FileFailure[] = plan.linked.map((path) => {
         const error = new SymlinkedFolderError(path);
         return { code: error.code, message: error.message, path };
@@ -106,26 +108,35 @@ export async function sendDrivePush(
             const closed =
                 plan.stalePush === pushId ? await ignoreGonePush(remote.close(pushId)) : null;
             await state.openPush(null);
-            return { failed, listed: closed?.listed ?? [], pushClosed: false, sent: 0, unrestored };
+            const listed = closed?.listed ?? [];
+            return { failed, listed, pushClosed: false, refused, sent: 0, unrestored };
         }
         await state.openPush(pushId);
+        const noteRefused = (outcome: DrivePushOutcomeEntry) => {
+            if (outcome.outcome === 'refused') {
+                refused.push(outcome.path);
+            }
+        };
         for (const record of plan.deletes) {
-            await isolate(failed, record.path, () => sendDelete(context, record, pushId));
+            await isolate(failed, record.path, () =>
+                sendDelete(context, record, pushId).then(noteRefused)
+            );
         }
         for (const put of plan.puts) {
-            await isolate(failed, put.path, () => sendPut(context, put, pushId));
+            await isolate(failed, put.path, () => sendPut(context, put, pushId).then(noteRefused));
         }
         const sent = plan.deletes.length + plan.puts.length + plan.linked.length - failed.length;
-        if (!options.closeIf(failed)) {
-            return { failed, listed: [], pushClosed: false, sent, unrestored };
+        if (!options.closeIf({ failed, refused })) {
+            return { failed, listed: [], pushClosed: false, refused, sent, unrestored };
         }
         const closed = await ignoreGonePush(remote.close(pushId));
         await state.openPush(null);
-        return { failed, listed: closed?.listed ?? [], pushClosed: false, sent, unrestored };
+        const listed = closed?.listed ?? [];
+        return { failed, listed, pushClosed: false, refused, sent, unrestored };
     } catch (error) {
         if (error instanceof DriveRemoteError && error.code === 'PUSH_CLOSED') {
             await state.openPush(null);
-            return { failed, listed: [], pushClosed: true, sent: 0, unrestored };
+            return { failed, listed: [], pushClosed: true, refused, sent: 0, unrestored };
         }
         throw error;
     } finally {
@@ -137,6 +148,11 @@ export interface FileFailure {
     code: string;
     message: string;
     path: string;
+}
+
+interface PushResult {
+    failed: readonly FileFailure[];
+    refused: readonly string[];
 }
 
 const unsentCreateCodes = new Set(['IDEMPOTENCY_KEY_REUSED', 'NOT_FOUND', 'PUSH_CLOSED']);

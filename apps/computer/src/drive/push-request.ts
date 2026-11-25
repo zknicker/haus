@@ -21,6 +21,7 @@ export async function sendDelete(context: OutcomeContext, record: DriveFileRecor
     if (record.seen_head) {
         await catchUpSkippedHead(context, record.path);
     }
+    return outcome;
 }
 
 export async function sendPut(context: OutcomeContext, put: PlannedPut, pushId: string) {

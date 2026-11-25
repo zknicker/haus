@@ -42,6 +42,7 @@ const folderStateSchema = z.object({
     areas: z.array(areaSchema),
     counters: z.record(z.string(), z.number().int().nonnegative()),
     files: z.record(z.string(), fileRecordSchema),
+    leftBehind: z.array(z.string().min(1)).default([]),
     openPush: z.string().min(1).nullable(),
     pendingCreates: z.record(
         z.string(),
@@ -64,6 +65,7 @@ const emptyState: DriveFolderState = {
     areas: [],
     counters: {},
     files: {},
+    leftBehind: [],
     openPush: null,
     pendingCreates: {},
     placing: {},
@@ -164,6 +166,8 @@ export async function openFolderState(layout: DriveFolderLayout) {
         advance: (areas: DriveFolderArea[], counters: DriveAreaCounters) =>
             persist({ ...state, areas, counters }),
         openPush: (pushId: string | null) => persist({ ...state, openPush: pushId }),
+        noteLeftBehind: (paths: readonly string[]) =>
+            persist({ ...state, leftBehind: [...new Set([...state.leftBehind, ...paths])].sort() }),
     };
 }
 export type FolderStateStore = Awaited<ReturnType<typeof openFolderState>>;

@@ -53,7 +53,7 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
             return 'finished' satisfies WorkerPushResult;
         }
         const pushed = await sendDrivePush(plan, remoteOf(folder, minted.token), turnId, {
-            closeIf: allNeverWrite,
+            closeIf: ({ failed }) => allNeverWrite(failed),
         });
         if (pushed.pushClosed) {
             warn('worker.drive-push-closed', folder, `Push ${turnId} was already closed.`);
