@@ -31,10 +31,12 @@ import { useViewerStepKeys, useViewerSteps } from './use-viewer-steps.ts';
  * (← →, and the buttons while the tree is hidden) step through its files.
  */
 export function ArtifactViewer({
+    addMenu,
     artifactId,
     serverId,
     slug,
 }: {
+    addMenu: React.ReactNode;
     artifactId: string;
     serverId: string;
     slug: string;
@@ -92,6 +94,7 @@ export function ArtifactViewer({
                         artifact={artifact}
                         serverId={serverId}
                         view={{
+                            addMenu,
                             compareFrom: artifactTextRenderer(artifact) ? view.compare : null,
                             crumbs: workspacePathCrumbs(
                                 slug,

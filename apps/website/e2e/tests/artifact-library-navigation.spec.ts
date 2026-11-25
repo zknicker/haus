@@ -57,19 +57,17 @@ test('Drive opens on click or Return, selects on Command-click, and Back walks t
         await expect(page).toHaveURL(new RegExp(`${path}$`, 'u'));
     }
 
-    // The band stops at the area; the path row links every folder in it, the open one not.
+    // The band stops at the area. The path row folds a deep middle into one menu,
+    // keeping All files and the parent as links; the open folder is not one.
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(trail.locator('a[href]')).toHaveText(['Haus', 'Drive']);
     const folderPath = page.getByRole('list', { name: 'File path' });
-    await expect(folderPath.locator('a[href]')).toHaveText([
-        'All files',
-        'starter-kit',
-        'scripts',
-        'a',
-        'b',
-    ]);
+    await expect(folderPath.locator('a[href]')).toHaveText(['All files', 'b']);
     await expect(folderPath.getByRole('listitem').last()).toHaveText('c');
-    await folderPath.getByRole('link', { name: 'scripts', exact: true }).click();
+    await folderPath.getByRole('button', { name: 'Show enclosing places' }).click();
+    const enclosing = page.getByRole('menu', { name: 'Enclosing places' });
+    await expect(enclosing.getByRole('menuitem')).toHaveText(['starter-kit', 'scripts', 'a']);
+    await enclosing.getByRole('menuitem', { name: 'scripts' }).click();
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
 
     // Back and Forward walk the history and agree with the browser's.

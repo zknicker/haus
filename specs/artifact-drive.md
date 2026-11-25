@@ -436,17 +436,21 @@ The v1 Drive page replaces the Files page and keeps its library, viewer, and act
   (`?folder=` for a folder, `/artifacts/<id>?in=` for a file).
 - Inside the workspace the band is only the trail, stopping at the area, and reads the same for a
   folder and a file. A slim path row over the right pane owns the rest of the path, from All
-  files down; its folder crumbs take dropped library items. A folder's path row carries its
+  files down; its folder crumbs take dropped library items. A deep path folds its middle into one
+  menu, as the band does, keeping All files and the parent as crumbs. A folder's path row carries its
   controls: Filter, list or grid, and Upload. An empty folder with no filter set shows none of
   them, since its empty state offers the same.
-- The tree's header reads All files, with New file, Upload, and one Expand all / Collapse all
-  toggle (only when the area has folders). Its filter over names and paths is the area's search
+- The tree's header reads All files, with one Add menu (New file, New folder, Upload files,
+  Upload folder) and one Expand all / Collapse all toggle (only when the area has folders). While
+  the tree is hidden at narrow widths, the same Add menu sits on the folder's or file's path row. Its filter over names and paths is the area's search
   and covers the whole area. Pressing a folder opens and unfolds it; pressing a file opens it.
   An empty area's tree says nothing; the right pane owns the empty state.
 - New file writes `untitled.md` (then `untitled-2.md`, …) into the open folder, or the open file's
-  folder, and opens it with the cursor in the document.
+  folder, and opens it with the cursor in the document. A folder exists only while a file sits in
+  it, so New folder asks for a name (refusing one the path rules refuse or one already used
+  there) and writes `<name>/untitled.md`, opened the same way. An empty file reads as empty text.
 - An empty area root shows the mascot with Add instructions, which writes the area's `AGENTS.md`
-  and opens it, New file, and Upload.
+  and opens it, New file, New folder, and Upload.
 - A file's path row has the area's glyph and crumbs, then View source, History, Copy (a text
   file's contents, in one click), Download, Save (only while edits are unsaved), and ⋯ File
   options, which holds the links and the path to copy; Previous and Next show only while the tree

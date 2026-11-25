@@ -187,7 +187,13 @@ export function ArtifactFileOptions({
     );
 }
 
-function PathMenuTrigger({ icon, label }: { icon: HugeiconsIconProps['icon']; label: string }) {
+export function PathMenuTrigger({
+    icon,
+    label,
+}: {
+    icon: HugeiconsIconProps['icon'];
+    label: string;
+}) {
     return (
         <Tooltip delay={0}>
             <Button aria-label={label} isIconOnly size="sm" variant="ghost">

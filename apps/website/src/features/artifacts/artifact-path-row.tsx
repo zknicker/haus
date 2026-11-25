@@ -1,7 +1,7 @@
 import { Breadcrumbs } from '@heroui/react';
 import type { ReactNode } from 'react';
-import type { BandCrumbDrop } from '../shell/band-trail.ts';
-import { CrumbDropTarget } from '../shell/crumb-drop-target.tsx';
+import { FoldedCrumbs, bandCrumbSeparator, linkedCrumb } from '../shell/band-breadcrumbs.tsx';
+import { type BandCrumbDrop, collapseTrail } from '../shell/band-trail.ts';
 
 export interface ArtifactPathCrumb {
     drop?: BandCrumbDrop;
@@ -23,21 +23,20 @@ export function ArtifactPathRow({
     glyph: ReactNode;
     status?: ReactNode;
 }) {
+    const trail = collapseTrail(crumbs);
     return (
         <div className="artifact-path-row">
             <span aria-hidden="true" className="flex shrink-0">
                 {glyph}
             </span>
-            <Breadcrumbs aria-label="File path" className="min-w-0 shrink">
-                {crumbs.map((crumb) => (
-                    <Breadcrumbs.Item href={crumb.href} key={crumb.href}>
-                        {crumb.drop ? (
-                            <CrumbDropTarget drop={crumb.drop}>{crumb.label}</CrumbDropTarget>
-                        ) : (
-                            crumb.label
-                        )}
-                    </Breadcrumbs.Item>
-                ))}
+            <Breadcrumbs
+                aria-label="File path"
+                className="min-w-0 shrink"
+                separator={bandCrumbSeparator}
+            >
+                {trail.leading.map(linkedCrumb)}
+                {trail.hidden.length > 0 ? <FoldedCrumbs crumbs={trail.hidden} /> : null}
+                {trail.trailing.map(linkedCrumb)}
                 <Breadcrumbs.Item>{current}</Breadcrumbs.Item>
             </Breadcrumbs>
             {status ? <span className="text-muted shrink-0 truncate text-sm">{status}</span> : null}

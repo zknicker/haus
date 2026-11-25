@@ -11,6 +11,7 @@ import { formatArtifactBytes } from './artifact-format.ts';
 import { ArtifactLibraryCollection } from './artifact-library-collection.tsx';
 import { ArtifactLibraryEmpty } from './artifact-library-empty.tsx';
 import { ArtifactListHeader } from './artifact-list-header.tsx';
+import type { DriveCreate } from './drive-add-menu.tsx';
 import type { DriveFolder } from './drive-places.ts';
 import { useArtifactLibraryLayout } from './library-layout.ts';
 import type { LibrarySelection } from './library-selection.ts';
@@ -29,7 +30,7 @@ export function ArtifactLibraryContent({
     folderName,
     folders,
     library,
-    newFile,
+    create,
     onOpenFile,
     onOpenFolder,
     onShowFolder,
@@ -46,7 +47,7 @@ export function ArtifactLibraryContent({
     folderName: string;
     folders: readonly DriveFolder[];
     library: ArtifactLibrary;
-    newFile?: { isPending: boolean; run: () => void };
+    create?: DriveCreate;
     onOpenFile: (artifact: ArtifactMetadata) => void;
     onOpenFolder: (path: string) => void;
     onShowFolder: (artifact: ArtifactRecord) => { href: string; onOpen: () => void };
@@ -77,7 +78,7 @@ export function ArtifactLibraryContent({
                 filtered={filtered}
                 folder={filters.folder}
                 folderName={folderName}
-                newFile={newFile}
+                create={create}
                 onOpenFile={onOpenFile}
                 onOpenFolder={onOpenFolder}
                 onUpload={onUpload}

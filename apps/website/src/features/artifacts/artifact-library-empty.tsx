@@ -3,6 +3,7 @@ import { EmptyState } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import {
     FileAddIcon,
+    FolderAddIcon,
     FolderLibraryIcon,
     FolderOpenIcon,
     NoteEditIcon,
@@ -11,6 +12,7 @@ import {
 import { HausMascot } from '../../components/haus-mascot.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAddAreaRules } from '../../hooks/artifacts/use-add-area-rules.ts';
+import type { DriveCreate } from './drive-add-menu.tsx';
 import {
     driveAcceptsFiles,
     driveFolderIsFixed,
@@ -31,7 +33,7 @@ export function ArtifactLibraryEmpty({
     filtered,
     folder,
     folderName,
-    newFile,
+    create,
     onOpenFile,
     onOpenFolder,
     onUpload,
@@ -40,7 +42,7 @@ export function ArtifactLibraryEmpty({
     filtered: boolean;
     folder: string;
     folderName: string;
-    newFile?: { isPending: boolean; run: () => void };
+    create?: DriveCreate;
     onOpenFile: (artifact: ArtifactMetadata) => void;
     onOpenFolder: (path: string) => void;
     onUpload: () => void;
@@ -88,7 +90,7 @@ export function ArtifactLibraryEmpty({
         <EmptyArea
             folder={folder}
             folderName={folderName}
-            newFile={newFile}
+            create={create}
             onOpenFile={onOpenFile}
             onUpload={onUpload}
             serverId={serverId}
@@ -99,14 +101,14 @@ export function ArtifactLibraryEmpty({
 function EmptyArea({
     folder,
     folderName,
-    newFile,
+    create,
     onOpenFile,
     onUpload,
     serverId,
 }: {
     folder: string;
     folderName: string;
-    newFile?: { isPending: boolean; run: () => void };
+    create?: DriveCreate;
     onOpenFile: (artifact: ArtifactMetadata) => void;
     onUpload: () => void;
     serverId: string;
@@ -144,16 +146,22 @@ function EmptyArea({
                             Add instructions
                         </Button>
                     ) : null}
-                    {newFile ? (
-                        <Button
-                            isPending={newFile.isPending}
-                            onPress={newFile.run}
-                            size="sm"
-                            variant="outline"
-                        >
-                            <Icon aria-hidden="true" icon={FileAddIcon} size={16} />
-                            New file
-                        </Button>
+                    {create ? (
+                        <>
+                            <Button
+                                isPending={create.isPending}
+                                onPress={create.newFile}
+                                size="sm"
+                                variant="outline"
+                            >
+                                <Icon aria-hidden="true" icon={FileAddIcon} size={16} />
+                                New file
+                            </Button>
+                            <Button onPress={create.newFolder} size="sm" variant="outline">
+                                <Icon aria-hidden="true" icon={FolderAddIcon} size={16} />
+                                New folder
+                            </Button>
+                        </>
                     ) : null}
                     <Button onPress={onUpload} size="sm" variant="outline">
                         <Icon aria-hidden="true" icon={Upload04Icon} size={16} />

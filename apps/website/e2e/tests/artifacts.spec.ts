@@ -30,7 +30,7 @@ test('a Server member opens the shared library and reloads its stable address', 
     await expect(page).toHaveURL(/folder=haus$/u);
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
     const emptyActions = page.locator('.library-empty').getByRole('button');
-    await expect(emptyActions).toHaveText(['Add instructions', 'New file', 'Upload']);
+    await expect(emptyActions).toHaveText(['Add instructions', 'New file', 'New folder', 'Upload']);
     expect(await client.artifact.list.query({ serverId: server.id })).toEqual({
         artifacts: [],
         folders: [],

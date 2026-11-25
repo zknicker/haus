@@ -1,13 +1,13 @@
 import { artifactPathKey, artifactPathParent } from '@haus/api';
-import { FileAddIcon, Upload04Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { ArtifactLibrary } from './artifact-library.tsx';
-import { PathIconButton } from './artifact-path-actions.tsx';
 import { ArtifactViewer } from './artifact-viewer.tsx';
+import { type DriveAdd, DriveAddMenu } from './drive-add-menu.tsx';
+import { DriveNewFolderDialog } from './drive-new-folder-dialog.tsx';
 import { driveAgentName, driveFolderLabel } from './drive-places.ts';
 import { driveTreeRoot, driveWorkspaceRoot } from './drive-tree-model.ts';
 import { DriveTree, type DriveTreeOpen } from './drive-tree.tsx';
@@ -53,36 +53,32 @@ export function DriveWorkspace({
             openFolder(folder);
         }
     });
+    const [folderParent, setFolderParent] = React.useState<string | null>(null);
     const created = useNewDriveFile(serverId, (artifact) => {
         const folder = artifactPathParent(artifact.path);
+        setFolderParent(null);
         rememberLibraryItem(folder, artifact.artifact_id);
         navigate(
             artifactViewerHref(slug, artifact.artifact_id, { ...filters, folder, query: '' }),
             { state: { editing: true } }
         );
     });
-    const newFile = { isPending: created.isPending, run: () => created.mutate(target) };
+    const add: DriveAdd = {
+        newFile: () => created.file.mutate(target),
+        newFolder: () => {
+            created.folder.reset();
+            setFolderParent(target);
+        },
+        uploadFiles: () => upload.openFiles(target),
+        uploadFolder: () => upload.openFolder(target),
+    };
+    const addMenu = <DriveAddMenu add={add} />;
 
     return (
         <div className="drive-workspace @container/viewer flex min-h-0 flex-1">
             {place ? (
                 <DriveTree
-                    actions={
-                        <>
-                            <PathIconButton
-                                icon={FileAddIcon}
-                                isDisabled={created.isPending}
-                                label="New file"
-                                onPress={newFile.run}
-                            />
-                            <PathIconButton
-                                icon={Upload04Icon}
-                                isDisabled={upload.isPending}
-                                label="Upload files"
-                                onPress={() => upload.openFiles(target)}
-                            />
-                        </>
-                    }
+                    actions={addMenu}
                     className="hidden w-56 shrink-0 @3xl/viewer:flex"
                     key={artifactPathKey(place.root)}
                     label={driveFolderLabel(place.root, agentName)}
@@ -110,7 +106,9 @@ export function DriveWorkspace({
                         serverId={serverId}
                         slug={slug}
                         workspace={{
-                            newFile,
+                            add,
+                            addMenu,
+                            creating: created.file.isPending,
                             root: driveWorkspaceRoot(library.folder) ?? '',
                             upload,
                         }}
@@ -118,6 +116,7 @@ export function DriveWorkspace({
                 </div>
             ) : (
                 <ArtifactViewer
+                    addMenu={addMenu}
                     artifactId={artifactId}
                     key={artifactId}
                     serverId={serverId}
@@ -125,6 +124,17 @@ export function DriveWorkspace({
                 />
             )}
             {upload.dialogs}
+            <DriveNewFolderDialog
+                error={created.folder.error?.message ?? null}
+                isPending={created.folder.isPending}
+                onClose={() => setFolderParent(null)}
+                onCreate={(name) =>
+                    folderParent === null
+                        ? undefined
+                        : created.folder.mutate({ name, parent: folderParent })
+                }
+                parent={folderParent}
+            />
         </div>
     );
 }

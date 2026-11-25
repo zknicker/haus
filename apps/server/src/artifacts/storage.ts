@@ -53,7 +53,17 @@ export function createR2ArtifactStorage(config: ArtifactR2Config): ArtifactStora
                 expiresIn: 300,
                 method: 'GET',
             }),
-        read: async (key, maxBytes) => await client.file(key).slice(0, maxBytes).bytes(),
+        read: async (key, maxBytes) => {
+            try {
+                return await client.file(key).slice(0, maxBytes).bytes();
+            } catch (error) {
+                // R2 refuses any byte range of an empty object; the object itself is fine.
+                if (error instanceof Error && 'code' in error && error.code === 'InvalidRange') {
+                    return new Uint8Array();
+                }
+                throw error;
+            }
+        },
         stream: (key) => client.file(key).stream(),
         upload: async (key, stream, contentType) => {
             const hash = createHash('sha256');
