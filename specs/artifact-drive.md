@@ -298,7 +298,10 @@ The path rules apply after the request parses, so a bad path is a `refused` outc
 A clean merge whose result equals the head answers `unchanged`. A create at a filled path, or a base
 that names a different file than the one at the path, keeps both with reason `both_created`. A put
 whose base names a file that moved to another path since creates the pushed path as a new file and
-answers `committed`, because History does not follow a rename yet. A delete onto a path that holds
+answers `committed`, because History does not follow a rename yet. That splits an edit made during
+a person's move into two files. Answering with the moved file as `current` instead waits on a
+Computer guard: the folder places `current` at its path, which would overwrite an unpushed local
+file already there. A delete onto a path that holds
 another file than its base's leaves that file alone and answers `deleted` with it as `current`. A
 delete onto a path where nothing is live answers `deleted`. So does a delete whose path spells the
 live file differently, as the old half of a case-only rename does: it matches the path key but not

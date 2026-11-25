@@ -297,6 +297,6 @@ D2 and D4 add these guards.
 | A delete under a spelling a case-only rename replaced leaves the renamed file live | `apps/server/test/drive-push-case-rename.test.ts` |
 | A Worker deletes as itself, and a Worker dispatched before a full reset pushes nothing | `apps/server/test/worker-drive-fences.test.ts` |
 | A handle passed to a new Agent lists only the new owner's area | `apps/server/test/drive-areas.test.ts` |
-| An edit to a file a person moved keeps both, and a clean merge keeps a BOM | `apps/server/test/drive-push-moved-base.test.ts`, `apps/server/test/drive-push-bom.test.ts` |
+| A clean merge keeps a BOM | `apps/server/test/drive-push-bom.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
 | A start frame's `driveConflict` renders as the whole turn input | `apps/runner/src/turn/turn-input.test.ts` |
