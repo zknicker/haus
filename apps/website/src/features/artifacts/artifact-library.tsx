@@ -48,8 +48,8 @@ export interface LibraryWorkspace {
 /**
  * The Server's shared drive as a Finder-style library: the open folder's
  * child folders, then its own files in the viewer's sort, as one selectable
- * collection. At the Drive root and its shelves the band carries the trail
- * and every control. Inside an area's workspace the band is only the trail,
+ * collection. At the Drive root the band carries the trail and every
+ * control. Inside a workspace the band is only the trail,
  * identical for folders and files, and the controls sit on the folder's path
  * row. While several items are selected the controls give way to the
  * selection's actions. Folder, kind, and creator ride the URL; search and the
@@ -196,11 +196,7 @@ export function ArtifactLibrary({
             ) : null}
             <ArtifactLibraryContextMenu
                 actions={actions}
-                className={
-                    workspace
-                        ? 'artifact-library-drop flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]'
-                        : 'artifact-library-drop border-separator flex min-h-0 flex-1 flex-col overflow-y-auto border-t [scrollbar-gutter:stable]'
-                }
+                className="artifact-library-drop flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
                 acceptsFiles={acceptsFiles}
                 items={items}
                 onAreaAction={(id) => {
@@ -233,7 +229,7 @@ export function ArtifactLibrary({
                         folders={folders}
                         library={library}
                         create={
-                            workspace
+                            workspace && acceptsFiles
                                 ? {
                                       isPending: workspace.creating,
                                       newFile: workspace.add.newFile,

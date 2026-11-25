@@ -1,4 +1,4 @@
-import { artifactPathKey } from '@haus/api';
+import { type ArtifactListResult, artifactPathKey } from '@haus/api';
 import { FileTree } from '@heroui-pro/react';
 import { SearchField } from '@heroui/react';
 import { ExpandParagraphIcon, ListCollapseIcon } from '@hugeicons-pro/core-stroke-rounded';
@@ -8,10 +8,13 @@ import {
     useDriveTreeListings,
     useDriveTreeSearch,
 } from '../../hooks/artifacts/use-drive-tree-listings.ts';
+import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { cn } from '../../lib/utils.ts';
 import { PathIconButton } from './artifact-path-actions.tsx';
 import { artifactFolderTone } from './drive-folders.ts';
+import { driveAgentName, driveFolderLabel, driveFolderTiles } from './drive-places.ts';
 import {
+    type DriveTreeListing,
     type DriveTreeNode,
     driveTreeFileId,
     driveTreeFolderId,
@@ -49,14 +52,17 @@ export function DriveTree({
 }) {
     const [query, setQuery] = React.useState('');
     const expansion = useDriveTreeExpansion(root, { kind: open.kind, path: open.path });
-    const listings = useDriveTreeListings(serverId, [root, ...expansion.folders.values()]);
+    const agents = useAgentAppearances(serverId);
+    const agentName = driveAgentName(agents);
+    const read = useDriveTreeListings(serverId, [root, ...expansion.folders.values()]);
+    const listings = withFixedPlaces(root, read.listings, agents);
     const search = useDriveTreeSearch(serverId, root, query);
     const matches = search.artifacts ? driveTreeMatches(root, search.artifacts) : null;
-    const nodes = matches?.nodes ?? driveTreeNodes(root, listings.listings);
+    const nodes = matches?.nodes ?? driveTreeNodes(root, listings);
     const index = driveTreeIndex(nodes);
     const expandedKeys = new Set(matches ? matches.expandedIds : expansion.folders.keys());
-    const ready = matches !== null || listings.listings.has(artifactPathKey(root));
-    const error = search.error ?? listings.error;
+    const ready = matches !== null || listings.has(artifactPathKey(root));
+    const error = search.error ?? read.error;
     const isPressRef = React.useRef(false);
     const folders = [...index.values()].filter((node) => node.kind === 'folder');
     const unopened = folders.filter((node) => !expansion.folders.has(node.id));
@@ -145,7 +151,7 @@ export function DriveTree({
                     selectionBehavior="replace"
                     selectionMode="single"
                 >
-                    {renderNode}
+                    {treeNode(agentName)}
                 </FileTree>
             </div>
         </aside>
@@ -154,7 +160,30 @@ export function DriveTree({
 
 const pressKeys = new Set(['Enter', ' ']);
 
-function renderNode(node: DriveTreeNode) {
+function withFixedPlaces(
+    root: string,
+    listings: ReadonlyMap<string, ArtifactListResult>,
+    agents: readonly { displayName: string; handle: string }[]
+) {
+    const key = artifactPathKey(root);
+    const listing = listings.get(key);
+    if (!listing) {
+        return listings;
+    }
+    const folders = driveFolderTiles(root, listing.folders, agents);
+    return new Map<string, DriveTreeListing>(listings).set(key, { ...listing, folders });
+}
+
+function treeNode(agentName: (handle: string) => string | undefined) {
+    const render = (node: DriveTreeNode) => renderNode(node, agentName, render);
+    return render;
+}
+
+function renderNode(
+    node: DriveTreeNode,
+    agentName: (handle: string) => string | undefined,
+    render: (node: DriveTreeNode) => React.ReactNode
+) {
     if (node.kind === 'file') {
         return (
             <FileTree.Item
@@ -165,16 +194,17 @@ function renderNode(node: DriveTreeNode) {
             />
         );
     }
+    const name = driveFolderLabel(node.path, agentName);
     return (
         <FileTree.Item
             hasChildItems
             icon={<ArtifactFolderIcon size={16} tone={artifactFolderTone(node.path)} />}
             id={node.id}
-            textValue={node.name}
-            title={node.name}
+            textValue={name}
+            title={name}
         >
             {node.children.length > 0 ? (
-                <Collection items={node.children}>{renderNode}</Collection>
+                <Collection items={node.children}>{render}</Collection>
             ) : null}
         </FileTree.Item>
     );

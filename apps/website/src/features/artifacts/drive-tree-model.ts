@@ -32,6 +32,9 @@ export function driveWorkspaceRoot(folder: string) {
     if (place.kind === 'area') {
         return place.area.root;
     }
+    if (place.kind === 'shelf') {
+        return folder;
+    }
     if (place.kind === 'legacy') {
         return folder.split('/')[0] ?? '';
     }

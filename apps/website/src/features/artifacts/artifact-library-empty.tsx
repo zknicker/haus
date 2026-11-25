@@ -22,8 +22,8 @@ import {
 
 /**
  * Shown only for a real zero. A filtered zero points at the filters. An empty
- * shelf says what fills it. An empty area sits the mascot over the page's
- * middle, as Capy does, and offers what would fill it: its instructions
+ * shelf says what fills it. An empty area marks the page's middle with the
+ * mascot in the stock icon well, and offers what would fill it: its instructions
  * (`AGENTS.md`, at the area's root) and an upload.
  * Any other folder exists only while a file sits in it, so an unfiltered zero
  * there is a folder that is not there (a stale link, or its last file moved
@@ -121,8 +121,8 @@ function EmptyArea({
     return (
         <EmptyState className="library-empty">
             <EmptyState.Header>
-                <EmptyState.Media>
-                    <HausMascot aria-hidden="true" className="library-empty__mascot" size={88} />
+                <EmptyState.Media variant="icon">
+                    <HausMascot aria-hidden="true" size={20} />
                 </EmptyState.Media>
                 <EmptyState.Title>No files yet</EmptyState.Title>
                 {uploads ? (

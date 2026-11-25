@@ -448,11 +448,12 @@ The v1 Drive page replaces the Files page and keeps its library, viewer, and act
   folder's files and bytes. One Filter button holds the file type and Created by choices; where
   only fixed places stand (the root and its shelves), the band leaves it out. A plain click opens a
   folder or file; Command- and Shift-click select.
-- The root and its shelves are full-width lists under a hairline, with Search, Filter, and the
-  layout on the band. Inside an area (Haus, a Project, an Agent) every folder and file opens in one
-  split workspace: the area's tree on the left (from a medium width), and on the right the open
-  folder's list or the open file. The tree stays mounted and keeps what is unfolded, per area,
-  while you move between them; it highlights the open folder or file. URLs are unchanged
+- The root is a full-width list with Search, Filter, and the layout on the band and a hairline
+  under its column headers. Every folder below it and every file opens in one split workspace:
+  the tree on the left (from a medium width), and on the right the open folder's list or the open
+  file. A shelf (Projects, Agents) roots its own tree, listing each area by name with no Add menu;
+  inside an area (Haus, a Project, an Agent) the area roots it. The tree stays mounted and keeps
+  what is unfolded, per root, while you move between them; it highlights the open folder or file. URLs are unchanged
   (`?folder=` for a folder, `/artifacts/<id>?in=` for a file).
 - Inside the workspace the band is only the trail, stopping at the area, and reads the same for a
   folder and a file. A slim path row over the right pane owns the rest of the path, from All

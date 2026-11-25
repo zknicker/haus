@@ -29,12 +29,13 @@ test('a file roots its tree at its Drive area, shelf, or legacy top folder', () 
     expect(driveTreeRoot('readme.md')).toBe('');
 });
 
-test('only area and legacy folders open beside a tree', () => {
+test('every folder below the Drive root opens beside a tree', () => {
     expect(driveWorkspaceRoot('haus/specs')).toBe('haus');
     expect(driveWorkspaceRoot('projects/acme/specs')).toBe('projects/acme');
     expect(driveWorkspaceRoot('agents/blippy')).toBe('agents/blippy');
     expect(driveWorkspaceRoot('starter-kit/scripts')).toBe('starter-kit');
-    expect(driveWorkspaceRoot('projects')).toBeNull();
+    expect(driveWorkspaceRoot('projects')).toBe('projects');
+    expect(driveWorkspaceRoot('agents')).toBe('agents');
     expect(driveWorkspaceRoot('')).toBeNull();
 });
 

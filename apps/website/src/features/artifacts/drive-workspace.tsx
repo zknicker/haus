@@ -8,7 +8,7 @@ import { ArtifactLibrary } from './artifact-library.tsx';
 import { ArtifactViewer } from './artifact-viewer.tsx';
 import { type DriveAdd, DriveAddMenu } from './drive-add-menu.tsx';
 import { DriveNewFolderDialog } from './drive-new-folder-dialog.tsx';
-import { driveAgentName, driveFolderLabel } from './drive-places.ts';
+import { driveAcceptsFiles, driveAgentName, driveFolderLabel } from './drive-places.ts';
 import { driveTreeRoot, driveWorkspaceRoot } from './drive-tree-model.ts';
 import { DriveTree, type DriveTreeOpen } from './drive-tree.tsx';
 import { rememberLibraryItem } from './library-focus.ts';
@@ -72,7 +72,8 @@ export function DriveWorkspace({
         uploadFiles: upload.openFiles,
         uploadFolder: upload.openFolder,
     };
-    const addMenu = <DriveAddMenu add={add} />;
+    const addMenu =
+        target !== null && driveAcceptsFiles(target) ? <DriveAddMenu add={add} /> : null;
 
     return (
         <div className="drive-workspace @container/viewer flex min-h-0 flex-1">

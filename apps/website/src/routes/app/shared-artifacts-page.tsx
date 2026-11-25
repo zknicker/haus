@@ -20,9 +20,8 @@ const WorkspaceArtifact = lazy(async () => ({
 
 /**
  * `artifacts` is Drive, the shared library; `artifacts/<id>` one shared file.
- * The Drive root and its shelves are a full-page list; an area's folders and
- * every file open in one workspace that keeps the area's tree mounted between
- * them. A workspace target key (`workspaceFile:<agent>:<path>`) is a desktop
+ * The Drive root is a full-page list; every folder below it and every file
+ * open in one workspace that keeps the tree mounted between them. A workspace target key (`workspaceFile:<agent>:<path>`) is a desktop
  * artifact page from an Agent's workspace instead.
  */
 export function SharedArtifactsPage() {
@@ -38,11 +37,11 @@ export function SharedArtifactsPage() {
             </Suspense>
         );
     }
-    const inArea = driveWorkspaceRoot(parseLibrarySearch(params).folder) !== null;
+    const inWorkspace = driveWorkspaceRoot(parseLibrarySearch(params).folder) !== null;
     return (
         <section aria-label={driveRootLabel} className="flex min-h-0 flex-1 flex-col">
             <Suspense fallback={null}>
-                {artifactKey || inArea ? (
+                {artifactKey || inWorkspace ? (
                     <DriveWorkspace
                         artifactId={artifactKey ?? null}
                         serverId={server.id}
