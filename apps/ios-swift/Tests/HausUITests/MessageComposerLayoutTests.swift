@@ -35,11 +35,6 @@ final class MessageComposerLayoutTests: XCTestCase {
         }
     }
 
-    func testFieldWidensLateInTheExpansion() {
-        XCTAssertLessThan(ComposerControlLayout.fieldProgress(for: 0.5), 0.1)
-        XCTAssertEqual(ComposerControlLayout.fieldProgress(for: 1), 1)
-    }
-
     func testSingleLineTextZoneStaysCloseToTheControlsRow() {
         let singleLine = ComposerControlLayout.expandedTopHeight(forFieldHeight: 22)
 

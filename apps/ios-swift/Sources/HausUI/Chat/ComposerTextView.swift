@@ -93,6 +93,7 @@ struct ComposerTextView: UIViewRepresentable {
     func updateUIView(_ view: ComposerUITextView, context: Context) {
         context.coordinator.parent = self
         apply(to: view, coordinator: context.coordinator)
+        context.coordinator.updatePin(view)
         // A rebuild from outside (a send's clear, a restored draft) changes the answer without a
         // keystroke; it lands after this update, never inside it.
         let fits = context.coordinator.measureFit(view)
@@ -142,6 +143,16 @@ struct ComposerTextView: UIViewRepresentable {
 }
 
 final class ComposerUITextView: UITextView {
+    /// True while the draft fits the field's line cap. The field is then as tall as its text, so
+    /// UIKit's scroll-to-caret only fires while SwiftUI is still growing the frame, and would
+    /// slide the first line out of view for a few frames; pinned, the card just opens under it.
+    var pinsToTop = true
+
+    override var contentOffset: CGPoint {
+        get { super.contentOffset }
+        set { super.contentOffset = pinsToTop ? CGPoint(x: newValue.x, y: 0) : newValue }
+    }
+
     /// A selection crosses the chips, so a copy reads as the sentence: the
     /// words a chip draws, never its spacer or its Markdown target.
     override func copy(_ sender: Any?) {
@@ -196,10 +207,18 @@ final class ComposerTextCoordinator: NSObject, UITextViewDelegate {
         let next = ComposerDraftText.markdown(from: textView.attributedText)
         guard echoes.report(next) else { return }
         parent?.text = next
+        updatePin(textView)
         if let parent {
             let fits = measureFit(textView)
             if fits != parent.fitsOneLine { parent.fitsOneLine = fits }
         }
+    }
+
+    func updatePin(_ textView: UITextView) {
+        guard let view = textView as? ComposerUITextView, let parent, let font, view.bounds.width > 0 else { return }
+        let natural = view.sizeThatFits(CGSize(width: view.bounds.width, height: .greatestFiniteMagnitude)).height
+        view.pinsToTop = natural <= ceil(font.lineHeight * CGFloat(parent.maximumLines)) + 0.5
+        if view.pinsToTop, view.contentOffset.y != 0 { view.contentOffset = .zero }
     }
 
     /// Whether the shown text sits on one line at the pill's field width. Asked at that fixed
