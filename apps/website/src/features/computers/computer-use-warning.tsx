@@ -17,13 +17,10 @@ export function ComputerUseWarning({
         <Alert status="warning">
             <Alert.Indicator />
             <Alert.Content>
-                <Alert.Title>Computer use can’t work on this Mac</Alert.Title>
-                <Alert.Description>
-                    macOS hasn’t given Haus Computer access, so Captains can’t see or control the
-                    screen.
-                </Alert.Description>
+                <Alert.Title>Computer use can’t work on this Mac.</Alert.Title>
+                <Alert.Description>macOS hasn’t given Haus Computer access.</Alert.Description>
             </Alert.Content>
-            <Button onPress={() => onFix(missing.id)} size="sm" variant="tertiary">
+            <Button onPress={() => onFix(missing.id)} size="sm" variant="ghost">
                 Fix
             </Button>
         </Alert>

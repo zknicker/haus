@@ -9,14 +9,12 @@ import { ComputerDetail } from './computer-detail.tsx';
 
 const serverId = 'srv_devices';
 const computerId = 'cmp_devicestudio0000';
-const title = 'Computer use can’t work on this Mac';
+const title = 'Computer use can’t work on this Mac.';
 
 test('computer use on with a permission missing leads the page with one Fix, rows below', () => {
     const html = renderDevice({ computerUseEnabled: true, screenRecording: 'denied' });
     expect(html).toContain(title);
-    expect(html).toContain(
-        'macOS hasn’t given Haus Computer access, so Captains can’t see or control the screen.'
-    );
+    expect(html).toContain('macOS hasn’t given Haus Computer access.');
     expect(html.match(/>Fix<\/button>/gu)).toHaveLength(1);
     expect(html.indexOf(title)).toBeLessThan(html.indexOf('macOS permissions'));
     expect(html).toContain('Open Settings');
