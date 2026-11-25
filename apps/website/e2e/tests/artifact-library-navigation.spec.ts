@@ -2,6 +2,7 @@ import {
     libraryRows,
     librarySection,
     openWithKeyboard,
+    pickLibraryFilter,
     seedArtifactLibrary,
 } from '../support/artifacts.ts';
 import { createTestServer, runPsql } from '../support/server.ts';
@@ -41,11 +42,10 @@ test('Drive opens on click or Return, selects on Command-click, and Back walks t
     await expect(back).toBeEnabled();
 
     // A filter change replaces the entry, so Back still steps folders.
-    await page.getByRole('button', { name: 'File type: All types', exact: true }).click();
-    await page.getByRole('menuitemradio', { name: 'Documents', exact: true }).click();
+    await pickLibraryFilter(page, 'File type', 'Documents');
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit&kind=documents$/u);
-    await page.getByRole('button', { name: 'File type: Documents', exact: true }).click();
-    await page.getByRole('menuitemradio', { name: 'All types', exact: true }).click();
+    await page.getByRole('button', { name: 'Filter (1 on)', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Clear filters', exact: true }).click();
 
     // A plain click opens a folder.
     await folders.getByRole('row', { name: 'scripts' }).click();
@@ -57,19 +57,19 @@ test('Drive opens on click or Return, selects on Command-click, and Back walks t
         await expect(page).toHaveURL(new RegExp(`${path}$`, 'u'));
     }
 
-    // Every ancestor is a link; the middle of a deep trail folds into a menu; the open folder is not.
+    // The band stops at the area; the path row links every folder in it, the open one not.
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
-    await expect(trail.locator('a[href]')).toHaveText(['Haus', 'Drive', 'b']);
-    await expect(trail.getByText('c', { exact: true })).toHaveAttribute('aria-current', 'page');
-    await trail.getByRole('button', { name: 'Show enclosing places' }).click();
-    const enclosing = page.getByRole('menu', { name: 'Enclosing places' });
-    await expect(enclosing.getByRole('menuitem')).toHaveText([
-        'Haus',
+    await expect(trail.locator('a[href]')).toHaveText(['Haus', 'Drive']);
+    const folderPath = page.getByRole('list', { name: 'File path' });
+    await expect(folderPath.locator('a[href]')).toHaveText([
+        'All files',
         'starter-kit',
         'scripts',
         'a',
+        'b',
     ]);
-    await enclosing.getByRole('menuitem', { name: 'scripts' }).click();
+    await expect(folderPath.getByRole('listitem').last()).toHaveText('c');
+    await folderPath.getByRole('link', { name: 'scripts', exact: true }).click();
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
 
     // Back and Forward walk the history and agree with the browser's.

@@ -67,6 +67,8 @@ export function useArtifactActions(input: {
     fileHref?: (file: ActionFile) => string;
     onOpenFile?: (file: ActionFile) => void;
     onOpenFolder?: (path: string) => void;
+    /** Opens the file's History where it already is (the viewer's side panel). */
+    onShowHistory?: () => void;
     /** Opens `folder` with `key` selected; navigates to the library by default. */
     onShowInFolder?: (folder: string, key: string) => void;
     serverId: string;
@@ -159,9 +161,9 @@ export function useArtifactActions(input: {
                     setMoving([fileTarget(file)]);
                     return;
                 case 'history':
-                    // The viewer scrolls its own Revisions into view; the library opens it there.
-                    if (surface === 'viewer') {
-                        navigate({ hash: 'revisions' }, { replace: true });
+                    // The viewer opens its own History panel; the library opens the file there.
+                    if (input.onShowHistory) {
+                        input.onShowHistory();
                     } else {
                         navigate(`${artifactPath(slug, file.artifact_id)}#revisions`);
                     }

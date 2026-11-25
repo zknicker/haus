@@ -8,7 +8,7 @@ import {
     useArtifactLibrarySort,
 } from './library-sort.ts';
 
-/** The band's sort menu: what files sort by, and which way. */
+/** The grid's sort menu: what files sort by, and which way. The list sorts by its column headers. */
 export function ArtifactSortMenu() {
     const sort = useArtifactLibrarySort();
     const label = librarySortKeys.find((entry) => entry.id === sort.by)?.label ?? 'Modified';
@@ -33,7 +33,7 @@ const directions: readonly {
     { icon: ArrowDown01Icon, id: 'desc', label: 'Descending' },
 ];
 
-/** The sort choices, shared by the band's menu and the compact Filters submenu. */
+/** The sort choices, shared by the grid's sort menu and the folded Filter menu. */
 export function ArtifactSortOptions() {
     const sort = useArtifactLibrarySort();
     return (

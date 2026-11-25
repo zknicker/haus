@@ -51,7 +51,7 @@ test('only desktop tabs route Attachments and artifact pages; both redirect reti
     const paths = (desktop: boolean) =>
         serverPageRoutes({ desktop }).map((route) => route.path ?? '(index)');
     const retiredPage = 'threads/:chatId/:anchorMessageId';
-    const desktopOnly = ['files/:chatId', 'artifacts/:artifactKey'];
+    const desktopOnly = ['files/:chatId', 'artifacts/:artifactKey?'];
     expect(paths(false)).toContain(retiredPage);
     expect(paths(false)).not.toContain(desktopOnly[0]);
     expect(paths(true)).toEqual(expect.arrayContaining([retiredPage, ...desktopOnly]));

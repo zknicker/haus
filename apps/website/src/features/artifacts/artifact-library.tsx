@@ -3,24 +3,20 @@ import * as React from 'react';
 import type { Selection } from 'react-aria-components';
 import { useNavigate } from 'react-router-dom';
 import { useArtifactLibrary } from '../../hooks/artifacts/use-artifact-library.ts';
-import { useArtifactUpload } from '../../hooks/artifacts/use-artifact-upload.ts';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { PageBand } from '../shell/page-band.tsx';
 import { PageColumn } from '../shell/page-column.tsx';
 import { ArtifactActionsContext } from './artifact-actions-context.ts';
 import { ArtifactLibraryContent } from './artifact-library-content.tsx';
 import { ArtifactLibraryContextMenu } from './artifact-library-context-menu.tsx';
-import { ArtifactLibraryControls } from './artifact-library-controls.tsx';
-import { ArtifactSelectionBar } from './artifact-selection-bar.tsx';
-import { ArtifactUploadConfirm, ArtifactUploadStatus } from './artifact-upload-feedback.tsx';
-import { ArtifactUploadMenu } from './artifact-upload-menu.tsx';
+import { ArtifactLibraryFolderRow } from './artifact-library-folder-row.tsx';
+import { ArtifactLibraryTools } from './artifact-library-tools.tsx';
 import {
     driveAcceptsFiles,
     driveAgentName,
     driveFolderLabel,
     driveFolderTiles,
 } from './drive-places.ts';
-import { selectionSummary } from './library-bulk.ts';
 import { rememberLibraryItem } from './library-focus.ts';
 import { libraryItems, selectedLibraryItems } from './library-items.ts';
 import {
@@ -32,29 +28,45 @@ import {
 import { librarySortOrder, sortLibraryFolders, useArtifactLibrarySort } from './library-sort.ts';
 import { libraryTrail } from './library-trail.ts';
 import { useArtifactActions } from './use-artifact-actions.tsx';
+import { type DriveUpload, useDriveUpload } from './use-drive-upload.tsx';
 import { useLibraryDrag } from './use-library-drag.tsx';
 import { useLibraryDrop } from './use-library-drop.ts';
 import { useLibrarySelection } from './use-library-selection.ts';
 import { useSelectionActions } from './use-selection-actions.tsx';
-import { useUploadPickers } from './use-upload-pickers.tsx';
+
+/** What an area's workspace lends the library it hosts. */
+export interface LibraryWorkspace {
+    newFile: { isPending: boolean; run: () => void };
+    root: string;
+    upload: DriveUpload;
+}
 
 /**
  * The Server's shared drive as a Finder-style library: the open folder's
  * child folders, then its own files in the viewer's sort, as one selectable
- * collection. The band carries the drive trail and every control; while
- * several items are selected the controls give way to the selection's
- * actions. Folder, kind, and creator ride the URL; search and the selection
- * stay local to the folder. Files dropped anywhere, or picked from Upload,
- * land in the open folder; library items dragged onto a folder tile or a
- * trail crumb move there. One action owner feeds every menu.
+ * collection. At the Drive root and its shelves the band carries the trail
+ * and every control. Inside an area's workspace the band is only the trail,
+ * identical for folders and files, and the controls sit on the folder's path
+ * row. While several items are selected the controls give way to the
+ * selection's actions. Folder, kind, and creator ride the URL; search and the
+ * selection stay local to the folder. Files dropped anywhere, or picked from
+ * Upload, land in the open folder; library items dragged onto a folder tile or
+ * a crumb move there. One action owner feeds every menu.
  */
-export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: string }) {
+export function ArtifactLibrary({
+    serverId,
+    slug,
+    workspace,
+}: {
+    serverId: string;
+    slug: string;
+    workspace?: LibraryWorkspace;
+}) {
     const params = useArtifactLibraryParams();
     const navigate = useNavigate();
     // Search belongs to the folder it was typed in: opening another clears it.
     const [typed, setTyped] = React.useState({ folder: params.folder, text: '' });
     const search = typed.folder === params.folder ? typed.text : '';
-    const setSearch = (text: string) => setTyped({ folder: params.folder, text });
     const query = React.useDeferredValue(search);
     const sort = useArtifactLibrarySort();
     const filters = { creator: params.creator, folder: params.folder, kind: params.kind };
@@ -67,6 +79,7 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
     const agentName = driveAgentName(agents);
     const acceptsFiles = driveAcceptsFiles(params.folder);
     const searching = query.trim() !== '';
+    const filtered = Boolean(params.creator || searching || params.kind !== 'all');
     const folders = React.useMemo(() => {
         const sorted = sortLibraryFolders(library.folders, sort);
         // The Drive's fixed places stand even while empty; a search lists only what matches.
@@ -76,10 +89,11 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
         () => libraryItems(folders, library.artifacts ?? [], library.publicLinks),
         [folders, library.artifacts, library.publicLinks]
     );
-    const upload = useArtifactUpload(serverId);
+    const empty = library.artifacts?.length === 0 && folders.length === 0 && !filtered;
+    const ownUpload = useDriveUpload(serverId);
+    const upload = workspace?.upload ?? ownUpload;
     const startUpload = (sources: Parameters<typeof upload.start>[0]) =>
-        void upload.start(sources, params.folder);
-    const pickers = useUploadPickers(startUpload);
+        upload.start(sources, params.folder);
     const scrollRef = React.useRef<HTMLDivElement>(null);
     const picked = useLibrarySelection(params.folder, scrollRef, library.artifacts);
     const selection = {
@@ -100,7 +114,7 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
     };
     const { actions, dialogs } = useArtifactActions({
         fileHref: (file) => artifactViewerHref(slug, file.artifact_id, context),
-        folder: query.trim() ? undefined : params.folder,
+        folder: searching ? undefined : params.folder,
         onOpenFile: openFile,
         onOpenFolder: params.openFolder,
         onShowInFolder: (folder, key) => {
@@ -133,69 +147,66 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
         onFiles: startUpload,
         onMove: drag.moveInto,
     });
-    const summary =
-        selection.keys === 'all' && library.hasMore
-            ? `${selectionSummary(selected)} · loaded files only`
-            : selectionSummary(selected);
+    const bandFolder = workspace?.root ?? params.folder;
+    const tools = (
+        <ArtifactLibraryTools
+            acceptsFiles={acceptsFiles}
+            actions={actions}
+            empty={empty}
+            folderName={driveFolderLabel(params.folder, agentName)}
+            params={params}
+            picked={{
+                bulk: bulk.selection,
+                items: selected,
+                onClear: selection.clear,
+                partial: selection.keys === 'all' && library.hasMore,
+            }}
+            placement={workspace ? 'row' : 'band'}
+            search={{
+                onChange: (text) => setTyped({ folder: params.folder, text }),
+                value: search,
+            }}
+            serverId={serverId}
+            upload={upload}
+        />
+    );
 
     return (
         <ArtifactActionsContext value={actions}>
             <PageBand>
                 <PageBand.Trail
-                    crumbs={libraryTrail(slug, filters, drag, agentName)}
-                    current={driveFolderLabel(params.folder, agentName)}
+                    crumbs={libraryTrail(slug, { ...filters, folder: bandFolder }, drag, agentName)}
+                    current={driveFolderLabel(bandFolder, agentName)}
                 />
-                <PageBand.Controls>
-                    {selected.length > 1 ? (
-                        <ArtifactSelectionBar
-                            actions={bulk.selection.actions(selected)}
-                            onClear={selection.clear}
-                            onRun={(id) => bulk.selection.run(id, selected)}
-                            summary={summary}
-                        />
-                    ) : (
-                        <ArtifactLibraryControls
-                            creator={params.creator}
-                            fileFilters={
-                                acceptsFiles || params.kind !== 'all' || params.creator !== null
-                            }
-                            folderName={
-                                params.folder ? driveFolderLabel(params.folder, agentName) : null
-                            }
-                            kind={params.kind}
-                            onCreatorChange={params.selectCreator}
-                            onKindChange={params.selectKind}
-                            onSearchChange={setSearch}
-                            search={search}
-                            serverId={serverId}
-                            uploadMenu={
-                                acceptsFiles ? (
-                                    <ArtifactUploadMenu
-                                        isPending={upload.state.phase === 'planning'}
-                                        onRecentlyDeleted={() =>
-                                            actions.runFolder('recently-deleted', params.folder)
-                                        }
-                                        onUploadFiles={pickers.openFiles}
-                                        onUploadFolder={pickers.openFolder}
-                                    />
-                                ) : null
-                            }
-                        />
-                    )}
-                </PageBand.Controls>
+                {workspace ? null : <PageBand.Controls>{tools}</PageBand.Controls>}
             </PageBand>
+            {workspace ? (
+                <ArtifactLibraryFolderRow
+                    agentName={agentName}
+                    drag={drag}
+                    folder={params.folder}
+                    root={workspace.root}
+                    slug={slug}
+                >
+                    {tools}
+                </ArtifactLibraryFolderRow>
+            ) : null}
             <ArtifactLibraryContextMenu
                 actions={actions}
-                className="artifact-library-drop block min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
+                className={
+                    workspace
+                        ? 'artifact-library-drop flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]'
+                        : 'artifact-library-drop border-separator flex min-h-0 flex-1 flex-col overflow-y-auto border-t [scrollbar-gutter:stable]'
+                }
                 acceptsFiles={acceptsFiles}
                 items={items}
                 onAreaAction={(id) => {
                     if (id === 'recently-deleted') {
                         actions.runFolder(id, params.folder);
                     } else if (id === 'upload-folder') {
-                        pickers.openFolder();
+                        upload.openFolder(params.folder);
                     } else {
-                        pickers.openFiles();
+                        upload.openFiles(params.folder);
                     }
                 }}
                 selection={selection}
@@ -206,22 +217,19 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                 }}
             >
                 <PageColumn
-                    className="artifact-library @container min-h-full gap-6 pt-4"
+                    className="artifact-library @container min-h-full max-w-none gap-4 px-3 pt-1"
                     ref={scrollRef}
                 >
-                    <ArtifactUploadStatus
-                        onCancel={upload.abort}
-                        onDismiss={upload.dismiss}
-                        state={upload.state}
-                    />
+                    {upload.status}
                     <ArtifactLibraryContent
                         dragAndDropHooks={drag.dragAndDropHooks}
                         dropTarget={drop.moveTarget}
-                        filtered={Boolean(params.creator || query.trim() || params.kind !== 'all')}
+                        filtered={filtered}
                         filters={filters}
                         folderName={driveFolderLabel(params.folder, agentName)}
                         folders={folders}
                         library={library}
+                        newFile={workspace?.newFile}
                         onOpenFile={openFile}
                         onOpenFolder={params.openFolder}
                         onShowFolder={(artifact: ArtifactRecord) => {
@@ -234,20 +242,15 @@ export function ArtifactLibrary({ serverId, slug }: { serverId: string; slug: st
                                 },
                             };
                         }}
-                        onUpload={pickers.openFiles}
+                        onUpload={() => upload.openFiles(params.folder)}
                         selection={selection}
                         serverId={serverId}
                     />
                 </PageColumn>
             </ArtifactLibraryContextMenu>
-            {pickers.inputs}
+            {workspace ? null : ownUpload.dialogs}
             {dialogs}
             {bulk.dialogs}
-            <ArtifactUploadConfirm
-                onCancel={upload.cancel}
-                onConfirm={upload.confirm}
-                plan={upload.state.phase === 'confirm' ? upload.state.plan : null}
-            />
         </ArtifactActionsContext>
     );
 }

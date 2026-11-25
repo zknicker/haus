@@ -1,5 +1,4 @@
 import { type ArtifactMetadata, artifactPathKey } from '@haus/api';
-import * as React from 'react';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import type { ArtifactTextSaveOutcome } from './artifact-text-edit.ts';
 
@@ -22,7 +21,6 @@ interface DraftFile {
 type DraftTarget = DraftFile & { baseRevisionId: string };
 
 const drafts = new Map<string, ArtifactTextDraft>();
-const listeners = new Set<() => void>();
 
 export function hasArtifactTextDrafts() {
     return drafts.size > 0;
@@ -66,22 +64,8 @@ export function settleArtifactTextDraft(
     );
 }
 
-export function useArtifactTextDraftBase(file: DraftFile | null) {
-    return React.useSyncExternalStore(subscribe, () =>
-        file ? (findArtifactTextDraft(file)?.baseRevisionId ?? null) : null
-    );
-}
-
-function subscribe(listener: () => void) {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-}
-
 function notify() {
     syncUnloadWarning();
-    for (const listener of listeners) {
-        listener();
-    }
 }
 
 function syncUnloadWarning() {

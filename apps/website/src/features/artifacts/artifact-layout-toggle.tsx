@@ -1,4 +1,5 @@
-import { ToggleButton, ToggleButtonGroup, Tooltip } from '@heroui/react';
+import { Segment } from '@heroui-pro/react';
+import { Tooltip } from '@heroui/react';
 import { GridViewIcon, ListViewIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
@@ -16,32 +17,33 @@ export const libraryLayouts: readonly {
     { icon: GridViewIcon, id: 'grid', label: 'Grid' },
 ];
 
-/** The band's list/grid switch; a narrow band moves it into the Filters menu. */
+/**
+ * The band's list/grid switch, a stock Segment so the open layout wears the
+ * neutral selected-segment material; accent stays for selection. A narrow
+ * band moves it into the Filter menu.
+ */
 export function ArtifactLayoutToggle() {
     const layout = useArtifactLibraryLayout();
     return (
-        <ToggleButtonGroup
+        <Segment
             aria-label="Layout"
-            disallowEmptySelection
-            onSelectionChange={(keys) => {
-                const next = libraryLayouts.find((entry) => keys.has(entry.id));
+            onSelectionChange={(key) => {
+                const next = libraryLayouts.find((entry) => entry.id === key);
                 if (next) {
                     setArtifactLibraryLayout(next.id);
                 }
             }}
-            selectedKeys={[layout]}
-            selectionMode="single"
+            selectedKey={layout}
             size="sm"
         >
-            {libraryLayouts.map((entry, index) => (
+            {libraryLayouts.map((entry) => (
                 <Tooltip delay={0} key={entry.id}>
-                    <ToggleButton aria-label={entry.label} id={entry.id} isIconOnly>
-                        {index > 0 ? <ToggleButtonGroup.Separator /> : null}
+                    <Segment.Item aria-label={entry.label} id={entry.id}>
                         <Icon icon={entry.icon} size={16} />
-                    </ToggleButton>
+                    </Segment.Item>
                     <Tooltip.Content>{entry.label}</Tooltip.Content>
                 </Tooltip>
             ))}
-        </ToggleButtonGroup>
+        </Segment>
     );
 }

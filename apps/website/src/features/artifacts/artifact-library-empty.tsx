@@ -2,6 +2,7 @@ import { type ArtifactMetadata, artifactPathKey, artifactPathParent } from '@hau
 import { EmptyState } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import {
+    FileAddIcon,
     FolderLibraryIcon,
     FolderOpenIcon,
     NoteEditIcon,
@@ -30,6 +31,7 @@ export function ArtifactLibraryEmpty({
     filtered,
     folder,
     folderName,
+    newFile,
     onOpenFile,
     onOpenFolder,
     onUpload,
@@ -38,6 +40,7 @@ export function ArtifactLibraryEmpty({
     filtered: boolean;
     folder: string;
     folderName: string;
+    newFile?: { isPending: boolean; run: () => void };
     onOpenFile: (artifact: ArtifactMetadata) => void;
     onOpenFolder: (path: string) => void;
     onUpload: () => void;
@@ -85,6 +88,7 @@ export function ArtifactLibraryEmpty({
         <EmptyArea
             folder={folder}
             folderName={folderName}
+            newFile={newFile}
             onOpenFile={onOpenFile}
             onUpload={onUpload}
             serverId={serverId}
@@ -95,12 +99,14 @@ export function ArtifactLibraryEmpty({
 function EmptyArea({
     folder,
     folderName,
+    newFile,
     onOpenFile,
     onUpload,
     serverId,
 }: {
     folder: string;
     folderName: string;
+    newFile?: { isPending: boolean; run: () => void };
     onOpenFile: (artifact: ArtifactMetadata) => void;
     onUpload: () => void;
     serverId: string;
@@ -132,13 +138,24 @@ function EmptyArea({
                             isPending={addRules.isPending}
                             onPress={() => addRules.mutate({ folder, title: folderName })}
                             size="sm"
-                            variant="secondary"
+                            variant="outline"
                         >
                             <Icon aria-hidden="true" icon={NoteEditIcon} size={16} />
                             Add instructions
                         </Button>
                     ) : null}
-                    <Button onPress={onUpload} size="sm" variant="secondary">
+                    {newFile ? (
+                        <Button
+                            isPending={newFile.isPending}
+                            onPress={newFile.run}
+                            size="sm"
+                            variant="outline"
+                        >
+                            <Icon aria-hidden="true" icon={FileAddIcon} size={16} />
+                            New file
+                        </Button>
+                    ) : null}
+                    <Button onPress={onUpload} size="sm" variant="outline">
                         <Icon aria-hidden="true" icon={Upload04Icon} size={16} />
                         Upload
                     </Button>
@@ -171,11 +188,11 @@ function MissingFolder({
             </EmptyState.Header>
             <EmptyState.Content className="flex-row gap-2">
                 {parent ? (
-                    <Button onPress={() => onOpenFolder(parent)} size="sm" variant="secondary">
+                    <Button onPress={() => onOpenFolder(parent)} size="sm" variant="outline">
                         Open enclosing folder
                     </Button>
                 ) : null}
-                <Button onPress={() => onOpenFolder('')} size="sm" variant="secondary">
+                <Button onPress={() => onOpenFolder('')} size="sm" variant="outline">
                     Go to {driveRootLabel}
                 </Button>
             </EmptyState.Content>

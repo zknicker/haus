@@ -28,8 +28,8 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'tasks/:taskKey', Component: serverRouteComponent('TaskPageRoute') },
         { path: 'workers/:workerId', Component: serverRouteComponent('WorkerPageRoute') },
         { path: 'activity', Component: serverRouteComponent('ActivityPage') },
-        { path: 'artifacts', Component: serverRouteComponent('SharedArtifactsPage') },
-        { path: 'artifacts/:artifactKey', Component: serverRouteComponent('SharedArtifactsPage') },
+        // One route for Drive and its files, so an area's workspace stays mounted between them.
+        { path: 'artifacts/:artifactKey?', Component: serverRouteComponent('SharedArtifactsPage') },
         // An Agent is a first-class record, so its page lives in the Server
         // layout rather than inside the settings rail.
         { path: 'agents/:agentId', element: <AgentHomeRedirect /> },

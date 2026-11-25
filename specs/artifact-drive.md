@@ -423,16 +423,41 @@ Each committed move or delete batch announces one `artifact.onUpdated` with a nu
 The v1 Drive page replaces the Files page and keeps its library, viewer, and actions.
 
 - The root lists three folders, Haus, Projects, and Agents. Agents holds one folder per Agent.
-- The list layout (the default) draws folders and files alike as rows under Name, Kind, Modified,
-  and Size; the grid draws folder and file tiles. A footer counts the open folder's files and bytes.
-  Where only fixed places stand (the root and its shelves), the band leaves out the file-type and
-  Created by menus. A plain click opens a folder or file; Command- and Shift-click select.
+- The list layout (the default) draws folders and files alike as one-line rows under Name,
+  Updated by, Modified, and Size; the grid draws folder and file tiles. A footer counts the open
+  folder's files and bytes. One Filter button holds the file type and Created by choices; where
+  only fixed places stand (the root and its shelves), the band leaves it out. A plain click opens a
+  folder or file; Command- and Shift-click select.
+- The root and its shelves are full-width lists under a hairline, with Search, Filter, and the
+  layout on the band. Inside an area (Haus, a Project, an Agent) every folder and file opens in one
+  split workspace: the area's tree on the left (from a medium width), and on the right the open
+  folder's list or the open file. The tree stays mounted and keeps what is unfolded, per area,
+  while you move between them; it highlights the open folder or file. URLs are unchanged
+  (`?folder=` for a folder, `/artifacts/<id>?in=` for a file).
+- Inside the workspace the band is only the trail, stopping at the area, and reads the same for a
+  folder and a file. A slim path row over the right pane owns the rest of the path, from All
+  files down; its folder crumbs take dropped library items. A folder's path row carries its
+  controls: Filter, list or grid, and Upload. An empty folder with no filter set shows none of
+  them, since its empty state offers the same.
+- The tree's header reads All files, with New file, Upload, and one Expand all / Collapse all
+  toggle (only when the area has folders). Its filter over names and paths is the area's search
+  and covers the whole area. Pressing a folder opens and unfolds it; pressing a file opens it.
+  An empty area's tree says nothing; the right pane owns the empty state.
+- New file writes `untitled.md` (then `untitled-2.md`, …) into the open folder, or the open file's
+  folder, and opens it with the cursor in the document.
 - An empty area root shows the mascot with Add instructions, which writes the area's `AGENTS.md`
-  and opens it, and Upload.
-- A wide file viewer shows the file's area as a tree beside the preview, with the file's folders
-  open and a filter over names and paths; picking a file there opens it in place.
-- History is the viewer's revision list. Each row names the author (an Agent, a Worker with its
-  Agent, or a person), links the Task, and marks a merged revision.
+  and opens it, New file, and Upload.
+- A file's path row has the area's glyph and crumbs, then View source, History, Copy (a text
+  file's contents, in one click), Download, Save (only while edits are unsaved), and ⋯ File
+  options, which holds the links and the path to copy; Previous and Next show only while the tree
+  is hidden. Text and Markdown read as an unframed centered column on the app's type scale and edit
+  in place. Markdown edits as rendered text only when the editor writes the file back byte for
+  byte; otherwise it renders read-only and View source edits it. Plain text edits as source. A
+  pinned `?revision=` is read-only. Unsaved edits stay in the App's draft store across navigation,
+  and ⌘S saves. An image sits on the pane's canvas with its size and bytes under it.
+- History and Details are tabs of the viewer's side panel (`#revisions`, `#details`). Each
+  History row opens its revision, names the author (an Agent, a Worker with its Agent, or a
+  person), links the Task, and marks a merged revision and the one on screen.
 - Compare renders any two revisions of a text file with `@pierre/diffs` from two `artifact.text`
   reads, so it needs no Server work. It opens on a revision against its parent. A revision that is
   not text offers no Compare.

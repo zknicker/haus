@@ -107,6 +107,17 @@ export function librarySection(page: Page, name: string): Locator {
     return page.getByRole('rowgroup', { name, exact: true });
 }
 
+/** Picks `option` from one of the band's Filter submenus (File type or Created by). */
+export async function pickLibraryFilter(
+    page: Page,
+    submenu: 'Created by' | 'File type',
+    option: string
+) {
+    await page.getByRole('button', { name: /^Filter/u }).click();
+    await page.getByRole('menuitem', { name: new RegExp(`^${submenu}`, 'u') }).click();
+    await page.getByRole('menuitemradio', { name: option }).click();
+}
+
 /** A section's item rows; a date group's label is a header row and is left out. */
 export function libraryRows(section: Locator): Locator {
     return section.getByRole('row').filter({ has: section.page().getByRole('gridcell') });

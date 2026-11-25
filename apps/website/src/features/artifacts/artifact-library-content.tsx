@@ -29,6 +29,7 @@ export function ArtifactLibraryContent({
     folderName,
     folders,
     library,
+    newFile,
     onOpenFile,
     onOpenFolder,
     onShowFolder,
@@ -45,6 +46,7 @@ export function ArtifactLibraryContent({
     folderName: string;
     folders: readonly DriveFolder[];
     library: ArtifactLibrary;
+    newFile?: { isPending: boolean; run: () => void };
     onOpenFile: (artifact: ArtifactMetadata) => void;
     onOpenFolder: (path: string) => void;
     onShowFolder: (artifact: ArtifactRecord) => { href: string; onOpen: () => void };
@@ -75,6 +77,7 @@ export function ArtifactLibraryContent({
                 filtered={filtered}
                 folder={filters.folder}
                 folderName={folderName}
+                newFile={newFile}
                 onOpenFile={onOpenFile}
                 onOpenFolder={onOpenFolder}
                 onUpload={onUpload}

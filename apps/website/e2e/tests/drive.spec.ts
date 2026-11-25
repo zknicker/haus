@@ -28,7 +28,7 @@ test('a member walks Drive from its areas to a file, compares two revisions, and
         /Captains\s*Empty/u,
     ]);
     await expect(upload).toHaveCount(0);
-    const fileType = page.getByRole('button', { name: /^File type:/u });
+    const fileType = page.getByRole('button', { name: 'Filter', exact: true });
     await expect(fileType).toHaveCount(0);
 
     await openWithKeyboard(folders.getByRole('row', { name: 'Captains' }));
@@ -44,9 +44,11 @@ test('a member walks Drive from its areas to a file, compares two revisions, and
     await expect(fileType).toBeVisible();
     await libraryRows(librarySection(page, 'Today')).filter({ hasText: 'notes.txt' }).click();
     await expect(page).toHaveURL(new RegExp(`/artifacts/${notesId}\\?in=haus$`, 'u'));
-    const preview = page.getByRole('region', { name: 'File preview' });
-    await expect(preview).toContainText(seededArtifactText.notes);
+    const source = page.getByRole('textbox', { name: 'Source of notes.txt' });
+    await expect.poll(() => source.inputValue()).toContain(seededArtifactText.notes);
 
+    await page.getByRole('button', { name: 'History', exact: true }).click();
+    await expect(page).toHaveURL(/#revisions$/u);
     const details = page.getByRole('complementary', { name: 'File details' });
     const revisions = details.getByText(/^Revision \d+$/u);
     await expect(revisions).toHaveText(['Revision 2', 'Revision 1']);
@@ -60,7 +62,7 @@ test('a member walks Drive from its areas to a file, compares two revisions, and
     await page.getByRole('button', { name: 'Done', exact: true }).click();
     await expect(page).not.toHaveURL(/compare=/u);
     await expect(changes).toHaveCount(0);
-    await expect(preview).toContainText(seededArtifactText.notes);
+    await expect.poll(() => source.inputValue()).toContain(seededArtifactText.notes);
 
     await details.getByRole('button', { name: 'Revision 1 actions', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Restore', exact: true }).click();

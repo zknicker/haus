@@ -109,6 +109,7 @@ export function useArtifactLibraryParams() {
 
     return {
         ...view,
+        clearFilters: () => go({ ...view, creator: null, kind: 'all' }, true),
         openFolder: (folder: string) => go({ ...view, folder }, false),
         selectCreator: (creator: ArtifactCreator | null) => go({ ...view, creator }, true),
         selectKind: (kind: ArtifactKindFilter) => go({ ...view, kind }, true),

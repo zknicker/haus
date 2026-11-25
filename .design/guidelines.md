@@ -277,9 +277,11 @@ Chrome sits a step back and content comes forward. Do not paint chrome and
 content the same value: that flattens them into one plane and leaves every card
 leaning entirely on its shadow.
 
-**Dark keeps HeroUI's neutrals for the page,** and `--sidebar-surface` and
-`--hairline` stay unset globally there; the rules that read them carry
-`var(…, fallback)` so dark resolves to HeroUI's own values. The desktop shell
+**Dark keeps HeroUI's neutrals for the page,** and steps chrome a notch below
+it: `--sidebar-surface` is `oklch(8.5% 0.004 285.8)` under the 12% page, so the
+sidebar and the canvas never read as one plane. `--hairline` stays unset
+globally there; the rules that read it carry `var(…, fallback)` so dark
+resolves to HeroUI's own values. The desktop shell
 card is the exception: it keeps the same ladder in dark's own lightness range —
 `--shell-canvas` 10.5% under the tabs, `--shell-band-sidebar` 14%, `--shell-card`
 16.5% — and sets `--sidebar-surface` itself. Because the card is lifted, dark
@@ -291,7 +293,8 @@ fill (21%, a step above the card) rather than by shadow. See "Shell variants" in
 | --- | --- | --- | --- | --- | --- | --- |
 | `backdrop` | `rgba(0, 0, 0, 0.5)` | `rgba(0, 0, 0, 0.6)` | `Light: oklch(0% 0 0 / 0.5); Dark: oklch(0% 0 0 / 0.6)` | `--backdrop` | Modal, drawer, and overlay backdrops | Semi-transparent overlay rendered behind modals, drawers, and alert dialogs. |
 | `background` | `#F9F9FA` | `#060606` | `Light: oklch(98.24% 0.0013 286.4); Dark: oklch(12.00% 0.0000 253.83)` | `--background` | `bg-background` | The content plane. See "The light gray ramp" above. |
-| `sidebar surface` | `#EFEFF0` | not set (shell card: `--shell-band-sidebar`) | `Light: oklch(95.24% 0.0013 286.4)` | `--sidebar-surface` | Read by the `.sidebar` rule in `default-theme.css`; not a call-site utility. | The chrome plane, one step back from content. Unset globally in dark; the desktop shell card sets it. |
+| `sidebar surface` | `#EFEFF0` | `#020202` (shell card: `--shell-band-sidebar`) | `Light: oklch(95.24% 0.0013 286.4); Dark: oklch(8.5% 0.004 285.8)` | `--sidebar-surface` | Read by the `.sidebar` rule in `default-theme.css`; not a call-site utility. | The chrome plane, one step back from content. A notch below the page in dark too; the desktop shell card sets its own. |
+| `side pane` | `transparent` | `snow / 2.5% + transparent` | `Light: transparent; Dark: color-mix(in oklab, var(--snow) 2.5%, transparent)` | `--side-pane` | Read by `.drive-tree` and `.artifact-info-panel` in `default-theme.css`; not a call-site utility. | A pane beside content (Drive's tree, file details). Light already steps chrome from content, so it stays on the page; dark lifts it by a faint ink wash so it steps from whatever plane it sits on. |
 | `foreground` | `#18181B` | `#FCFCFC` | `Light: = eclipse; Dark: = snow` | `--foreground` | `text-foreground` | Primary text and icon color. Optimized for readability on backgrounds and surfaces. |
 | `muted` | `#727272` | `#A0A0A0` | `Light: oklch(55.17% 0.0000 253.83); Dark: oklch(70.50% 0.0000 253.83)` | `--muted` | `text-muted` | Secondary text color for less prominent content like placeholders and captions. |
 | `overlay` | `#FFFFFF` | `#181818` | `Light: = white; Dark: oklch(21.03% 0.0000 253.83)` | `--overlay` | `bg-overlay text-overlay-foreground` for floating panels | Background for modals, popovers, and floating panels. |

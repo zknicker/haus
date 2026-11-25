@@ -22,36 +22,73 @@ export interface ArtifactRowFacts {
     title: string | null;
 }
 
-/**
- * "[title · ][folder · ]author · kind · time". A search hit's folder is a link
- * to that folder. With `columns`, a wide list shows kind and time in their own
- * columns, so the line drops them once the library is wide enough for those.
- */
-export function ArtifactRowMeta({
-    columns = false,
-    facts,
-}: {
-    columns?: boolean;
-    facts: ArtifactRowFacts;
-}) {
-    const lead: { key: string; part: ReactNode }[] = [
+/** A grid tile's meta line: "[title · ][folder · ]author · kind · time". A search hit's folder links there. */
+export function ArtifactRowMeta({ facts }: { facts: ArtifactRowFacts }) {
+    const parts: { key: string; part: ReactNode }[] = [
         facts.title === null ? null : { key: 'title', part: facts.title },
         facts.folder ? { key: 'folder', part: <FolderLink folder={facts.folder} /> } : null,
         { key: 'author', part: facts.author },
+        { key: 'kind', part: facts.kind },
+        { key: 'time', part: facts.time },
     ].filter((entry) => entry !== null);
-    const tail = [facts.kind, facts.time];
     return (
         <>
-            {lead.map(({ key, part }, index) => (
+            {parts.map(({ key, part }, index) => (
                 <Fragment key={key}>
                     {index > 0 ? ' · ' : null}
                     {part}
                 </Fragment>
             ))}
-            <span className={columns ? '@2xl:hidden' : undefined}>
-                {tail.map((part) => ` · ${part}`).join('')}
-            </span>
         </>
+    );
+}
+
+/**
+ * The muted words after a list row's name, on the same line: what no column
+ * shows (a title that differs from the name, a search hit's folder link),
+ * then the facts whose columns the library is too narrow to show yet.
+ * Narrow-only parts trail, so the theme's " · " joins stay right.
+ */
+export function ArtifactRowAside({
+    lead,
+    narrow,
+}: {
+    lead: readonly { key: string; part: ReactNode }[];
+    /** Parts that drop once their column appears: `detail` at 42rem, `modified` at 36rem. */
+    narrow: readonly { column: 'detail' | 'modified'; key: string; part: ReactNode }[];
+}) {
+    return (
+        <span className="artifact-row-aside">
+            {lead.map(({ key, part }) => (
+                <span className="artifact-row-aside__part" key={key}>
+                    {part}
+                </span>
+            ))}
+            {narrow.map(({ column, key, part }) => (
+                <span
+                    className={`artifact-row-aside__part artifact-row-aside__part--${column}`}
+                    key={key}
+                >
+                    {part}
+                </span>
+            ))}
+        </span>
+    );
+}
+
+/** A file row's aside: title and search folder always, author and time while narrow. */
+export function FileRowAside({ facts }: { facts: ArtifactRowFacts }) {
+    return (
+        <ArtifactRowAside
+            lead={[
+                facts.title === null ? null : { key: 'title', part: facts.title },
+                facts.folder ? { key: 'folder', part: <FolderLink folder={facts.folder} /> } : null,
+            ].filter((entry) => entry !== null)}
+            narrow={[
+                { column: 'detail', key: 'author', part: facts.author },
+                { column: 'modified', key: 'time', part: facts.time },
+            ]}
+        />
     );
 }
 

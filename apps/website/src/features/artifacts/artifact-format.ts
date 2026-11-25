@@ -66,14 +66,16 @@ export function artifactTimeLabel(value: string, now: number) {
     });
 }
 
-/** A full timestamp for detail rows: "Oct 9, 2026, 3:14 PM". */
-export function formatArtifactDate(value: string) {
-    return new Date(value).toLocaleString(undefined, {
+/** A full timestamp for detail rows: "Oct 9, 3:14 PM", with the year only when it is not this one. */
+export function formatArtifactDate(value: string, now = Date.now()) {
+    const date = new Date(value);
+    const sameYear = date.getFullYear() === new Date(now).getFullYear();
+    return date.toLocaleString(undefined, {
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
         month: 'short',
-        year: 'numeric',
+        ...(sameYear ? {} : { year: 'numeric' }),
     });
 }
 

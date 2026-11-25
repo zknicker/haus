@@ -1,8 +1,6 @@
 import type { ArtifactCreator } from '@haus/api';
-import { Button, Dropdown, Label, Separator } from '@heroui/react';
-import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Dropdown, Label, Separator } from '@heroui/react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { Icon } from '../../components/ui/icon.tsx';
 import { useArtifactCreators } from '../../hooks/artifacts/use-artifact-creators.ts';
 import { artifactCreatorOptions, creatorKey } from './artifact-creators.ts';
 import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';
@@ -15,33 +13,17 @@ interface CreatorFilterProps {
     serverId: string;
 }
 
-/**
- * "Created by", beside the file-type menu and in its shape: Anyone, then You,
- * Agents, and other people who have live files. It narrows the open folder
- * (or the search) to one creator's files; folders count only those files.
- */
-export function ArtifactCreatorMenu(props: CreatorFilterProps) {
-    const label = useCreatorLabel(props.serverId, props.creator);
-    return (
-        <Dropdown>
-            <Button aria-label={`Created by: ${label}`} size="sm" variant="ghost">
-                {label}
-                <Icon aria-hidden="true" icon={ArrowDown01Icon} size={16} />
-            </Button>
-            <Dropdown.Popover placement="bottom end">
-                <ArtifactCreatorOptions {...props} />
-            </Dropdown.Popover>
-        </Dropdown>
-    );
-}
-
 /** The open creator filter's name: "Anyone", "You", or the creator's display name. */
 export function useCreatorLabel(serverId: string, creator: ArtifactCreator | null): string {
     const directory = useArtifactCreatorDirectory(serverId);
     return creator ? directory.name(creator) : 'Anyone';
 }
 
-/** The creator choices, shared by the band's menu and the compact Filters submenu. */
+/**
+ * "Created by" choices, the Filter menu's submenu: Anyone, then You, Agents,
+ * and other people who have live files. One narrows the open folder (or the
+ * search) to that creator's files; folders count only those files.
+ */
 export function ArtifactCreatorOptions({ creator, onCreatorChange, serverId }: CreatorFilterProps) {
     const creators = useArtifactCreators(serverId);
     const directory = useArtifactCreatorDirectory(serverId);

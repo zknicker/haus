@@ -1,6 +1,7 @@
 import { artifactPathKey } from '@haus/api';
 import { FileTree } from '@heroui-pro/react';
 import { SearchField } from '@heroui/react';
+import { ExpandParagraphIcon, ListCollapseIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Collection } from 'react-aria-components';
 import {
@@ -8,37 +9,46 @@ import {
     useDriveTreeSearch,
 } from '../../hooks/artifacts/use-drive-tree-listings.ts';
 import { cn } from '../../lib/utils.ts';
+import { PathIconButton } from './artifact-path-actions.tsx';
 import { artifactFolderTone } from './drive-folders.ts';
 import {
     type DriveTreeNode,
     driveTreeFileId,
+    driveTreeFolderId,
     driveTreeIndex,
     driveTreeMatches,
     driveTreeNodes,
 } from './drive-tree-model.ts';
+import { driveAreaFilesLabel } from './drive-workspace-trail.ts';
 import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';
 import { ArtifactFolderIcon } from './icons/artifact-folder-icon.tsx';
 import { useDriveTreeExpansion } from './use-drive-tree-expansion.ts';
 
+export type DriveTreeOpen =
+    | { artifactId: string; kind: 'file'; path: string }
+    | { kind: 'folder'; path: string };
+
 export function DriveTree({
-    artifactId,
+    actions,
     className,
     label,
     onOpenFile,
-    path,
+    onOpenFolder,
+    open,
     root,
     serverId,
 }: {
-    artifactId: string;
+    actions?: React.ReactNode;
     className?: string;
     label: string;
-    onOpenFile: (artifactId: string) => void;
-    path: string;
+    onOpenFile: (file: { artifactId: string; path: string }) => void;
+    onOpenFolder: (path: string) => void;
+    open: DriveTreeOpen;
     root: string;
     serverId: string;
 }) {
     const [query, setQuery] = React.useState('');
-    const expansion = useDriveTreeExpansion(root, path);
+    const expansion = useDriveTreeExpansion(root, { kind: open.kind, path: open.path });
     const listings = useDriveTreeListings(serverId, [root, ...expansion.folders.values()]);
     const search = useDriveTreeSearch(serverId, root, query);
     const matches = search.artifacts ? driveTreeMatches(root, search.artifacts) : null;
@@ -48,16 +58,41 @@ export function DriveTree({
     const ready = matches !== null || listings.listings.has(artifactPathKey(root));
     const error = search.error ?? listings.error;
     const isPressRef = React.useRef(false);
+    const folders = [...index.values()].filter((node) => node.kind === 'folder');
+    const unopened = folders.filter((node) => !expansion.folders.has(node.id));
+    const cascade = expansion.cascading && !matches && unopened.length > 0;
+    React.useEffect(() => {
+        if (cascade) {
+            expansion.expandAll(unopened);
+        }
+    });
+    const openKey =
+        open.kind === 'file' ? driveTreeFileId(open.artifactId) : driveTreeFolderId(open.path);
+    const anyOpen = expansion.folders.size > 0;
 
     return (
-        <aside aria-label="Files" className={cn('border-separator flex-col border-e', className)}>
-            <h2 className="truncate px-4 pt-4 pb-2 text-sm font-medium">{label}</h2>
+        <aside aria-label="Files" className={cn('drive-tree flex-col', className)}>
+            <div className="drive-tree__header">
+                <h2 className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {driveAreaFilesLabel}
+                </h2>
+                {actions}
+                {folders.length > 0 ? (
+                    <PathIconButton
+                        icon={anyOpen ? ListCollapseIcon : ExpandParagraphIcon}
+                        isDisabled={matches !== null}
+                        label={anyOpen ? 'Collapse all' : 'Expand all'}
+                        onPress={() =>
+                            anyOpen ? expansion.collapseAll() : expansion.expandAll(folders)
+                        }
+                    />
+                ) : null}
+            </div>
             <SearchField
                 aria-label="Filter names and paths"
-                className="px-3 pb-2"
+                className="drive-tree__search"
                 onChange={setQuery}
                 value={query}
-                variant="secondary"
             >
                 <SearchField.Group>
                     <SearchField.SearchIcon />
@@ -98,16 +133,15 @@ export function DriveTree({
                     onSelectionChange={(keys) => {
                         const id = keys === 'all' ? undefined : [...keys].map(String).at(0);
                         const node = id ? index.get(id) : undefined;
-                        if (node?.kind === 'file' && node.artifactId !== artifactId) {
-                            onOpenFile(node.artifactId);
-                        } else if (node?.kind === 'folder' && isPressRef.current && !matches) {
-                            expansion.toggle(node.path);
+                        if (node?.kind === 'file' && node.id !== openKey) {
+                            onOpenFile({ artifactId: node.artifactId, path: node.path });
+                        } else if (node?.kind === 'folder' && isPressRef.current) {
+                            expansion.open(node.path);
+                            onOpenFolder(node.path);
                         }
                     }}
-                    renderEmptyState={() =>
-                        ready ? (matches ? 'No matching files' : 'No files') : null
-                    }
-                    selectedKeys={new Set([driveTreeFileId(artifactId)])}
+                    renderEmptyState={() => (ready && matches ? 'No matching files' : null)}
+                    selectedKeys={new Set([openKey])}
                     selectionBehavior="replace"
                     selectionMode="single"
                 >

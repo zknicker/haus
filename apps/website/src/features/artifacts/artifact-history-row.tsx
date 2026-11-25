@@ -32,43 +32,43 @@ export function ArtifactHistoryRow({
 }) {
     const navigate = useNavigate();
     const number = version.revision_number;
+    const title = `Revision ${number}`;
     return (
-        <ItemCard>
+        <ItemCard className="artifact-history-row" data-viewing={viewHref === null || undefined}>
             <ItemCard.Content>
-                <ItemCard.Title>
-                    Revision {number}
+                <ItemCard.Title className="flex items-center gap-1.5">
+                    {viewHref === null ? (
+                        <span>{title}</span>
+                    ) : (
+                        <Link
+                            {...opensPlace}
+                            aria-label={`View revision ${number}`}
+                            className="artifact-history-row__link"
+                            to={viewHref}
+                        >
+                            {title}
+                        </Link>
+                    )}
+                    {viewHref === null ? (
+                        <Chip color="accent" size="sm" variant="soft">
+                            Viewing
+                        </Chip>
+                    ) : null}
                     {isMergedRevision(version) ? (
-                        <Chip className="ml-2 align-middle" size="sm" variant="soft">
+                        <Chip size="sm" variant="soft">
                             Merged
                         </Chip>
                     ) : null}
                 </ItemCard.Title>
                 <ItemCard.Description>
-                    {directory.name(version.author)} · {formatArtifactBytes(version.size_bytes)}
-                </ItemCard.Description>
-                <ItemCard.Description>
+                    {directory.name(version.author)} · {formatArtifactBytes(version.size_bytes)} ·{' '}
                     {formatArtifactDate(version.updated_at)}
                 </ItemCard.Description>
                 {version.task_id ? (
                     <RevisionTask serverId={serverId} slug={slug} taskId={version.task_id} />
                 ) : null}
             </ItemCard.Content>
-            <ItemCard.Action className="flex items-center gap-1">
-                {viewHref === null ? (
-                    <Chip size="sm" variant="soft">
-                        Viewing
-                    </Chip>
-                ) : (
-                    <Button
-                        {...opensPlace}
-                        aria-label={`View revision ${number}`}
-                        onPress={() => navigate(viewHref)}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        View
-                    </Button>
-                )}
+            <ItemCard.Action>
                 {compareHref || onRestore ? (
                     <Dropdown>
                         <Button

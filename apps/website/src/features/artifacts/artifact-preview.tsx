@@ -4,10 +4,10 @@ import { ImageLightbox } from '../../components/chats/image-lightbox.tsx';
 import { useArtifactDownload } from '../../hooks/artifacts/use-artifact-download.ts';
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
 import { ArtifactFileCard } from './artifact-file-card.tsx';
-import { isPreviewImage } from './artifact-format.ts';
+import { formatArtifactBytes, isPreviewImage } from './artifact-format.ts';
+import type { ViewerStepper } from './artifact-path-actions.tsx';
 import { ArtifactTextPreview } from './artifact-text-preview.tsx';
 import { artifactTextRenderer } from './artifact-text.ts';
-import type { ViewerStepper } from './artifact-viewer-header.tsx';
 
 const playableVideo = ['video/mp4', 'video/webm'];
 const playableAudio = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg', 'audio/webm'];
@@ -68,17 +68,24 @@ function ArtifactMediaPreview({
     if (!previewable || failed || download.error) {
         return <ArtifactFileCard artifact={artifact} serverId={serverId} />;
     }
+    const image = artifact.image;
     return (
         <section aria-label="File preview" className="artifact-preview">
             {url === undefined ? null : isPreviewImage(type) ? (
-                <ArtifactImage
-                    artifact={artifact}
-                    onError={() => setFailed(true)}
-                    serverId={serverId}
-                    startZoomed={startZoomed}
-                    stepper={stepper}
-                    url={url}
-                />
+                <>
+                    <ArtifactImage
+                        artifact={artifact}
+                        onError={() => setFailed(true)}
+                        serverId={serverId}
+                        startZoomed={startZoomed}
+                        stepper={stepper}
+                        url={url}
+                    />
+                    <p className="artifact-preview__caption">
+                        {image ? `${image.width} × ${image.height} · ` : ''}
+                        {formatArtifactBytes(artifact.size_bytes)}
+                    </p>
+                </>
             ) : playableVideo.includes(type) ? (
                 <video aria-label={artifact.title} controls preload="metadata" src={url}>
                     <track kind="captions" />

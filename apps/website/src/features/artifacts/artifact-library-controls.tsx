@@ -1,86 +1,95 @@
 import type { ArtifactCreator } from '@haus/api';
 import { SearchField } from '@heroui/react';
 import type { ReactNode } from 'react';
-import { ArtifactCreatorMenu } from './artifact-creator-menu.tsx';
-import { ArtifactFilterMenu } from './artifact-filter-menu.tsx';
-import { ArtifactKindMenu } from './artifact-kind-menu.tsx';
+import { ArtifactFilterMenu, activeFilterCount } from './artifact-filter-menu.tsx';
 import { ArtifactLayoutToggle } from './artifact-layout-toggle.tsx';
 import { ArtifactSortMenu } from './artifact-sort-menu.tsx';
+import { useArtifactLibraryLayout } from './library-layout.ts';
 import type { ArtifactKindFilter } from './library-params.ts';
 
 /**
- * The library's band controls: search, the file-type and Created by menus,
- * sort, list or grid, then Upload. They trail the drive trail in the shell band, so
- * the page below is all content. Search keeps a fixed width and a short
- * placeholder, so it never squeezes or clips; when the band (the `band`
- * container) is too narrow for every control, the menus and the layout switch
- * fold into one Filters menu instead. Search covers the open folder and every
- * folder under it. Where only fixed places stand (the root and its shelves) the
- * file-type and Created by menus have nothing to narrow, so they stay out of
- * the band unless one is already set.
+ * The library's controls: search (on the band only), one Filter button (File
+ * type and Created by), Sort in the grid (the list sorts by its column
+ * headers), list or grid, then Upload. On the band (the Drive root and its
+ * shelves) they trail the drive trail; inside an area they sit on the open
+ * folder's path row, and the area's tree filter is its search. A folder with
+ * nothing in it and no filter set shows Upload alone, if that. On the band,
+ * when it is too narrow, the layout switch and Sort fold into the Filter menu.
  */
 export function ArtifactLibraryControls({
     creator,
     fileFilters,
-    folderName,
     kind,
+    onClearFilters,
     onCreatorChange,
     onKindChange,
-    onSearchChange,
+    placement,
     search,
     serverId,
+    showView,
     uploadMenu,
 }: {
     creator: ArtifactCreator | null;
-    /** Whether the band offers the file-type and Created by menus. */
+    /** Whether the controls offer the file-type and Created by filters. */
     fileFilters: boolean;
-    /** The open folder's name; null at the drive root. */
-    folderName: string | null;
     kind: ArtifactKindFilter;
+    /** Resets File type and Created by in one URL change. */
+    onClearFilters: () => void;
     onCreatorChange: (creator: ArtifactCreator | null) => void;
     onKindChange: (kind: ArtifactKindFilter) => void;
-    onSearchChange: (value: string) => void;
-    search: string;
+    placement: 'band' | 'row';
+    search: { label: string; onChange: (value: string) => void; value: string } | null;
     serverId: string;
+    /** False on an empty, unfiltered folder: Filter and the layout have nothing to act on. */
+    showView: boolean;
     uploadMenu: ReactNode;
 }) {
+    const layout = useArtifactLibraryLayout();
+    const filter = {
+        creator,
+        fileFilters,
+        kind,
+        onClearFilters,
+        onCreatorChange,
+        onKindChange,
+        serverId,
+    };
+    const filtering = fileFilters || activeFilterCount(kind, creator) > 0;
+    const view = showView ? (
+        <>
+            {filtering ? <ArtifactFilterMenu {...filter} folded={false} /> : null}
+            {layout === 'grid' ? <ArtifactSortMenu /> : null}
+            <ArtifactLayoutToggle />
+        </>
+    ) : null;
     return (
         <>
-            <SearchField
-                aria-label={folderName ? `Search in ${folderName}` : 'Search files'}
-                className="w-36 shrink-0 @min-[40rem]/band:w-44"
-                onChange={onSearchChange}
-                value={search}
-            >
-                <SearchField.Group>
-                    <SearchField.SearchIcon />
-                    <SearchField.Input placeholder="Search" />
-                    <SearchField.ClearButton />
-                </SearchField.Group>
-            </SearchField>
-            <span className="hidden @min-[58rem]/band:contents">
-                {fileFilters ? (
-                    <>
-                        <ArtifactKindMenu kind={kind} onKindChange={onKindChange} />
-                        <ArtifactCreatorMenu
-                            creator={creator}
-                            onCreatorChange={onCreatorChange}
-                            serverId={serverId}
-                        />
-                    </>
-                ) : null}
-                <ArtifactSortMenu />
-                <ArtifactLayoutToggle />
-            </span>
-            <span className="contents @min-[58rem]/band:hidden">
-                <ArtifactFilterMenu
-                    creator={creator}
-                    kind={kind}
-                    onCreatorChange={onCreatorChange}
-                    onKindChange={onKindChange}
-                    serverId={serverId}
-                />
-            </span>
+            {search ? (
+                <SearchField
+                    aria-label={search.label}
+                    className="w-36 shrink-0 @min-[40rem]/band:w-44"
+                    onChange={search.onChange}
+                    value={search.value}
+                >
+                    <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input placeholder="Search" />
+                        <SearchField.ClearButton />
+                    </SearchField.Group>
+                </SearchField>
+            ) : null}
+            {placement === 'row' ? (
+                view
+            ) : (
+                <>
+                    <span className="hidden @min-[48rem]/band:contents">{view}</span>
+                    {showView ? (
+                        <span className="contents @min-[48rem]/band:hidden">
+                            <ArtifactFilterMenu {...filter} folded />
+                        </span>
+                    ) : null}
+                </>
+            )}
             {uploadMenu}
         </>
     );

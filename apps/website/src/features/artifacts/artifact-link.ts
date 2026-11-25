@@ -11,7 +11,7 @@ export async function copyArtifactPathText(path: string) {
     await copyArtifactText(path, 'Path copied', 'Could not copy the path');
 }
 
-async function copyArtifactText(text: string, title: string, failure: string) {
+export async function copyArtifactText(text: string, title: string, failure: string) {
     try {
         await writeClipboardText(text);
         toast.success(title);

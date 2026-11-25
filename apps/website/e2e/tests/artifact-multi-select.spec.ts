@@ -42,7 +42,7 @@ test('Drive selects many items Finder-style and acts on the whole selection', as
     await page.keyboard.press('Escape');
     await expect(selected).toHaveCount(0);
     await expect(bar).toHaveCount(0);
-    await expect(page.getByRole('searchbox')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Filter', exact: true })).toBeVisible();
 
     // Right-clicking inside the selection acts on all of it; outside, it reselects first.
     const notes = items.filter({ hasText: 'notes.txt' });
@@ -130,15 +130,13 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
     await kit.dragTo(kit, { targetPosition: { x: 30, y: 30 } });
     await expect(kit).toHaveCount(1);
 
-    // A trail crumb is a drop target too: the assets folder goes back up to Haus.
+    // A path crumb is a drop target too: the assets folder goes back up to Haus.
     await kit.click();
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit$/u);
     const assets = librarySection(page, 'Folders').getByRole('row', { name: 'assets' });
-    // The product crumb is Haus too; the area's crumb follows Drive.
     const crumb = page
-        .getByRole('navigation', { name: 'Breadcrumb' })
-        .getByRole('link', { name: 'Haus', exact: true })
-        .last();
+        .getByRole('list', { name: 'File path' })
+        .getByRole('link', { name: 'All files', exact: true });
     // Several small moves, so the crumb sees dragenter and dragover as a pointer would give it.
     await assets.hover();
     await page.mouse.down();

@@ -96,9 +96,10 @@ The App's Files section (`features/artifacts/`) is a Finder-style browser in the
 column. Its band is the shared page band: the folder trail (Haus › Files ›
 `starter-kit` › `scripts`, each folder above the open one a link; past three folders the middle
 folds into an ellipsis menu, keeping Files and the parent) and every control: search (fixed width,
-placeholder "Search"), a file-type menu, a Created by menu (Anyone, You, Agents, then other people
-with live files, from `artifact.creators`), list/grid, and Upload. When the band is narrower than
-58rem the two menus and list/grid fold into one Filters menu. Back and Forward are the shell's,
+placeholder "Search"), one Filter button (File type and Created by submenus, Created by listing
+Anyone, You, Agents, then other people with live files, from `artifact.creators`; it shows a count
+only while a filter is set), a sort menu in the grid only, list/grid, and Upload. When the band is
+narrower than 48rem list/grid (and the grid's sort) fold into the Filter menu. Back and Forward are the shell's,
 not Files' own ([React → Shell](../internals/react.md#shell)): opening a folder pushes an entry
 and a filter change replaces it, so they walk folders as part of the tab's ordinary history.
 
@@ -152,17 +153,21 @@ taken from one recursive read of the open folder, never one read per folder), th
 directly in it in the viewer's sort: Name (natural), Modified (the default, newest first, which
 groups files by `updated_at` in the viewer's time zone: Today, Yesterday, weekdays through the
 past week, days this month, months this year, then years), Size, or Kind, either way. The sort is
-per device, set from the band's sort menu or the list's column headers (Name, Kind, Modified, Size,
-each column shown once the library is wide enough). Grid tiles fit the whole image on a neutral
+per device, set from the list's column headers (Name, Modified, Size) or the grid's sort menu,
+which alone offers Kind. The list's detail column reads Files (a right-aligned count) while the
+list holds only folders and Updated by once it holds files; each column shows once the library is
+wide enough, text columns left-aligned and numbers right-aligned. Grid tiles fit the whole image on a neutral
 well. Search reads every file under the open folder (`recursive`) plus the folders whose name
 matches; a hit names its folder relative to the open one as a link there. Kind
 and creator filter files, and folder counts follow them. The folder, kind, and creator ride the URL
 (`?folder=starter-kit/scripts&kind=images&creator=agent:<id>`) so back, reload, and a desktop tab
 return to the same view; search stays local to the folder, and the list/grid choice is per
 device. A folder that holds nothing unfiltered does not exist, so its URL shows "Folder not found"
-with the way back up; an address no route matches shows "Page not found". Rows name the
-file (its path's last segment), with the title first in the meta line when it differs, then kind,
-who last published it (the revision author), and relative time, plus size and the ⋮ menu. Rename changes only the last segment and Move
+with the way back up; an address no route matches shows "Page not found". List rows are
+single lines: the file name (its path's last segment), then in muted text the title when it
+differs and a search hit's folder, plus whichever of author and relative time have no column at
+the current width; then Updated by (the revision author), Modified, Size, and the ⋮ menu. Grid
+tiles keep the full meta line (title, folder, author, kind, time). Rename changes only the last segment and Move
 to… only the folder, both through `artifact.move` (a file move carries its head as
 `base_revision_id`). Pages load 50 at a
 time behind Show more. The page is blank until the first read lands; the empty state appears only

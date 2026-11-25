@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { driveRootLabel } from '../../features/artifacts/drive-places.ts';
+import { driveWorkspaceRoot } from '../../features/artifacts/drive-tree-model.ts';
+import { parseLibrarySearch } from '../../features/artifacts/library-params.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { parseArtifactPageKey } from './desktop-page-paths.ts';
@@ -9,21 +11,24 @@ import { serverRouteModules } from './server-route-modules.ts';
 const ArtifactLibrary = lazy(async () => ({
     default: (await serverRouteModules.artifacts()).ArtifactLibrary,
 }));
-const ArtifactViewer = lazy(async () => ({
-    default: (await import('../../features/artifacts/artifact-viewer.tsx')).ArtifactViewer,
+const DriveWorkspace = lazy(async () => ({
+    default: (await import('../../features/artifacts/drive-workspace.tsx')).DriveWorkspace,
 }));
 const WorkspaceArtifact = lazy(async () => ({
     default: (await import('./artifact-page-route.tsx')).ArtifactPageRoute,
 }));
 
 /**
- * `artifacts` is Drive, the shared library; `artifacts/<id>` one shared file. A
- * workspace target key (`workspaceFile:<agent>:<path>`) is a desktop artifact
- * page from an Agent's workspace instead.
+ * `artifacts` is Drive, the shared library; `artifacts/<id>` one shared file.
+ * The Drive root and its shelves are a full-page list; an area's folders and
+ * every file open in one workspace that keeps the area's tree mounted between
+ * them. A workspace target key (`workspaceFile:<agent>:<path>`) is a desktop
+ * artifact page from an Agent's workspace instead.
  */
 export function SharedArtifactsPage() {
     const { server } = useServerContext();
     const { artifactKey } = useParams();
+    const [params] = useSearchParams();
     const workspacePage = artifactKey ? parseArtifactPageKey(artifactKey) !== null : false;
     useWindowTitle(workspacePage ? 'Workspace' : driveRootLabel);
     if (workspacePage) {
@@ -33,13 +38,13 @@ export function SharedArtifactsPage() {
             </Suspense>
         );
     }
+    const inArea = driveWorkspaceRoot(parseLibrarySearch(params).folder) !== null;
     return (
         <section aria-label={driveRootLabel} className="flex min-h-0 flex-1 flex-col">
             <Suspense fallback={null}>
-                {artifactKey ? (
-                    <ArtifactViewer
-                        artifactId={artifactKey}
-                        key={artifactKey}
+                {artifactKey || inArea ? (
+                    <DriveWorkspace
+                        artifactId={artifactKey ?? null}
                         serverId={server.id}
                         slug={server.slug}
                     />

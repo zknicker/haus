@@ -1,5 +1,5 @@
 import { ItemCardGroup } from '@heroui-pro/react';
-import { Button, Separator } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { Fragment } from 'react';
 import { useArtifactRestore } from '../../hooks/artifacts/use-artifact-restore.ts';
 import { useArtifactVersions } from '../../hooks/artifacts/use-artifact-versions.ts';
@@ -34,14 +34,10 @@ export function ArtifactHistory({
         return base ? viewHref({ compare: base, revision: pinned(revisionId) }) : null;
     };
     return (
-        <ItemCardGroup id="revisions" variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>History</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
+        <ItemCardGroup aria-label="History" id="revisions" variant="transparent">
             {revisions.error ? <p role="alert">{revisions.error.message}</p> : null}
-            {versions.map((version, index) => (
+            {versions.map((version) => (
                 <Fragment key={version.revision_id}>
-                    {index > 0 ? <Separator /> : null}
                     <ArtifactHistoryRow
                         compareHref={compareHref(version.revision_id)}
                         directory={directory}

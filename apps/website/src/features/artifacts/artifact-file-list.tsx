@@ -5,17 +5,17 @@ import { formatArtifactBytes } from './artifact-format.ts';
 import { ArtifactInlineRename } from './artifact-inline-rename.tsx';
 import { PublicLinkMark } from './artifact-public-link-mark.tsx';
 import { ArtifactRowMenu } from './artifact-row-menu.tsx';
-import { type ArtifactRow, ArtifactRowMeta } from './artifact-row-meta.tsx';
+import { type ArtifactRow, FileRowAside } from './artifact-row-meta.tsx';
 import { ArtifactThumbnail } from './artifact-thumbnail.tsx';
 import { useLibraryItemPress } from './library-selection.ts';
 
 export type { ArtifactRow } from './artifact-row-meta.tsx';
 
 /**
- * One file as a standalone secondary ListView row of the library's list:
- * thumbnail, file name, meta, then the Kind, Modified, and Size columns the
- * list header names (each once the library is wide enough), and the ⋮ menu.
- * A row being renamed shows its name as a field.
+ * One file as a single-line secondary ListView row of the library's list:
+ * icon, file name and its aside, then the Updated by, Modified, and Size
+ * columns the list header names (each once the library is wide enough), and
+ * the ⋮ menu. A row being renamed shows its name as a field.
  */
 export function ArtifactFileRow({
     onOpen,
@@ -29,6 +29,7 @@ export function ArtifactFileRow({
     const actions = useArtifactActionsContext();
     const openOnPress = useLibraryItemPress();
     const { artifact, facts, publicLink } = row;
+    const renaming = actions.renaming?.kind === 'file' && actions.renaming.path === artifact.path;
     return (
         <ListView.Item
             {...opensPlace}
@@ -38,35 +39,30 @@ export function ArtifactFileRow({
             textValue={artifact.filename}
         >
             <ListView.ItemContent>
-                <ArtifactThumbnail artifact={artifact} serverId={serverId} size={32} />
-                <div className="flex min-w-0 flex-1 flex-col">
-                    {actions.renaming?.kind === 'file' &&
-                    actions.renaming.path === artifact.path ? (
-                        <ArtifactInlineRename
-                            onDone={actions.endRename}
-                            serverId={serverId}
-                            target={actions.renaming}
-                        />
-                    ) : (
-                        <span className="flex min-w-0 items-center gap-1.5">
-                            <ListView.Title>{artifact.filename}</ListView.Title>
-                            {publicLink ? <PublicLinkMark /> : null}
-                        </span>
-                    )}
-                    <ListView.Description>
-                        <ArtifactRowMeta columns facts={facts} />
-                    </ListView.Description>
-                </div>
+                <ArtifactThumbnail artifact={artifact} serverId={serverId} size={20} />
+                {renaming && actions.renaming ? (
+                    <ArtifactInlineRename
+                        onDone={actions.endRename}
+                        serverId={serverId}
+                        target={actions.renaming}
+                    />
+                ) : (
+                    <span className="artifact-row-name">
+                        <ListView.Title>{artifact.filename}</ListView.Title>
+                        {publicLink ? <PublicLinkMark /> : null}
+                        <FileRowAside facts={facts} />
+                    </span>
+                )}
             </ListView.ItemContent>
             <ListView.ItemAction>
-                <div className="flex items-center gap-3">
-                    <span className="artifact-column artifact-column--kind">{facts.kind}</span>
+                <span className="artifact-row-columns">
+                    <span className="artifact-column artifact-column--detail">{facts.author}</span>
                     <span className="artifact-column artifact-column--modified">{facts.time}</span>
                     <span className="artifact-column artifact-column--size">
                         {formatArtifactBytes(artifact.size_bytes)}
                     </span>
                     <ArtifactRowMenu artifact={artifact} publicLink={publicLink} />
-                </div>
+                </span>
             </ListView.ItemAction>
         </ListView.Item>
     );

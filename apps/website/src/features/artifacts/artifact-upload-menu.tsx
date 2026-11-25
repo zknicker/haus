@@ -25,7 +25,7 @@ export function ArtifactUploadMenu({
     const run = { deleted: onRecentlyDeleted, files: onUploadFiles, folder: onUploadFolder };
     return (
         <Dropdown>
-            <Button isPending={isPending} size="sm" variant="secondary">
+            <Button isPending={isPending} size="sm" variant="outline">
                 <Icon aria-hidden="true" icon={Upload04Icon} size={16} />
                 Upload
             </Button>

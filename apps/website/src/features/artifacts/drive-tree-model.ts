@@ -27,8 +27,7 @@ export interface DriveTreeListing {
     folders: readonly { name: string; path: string }[];
 }
 
-export function driveTreeRoot(path: string) {
-    const folder = artifactPathParent(path);
+export function driveWorkspaceRoot(folder: string) {
     const place = drivePlace(folder);
     if (place.kind === 'area') {
         return place.area.root;
@@ -36,7 +35,16 @@ export function driveTreeRoot(path: string) {
     if (place.kind === 'legacy') {
         return folder.split('/')[0] ?? '';
     }
-    return folder;
+    return null;
+}
+
+export function driveTreeRoot(path: string) {
+    const folder = artifactPathParent(path);
+    return driveWorkspaceRoot(folder) ?? folder;
+}
+
+export function driveTreeFolderAncestors(root: string, folder: string) {
+    return driveTreeAncestors(root, `${folder}/`);
 }
 
 export function driveTreeAncestors(root: string, path: string) {

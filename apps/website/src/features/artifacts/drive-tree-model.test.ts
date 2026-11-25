@@ -1,10 +1,12 @@
 import { expect, test } from 'bun:test';
 import {
     driveTreeAncestors,
+    driveTreeFolderAncestors,
     driveTreeIndex,
     driveTreeMatches,
     driveTreeNodes,
     driveTreeRoot,
+    driveWorkspaceRoot,
 } from './drive-tree-model.ts';
 
 const file = (path: string, artifact_id = path) => ({
@@ -25,6 +27,23 @@ test('a file roots its tree at its Drive area, shelf, or legacy top folder', () 
     expect(driveTreeRoot('projects/loose.md')).toBe('projects');
     expect(driveTreeRoot('starter-kit/scripts/run.sh')).toBe('starter-kit');
     expect(driveTreeRoot('readme.md')).toBe('');
+});
+
+test('only area and legacy folders open beside a tree', () => {
+    expect(driveWorkspaceRoot('haus/specs')).toBe('haus');
+    expect(driveWorkspaceRoot('projects/acme/specs')).toBe('projects/acme');
+    expect(driveWorkspaceRoot('agents/blippy')).toBe('agents/blippy');
+    expect(driveWorkspaceRoot('starter-kit/scripts')).toBe('starter-kit');
+    expect(driveWorkspaceRoot('projects')).toBeNull();
+    expect(driveWorkspaceRoot('')).toBeNull();
+});
+
+test('an open folder reveals itself and every folder between it and the root', () => {
+    expect(driveTreeFolderAncestors('haus', 'haus/specs/v2')).toEqual([
+        'haus/specs',
+        'haus/specs/v2',
+    ]);
+    expect(driveTreeFolderAncestors('haus', 'haus')).toEqual([]);
 });
 
 test('ancestors run from below the root to the file folder, outermost first', () => {

@@ -1,44 +1,34 @@
-import { type ArtifactRecord, artifactPathKey, artifactPathParent } from '@haus/api';
+import { artifactPathParent } from '@haus/api';
 import * as React from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
-import type { BandCrumb } from '../shell/band-trail.ts';
 import { PageBand } from '../shell/page-band.tsx';
-import { PageColumn } from '../shell/page-column.tsx';
 import { ArtifactActionsContext } from './artifact-actions-context.ts';
 import { parseRevisionView, type RevisionView, revisionViewHref } from './artifact-compare-url.ts';
-import { ArtifactCompare } from './artifact-compare.tsx';
-import { ArtifactInspector } from './artifact-inspector.tsx';
+import { ArtifactFilePane } from './artifact-file-pane.tsx';
+import { ArtifactInfoPanel, useArtifactInfoPanel } from './artifact-info-panel.tsx';
 import { pinnedBehindHead } from './artifact-pinned-revision.ts';
-import { ArtifactPreview } from './artifact-preview.tsx';
-import { useArtifactTextDraftBase } from './artifact-text-drafts.ts';
-import { artifactTextEditable } from './artifact-text-edit.ts';
-import { ArtifactTextEditor } from './artifact-text-editor.tsx';
 import { artifactTextRenderer } from './artifact-text.ts';
-import { ArtifactViewerHeader } from './artifact-viewer-header.tsx';
-import { artifactFolderCrumbs } from './drive-folders.ts';
-import { driveAgentName, driveFolderLabel, driveRootLabel } from './drive-places.ts';
+import { artifactFolderTone } from './drive-folders.ts';
+import { driveAgentName } from './drive-places.ts';
 import { driveTreeRoot } from './drive-tree-model.ts';
-import { DriveTree } from './drive-tree.tsx';
+import { workspaceBandTrail, workspacePathCrumbs } from './drive-workspace-trail.ts';
+import { ArtifactFolderIcon } from './icons/artifact-folder-icon.tsx';
 import { rememberLibraryItem } from './library-focus.ts';
-import { artifactViewerHref, libraryHref, parseViewerContext } from './library-params.ts';
+import { artifactViewerHref, parseViewerContext } from './library-params.ts';
 import { useArtifactActions } from './use-artifact-actions.tsx';
 import { useViewerStepKeys, useViewerSteps } from './use-viewer-steps.ts';
 
 /**
- * One shared file. The band shows where it lives in the Drive, each folder a
- * way back into the library; the heading and the tab keep its title. Below:
- * a calm header, the preview, and details with History beside it (below it
- * in a narrow pane). `?revision=` pins a revision; without it the page
- * follows the current one. `?compare=` puts a text file's preview in
- * Compare mode, from that revision to the one on screen. Edit swaps a
- * current text file's preview and details for a plain-text editor, and
- * holds previous/next until it closes; an unsaved draft reopens it on the
- * draft's own base. Opened from the
+ * One shared file, the right side of its area's workspace. The band stops at
+ * the area; the file pane opens on a slim path row (crumbs, then View source,
+ * History, Copy, Save, ⋯) over the file: text and Markdown as a document you
+ * edit in place, anything else as its preview. `?revision=` pins a read-only
+ * revision; `?compare=` puts a text file in Compare mode. `#revisions` or
+ * `#details` open the side panel on History or Details. Opened from the
  * library, the URL carries that folder view (`?in=`), and previous/next
- * (buttons, ← →, and the zoom viewer's arrows) step through its files in
- * place.
+ * (← →, and the buttons while the tree is hidden) step through its files.
  */
 export function ArtifactViewer({
     artifactId,
@@ -58,18 +48,20 @@ export function ArtifactViewer({
     const query = useArtifact(serverId, artifactId, pinnedRevisionId);
     const head = useArtifact(serverId, artifactId);
     const artifact = query.data?.artifact;
-    const agents = useAgentAppearances(serverId);
+    const agentName = driveAgentName(useAgentAppearances(serverId));
+    const info = useArtifactInfoPanel();
     const viewHref = (next: RevisionView) =>
         revisionViewHref(artifactViewerHref(slug, artifactId, context), next);
-    const compareFrom = artifact && artifactTextRenderer(artifact) ? view.compare : null;
-    const { actions, dialogs } = useArtifactActions({ serverId, slug, surface: 'viewer' });
+    const { actions, dialogs } = useArtifactActions({
+        onShowHistory: () => info.open('revisions'),
+        serverId,
+        slug,
+        surface: 'viewer',
+    });
     const steps = useViewerSteps(serverId, artifactId, context);
-    const scrollRef = React.useRef<HTMLDivElement>(null);
-    useRevisionsAnchor(scrollRef, artifact !== undefined);
     const stepTo = (next: { artifact_id: string } | null, zoomed: boolean) =>
         next && context
             ? () => {
-                  // Back from the viewer lands on the file it stepped to.
                   rememberLibraryItem(context.folder, next.artifact_id);
                   navigate(artifactViewerHref(slug, next.artifact_id, context), {
                       replace: true,
@@ -77,187 +69,77 @@ export function ArtifactViewer({
                   });
               }
             : undefined;
-    const treeRoot = artifact ? driveTreeRoot(artifact.path) : null;
-    const openFromTree = (nextId: string) => {
-        if (context) {
-            rememberLibraryItem(context.folder, nextId);
-        }
-        navigate(artifactViewerHref(slug, nextId, context), { replace: true });
-    };
-    const pinned = pinnedRevisionId !== undefined;
-    const { closeEditor, editRevisionId, onEdit } = useViewerEdit({
-        artifact,
-        artifactId,
-        pinned,
-        serverId,
-    });
     const stepper = (zoomed: boolean) =>
-        context && !editRevisionId
+        context
             ? { onNext: stepTo(steps.next, zoomed), onPrevious: stepTo(steps.previous, zoomed) }
             : null;
     useViewerStepKeys(stepper(false) ?? {});
+    const root = artifact ? driveTreeRoot(artifact.path) : null;
+    const trail = root === null ? null : workspaceBandTrail(slug, root, agentName);
 
     return (
         <ArtifactActionsContext value={actions}>
             <PageBand>
-                <PageBand.Trail
-                    crumbs={artifact ? artifactViewerCrumbs(slug, artifact.path, agents) : []}
-                    current={artifact?.filename ?? ''}
-                />
+                <PageBand.Trail crumbs={trail?.crumbs ?? []} current={trail?.current ?? ''} />
             </PageBand>
-            <div className="@container/viewer flex min-h-0 flex-1">
-                {artifact && treeRoot !== null ? (
-                    <DriveTree
-                        artifactId={artifactId}
-                        className="hidden w-64 shrink-0 @5xl/viewer:flex"
-                        key={artifactPathKey(treeRoot)}
-                        label={driveFolderLabel(treeRoot, driveAgentName(agents))}
-                        onOpenFile={openFromTree}
-                        path={artifact.path}
-                        root={treeRoot}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                {query.error ? (
+                    <p className="p-6" role="alert">
+                        {query.error.message}
+                    </p>
+                ) : artifact && root !== null ? (
+                    <ArtifactFilePane
+                        artifact={artifact}
                         serverId={serverId}
+                        view={{
+                            compareFrom: artifactTextRenderer(artifact) ? view.compare : null,
+                            crumbs: workspacePathCrumbs(
+                                slug,
+                                root,
+                                artifactPathParent(artifact.path)
+                            ),
+                            glyph: <ArtifactFolderIcon size={14} tone={artifactFolderTone(root)} />,
+                            info,
+                            latestHref: pinnedBehindHead(
+                                pinnedRevisionId,
+                                head.data?.artifact.revision_id
+                            )
+                                ? artifactViewerHref(slug, artifactId, context)
+                                : null,
+                            onCompareView: (next, options) =>
+                                navigate(`${viewHref(next)}${location.hash}`, options),
+                            pinnedRevisionId,
+                            startEditing: entryFlag(location.state, 'editing'),
+                            startZoomed: entryFlag(location.state, 'zoomed'),
+                            stepper: stepper(false),
+                            zoomStepper: stepper(true),
+                        }}
                     />
-                ) : null}
-                <div
-                    className="min-h-0 min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
-                    ref={scrollRef}
-                >
-                    <PageColumn className="@container">
-                        {query.error ? (
-                            <p role="alert">{query.error.message}</p>
-                        ) : artifact ? (
-                            <>
-                                <ArtifactViewerHeader
-                                    artifact={artifact}
-                                    latestHref={
-                                        pinnedBehindHead(
-                                            pinnedRevisionId,
-                                            head.data?.artifact.revision_id
-                                        )
-                                            ? artifactViewerHref(slug, artifactId, context)
-                                            : null
-                                    }
-                                    onEdit={onEdit}
-                                    pinned={pinned}
-                                    serverId={serverId}
-                                    stepper={stepper(false)}
-                                />
-                                {editRevisionId ? (
-                                    <ArtifactTextEditor
-                                        artifact={artifact}
-                                        onClose={closeEditor}
-                                        revisionId={editRevisionId}
-                                        serverId={serverId}
-                                    />
-                                ) : (
-                                    <div className="grid min-w-0 items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_18rem]">
-                                        {compareFrom ? (
-                                            <ArtifactCompare
-                                                artifact={artifact}
-                                                fromRevisionId={compareFrom}
-                                                onView={(next, options) =>
-                                                    navigate(viewHref(next), options)
-                                                }
-                                                serverId={serverId}
-                                            />
-                                        ) : (
-                                            <ArtifactPreview
-                                                artifact={artifact}
-                                                key={artifact.revision_id}
-                                                serverId={serverId}
-                                                startZoomed={isZoomedEntry(location.state)}
-                                                stepper={stepper(true)}
-                                            />
-                                        )}
-                                        <ArtifactInspector
-                                            artifact={artifact}
-                                            serverId={serverId}
-                                            slug={slug}
-                                            viewHref={viewHref}
-                                        />
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <section
-                                aria-busy="true"
-                                aria-label="Loading file"
-                                className="min-h-32"
-                            />
-                        )}
-                    </PageColumn>
-                </div>
+                ) : (
+                    <section aria-busy="true" aria-label="Loading file" className="min-h-32" />
+                )}
             </div>
+            {artifact && info.section ? (
+                <ArtifactInfoPanel
+                    artifact={artifact}
+                    onClose={info.close}
+                    onSection={info.open}
+                    section={info.section}
+                    serverId={serverId}
+                    slug={slug}
+                    viewHref={viewHref}
+                />
+            ) : null}
             {dialogs}
         </ArtifactActionsContext>
     );
 }
 
-/** The revision an edit started from, kept while live updates move the head. */
-interface EditTarget {
-    artifactId: string;
-    revisionId: string;
-}
-
-function useViewerEdit(view: {
-    artifact: ArtifactRecord | undefined;
-    artifactId: string;
-    pinned: boolean;
-    serverId: string;
-}) {
-    const { artifact, artifactId, pinned, serverId } = view;
-    const [editing, setEditing] = React.useState<EditTarget | null>(null);
-    const draftBase = useArtifactTextDraftBase(artifact ? { path: artifact.path, serverId } : null);
-    const ownEdit = editing?.artifactId === artifactId ? editing.revisionId : null;
-    const editRevisionId = pinned ? null : (ownEdit ?? draftBase);
-    const editable = artifact && !editRevisionId && artifactTextEditable(artifact, { pinned });
-    return {
-        closeEditor: () => setEditing(null),
-        editRevisionId,
-        onEdit: editable
-            ? () => setEditing({ artifactId, revisionId: artifact.revision_id })
-            : null,
-    };
-}
-
-function isZoomedEntry(state: unknown): boolean {
+function entryFlag(state: unknown, flag: 'editing' | 'zoomed') {
     return (
-        typeof state === 'object' && state !== null && 'zoomed' in state && state.zoomed === true
+        typeof state === 'object' &&
+        state !== null &&
+        flag in state &&
+        Reflect.get(state, flag) === true
     );
-}
-
-/**
- * History (a file menu action) lands on `#revisions`: once the file
- * is on screen, its History scrolls into view.
- */
-function useRevisionsAnchor(page: React.RefObject<HTMLElement | null>, ready: boolean) {
-    const { hash } = useLocation();
-    React.useEffect(() => {
-        if (ready && hash === '#revisions') {
-            // Scoped to this page: kept desktop tabs may hold other viewers.
-            page.current?.querySelector('#revisions')?.scrollIntoView({ block: 'start' });
-        }
-    }, [hash, page, ready]);
-}
-
-/**
- * Drive, then each folder above the file, every one opening that place in
- * the library. An Agent's folder reads as the Agent's name.
- */
-function artifactViewerCrumbs(
-    slug: string,
-    path: string,
-    agents: readonly { displayName: string; handle: string }[]
-): BandCrumb[] {
-    const root = { creator: null, folder: '', kind: 'all' } as const;
-    const agentName = (handle: string) =>
-        agents.find((agent) => artifactPathKey(agent.handle) === artifactPathKey(handle))
-            ?.displayName;
-    return [
-        { href: libraryHref(slug, root), label: driveRootLabel },
-        ...artifactFolderCrumbs(artifactPathParent(path)).map((crumb) => ({
-            href: libraryHref(slug, { ...root, folder: crumb.path }),
-            label: driveFolderLabel(crumb.path, agentName),
-        })),
-    ];
 }

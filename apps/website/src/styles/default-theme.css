@@ -199,10 +199,30 @@
 
     /* Supporting copy on a `--danger-soft` fill: the title's red, eased toward the ink. */
     --danger-soft-muted: color-mix(in oklab, var(--danger-soft-foreground) 65%, var(--foreground));
+
+    /*
+     * A side pane beside content (Drive's tree and file details). Light already
+     * steps chrome from content, so the pane stays on the page.
+     */
+    --side-pane: transparent;
 }
 
 [data-theme="dark"],
 .dark {
+    /*
+     * Dark flattens every plane onto near-black, so a side pane lifts by a
+     * faint wash of the ink: a step from whatever plane it sits on, the page
+     * or the desktop shell card.
+     */
+    --side-pane: color-mix(in oklab, var(--snow) 2.5%, transparent);
+
+    /*
+     * Chrome a notch back from the 12% page, as the palette themes and light
+     * mode step it, so the sidebar and the canvas stop reading as one plane.
+     * The desktop shell card sets its own ladder over this.
+     */
+    --sidebar-surface: oklch(8.5% 0.004 285.8);
+
     --reaction-puff: rgba(120, 122, 134, 0.45);
     --reaction-speck: rgba(170, 172, 184, 0.7);
     --reaction-diecut: #0a0a0b;
@@ -1194,9 +1214,9 @@
     /*
      * A secondary navigation rail (the workspace file rail, the Skills
      * browser) sits on the same ground as the primary sidebar — one token,
-     * so every sidebar-shaped surface tints together. Dark themes define no
-     * `--sidebar-surface`, so there it stays the page background, exactly
-     * like the primary sidebar does.
+     * so every sidebar-shaped surface tints together, in dark (a notch below
+     * the page) as in light. A theme without `--sidebar-surface` keeps the page
+     * background, exactly like the primary sidebar does.
      */
     .sub-sidebar {
         background-color: var(--sidebar-surface, var(--background));
@@ -1741,9 +1761,8 @@
     /*
      * App chrome sits one step back from content. HeroUI paints `.sidebar` with
      * `--background`, which is the content plane — the two then read as one
-     * flat field. Dark leaves `--sidebar-surface` unset globally, so the
-     * fallback keeps it on `--background`; the desktop shell card sets it in
-     * both themes (see "Shell variants").
+     * flat field. Dark sets `--sidebar-surface` a notch below its 12% page;
+     * the desktop shell card sets its own in both themes (see "Shell variants").
      */
     .sidebar {
         background-color: var(--sidebar-surface, var(--background));
@@ -1760,9 +1779,8 @@
      * hover, and the update pill all went nearly invisible at once. Same
      * offset, measured from the tinted surface instead.
      *
-     * Light only, and by the same test as the tint above: dark has no
-     * `--sidebar-surface`, so its sidebar is still `--background` and
-     * `--default` still lands where HeroUI put it.
+     * Light only: dark's sidebar sits darker than its page, so HeroUI's
+     * `--default` already separates from it.
      */
     [data-theme="light"] .sidebar,
     [data-theme="default"] .sidebar,
@@ -2512,11 +2530,11 @@
     }
 
     /*
-     * A Files viewer's header puts the file's actions (Public link, ⋮) at the
-     * column's top end, right where a toast lands; while one is open, toasts
-     * hang below that header instead of covering what they confirm.
+     * A Files viewer's path row puts the file's actions (Save, Copy, ⋯) at the
+     * pane's top end, right where a toast lands; while one is open, toasts
+     * hang below that row instead of covering what they confirm.
      */
-    :root:has(.artifact-viewer-header) .toast-region--top-end {
+    :root:has(.artifact-path-row) .toast-region--top-end {
         top: calc(var(--app-shell-band-height) + var(--spacing) * 24);
     }
 
@@ -3274,16 +3292,17 @@
 
     /*
      * Dark sheets stay paper, like a desktop's dark-mode file icons: a light
-     * neutral a step below white so it does not glare, with the light mixes
-     * and a slightly stronger tint so the kind reads at a glance.
+     * neutral well below white, so a column of them beside the names (the
+     * list, the tree) does not glare, with the light mixes and a slightly
+     * stronger tint so the kind reads at a glance.
      */
     :is([data-theme="dark"], .dark) .artifact-icon,
     .artifact-icon:is([data-theme="dark"], .dark) {
-        --artifact-icon-paper: oklch(93% 0.003 286);
+        --artifact-icon-paper: oklch(80% 0.004 286);
         --artifact-icon-sheet-top: color-mix(in oklab, var(--artifact-icon-hue) 6%, var(--artifact-icon-paper));
         --artifact-icon-sheet-bottom: color-mix(in oklab, var(--artifact-icon-hue) 16%, var(--artifact-icon-paper));
         --artifact-icon-fold: color-mix(in oklab, var(--artifact-icon-hue) 34%, var(--artifact-icon-paper));
-        --artifact-icon-edge: color-mix(in oklab, var(--artifact-icon-hue) 50%, transparent);
+        --artifact-icon-edge: color-mix(in oklab, var(--artifact-icon-hue) 40%, transparent);
     }
 
     /* Dark panels mix toward a lifted gray, not black, so warm tones stay gold instead of going brown. */
@@ -3418,6 +3437,17 @@
         color: var(--muted);
     }
 
+    /* In the list, a date group is Capy's quiet full-width group bar over its rows. */
+    .artifact-file-run > .artifact-group-label {
+        display: flex;
+        align-items: center;
+        min-height: calc(var(--spacing) * 7);
+        margin-block-end: calc(var(--spacing) * 0.5);
+        border-radius: calc(var(--radius) * 1.5);
+        background: color-mix(in oklab, var(--foreground) 4%, transparent);
+        font-weight: 500;
+    }
+
     /*
      * An empty Drive area, Capy's way: the mascot in a quiet tint over the
      * page's middle, then the title, the hint, and what would fill it.
@@ -3433,13 +3463,27 @@
         opacity: 0.35;
     }
 
-    /* How much the open folder holds, under its last row like Finder's status bar. */
+    /*
+     * How much the open folder holds, Finder's status bar: on a hairline under
+     * the last row, its total ending flush with the Size column's numbers:
+     * the row inset, plus the ⋮ box and its gap where file rows hold one.
+     */
     .artifact-library-footer {
+        padding-block-start: calc(var(--spacing) * 2);
         padding-inline: var(--artifact-library-inset);
+        border-top: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
         font-size: var(--text-xs);
         color: var(--muted);
         font-variant-numeric: tabular-nums;
         text-align: end;
+    }
+
+    @container (min-width: 28rem) {
+        .artifact-file-list:has(.artifact-file-trigger) ~ .artifact-library-footer {
+            padding-inline-end: calc(
+                var(--artifact-library-inset) + var(--spacing) * 8 + var(--spacing) * 3
+            );
+        }
     }
 
     .artifact-upload-status {
@@ -3450,69 +3494,205 @@
     }
 
     /*
-     * The list's column headers over its rows' Kind, Modified, and Size cells.
+     * The list's column headers over its rows' detail, Modified, and Size
+     * cells, Capy's table head: 32px, small muted labels, a hairline under it.
      * Header and row share the column boxes below, and each column appears at
      * the same container width in both, so the labels always sit over their
-     * values. The menu column is the row ⋮ button's box.
+     * values. The menu column is the row ⋮ button's box. Sort headers are bare
+     * labels flush with the column edge: no fill at rest, hover, or press; the
+     * sorted one takes the foreground and its arrow.
      */
     .artifact-list-header {
         display: flex;
         align-items: center;
         gap: calc(var(--spacing) * 3);
+        height: 32px;
         padding-inline: var(--artifact-library-inset);
+        border-bottom: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
+
+        .button {
+            --button-bg-hover: transparent;
+            --button-bg-pressed: transparent;
+            --button-fg: var(--muted);
+            width: auto;
+            min-width: 0;
+            height: auto;
+            gap: calc(var(--spacing) * 1);
+            padding-inline: 0;
+            font-size: var(--text-xs);
+
+            @media (hover: hover) {
+                &:hover,
+                &[data-hovered="true"] {
+                    --button-fg: var(--foreground);
+                }
+            }
+
+            &[data-active] {
+                --button-fg: var(--foreground);
+            }
+
+            /*
+             * The stock icon's negative margin would push the sort arrow past the
+             * column edge; the :not() matches the stock selector's weight.
+             */
+            & svg:not([data-slot="spinner"] svg) {
+                width: 12px;
+                height: 12px;
+                margin-inline: 0;
+            }
+        }
     }
 
     .artifact-list-header__name {
+        display: flex;
         flex: 1;
         min-width: 0;
     }
 
+    /* Text columns read from the left; numbers line up on the right. */
     .artifact-column {
         display: none;
         flex-shrink: 0;
-        justify-content: center;
+        justify-content: flex-end;
         overflow: hidden;
         font-size: var(--text-sm);
         color: var(--muted);
         font-variant-numeric: tabular-nums;
-        text-align: center;
+        text-align: end;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .artifact-column--kind {
-        width: calc(var(--spacing) * 24);
+    .artifact-list-header .artifact-column {
+        font-size: var(--text-xs);
+        font-weight: 500;
+    }
+
+    /*
+     * The detail column reads Files (a right-aligned count) while the list
+     * holds only folders, and Updated by (left-aligned names, "—" on folders,
+     * whose count moves after their name) once it holds a file. Header and
+     * folder rows carry both; the list's own rows pick one.
+     */
+    .artifact-column--detail {
+        width: calc(var(--spacing) * 28);
+    }
+
+    .artifact-column__author {
+        display: none;
+    }
+
+    .artifact-file-list:has(.artifact-file-trigger) .artifact-column--detail,
+    .artifact-list-header:has(~ .artifact-file-list .artifact-file-trigger)
+        .artifact-column--detail,
+    .artifact-file-trigger .artifact-column--detail {
+        justify-content: flex-start;
+        text-align: start;
+
+        .artifact-column__files {
+            display: none;
+        }
+
+        .artifact-column__author {
+            display: inline;
+        }
     }
 
     .artifact-column--modified {
-        width: calc(var(--spacing) * 26);
+        width: calc(var(--spacing) * 20);
     }
 
     .artifact-column--size {
-        width: calc(var(--spacing) * 18);
+        width: calc(var(--spacing) * 16);
     }
 
     .artifact-column--menu {
         width: calc(var(--spacing) * 8);
     }
 
+    .artifact-row-columns {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+    }
+
+    /* The ⋮ box is held only where file rows have a ⋮ (folders and the root's places have none). */
     @container (min-width: 28rem) {
         .artifact-column--size,
-        .artifact-column--menu {
+        .artifact-file-list:has(.artifact-file-trigger) .artifact-column--menu,
+        .artifact-list-header:has(~ .artifact-file-list .artifact-file-trigger)
+            .artifact-column--menu {
             display: flex;
         }
     }
 
-    @container (min-width: 42rem) {
-        .artifact-column--kind,
+    @container (min-width: 36rem) {
         .artifact-column--modified {
             display: flex;
         }
     }
 
-    /* Stock rows sit 12px tall at each edge; a file library scans as a denser column. */
+    @container (min-width: 42rem) {
+        .artifact-column--detail {
+            display: flex;
+        }
+    }
+
+    /*
+     * A list row is one line, Capy's density: the name, then muted words no
+     * column carries (a differing title, a search hit's folder, and the facts
+     * of columns too narrow to show yet), joined by " · ".
+     */
+    .artifact-row-name {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+
+        .list-view__title {
+            flex-shrink: 0;
+            max-width: 100%;
+        }
+    }
+
+    .artifact-row-aside {
+        min-width: 0;
+        overflow: hidden;
+        font-size: var(--text-sm);
+        color: var(--muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .artifact-row-aside__part + .artifact-row-aside__part::before {
+        content: " · ";
+    }
+
+    @container (min-width: 36rem) {
+        .artifact-row-aside__part--modified {
+            display: none;
+        }
+    }
+
+    /* Under Updated by a folder has no author, so its count stays after its name. */
+    .artifact-file-list:has(.artifact-file-trigger)
+        .artifact-folder-list-row
+        .artifact-row-aside__part--detail {
+        display: inline;
+    }
+
+    @container (min-width: 42rem) {
+        .artifact-row-aside__part--detail {
+            display: none;
+        }
+    }
+
+    /* Stock rows sit 12px tall at each edge; a file library scans as single 38px lines, the ⋮ button and its padding. */
     .list-view--secondary.artifact-file-list .list-view__item {
-        padding-block: calc(var(--spacing) * 2);
+        min-height: 38px;
+        padding-block: calc(var(--spacing) * 1);
     }
 
     /*
@@ -3537,10 +3717,13 @@
         outline: none;
     }
 
+    .list-view.artifact-file-list {
+        gap: calc(var(--spacing) * 3);
+    }
+
     .artifact-file-run {
         display: flex;
         flex-direction: column;
-        gap: calc(var(--spacing) * 1);
     }
 
     /* A drag of library items over a folder it may land in, or over a trail crumb. */
@@ -3729,24 +3912,34 @@
         outline: none;
     }
 
-    /* The viewer's preview: one quiet well at the shell tier, the file fitted inside it. */
+    /*
+     * The viewer's preview: the file on the pane's own quiet canvas, no well.
+     * An image keeps its own corners (rounding would crop the asset) and a
+     * hairline so a white or transparent edge still reads.
+     */
     .artifact-preview {
         display: flex;
         height: min(70vh, 44rem);
         min-height: 18rem;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: calc(var(--spacing) * 2.5);
         overflow: hidden;
-        padding: calc(var(--spacing) * 6);
-        border-radius: min(32px, calc(var(--radius) * 3));
-        background: var(--surface-secondary);
+        padding: calc(var(--spacing) * 4);
 
-        & video,
-        & .artifact-preview__image img {
+        & video {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
             border-radius: calc(var(--radius) * 1.5);
+        }
+
+        & .artifact-preview__image img {
+            max-width: 100%;
+            max-height: calc(min(70vh, 44rem) - calc(var(--spacing) * 16));
+            object-fit: contain;
+            outline: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
         }
 
         & audio {
@@ -3784,17 +3977,381 @@
         --diffs-header-font-family: var(--font-sans);
     }
 
+    /*
+     * A text file reads as a document, not a framed pane: one centered
+     * reading column with no well. The in-place editor (`artifact-document__prose`)
+     * and the source textarea share the column, so View source never moves the page.
+     */
+    .artifact-document {
+        width: 100%;
+        max-width: 42rem;
+        margin-inline: auto;
+        padding-block: calc(var(--spacing) * 6) calc(var(--spacing) * 20);
+    }
+
+    .artifact-document--wide {
+        max-width: none;
+    }
+
+    /*
+     * Prose on the app's own type scale: body at --text-base beside the 13px
+     * tree, H1 at the page-title size, H2 at --text-lg, H3 at body weight 600.
+     */
+    .artifact-document__prose {
+        color: var(--foreground);
+        font-size: var(--text-base);
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+        outline: none;
+        caret-color: var(--accent);
+
+        & > :first-child {
+            margin-top: 0;
+        }
+
+        & p,
+        & ul,
+        & ol,
+        & blockquote,
+        & pre {
+            margin-block: 0.65em;
+        }
+
+        & h1,
+        & h2,
+        & h3,
+        & h4,
+        & h5,
+        & h6 {
+            margin-block: 1.35em 0.4em;
+            font-weight: 600;
+            letter-spacing: -0.005em;
+            line-height: 1.3;
+        }
+
+        & h1 {
+            margin-block: 1.25em 0.45em;
+            font-size: var(--text-2xl);
+            letter-spacing: -0.015em;
+        }
+
+        & h2 {
+            font-size: 0.9375rem;
+        }
+
+        & h3,
+        & h4,
+        & h5,
+        & h6 {
+            font-size: var(--text-base);
+        }
+
+        & ul,
+        & ol {
+            padding-inline-start: 1.5em;
+        }
+
+        & ul {
+            list-style: disc;
+        }
+
+        & ul ul {
+            list-style: circle;
+        }
+
+        & ol {
+            list-style: decimal;
+        }
+
+        & li {
+            margin-block: 0.2em;
+            padding-inline-start: 0.2em;
+        }
+
+        & li > p {
+            margin-block: 0;
+        }
+
+        & li > :is(ul, ol) {
+            margin-block: 0.2em;
+        }
+
+        & blockquote {
+            padding-inline-start: 1em;
+            border-inline-start: 3px solid var(--separator);
+            color: var(--muted);
+        }
+
+        /* Inline code: the guidelines' 7% ink tint over whatever it sits on. */
+        & code {
+            padding: 0.1em 0.35em;
+            border-radius: calc(var(--radius) * 0.75);
+            background: color-mix(in oklab, var(--foreground) 7%, transparent);
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+        }
+
+        & pre {
+            overflow-x: auto;
+            padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3.5);
+            border: var(--hairline-width, 1px) solid var(--hairline, var(--separator));
+            border-radius: calc(var(--radius) * 1.25);
+            background: color-mix(in oklab, var(--foreground) 3.5%, transparent);
+            white-space: pre;
+
+            & code {
+                padding: 0;
+                background: none;
+                font-size: var(--text-sm);
+                line-height: 1.6;
+            }
+        }
+
+        & a {
+            color: var(--accent);
+            text-decoration: underline;
+            text-decoration-color: color-mix(in oklab, var(--accent) 40%, transparent);
+            text-underline-offset: 0.2em;
+        }
+
+        & hr {
+            margin-block: 2em;
+            border: 0;
+            border-top: 1px solid var(--separator);
+        }
+    }
+
+    .artifact-document__source {
+        display: block;
+        width: 100%;
+        min-height: 24rem;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--foreground);
+        font-family: var(--font-mono);
+        font-size: 0.875rem;
+        line-height: 1.7;
+        resize: none;
+        field-sizing: content;
+        outline: none;
+        caret-color: var(--accent);
+    }
+
+    /* Source and rendered previews of code and pages fill the pane rather than a reading column. */
+    .artifact-document__frame {
+        height: min(75vh, 48rem);
+        overflow: hidden;
+        border-radius: calc(var(--radius) * 1.5);
+        background: var(--surface);
+    }
+
+    /*
+     * Drive's workspace (features/artifacts/drive-workspace.tsx): an area's
+     * tree, the open folder or file, and its details, under one hairline the
+     * pane dividers meet. The tree header, path row, and details tabs share
+     * one row height so their bottoms line up across the panes.
+     */
+    .drive-workspace {
+        --drive-row-height: calc(var(--spacing) * 9.5);
+        border-top: 1px solid var(--separator);
+    }
+
+    .artifact-path-row {
+        display: flex;
+        min-height: var(--drive-row-height, calc(var(--spacing) * 9.5));
+        align-items: center;
+        gap: calc(var(--spacing) * 2);
+        /* The glyph starts where the folder list's icons do, under the workspace column's gutter. */
+        padding-inline: calc(var(--spacing) * 7) calc(var(--spacing) * 3);
+    }
+
+    /* Path-row actions recede to muted ink until hovered or switched on. */
+    .artifact-path-row :is(.button--ghost, .toggle-button--ghost) {
+        color: var(--muted);
+
+        &:hover,
+        &[data-hovered],
+        &[data-selected],
+        &[data-pressed],
+        &[aria-expanded="true"] {
+            color: var(--foreground);
+        }
+    }
+
+    /* An open panel toggle (History, View source) wears the neutral selected fill, not accent. */
+    .artifact-path-row .toggle-button--ghost[data-selected] {
+        background: var(--default);
+    }
+
+    /* The path recedes: 12px muted crumbs, the open item in muted ink too. */
+    .artifact-path-row .breadcrumbs {
+        font-size: 0.75rem;
+        color: var(--muted);
+
+        & .breadcrumbs__link,
+        & [aria-current] {
+            color: var(--muted);
+        }
+
+        & .breadcrumbs__link:is(:hover, [data-hovered]) {
+            color: var(--foreground);
+        }
+    }
+
+    .drive-tree {
+        border-inline-end: 1px solid var(--separator);
+        background: var(--side-pane);
+    }
+
+    .drive-tree__header {
+        display: flex;
+        min-height: var(--drive-row-height, calc(var(--spacing) * 9.5));
+        align-items: center;
+        gap: calc(var(--spacing) * 0.5);
+        padding-inline: calc(var(--spacing) * 4) calc(var(--spacing) * 1.5);
+
+        & .button--ghost {
+            color: var(--muted);
+        }
+
+        & .button--ghost:is(:hover, [data-hovered]) {
+            color: var(--foreground);
+        }
+    }
+
+    /* The filter is a quiet field: a hairline, no lift, shorter than a form field. */
+    .drive-tree__search {
+        padding: 0 calc(var(--spacing) * 2) calc(var(--spacing) * 1.5);
+
+        & .search-field__group {
+            min-height: 0;
+            height: calc(var(--spacing) * 7.5);
+        }
+
+        & .search-field__group:not(:focus-within) {
+            box-shadow: none;
+        }
+
+        & .search-field__input {
+            padding-block: 0;
+            font-size: var(--text-sm);
+        }
+    }
+
+    /* Tree rows at Capy's density: the stock md row's padding halved, a tighter selection corner. */
+    .drive-tree .file-tree__item {
+        min-height: calc(var(--spacing) * 7);
+        padding-block: calc(var(--spacing) * 0.5);
+        border-radius: calc(var(--radius) * 1.5);
+    }
+
+    .artifact-info-panel {
+        display: flex;
+        width: calc(var(--spacing) * 76);
+        flex-shrink: 0;
+        flex-direction: column;
+        border-inline-start: 1px solid var(--separator);
+        background: var(--side-pane);
+    }
+
+    .artifact-info-panel__header {
+        display: flex;
+        min-height: var(--drive-row-height, calc(var(--spacing) * 9.5));
+        align-items: center;
+        padding-inline: calc(var(--spacing) * 2) calc(var(--spacing) * 1.5);
+
+        /* A compact track, so History and Details sit on the tree header's and path row's line. */
+        & .tabs__list {
+            padding: calc(var(--spacing) * 0.5);
+        }
+
+        & .tabs__tab {
+            height: calc(var(--spacing) * 6.5);
+            padding-inline: calc(var(--spacing) * 2.5);
+            font-size: var(--text-sm);
+        }
+    }
+
+    .artifact-info-panel__body {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+        padding: calc(var(--spacing) * 2) calc(var(--spacing) * 2) calc(var(--spacing) * 6);
+    }
+
+    /* Details: compact label and value rows, no rules between them. */
+    .artifact-facts {
+        display: flex;
+        flex-direction: column;
+        padding-inline: calc(var(--spacing) * 2);
+        font-size: var(--text-sm);
+    }
+
+    .artifact-facts__row {
+        display: flex;
+        min-height: calc(var(--spacing) * 7.5);
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+
+        & dt {
+            flex-shrink: 0;
+            color: var(--muted);
+        }
+
+        & dd {
+            min-width: 0;
+            margin-inline-start: auto;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    /*
+     * A revision row opens that revision: its title link stretches over the
+     * whole row, and the row's menu sits above the stretch. The revision on
+     * screen is marked by its Viewing chip alone, on the pane's own ground.
+     */
+    .item-card.artifact-history-row {
+        position: relative;
+        border-radius: calc(var(--radius) * 2);
+
+        &:has(.artifact-history-row__link:hover) {
+            background: var(--default);
+        }
+
+        & .item-card__action {
+            position: relative;
+            z-index: 1;
+        }
+    }
+
+    .artifact-history-row__link::after {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        content: "";
+    }
+
     .artifact-preview__image {
         display: flex;
-        width: 100%;
-        height: 100%;
+        min-height: 0;
+        max-width: 100%;
         align-items: center;
         justify-content: center;
         padding: 0;
         border: 0;
         background: none;
         cursor: zoom-in;
-        border-radius: calc(var(--radius) * 1.5);
+    }
+
+    .artifact-preview__caption {
+        flex-shrink: 0;
+        color: var(--muted);
+        font-size: var(--text-xs);
+        font-variant-numeric: tabular-nums;
     }
 
     /* ---- Chat artifacts (features/chats/artifact-card.tsx, shared-artifact-chip.tsx) ---- */

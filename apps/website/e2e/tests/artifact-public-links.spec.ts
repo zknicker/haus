@@ -15,11 +15,13 @@ test('a member copies a file’s public link, sees it marked public, and disable
     await seedArtifactLibrary(page, session, server.id);
     const artifactId = `art_${server.id}_tmcheck`;
     await page.goto(`/s/${slug}/artifacts/${artifactId}`);
-    await expect(page.getByRole('heading', { name: 'tm_check.py', exact: true })).toBeVisible();
+    await expect(page.getByRole('list', { name: 'File path' })).toContainText('tm_check.py');
     await expect(page.getByText('Public link', { exact: true })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'File actions' }).click();
+    await page.getByRole('button', { name: 'File options' }).click();
     await expect(page.getByRole('menuitem', { name: 'Disable public link' })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'File options' }).click();
     await page.getByRole('menuitem', { name: 'Copy public link' }).click();
     await expect(page.getByText('Public link copied')).toBeVisible();
     const { link } = await client.artifact.publicLink.query({

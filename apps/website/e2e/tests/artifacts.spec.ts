@@ -1,11 +1,11 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { seededArtifactText } from '../support/artifact-transport.ts';
 import {
     libraryRows,
     librarySection,
     openWithKeyboard,
+    pickLibraryFilter,
     routeArtifactUploads,
     seedArtifactLibrary,
     seededArtifactAgent,
@@ -30,7 +30,7 @@ test('a Server member opens the shared library and reloads its stable address', 
     await expect(page).toHaveURL(/folder=haus$/u);
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
     const emptyActions = page.locator('.library-empty').getByRole('button');
-    await expect(emptyActions).toHaveText(['Add instructions', 'Upload']);
+    await expect(emptyActions).toHaveText(['Add instructions', 'New file', 'Upload']);
     expect(await client.artifact.list.query({ serverId: server.id })).toEqual({
         artifacts: [],
         folders: [],
@@ -71,9 +71,12 @@ test('members browse folders in Drive, filter by kind and creator, search, and o
     // A folder holds its child folders, then only the files directly in it.
     const today = librarySection(page, 'Today');
     await expect(libraryRows(today)).toHaveCount(7);
-    await expect(today.getByRole('row', { name: 'concept.png' })).toContainText(
-        'Concept render · You · Image · just now'
-    );
+    // One line: the title after the name, then the Updated by, Modified, and Size cells.
+    const concept = today.getByRole('row', { name: 'concept.png' });
+    await expect(concept.getByText('Concept render', { exact: true })).toBeVisible();
+    await expect(
+        concept.getByText(/^(?:You|just now|2 KB)$/u).filter({ visible: true })
+    ).toHaveText(['You', 'just now', '2 KB']);
     await expect(folders.getByRole('row')).toHaveText([/docs\s*1 file/u, /starter-kit\s*4 files/u]);
 
     await openWithKeyboard(folders.getByRole('row', { name: 'starter-kit' }));
@@ -86,70 +89,66 @@ test('members browse folders in Drive, filter by kind and creator, search, and o
     await expect(libraryRows(today)).toHaveCount(2);
     await expect(folders).toHaveCount(0);
 
-    // The band is the folder trail; each folder above is a way back.
+    // The band stops at the area; the path row is the folder trail, each folder above a way back.
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
-    await expect(trail.getByRole('listitem')).toHaveText([
-        'Haus',
-        'Drive',
-        'Haus',
+    await expect(trail.getByRole('listitem')).toHaveText(['Haus', 'Drive', 'Haus']);
+    const folderPath = page.getByRole('list', { name: 'File path' });
+    await expect(folderPath.getByRole('listitem')).toHaveText([
+        'All files',
         'starter-kit',
         'scripts',
     ]);
 
-    await page.getByRole('button', { name: 'Created by: Anyone', exact: true }).click();
-    await page.getByRole('menuitemradio', { name: seededArtifactAgent }).click();
+    await pickLibraryFilter(page, 'Created by', seededArtifactAgent);
     await expect(page).toHaveURL(/creator=agent%3A/u);
     await expect(libraryRows(today)).toHaveText([/tm_check\.py/u]);
     await page.reload();
     await expect(libraryRows(today)).toHaveText([/tm_check\.py/u]);
-    await page.getByRole('button', { name: `Created by: ${seededArtifactAgent}` }).click();
-    await page.getByRole('menuitemradio', { name: 'Anyone', exact: true }).click();
+    await pickLibraryFilter(page, 'Created by', 'Anyone');
     await expect(libraryRows(today)).toHaveCount(2);
 
-    await trail.getByRole('link', { name: 'starter-kit', exact: true }).click();
+    await folderPath.getByRole('link', { name: 'starter-kit', exact: true }).click();
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit$/u);
     await page.goBack();
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
-    // The product crumb is Haus too; the area's crumb follows Drive.
-    await trail.getByRole('link', { name: 'Haus', exact: true }).last().click();
+    await folderPath.getByRole('link', { name: 'All files', exact: true }).click();
     await expect(page).toHaveURL(/folder=haus$/u);
 
-    // Search covers the whole subtree and names where each hit lives.
-    await page.getByRole('searchbox').fill('logo');
-    await expect(libraryRows(today)).toHaveCount(1);
-    await expect(today.getByRole('row', { name: 'logo.png' })).toContainText('starter-kit/assets');
-    await expect(folders).toHaveCount(0);
-    await page.getByRole('searchbox').fill('');
+    // Inside an area the tree's filter is the search: it covers the whole area.
+    const filter = page.getByRole('searchbox', { name: 'Filter names and paths' });
+    await filter.fill('logo');
+    const tree = page.getByRole('treegrid', { name: 'Files in Haus' });
+    await expect(tree.getByRole('row', { name: 'logo.png' })).toBeVisible();
+    await expect(tree.getByRole('row', { name: 'assets' })).toBeVisible();
+    await filter.fill('');
 
-    await page.getByRole('button', { name: 'File type: All types', exact: true }).click();
-    await page.getByRole('menuitemradio', { name: 'Images', exact: true }).click();
+    await pickLibraryFilter(page, 'File type', 'Images');
     await expect(libraryRows(today)).toHaveCount(2);
     await expect(page).toHaveURL(/kind=images/u);
     // Folder counts follow the filters; folders without a match disappear.
     await expect(folders.getByRole('row')).toHaveText([/starter-kit\s*1 file/u]);
-    await page.getByRole('searchbox').fill('Concept');
-    await expect(libraryRows(today)).toHaveCount(1);
 
     await page.getByRole('radio', { name: 'Grid', exact: true }).click();
     const tile = today.getByRole('row', { name: 'concept.png' });
     await expect(tile.locator('img.artifact-cover')).toBeVisible();
-    await page.getByRole('searchbox').fill('');
     await page.screenshot({ path: '/tmp/haus-artifacts-library.png', animations: 'disabled' });
 
     await tile.click();
-    await expect(page.getByRole('heading', { name: 'Concept render', exact: true })).toBeVisible();
-    await expect(trail).toContainText('concept.png');
+    await expect(folderPath).toContainText('concept.png');
     await expect(page.getByRole('img', { name: 'Concept render', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'History', exact: true }).click();
     const details = page.getByRole('complementary', { name: 'File details' });
+    await details.getByRole('tab', { name: 'Details', exact: true }).click();
     await expect(details).toContainText('Created by');
-    await details.getByRole('button', { name: 'View revision 1', exact: true }).click();
-    // The pinned revision keeps the folder view it was opened from.
-    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?.*&revision=.*_r1$`, 'u'));
-    await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
+    await details.getByRole('tab', { name: 'History', exact: true }).click();
+    await details.getByRole('link', { name: 'View revision 1', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?.*&revision=.*_r1#revisions$`, 'u'));
+    await expect(page.getByText('Revision 1 ·', { exact: false })).toBeVisible();
     await page.reload();
-    await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
+    await expect(page.getByText('Revision 1 ·', { exact: false })).toBeVisible();
     await page.getByRole('link', { name: 'Open latest', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${conceptId}\\?kind=images&in=haus$`, 'u'));
+    await page.getByRole('button', { name: 'History', exact: true }).click();
     await expect(details.getByText('Viewing')).toBeVisible();
     await page.screenshot({ path: '/tmp/haus-artifacts-viewer.png' });
 
@@ -167,8 +166,8 @@ test('members browse folders in Drive, filter by kind and creator, search, and o
     await page.goBack();
     await page.goBack();
     await expect(page).toHaveURL(/kind=images/u);
-    // A narrow band folds the filter menus into one Filters menu that names the open choice.
-    await page.getByRole('button', { name: 'Filters (on)', exact: true }).click();
+    // A narrow band folds the layout switch into the Filter menu, which names the open choice.
+    await page.getByRole('button', { name: 'Filter (1 on)', exact: true }).click();
     await expect(page.getByRole('menuitem', { name: /File type\s*Images/u })).toBeVisible();
 });
 
@@ -177,10 +176,9 @@ test('a viewer names the file by its path in Drive, each folder a way back', asy
     const { server, session } = await createTestServer(page, { displayName: 'Viewer Path', slug });
     await seedArtifactLibrary(page, session, server.id);
     await page.goto(`/s/${slug}/artifacts/art_${server.id}_tmcheck`);
-    const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
-    await expect(page.getByRole('heading', { name: 'tm_check.py', exact: true })).toBeVisible();
-    await expect(trail).toContainText('scripts');
-    await trail.getByRole('link', { name: 'scripts', exact: true }).click();
+    const filePath = page.getByRole('list', { name: 'File path' });
+    await expect(filePath).toContainText('tm_check.py');
+    await filePath.getByRole('link', { name: 'scripts', exact: true }).click();
     await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
     await expect(libraryRows(librarySection(page, 'Today'))).toHaveCount(2);
 });
@@ -221,12 +219,12 @@ test('members upload files and folders into the open folder, replace, and rename
         { buffer: Buffer.from('#!/bin/sh\n'), mimeType: 'text/x-shellscript', name: 'setup.sh' },
         { buffer: Buffer.from('new'), mimeType: 'text/plain', name: 'new.txt' },
     ]);
-    const confirm = page.getByRole('alertdialog');
+    const confirm = page.getByRole('alertdialog', { name: 'Replace 1 file?' });
     await expect(confirm).toContainText('Replace 1 file?');
     await expect(confirm).toContainText('1 new file will be added either way.');
     await expect(confirm.getByRole('list', { name: 'Files to replace' })).toHaveText('setup.sh');
     await confirm.getByRole('button', { name: 'Replace', exact: true }).click();
-    await expect(page.getByText('Uploaded 2 files')).toBeVisible();
+    await expect(page.getByText('Uploaded 2 files').last()).toBeVisible();
     await expect(libraryRows(today)).toHaveCount(3);
     const setupRevisions = runPsql(
         session.databaseUrl,
@@ -274,7 +272,7 @@ test('text artifacts render inline like workspace files, and oversize text offer
 
     await page.goBack();
     await openWithKeyboard(today.getByRole('row', { name: 'notes.txt' }));
-    await expect(preview.locator('pre')).toContainText(seededArtifactText.notes);
+    await expect(preview.getByRole('textbox')).toHaveValue(/revision two/u);
 
     await page.goBack();
     await today.getByRole('row', { name: 'server.log' }).click();
