@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.7.1 - 2026-11-24
+
+- Haus for iPhone 13.1.1 opens the composer from its one-line pill into the card in one quick motion. The text moves with the card instead of lagging behind it, keeps its line breaks instead of rewrapping mid-animation, and its first line stays in view while the card opens. A new line grows the card with the same motion. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
 ## v30.7.0 - 2026-11-24
 
 - Drive's file tree has one **+** menu: New file, New folder, Upload files and Upload folder. New folder asks for a name, says when it's taken, and opens an empty `untitled.md` inside the new folder. An empty area offers Add instructions, New file, New folder and Upload.
