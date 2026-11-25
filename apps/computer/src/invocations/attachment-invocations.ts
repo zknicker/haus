@@ -36,14 +36,19 @@ const attachments = new Map<string, AttachmentInvocations>();
 export function attachmentInvocations(
     dataRoot: string,
     attachment: { credential: string; serverId: string; serverOrigin: string },
-    daemonWork: { send(frame: unknown): boolean }
+    daemonWork: {
+        send(frame: unknown): boolean;
+        track<Result>(operation: Promise<Result>): Promise<Result>;
+    }
 ) {
     const existing = attachments.get(attachment.serverId);
     if (existing) {
         return existing;
     }
     const serverRoot = join(dataRoot, 'servers', attachment.serverId);
-    const driveSync = driveSyncFrames(join(serverRoot, 'agents'), attachment);
+    const driveSync = driveSyncFrames(join(serverRoot, 'agents'), attachment, {
+        track: (operation) => daemonWork.track(operation),
+    });
     let handler: InvocationHandler | null = null;
     const arrivals: Arrival[] = [];
     const deliver = (ready: InvocationHandler, arrival: Arrival) => {

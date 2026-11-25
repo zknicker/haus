@@ -1,18 +1,22 @@
 import { randomUUID } from 'node:crypto';
-import { chmod, link, lstat, mkdir, readdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
-import { basename, dirname, join, relative, sep } from 'node:path';
+import { chmod, copyFile, link, lstat, mkdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
+import { dirname, join, relative, sep } from 'node:path';
+import {
+    refuseSymlinkedParents,
+    respellParents,
+    SymlinkedFolderError,
+    spellingOf,
+} from './folder-spelling.ts';
 import type { DriveFileRecord, DriveFolderLayout } from './folder-state.ts';
+import { type FileStamp, sameStamp, stampOf, walkFolder } from './folder-walk.ts';
 
-export interface LocalFile {
-    mtimeMs: number;
+export interface LocalFile extends FileStamp {
     sha256: string;
-    size: number;
 }
 
-const skippedNames = new Set(['.git', 'node_modules', '__pycache__', '.DS_Store']);
-
-export function isSkippedPath(path: string) {
-    return path.split('/').some((segment) => skippedNames.has(segment));
+export class LocalEditError extends Error {
+    readonly code = 'ECHANGED';
+    readonly syscall = 'copyfile';
 }
 
 export function folderFiles(layout: DriveFolderLayout) {
@@ -29,6 +33,11 @@ export function folderFiles(layout: DriveFolderLayout) {
             }
             dir = join(dir, segment);
             const stat = await lstat(dir).catch(() => null);
+            if (stat?.isSymbolicLink()) {
+                throw new SymlinkedFolderError(
+                    relative(layout.folder, target).split(sep).join('/')
+                );
+            }
             if (!stat) {
                 await mkdir(dir, { mode: 0o755 });
             } else if ((stat.mode & 0o200) === 0) {
@@ -43,6 +52,7 @@ export function folderFiles(layout: DriveFolderLayout) {
     return {
         absolute,
         async inspect(path: string, record?: DriveFileRecord) {
+            await refuseSymlinkedParents(layout.folder, path);
             const stat = await lstat(absolute(path)).catch(() => null);
             if (!stat) {
                 return null;
@@ -50,14 +60,50 @@ export function folderFiles(layout: DriveFolderLayout) {
             if (!stat.isFile()) {
                 return 'blocked' as const;
             }
+            if ((await spellingOf(layout.folder, path)) !== 'exact') {
+                return 'variant' as const;
+            }
             if (record && stat.size === record.size_bytes && stat.mtimeMs === record.mtime_ms) {
-                return { mtimeMs: stat.mtimeMs, sha256: record.sha256, size: stat.size };
+                return { ...stampOf(stat), sha256: record.sha256 } satisfies LocalFile;
             }
             return {
-                mtimeMs: stat.mtimeMs,
+                ...stampOf(stat),
                 sha256: await sha256File(absolute(path)),
-                size: stat.size,
             } satisfies LocalFile;
+        },
+        async stamp(path: string) {
+            await refuseSymlinkedParents(layout.folder, path);
+            const stat = await lstat(absolute(path)).catch(() => null);
+            return stat ? stampOf(stat) : null;
+        },
+        async snapshot(path: string) {
+            const source = absolute(path);
+            await refuseSymlinkedParents(layout.folder, path);
+            const before = stampOf(await lstat(source));
+            await mkdir(layout.scratch, { mode: 0o700, recursive: true });
+            const file = join(layout.scratch, randomUUID());
+            await copyFile(source, file);
+            const after = stampOf(await lstat(source));
+            if (!sameStamp(before, after)) {
+                throw new LocalEditError(`${path} changed while it was read, so it waits a push.`);
+            }
+            return { file, sha256: await sha256File(file), stamp: after };
+        },
+        async placeIfUnchanged(
+            path: string,
+            source: string,
+            readOnlyRoot: string | null,
+            expected: FileStamp | null
+        ) {
+            const target = absolute(path);
+            await openParents(target, readOnlyRoot);
+            const stat = await lstat(target).catch(() => null);
+            if (!sameStamp(stat && stampOf(stat), expected)) {
+                return null;
+            }
+            await chmod(source, readOnlyRoot === null ? 0o644 : 0o444);
+            await rename(source, target);
+            return (await lstat(target)).mtimeMs;
         },
         clearScratch: () => rm(layout.scratch, { force: true, recursive: true }),
         scratchFile: async () => {
@@ -73,7 +119,8 @@ export function folderFiles(layout: DriveFolderLayout) {
         },
         async remove(path: string, readOnlyRoot: string | null) {
             const target = absolute(path);
-            if (!(await holdsExactFile(target))) {
+            await refuseSymlinkedParents(layout.folder, path);
+            if ((await spellingOf(layout.folder, path)) !== 'exact') {
                 return;
             }
             await openParents(target, readOnlyRoot);
@@ -83,6 +130,10 @@ export function folderFiles(layout: DriveFolderLayout) {
         async setAside(path: string, target: string, sha256: string, readOnlyRoot: string | null) {
             const source = absolute(path);
             await openParents(source, readOnlyRoot);
+            const inFolder = relative(layout.folder, target);
+            if (!inFolder.startsWith('..')) {
+                await refuseSymlinkedParents(layout.folder, inFolder.split(sep).join('/'));
+            }
             await mkdir(dirname(target), { recursive: true });
             for (let attempt = 1; ; attempt += 1) {
                 const candidate = attempt === 1 ? target : `${target}.${attempt}`;
@@ -97,39 +148,43 @@ export function folderFiles(layout: DriveFolderLayout) {
             }
         },
         async occupant(path: string) {
-            const stat = await lstat(absolute(path)).catch(() => null);
-            if (!stat) {
-                return 'none' as const;
-            }
-            if (!stat.isFile()) {
-                return 'other' as const;
-            }
-            return (await holdsExactFile(absolute(path)))
-                ? ('exact' as const)
-                : ('variant' as const);
+            const spelling = await spellingOf(layout.folder, path);
+            return spelling === 'linked' ? ('other' as const) : spelling;
         },
         async respell(from: string, to: string, readOnlyRoot: string | null) {
             const source = absolute(from);
             const target = absolute(to);
+            await refuseSymlinkedParents(layout.folder, from);
+            await refuseSymlinkedParents(layout.folder, to);
             const [fromStat, toStat] = await Promise.all([
                 lstat(source).catch(() => null),
                 lstat(target).catch(() => null),
             ]);
             if (!fromStat) {
-                return;
+                return [{ from, to }];
+            }
+            if (toStat && toStat.ino !== fromStat.ino) {
+                return null;
             }
             await openParents(target, readOnlyRoot);
-            if (!toStat || toStat.ino === fromStat.ino) {
-                await rename(source, target);
-                return;
-            }
-            await unlink(source);
-            await pruneEmptyParents(layout.folder, source);
+            const parents = await respellParents(layout.folder, to);
+            await rename(source, target);
+            return [...parents, { from, to }];
         },
         async release(target: string) {
             await chmod(target, 0o644);
             return (await lstat(target)).mtimeMs;
         },
+        underLink: (path: string) =>
+            refuseSymlinkedParents(layout.folder, path).then(
+                () => false,
+                (error: unknown) => {
+                    if (error instanceof SymlinkedFolderError) {
+                        return true;
+                    }
+                    throw error;
+                }
+            ),
         walk: () => walkFolder(layout.folder),
         async relock() {
             const dirs = [...lockable].sort((a, b) => b.length - a.length);
@@ -151,62 +206,6 @@ export async function sha256File(path: string) {
         hasher.update(chunk);
     }
     return hasher.digest('hex');
-}
-
-async function walkFolder(folder: string) {
-    const files = new Map<string, { mtimeMs: number; size: number }>();
-    const visit = async (dir: string, prefix: string) => {
-        const entries = await readdir(dir, { withFileTypes: true }).catch(
-            (error: NodeJS.ErrnoException) => {
-                if (error.code === 'ENOENT') {
-                    return [];
-                }
-                throw error;
-            }
-        );
-        for (const entry of entries) {
-            if (skippedNames.has(entry.name)) {
-                continue;
-            }
-            const onDisk = await composeName(dir, entry.name);
-            const name = `${prefix}${onDisk}`;
-            if (entry.isDirectory()) {
-                await visit(join(dir, onDisk), `${name}/`);
-            } else if (entry.isFile()) {
-                const stat = await lstat(join(dir, onDisk));
-                files.set(name, { mtimeMs: stat.mtimeMs, size: stat.size });
-            }
-        }
-    };
-    await visit(folder, '');
-    return files;
-}
-
-async function composeName(dir: string, name: string) {
-    const composed = name.normalize('NFC');
-    if (composed === name) {
-        return name;
-    }
-    const [raw, existing] = await Promise.all([
-        lstat(join(dir, name)),
-        lstat(join(dir, composed)).catch(() => null),
-    ]);
-    if (existing && existing.ino !== raw.ino) {
-        return name;
-    }
-    if (!existing) {
-        await rename(join(dir, name), join(dir, composed));
-    }
-    return composed;
-}
-
-async function holdsExactFile(target: string) {
-    const stat = await lstat(target).catch(() => null);
-    if (!stat?.isFile()) {
-        return false;
-    }
-    const names = await readdir(dirname(target));
-    return names.some((name) => name.normalize('NFC') === basename(target));
 }
 
 async function pruneEmptyParents(folder: string, target: string) {

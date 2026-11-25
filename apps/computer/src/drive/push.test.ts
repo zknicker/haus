@@ -41,6 +41,7 @@ test('a push sends deletes before puts, renames as a delete plus an add, and rec
         failed: [],
         listed: [],
         pushClosed: false,
+        refused: [],
         sent: 5,
         unrestored: [],
     });

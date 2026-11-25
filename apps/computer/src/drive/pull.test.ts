@@ -3,6 +3,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { writerFolder } from './drive-folder.test-utils.ts';
 import { type DriveServer, startDriveServer } from './drive-server.fixture.ts';
+import { areas } from './drive-wire.fixture.ts';
 
 let server: DriveServer;
 const folders: ReturnType<typeof writerFolder>[] = [];
@@ -29,6 +30,7 @@ test('a first pull fetches every area, records each file, and locks other Agents
         advanced: true,
         applied: 3,
         blocked: 0,
+        held: [],
         kept: 0,
         skipped: 0,
     });
@@ -133,6 +135,73 @@ test('a crash between a file and its record is repaired by the next pull', async
     expect((await alpha.state()).files['haus/a.md']?.revision_id).toBe(a2.revision_id);
     expect(await alpha.push('run_next')).toBeNull();
     expect(server.requests.filter((request) => request.includes('/download'))).toHaveLength(1);
+});
+
+test('a crash after a file was placed but before its record never revives it after a delete', async () => {
+    server = startDriveServer();
+    server.write('haus/a.md', 'a1', 'usr');
+    const alpha = alphaFolder();
+    await alpha.pull();
+    const crashed = await alpha.state();
+    const a2 = server.write('haus/a.md', 'a2', 'usr');
+    await alpha.pull();
+    const {
+        mtime_ms: _placed,
+        seen_head: _seen,
+        ...placement
+    } = (await alpha.state()).files['haus/a.md'] ?? { mtime_ms: 0 };
+    await writeFile(
+        alpha.layout.stateFile,
+        JSON.stringify({ ...crashed, placing: { 'haus/a.md': placement } })
+    );
+    server.remove('haus/a.md');
+
+    await alpha.pull();
+    await alpha.push('run_after_crash');
+
+    expect(placement).toMatchObject({ revision_id: a2.revision_id });
+    expect(await alpha.read('haus/a.md')).toBeNull();
+    expect(server.head('haus/a.md')).toBeNull();
+    expect((await alpha.state()).placing).toEqual({});
+});
+
+test('a tombstone for another file once at the same path leaves the folder file alone', async () => {
+    let tombstone: object | null = null;
+    server = startDriveServer({
+        route: (_request, url) => {
+            const page = url.pathname === '/api/agent/drive/changes' ? tombstone : null;
+            if (page) {
+                tombstone = null;
+            }
+            return page && Response.json(page);
+        },
+    });
+    const agents = server.write('haus/OLD/AGENTS.md', 'the new project', 'usr');
+    const alpha = alphaFolder();
+    await alpha.pull();
+    tombstone = {
+        areas,
+        changes: [
+            {
+                area: 'agent:agt_beta',
+                artifact_id: 'art_renamed_away',
+                change: 'delete',
+                content_type: null,
+                path: 'haus/OLD/AGENTS.md',
+                revision_id: null,
+                sequence: 1,
+                sha256: null,
+                size_bytes: null,
+            },
+        ],
+        complete: true,
+        until: { 'agent:agt_alpha': 0, 'agent:agt_beta': 1, haus: 1 },
+    };
+
+    expect(await alpha.pull()).toMatchObject({ applied: 0, skipped: 1 });
+
+    expect(await alpha.read('haus/OLD/AGENTS.md')).toBe('the new project');
+    expect((await alpha.state()).files['haus/OLD/AGENTS.md']?.revision_id).toBe(agents.revision_id);
 });
 
 test('a folder removed under its bookkeeping starts again from zero', async () => {

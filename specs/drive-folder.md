@@ -59,17 +59,28 @@ When a turn starts and the Agent's machine is online, the machine pulls while th
 
 1. It calls `drive.changes` with the folder's counters, then once per further page under the
    first page's `until` ([Change counter](artifact-drive.md#change-counter)).
-2. It skips a change whose revision the folder already records.
+2. It skips a change whose revision the folder already records, and a tombstone whose
+   `artifact_id` is not the one recorded at its path, such as an old Project's file under a key a
+   new Project reused.
 3. A file whose local bytes still match its record takes the new revision by atomic replace, or is
    removed for a delete. A local file with no record whose bytes equal the incoming revision is
    recorded as that revision.
 4. A file the Agent changed locally keeps its bytes and its recorded base. The next push merges it
-   on the Server, so a pull never makes a local conflict.
+   on the Server, so a pull never makes a local conflict. The pull checks the file's inode, size,
+   and modification time again right before the replace, so an edit made while the download ran
+   is kept the same way.
 5. Each file's bytes and its record are written together, one file at a time, bytes first. The
-   area counters advance only after the whole pull finishes.
+   incoming revision is journaled in `drive.json` (`placing`) before its bytes move into place.
+   A pull or push first settles any journaled revision: a file holding exactly those bytes takes
+   it as its record, and anything else drops the entry, so a stop between the bytes and the
+   record never turns the new bytes into a local edit. Push outcomes place files the same way.
+   The area counters advance only after the whole pull finishes.
 6. A local folder where Drive has a file, or a local file where Drive has a folder, blocks only
    that change. The pull applies the rest and holds the counters, so the change comes again once
-   the push has moved the blocking path out.
+   the push has moved the blocking path out. A change the disk cannot take is held the same way
+   and warned with its path (`drive-pull-held`): a name or path too long for the disk
+   (`ENAMETOOLONG`), a full disk (`ENOSPC`), a download that timed out, or one whose bytes did not
+   match their hash (`DOWNLOAD_MISMATCH`). Every later change still lands.
 
 The pull downloads every changed file, whatever its size. Fetching large files on first use is
 deferred.
@@ -87,6 +98,7 @@ push is safe at any point of a failed pull, because every file's base names the 
 holds.
 
 A folder's pull and push never overlap. A pull waits for the previous turn's push to finish.
+Every sync a frame starts is tracked as daemon work, so a stop or an upgrade waits for it.
 
 ## Push after the turn
 
@@ -96,7 +108,9 @@ is never stranded.
 
 1. Walk regular files. Skip `.git`, `node_modules`, `__pycache__`, and `.DS_Store`, as
    `haus files push` did. Symbolic links are not Drive content and are skipped. An empty
-   folder exists only locally.
+   folder exists only locally. Sync never follows a symbolic link in a parent folder below
+   `drive/`: a pull holds a change under one like a blocked path, and a push neither deletes nor
+   restores a record under one. Both warn with the path.
 2. Compare each file with its record, using size and modification time as a shortcut.
 3. Send every delete, then every put, each in path order
    ([Pushes](artifact-drive.md#pushes)). A changed file goes with its recorded revision as its
@@ -123,22 +137,38 @@ A record whose file never reached the folder (`mtime_ms` of `-1`) is never pushe
 The push reads that path's head and downloads it, or forgets the record when Drive no longer has
 the path or another file holds it. A restore that fails is logged and tried again next push.
 
-A pull that keeps a locally edited file notes the newer revision it skipped. After that file's
+A pull that keeps a locally edited file notes the newer revision it skipped, on the file's record
+or, for a file whose create has not resolved, on its pending create, a tombstone included. After that file's
 push outcome is applied, the folder reads the path's current head and moves to it when it differs,
 because a replayed stored outcome can name a revision older than one the pull already passed.
 
-Outcomes apply under Drive's spelling of the path. A delete's outcome never touches a file that
-only folds to its path, such as the renamed half of a case-only rename, so an edit made under the
-new spelling reaches Drive as its own put or as a conflict copy. The Server deletes only a file
-spelled exactly as the delete names it, so a stale spelling left by a case-only rename never
-deletes the renamed file. A case-only rename reaches the pull as one put at the new spelling with
-the file's own `artifact_id`.
+Outcomes apply under Drive's spelling of the path. Respelling a file also renames any parent folder
+whose casing differs and moves the records under it, so the folder never keeps a spelling Drive
+does not have. A respell never removes a file: when another file already holds the new spelling,
+both stay and the outcome records under the pushed spelling. A `kept_both` whose `current` lives
+at another path, as `base_gone` answers when a person moved the file the edit started from, moves
+the writer's bytes to the copy, removes the old path, and places `current` at its own path only
+where the folder holds nothing there. A delete's outcome never touches a file that only folds to
+its path, such as the renamed half of a case-only rename, so an edit made under the new spelling
+reaches Drive as its own put or as a conflict copy. The Server deletes only a file spelled exactly
+as the delete names it, so a stale spelling left by a case-only rename never deletes the renamed
+file. A case-only rename reaches the pull as one put at the new spelling with the file's own
+`artifact_id`.
 
-A delete removes only a file whose name matches the path exactly, so the delete half of a
-case-only rename on a case-insensitive disk never removes the renamed file, and a folder that
-replaced a file stays. A request that fails for that one file, a local file error or a 4xx answer
-other than `PUSH_CLOSED` or 401, is logged and skipped, and the rest of the push goes on. A
-network failure, a 5xx, or a 401 stops the push. A full Drive answers 507 `STORAGE_LIMIT`,
+Drive's change log keeps one row per case-folded path, so a case-only rename in the App reaches the
+pull as a put alone. A put whose `artifact_id` already has a record at a path that folds to it is a
+respell: the pull renames the file and its parent folders to the new spelling and moves the record.
+The pull adopts a local file only when every segment of its name matches exactly. A file that only
+folds to an incoming put of another file is the file Drive replaced: unedited, it is removed and
+the new file downloaded; edited, it stays with its base for the push to merge. A record restored
+after never reaching the folder lands under the head's spelling, and the old spelling is forgotten.
+
+A delete removes only a file whose path matches exactly in every segment, so the delete half of a
+case-only rename of a file or a folder on a case-insensitive disk never removes the renamed file,
+and a folder that replaced a file stays. A request that fails for that one file, a local file error or a 4xx answer
+other than `PUSH_CLOSED`, `UPLOAD_CONFLICT`, 401, 408, or 429, is logged and skipped, and the rest
+of the push goes on. A network failure, a 5xx, a 401, a 408, a 429, or a 409 `UPLOAD_CONFLICT`
+(another upload of the path is still settling) stops the push, and the next push sends the edit. A full Drive answers 507 `STORAGE_LIMIT`,
 which stops the push like `STORAGE_UNAVAILABLE`, so the edit stays and the next push sends it. A
 409 `IDEMPOTENCY_KEY_REUSED` on a create drops its stored request id, so the next push sends the
 create under a fresh one. A push whose run already sent everything still
@@ -153,6 +183,14 @@ treats it as already gone. One Computer process runs a folder's pulls and pushes
 | `kept_both` | Moves its own bytes to the copy path, writes `current` at the path, and records both |
 | `kept_edit` | Writes `current` at the path and records it |
 | `refused` | Moves its own bytes to `agents/<agent-id>/workspace/drive-refused/<path>` and restores the Drive state at the path |
+
+A put uploads a snapshot copied to `runtime/drive-scratch/`, and a file that changes while it is
+copied waits for the next push. Before an outcome replaces, moves, or records a file, it checks the
+file against the snapshot's inode, size, and modification time. A file edited since keeps its
+bytes: when Drive now holds exactly the snapshot, the record takes that revision with the
+snapshot's time, so the next push sends the newer edit on top of it; otherwise the record keeps its
+old base and notes the newer revision. A delete's outcome never removes a file created at the path
+since the push was planned.
 
 A refused file leaves the folder, so the next push does not send it again and the conflict item
 that names it cannot repeat every turn. Any download an outcome needs happens before the writer's
@@ -184,7 +222,11 @@ The Server keeps the request in `agent_machine_changes` and moves it a step at a
    Computer pushes the folder under that id and closes the push even when nothing changed
    (`flushDriveForRun`), and the close is what tells the Server the folder reached Drive. The
    change switches only then. A flush with any file that failed sends no close, so it stays
-   pending until a resend lands every file. The resend first closes the open push it left behind,
+   pending until a resend lands every file. A file the flush had refused moves to
+   `drive-refused/` as usual and is noted in `drive.json` (`leftBehind`), so neither that flush nor
+   any resend closes, and each warns with the path (`drive-flush-left-behind`). The change waits
+   until the person moves from the last synced revision, knowing the edit stays on the old Mac. A
+   flush whose push the Server already closed sends no close either. The resend first closes the open push it left behind,
    and treats one the Server never created (a file refused before the push opened) as already
    gone. A flush that has not closed in two minutes, or whose Machine
    reconnects, is sent again under a new id. Conflicts follow the ordinary push rules.
@@ -263,8 +305,11 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
   credential it mints itself, which never enters the harness environment, then closes the push
   before it reports the turn ended. A Worker push never closes the Agent's own run push or another
   Worker's, because open pushes are keyed by source (`drive_pushes.worker_id`).
-- **Push before end.** A push that cannot finish, from a network failure, a 5xx or 401, or a
-  failed mint, leaves the turn `pushing` and sends no end. The Computer keeps the turn and pushes
+- **Push before end.** A push that cannot finish, from a network failure, a 5xx, 401, 408, 429 or
+  `UPLOAD_CONFLICT`, a failed mint, or any file it could not send, leaves the turn `pushing` and
+  sends no end, and its push stays open so the next attempt lands under the same turn id. Only a
+  file the Server says this turn can never write (`AGENT_RESET`, `AGENT_MOVED`, `FORBIDDEN`,
+  `NOT_FOUND`) or a record under a symlinked folder lets the turn end with it unsent. The Computer keeps the turn and pushes
   again under the same turn id after 5 seconds, 30 seconds, 2 minutes, then every 10 minutes, and
   a connect, restart, or `worker-stop` pushes at once. The first push that finishes ends the turn.
   `worker-close` and shutdown cancel the wait and leave the turn for the next connect or restart. A per-file `refused` outcome is a result, not a
@@ -286,12 +331,23 @@ D2 and D4 add these guards.
 | A replayed request returns its stored outcome, even after its push closed, and makes no second copy or item | `apps/server/test/drive-push-replay.test.ts` |
 | `drive.changes` from any counter returns exactly the paths changed since, tombstones included, and finishes under continuous writes | `apps/server/test/drive-changes.test.ts` |
 | A pull updates unedited files, keeps edited ones, and a pull that fails midway leaves a folder that pushes correctly | `apps/computer/src/drive/pull.test.ts` |
+| A stop between a file's bytes and its record never revives the file after a delete | `apps/computer/src/drive/pull.test.ts` |
+| A change the disk cannot take is held with a warning and never blocks later changes | `apps/computer/src/drive/pull-held.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
+| A create whose answer was lost catches up to a later edit or delete once it resolves | `apps/computer/src/drive/push-recovery.test.ts` |
+| A tombstone for another artifact at a recorded path leaves the file alone | `apps/computer/src/drive/pull.test.ts` |
+| A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
+| A respell never removes another file, and an edit to a moved file lands as a copy beside it | `apps/computer/src/drive/push-moves.test.ts` |
+| An edit made while a pull downloads or a push waits is never overwritten or recorded as synced | `apps/computer/src/drive/sync-races.test.ts` |
+| A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
+| A Machine flush that had a file refused never closes, on the first send or any resend | `apps/computer/src/drive/machine-change.test.ts` |
+| A Worker push that could not send a file, transient or per file, retries and never ends the turn | `apps/computer/src/workers/computer/drive-sync.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |
+| Every drive sync a frame starts is tracked as daemon work | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | Full reset deletes the Agent's area, restorable from Recently deleted, and session reset leaves it | `apps/server/test/agent-full-reset-drive.test.ts` |
 | Full reset and retirement remove other Agents' read-only folders and `drive.json` | `apps/computer/src/agent-reset.test.ts`, `apps/computer/src/agent-retirement.test.ts` |
 | A delete under a spelling a case-only rename replaced leaves the renamed file live | `apps/server/test/drive-push-case-rename.test.ts` |

@@ -63,6 +63,41 @@ test('a create whose answer was lost replays after a pull instead of making a se
     expect(await alpha.push('run_after')).toBeNull();
 });
 
+test('a create whose answer was lost catches up to a later edit once it resolves', async () => {
+    server = startDriveServer();
+    const alpha = folderOf('agt_alpha');
+    await alpha.pull();
+    await alpha.write('haus/a.md', 'mine');
+    server.loseNextAnswers(1);
+    await expect(alpha.push('run_lost')).rejects.toThrow();
+    const later = server.write('haus/a.md', 'theirs later', 'usr');
+
+    await alpha.pull();
+    await alpha.push('run_restart');
+
+    expect(await alpha.read('haus/a.md')).toBe('theirs later');
+    expect((await alpha.state()).files['haus/a.md']?.revision_id).toBe(later.revision_id);
+    expect(await alpha.push('run_after')).toBeNull();
+});
+
+test('a create whose answer was lost follows a later delete once it resolves', async () => {
+    server = startDriveServer();
+    const alpha = folderOf('agt_alpha');
+    await alpha.pull();
+    await alpha.write('haus/a.md', 'mine');
+    server.loseNextAnswers(1);
+    await expect(alpha.push('run_lost')).rejects.toThrow();
+    server.remove('haus/a.md');
+
+    await alpha.pull();
+    await alpha.push('run_restart');
+
+    expect(await alpha.read('haus/a.md')).toBeNull();
+    expect(server.head('haus/a.md')).toBeNull();
+    expect((await alpha.state()).files).toEqual({});
+    expect(await alpha.push('run_after')).toBeNull();
+});
+
 test('a full Drive stops the push and the edit goes in the next push, never refused', async () => {
     server = startDriveServer();
     const alpha = folderOf('agt_alpha');

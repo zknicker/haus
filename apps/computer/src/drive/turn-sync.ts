@@ -45,6 +45,9 @@ export function pullDriveForRun(agentRoot: string, run: DriveRun) {
                 layout: driveFolderLayout(agentRoot, run.agentId),
                 remote: driveRemote({ serverOrigin: run.serverOrigin, token }),
             });
+            for (const file of pulled.held) {
+                run.warn('drive-pull-held', `${file.path}: ${file.message}`);
+            }
             if (!pulled.advanced) {
                 run.warn('drive-pull-blocked', `${pulled.blocked} local paths blocked`);
             }
@@ -85,16 +88,24 @@ export function flushDriveForRun(agentRoot: string, run: DriveRun) {
         const plan = await planDrivePush(driveFolderLayout(agentRoot, run.agentId));
         await withRunToken(run, 'drive-flush-failed', async (token) => {
             const remote = driveRemote({ serverOrigin: run.serverOrigin, token });
+            const leftBehind = () => plan.state.current().leftBehind;
             const pushed = plan.isEmpty
-                ? { failed: [], unrestored: [] }
-                : await sendDrivePush(plan, remote, run.runId, { closeWithFailures: false });
+                ? { failed: [], pushClosed: false, refused: [], unrestored: [] }
+                : await sendDrivePush(plan, remote, run.runId, {
+                      closeIf: ({ failed, refused }) =>
+                          failed.length === 0 && refused.length === 0 && leftBehind().length === 0,
+                      onRefused: (path) => plan.state.noteLeftBehind([path]),
+                  });
             for (const file of pushed.failed) {
                 run.warn('drive-flush-file-failed', `${file.path}: ${file.message}`);
             }
             for (const file of pushed.unrestored) {
                 run.warn('drive-restore-failed', `${file.path}: ${file.message}`);
             }
-            if (pushed.failed.length === 0) {
+            for (const path of leftBehind()) {
+                run.warn('drive-flush-left-behind', `${path} was refused, so its edit stays here.`);
+            }
+            if (pushed.failed.length === 0 && !pushed.pushClosed && leftBehind().length === 0) {
                 await remote.close(run.runId);
             }
         });

@@ -1,23 +1,22 @@
 import type { DriveAreaCounters } from '@haus/api';
 import type { DriveRemote } from './drive-remote.ts';
-import type { DriveChangeEntry } from './drive-response-schema.ts';
-import { type FolderFiles, folderFiles } from './folder-files.ts';
+import { folderFiles } from './folder-files.ts';
+import { settlePlacing } from './folder-placing.ts';
+import { SymlinkedFolderError } from './folder-spelling.ts';
 import {
-    type DriveFileRecord,
     type DriveFolderArea,
     type DriveFolderLayout,
-    type FolderStateStore,
     isReadOnlyArea,
     openFolderState,
-    unplacedMtimeMs,
 } from './folder-state.ts';
-
-type ChangeResult = 'applied' | 'blocked' | 'kept' | 'skipped';
+import { applyChange, type ChangeResult } from './pull-change.ts';
 
 export async function pullDrive(input: { layout: DriveFolderLayout; remote: DriveRemote }) {
     const state = await openFolderState(input.layout);
     const files = folderFiles(input.layout);
+    await settlePlacing({ files, state });
     const tally: Record<ChangeResult, number> = { applied: 0, blocked: 0, kept: 0, skipped: 0 };
+    const held: { message: string; path: string }[] = [];
     let since: DriveAreaCounters = { ...state.current().counters };
     let until: DriveAreaCounters | undefined;
     let areas: DriveFolderArea[] = state.current().areas;
@@ -29,7 +28,15 @@ export async function pullDrive(input: { layout: DriveFolderLayout; remote: Driv
             areas = page.areas.map(({ area, root }) => ({ area, root }));
             for (const change of page.changes) {
                 const readOnlyRoot = readOnlyRootOf(areas, change.area, input.layout.writer);
-                tally[await applyChange({ ...input, files, readOnlyRoot, state }, change)] += 1;
+                const context = { ...input, files, readOnlyRoot, state };
+                const result = await applyChange(context, change).catch((error: unknown) => {
+                    if (!isHeld(error)) {
+                        throw error;
+                    }
+                    held.push({ message: error.message, path: change.path });
+                    return 'blocked' as const;
+                });
+                tally[result] += 1;
                 since = { ...since, [change.area]: change.sequence };
             }
             if (page.complete) {
@@ -42,93 +49,22 @@ export async function pullDrive(input: { layout: DriveFolderLayout; remote: Driv
     } finally {
         await files.relock();
     }
-    return { ...tally, advanced: tally.blocked === 0 };
+    return { ...tally, advanced: tally.blocked === 0, held };
 }
 
-interface ChangeContext {
-    files: FolderFiles;
-    readOnlyRoot: string | null;
-    remote: DriveRemote;
-    state: FolderStateStore;
-}
+const unplaceableCodes = new Set(['DOWNLOAD_MISMATCH', 'ENAMETOOLONG', 'ENOSPC']);
 
-async function applyChange(context: ChangeContext, change: DriveChangeEntry) {
-    const { files, state } = context;
-    const record = state.current().files[change.path];
-    if (change.change === 'put' && record?.revision_id === change.revision_id) {
-        return 'skipped';
+function isHeld(error: unknown): error is Error {
+    if (error instanceof SymlinkedFolderError) {
+        return true;
     }
-    if (change.change === 'delete' && !record) {
-        return 'skipped';
-    }
-    const local = await files.inspect(change.path, record);
-    if (change.change === 'delete') {
-        if (local !== null && local !== 'blocked' && local.sha256 !== record?.sha256) {
-            await state.markSeen(change.path, 'deleted');
-            return 'kept';
-        }
-        return await blockedOnLocalPath(async () => {
-            await files.remove(change.path, context.readOnlyRoot);
-            await state.forget(change.path);
-            return 'applied';
-        });
-    }
-    if (local === 'blocked') {
-        return 'blocked';
-    }
-    const facts = {
-        artifact_id: change.artifact_id,
-        path: change.path,
-        revision_id: change.revision_id,
-        sha256: change.sha256,
-        size_bytes: change.size_bytes,
-    };
-    if (local?.sha256 === change.sha256) {
-        await state.record({ ...facts, mtime_ms: local.mtimeMs });
-        return 'applied';
-    }
-    if (!record && (await adoptPendingCreate(state, facts, local !== null))) {
-        return 'kept';
-    }
-    const unedited = record ? local?.sha256 === record.sha256 : local === null;
-    if (!unedited) {
-        await state.markSeen(change.path, change.revision_id);
-        return 'kept';
-    }
-    const scratch = await files.scratchFile();
-    await context.remote.download(change, scratch);
-    return await blockedOnLocalPath(async () => {
-        const mtimeMs = await files.place(change.path, scratch, context.readOnlyRoot);
-        await state.record({ ...facts, mtime_ms: mtimeMs });
-        return 'applied';
-    });
-}
-
-async function adoptPendingCreate(
-    state: FolderStateStore,
-    facts: Omit<DriveFileRecord, 'mtime_ms'>,
-    isLocal: boolean
-) {
-    if (state.current().pendingCreates[facts.path]?.sha256 !== facts.sha256) {
+    if (!(error instanceof Error)) {
         return false;
     }
-    if (!isLocal) {
-        await state.dropPendingCreate(facts.path);
-        return false;
-    }
-    await state.record({ ...facts, mtime_ms: unplacedMtimeMs });
-    return true;
-}
-
-const localPathErrors = new Set(['EEXIST', 'EISDIR', 'ENOTDIR', 'ENOTEMPTY']);
-
-async function blockedOnLocalPath(apply: () => Promise<ChangeResult>) {
-    return await apply().catch((error: NodeJS.ErrnoException) => {
-        if (localPathErrors.has(error.code ?? '')) {
-            return 'blocked' as const;
-        }
-        throw error;
-    });
+    const code = (error as { code?: unknown }).code;
+    return (
+        error.name === 'TimeoutError' || (typeof code === 'string' && unplaceableCodes.has(code))
+    );
 }
 
 function readOnlyRootOf(areas: readonly DriveFolderArea[], area: string, writer: string) {
