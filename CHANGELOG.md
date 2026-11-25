@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.7.2 - 2026-11-25
+
+- A Captain's Drive sync no longer deletes a file from Drive after Drive refused its upload, or after someone renamed it by changing only its capitalization. A capitalization-only rename of a file or folder now renames it in the Captain's folder too.
+- When someone moves a file while a Captain is editing it, Drive keeps both: the moved file, and the Captain's edit as a copy beside it. This needs Haus Computer 26.0.3 on the Captain's Device.
+- An edit made while a sync is running is never overwritten, and stopping or updating Haus Computer mid-sync never brings back old content or a deleted file. A change the disk can't take, such as a name that's too long or a full disk, is skipped and retried instead of stopping the rest of the sync. Merging two edits keeps a file's UTF-8 byte order mark.
+- A Worker's turn no longer ends while one of its edits is unsent, so a busy Drive can't lose it. If a Worker's turn closes before a file reaches Drive, Haus keeps a copy of the file, and the Captain gets one note listing those files so it can decide what to do with them. Workers can delete files, and Recently deleted names the Worker. A Worker that started before a Full reset can't bring back files the reset removed.
+- A Full reset or retiring a Captain clears its whole folder, read-only folders from other areas included, so the next turn can't delete files from Drive. A Captain that takes a retired Captain's handle starts with a fresh Drive folder, and the retired Captain's files, deleted ones included, move with their history to `agents/<handle>.retired-<id>/`. A Project that reuses an old Project's key no longer loses files to the old Project's deletes.
+- Moving a Captain to another Device no longer finishes while Drive has refused an edit from the old Device. The move waits instead, and the edit stays on the old Device.
+- A Captain's sync never follows a folder that was replaced by a symbolic link, so it can't write through the link or delete files from Drive.
+- Captains and Workers cite a web source as a Markdown link to the page they read, and ChatGPT's raw citation markers no longer show up in their messages.
+- Server 29.6.1, Haus Computer 26.0.3 and Haus Agent 17.3.1 publish together. Haus Agent 17.3.1 adds the rule to cite web sources as Markdown links. Computer protocol 49 is unchanged, but update Haus Computer only after Server 29.6.1 is live: Server 29.6.0 rejects the list of set-aside files that Computer 26.0.3 sends when a Worker's turn closes early. The deploy applies migration 0158, which records a Worker's deletes and the reset each Worker turn started under. Rolling back the Server doesn't reverse it, and Server 29.6.0 fails to load Recently deleted once a Worker has deleted a file, so fix forward instead. Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.7.1 - 2026-11-24
 
 - Haus for iPhone 13.1.1 opens the composer from its one-line pill into the card in one quick motion. The text moves with the card instead of lagging behind it, keeps its line breaks instead of rewrapping mid-animation, and its first line stays in view while the card opens. A new line grows the card with the same motion. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
