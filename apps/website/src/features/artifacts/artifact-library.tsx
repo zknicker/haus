@@ -94,10 +94,8 @@ export function ArtifactLibrary({
         [folders, library.artifacts, library.publicLinks]
     );
     const empty = library.artifacts?.length === 0 && folders.length === 0 && !filtered;
-    const ownUpload = useDriveUpload(serverId);
+    const ownUpload = useDriveUpload(serverId, params.folder);
     const upload = workspace?.upload ?? ownUpload;
-    const startUpload = (sources: Parameters<typeof upload.start>[0]) =>
-        upload.start(sources, params.folder);
     const scrollRef = React.useRef<HTMLDivElement>(null);
     const picked = useLibrarySelection(params.folder, scrollRef, library.artifacts);
     const selection = {
@@ -148,7 +146,7 @@ export function ArtifactLibrary({
             const item = items.find((entry) => entry.key === key);
             return item?.kind === 'folder' ? item.path : null;
         },
-        onFiles: startUpload,
+        onFiles: upload.start,
         onMove: drag.moveInto,
     });
     const bandFolder = workspace?.root ?? params.folder;
@@ -209,9 +207,9 @@ export function ArtifactLibrary({
                     if (id === 'recently-deleted') {
                         actions.runFolder(id, params.folder);
                     } else if (id === 'upload-folder') {
-                        upload.openFolder(params.folder);
+                        upload.openFolder();
                     } else {
-                        upload.openFiles(params.folder);
+                        upload.openFiles();
                     }
                 }}
                 selection={selection}
@@ -255,7 +253,7 @@ export function ArtifactLibrary({
                                 },
                             };
                         }}
-                        onUpload={() => upload.openFiles(params.folder)}
+                        onUpload={upload.openFiles}
                         selection={selection}
                         serverId={serverId}
                     />

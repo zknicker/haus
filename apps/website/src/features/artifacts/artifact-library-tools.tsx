@@ -73,8 +73,8 @@ export function ArtifactLibraryTools({
                         onRecentlyDeleted={() =>
                             actions.runFolder('recently-deleted', params.folder)
                         }
-                        onUploadFiles={() => upload.openFiles(params.folder)}
-                        onUploadFolder={() => upload.openFolder(params.folder)}
+                        onUploadFiles={upload.openFiles}
+                        onUploadFolder={upload.openFolder}
                     />
                 ) : null
             }
