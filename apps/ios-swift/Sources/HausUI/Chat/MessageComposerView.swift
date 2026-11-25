@@ -23,13 +23,11 @@ public struct MessageComposerView: View {
     /// The pill's one-line field and its circles, scaled with Dynamic Type.
     @ScaledMetric(relativeTo: .body) private var compactFieldHeightLimit: CGFloat = 24
     @ScaledMetric(relativeTo: .body) private var controlDiameter: CGFloat = 36
-    /// True while a surface tap re-issues a focus summons, so the momentary
-    /// focus drop never reaches the expansion layout.
+    /// True while a surface tap re-issues a focus summons, so the focus drop never reaches layout.
     @State private var isReissuingFocus = false
-    /// Whether the draft fits the pill's one line, measured at the pill's field width so the
-    /// answer does not change as the card widens the field.
+    /// Whether the draft fits the pill's one line, always measured at the pill's field width.
     @State private var draftFitsOneLine = true
-    @State private var surfaceWidth: CGFloat = 0
+    @State private var compactFieldWidth: CGFloat = 0
 
     public init(
         text: Binding<String>,
@@ -67,16 +65,15 @@ public struct MessageComposerView: View {
             .padding(.horizontal, ComposerSurfaceMetrics.sideMargin)
             .padding(.top, 4)
             .padding(.bottom, isExpanded || isTextFocused ? 8 : 0)
-            // No opaque band: the transcript runs to the bottom of the screen and passes under the
-            // glass, which is the only thing that gives it something to be translucent against.
-            .animation(.spring(response: 0.3, dampingFraction: 0.9), value: isExpanded)
+            // No opaque band: the transcript passes under the glass, giving it something to refract.
+            .animation(ComposerSurfaceMetrics.morph, value: isExpanded)
+            .animation(ComposerSurfaceMetrics.morph, value: text) // a new line grows the card smoothly
             .animation(.easeOut(duration: 0.24), value: interaction.attachments.count)
             .sensoryFeedback(.success, trigger: attachmentReadyFeedback)
             .sensoryFeedback(.impact(weight: .light), trigger: sendFeedback)
             .sensoryFeedback(.error, trigger: sendFailureFeedback)
-            // Text focus belongs to the portal freeze, which restores exactly what the portal
-            // interrupted; this view only moves VoiceOver's cursor back to the plus button when no
-            // keyboard is coming back to claim it.
+            // Text focus belongs to the portal freeze; this view only moves VoiceOver's cursor back
+            // to the plus button when no keyboard is coming back to claim it.
             .onChange(of: interaction.overlay) { _, overlay in
                 guard overlay == nil else {
                     isAttachmentButtonFocused = false
@@ -107,12 +104,10 @@ public struct MessageComposerView: View {
                 case .failure(let error): interaction.errorMessage = error.localizedDescription
                 }
             }
-            // A file that could not be staged is a native alert, not a caption
-            // floating over the transcript the composer sits on.
+            // A file that could not be staged is a native alert, not a caption over the transcript.
             .composerAttachmentAlert(message: $interaction.errorMessage)
-            // The interaction outlives this view, so leaving takes the presentation state and
-            // nothing else. Skipped while the file importer owns the screen: that presentation is
-            // what dismissed this view, and resetting would dismiss the importer with it.
+            // The interaction outlives this view, so leaving takes only the presentation state.
+            // Skipped while the file importer, which dismissed this view, owns the screen.
             .onDisappear {
                 guard !interaction.isFileImporterPresented else { return }
                 interaction.resetPresentation()
@@ -122,8 +117,7 @@ public struct MessageComposerView: View {
     private var composerSurface: some View {
         surfaceBody
             .contentShape(.rect(cornerRadius: surfaceCornerRadius))
-            // Taps on the text area itself go to the field natively; this
-            // gesture only catches the surface around it.
+            // Taps on the text go to the field natively; this catches the surface around it.
             .onTapGesture {
                 guard isTextFocused else {
                     isTextFocused = true
@@ -158,7 +152,14 @@ public struct MessageComposerView: View {
                 ? ComposerSurfaceMetrics.expandedTextTopInset
                 : ComposerSurfaceMetrics.controlInset)
             .padding(.bottom, ComposerSurfaceMetrics.controlInset)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { surfaceWidth = $0 }
+            .clipShape(.rect(cornerRadius: surfaceCornerRadius))
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+                compactFieldWidth = ComposerControlLayout.compactFieldWidth(
+                    inWidth: width - ComposerSurfaceMetrics.controlInset * 2,
+                    attachmentWidth: controlDiameter,
+                    sendWidth: controlDiameter
+                )
+            }
             .composerGlassSurface(cornerRadius: surfaceCornerRadius)
     }
 
@@ -229,15 +230,13 @@ public struct MessageComposerView: View {
             )
             .focused($isTextFocused)
         }
-        .clipped()
-    }
-
-    private var compactFieldWidth: CGFloat {
-        ComposerControlLayout.compactFieldWidth(
-            inWidth: surfaceWidth - ComposerSurfaceMetrics.controlInset * 2,
-            attachmentWidth: controlDiameter,
-            sendWidth: controlDiameter
-        )
+        // The field is card-wide in both shapes (`ComposerControlLayout`); the pill masks it.
+        .mask(alignment: .topLeading) {
+            Rectangle().frame(
+                width: isExpanded ? nil : compactFieldWidth,
+                height: isExpanded ? 2000 : compactFieldHeightLimit
+            )
+        }
     }
 
     private func toggleSourceMenu() {
@@ -278,6 +277,8 @@ public struct MessageComposerView: View {
         guard !content.isEmpty || !submittedAttachments.isEmpty else { return }
 
         text = ""
+        // Folds the card in this update rather than a frame later, when the field reports it.
+        draftFitsOneLine = true
         interaction.attachments = []
         interaction.errorMessage = nil
         sendFeedback += 1

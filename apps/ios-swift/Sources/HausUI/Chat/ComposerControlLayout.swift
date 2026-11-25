@@ -72,15 +72,9 @@ struct ComposerControlLayout: Layout {
 
     private func metrics(width: CGFloat?, subviews: Subviews) -> Metrics {
         let progress = min(max(expansion, 0), 1)
-        let fieldProgress = Self.fieldProgress(for: progress)
         let attachmentSize = subviews[0].sizeThatFits(.unspecified)
         let sendSize = subviews[2].sizeThatFits(.unspecified)
         let proposedWidth = width ?? attachmentSize.width + sendSize.width + 180
-        let compactFieldWidth = Self.compactFieldWidth(
-            inWidth: proposedWidth,
-            attachmentWidth: attachmentSize.width,
-            sendWidth: sendSize.width
-        )
         let expandedFieldWidth = Self.expandedFieldWidth(inWidth: proposedWidth)
         let naturalFieldHeight = subviews[1].sizeThatFits(
             ProposedViewSize(width: expandedFieldWidth, height: nil)
@@ -103,15 +97,14 @@ struct ComposerControlLayout: Layout {
             width: attachmentSize.width,
             height: attachmentSize.height
         )
+        // The field keeps the card's width and its text's full height in both shapes, so the morph
+        // only moves it: its text never rewraps, and a hosted view whose size never animates is
+        // never clipped mid-flight. The caller masks it to the pill's one line.
         let fieldFrame = CGRect(
-            x: interpolate(
-                attachmentSize.width + Self.compactFieldGap,
-                Self.expandedFieldInset,
-                progress: fieldProgress
-            ),
-            y: interpolate((compactHeight - compactFieldHeight) / 2, 0, progress: fieldProgress),
-            width: interpolate(compactFieldWidth, expandedFieldWidth, progress: fieldProgress),
-            height: interpolate(compactFieldHeight, expandedFieldHeight, progress: fieldProgress)
+            x: interpolate(attachmentSize.width + Self.compactFieldGap, Self.expandedFieldInset, progress: progress),
+            y: interpolate((compactHeight - compactFieldHeight) / 2, 0, progress: progress),
+            width: expandedFieldWidth,
+            height: expandedFieldHeight
         )
         let sendFrame = CGRect(
             x: proposedWidth - sendSize.width,
@@ -138,12 +131,6 @@ struct ComposerControlLayout: Layout {
     /// send never move relative to the shell's bottom while the top edge grows.
     static func controlsRowMinY(totalHeight: CGFloat, controlsHeight: CGFloat) -> CGFloat {
         totalHeight - controlsHeight
-    }
-
-    /// The text zone widens and grows late in the expansion, after the shell has begun rising, so
-    /// the field never crowds the controls row mid-morph.
-    static func fieldProgress(for expansion: CGFloat) -> CGFloat {
-        max((min(max(expansion, 0), 1) - 0.45) / 0.55, 0)
     }
 
     private struct Metrics {

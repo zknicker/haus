@@ -32,6 +32,9 @@ enum ComposerSurfaceMetrics {
     /// The draft's first line sits as far below the card's top edge as the text sits in from its
     /// side, so the focused card reads as one even frame around the text.
     static let expandedTextTopInset: CGFloat = 14
+    /// The pill-to-card morph: quick and fully damped, one motion for the shell, the text and the
+    /// controls together.
+    static let morph = Animation.spring(response: 0.28, dampingFraction: 0.88)
 }
 
 extension View {
