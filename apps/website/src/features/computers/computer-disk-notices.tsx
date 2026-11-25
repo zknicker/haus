@@ -71,10 +71,10 @@ function ComputerDiskNotice({
                 <Alert.Description>
                     {warning.label}. {computerDiskWarningDescription}
                 </Alert.Description>
-                <Button onPress={() => navigate(destination)} size="sm" variant="tertiary">
-                    View device
-                </Button>
             </Alert.Content>
+            <Button onPress={() => navigate(destination)} size="sm" variant="tertiary">
+                View device
+            </Button>
             <Tooltip>
                 <CloseButton aria-label={`Dismiss disk warning for ${name}`} onPress={dismiss} />
                 <Tooltip.Content>Dismiss</Tooltip.Content>

@@ -22,10 +22,10 @@ export function ComputerUseWarning({
                     macOS hasn’t given Haus Computer access, so Captains can’t see or control the
                     screen.
                 </Alert.Description>
-                <Button onPress={() => onFix(missing.id)} size="sm" variant="tertiary">
-                    Fix
-                </Button>
             </Alert.Content>
+            <Button onPress={() => onFix(missing.id)} size="sm" variant="tertiary">
+                Fix
+            </Button>
         </Alert>
     );
 }

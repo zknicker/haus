@@ -1,16 +1,12 @@
-import type { ComputerUseReadiness } from '@haus/api';
 import { ComputerIcon, LaptopIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { formatRelativeTime } from '../../lib/format.ts';
-import { computerUseBroken } from './computer-use-model.ts';
 import { computerHealthColor, computerHealthLabel } from './presentation.ts';
 
 interface ListedDevice {
     attachedByCurrentUser: boolean;
-    computerUseEnabled: boolean;
     health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     lastConnectedAt: Date | string | null;
     name: string | null;
-    reportedInventory: { computerUse?: ComputerUseReadiness } | null;
 }
 
 export function deviceGroups<Device extends ListedDevice>(devices: readonly Device[]) {
@@ -20,17 +16,13 @@ export function deviceGroups<Device extends ListedDevice>(devices: readonly Devi
     };
 }
 
-export function deviceIssue(
-    device: Pick<ListedDevice, 'computerUseEnabled' | 'health' | 'reportedInventory'>
-) {
-    const health =
-        device.health === 'healthy' && computerUseBroken(device) ? 'degraded' : device.health;
-    if (health === 'healthy') {
+export function deviceIssue(device: Pick<ListedDevice, 'health'>) {
+    if (device.health === 'healthy') {
         return null;
     }
     return {
-        color: computerHealthColor(health),
-        label: computerHealthLabel(health),
+        color: computerHealthColor(device.health),
+        label: computerHealthLabel(device.health),
     };
 }
 

@@ -34,9 +34,6 @@ contract and [Computer use API](../api/computer-use.md) lists the procedures.
    whose rows open each Captain's profile.
 7. **Diagnostics** (the system log and recovery commands), closed until opened.
 
-In **Settings → Devices**, a Mac with computer use on and a missing permission shows Needs
-attention, like any other Device that needs a look.
-
 Refresh status, Check for updates, and Remove device live in the page's `⋯` menu. The page never
 calls a Device a Captain's home.
 

@@ -2421,19 +2421,52 @@
         padding: calc(var(--spacing) * 3);
     }
 
+    /*
+     * Alerts are tinted callouts: the status's soft fill instead of a white
+     * card, the title in the ink, and the status color left to the icon. An
+     * action placed beside `Alert.Content` (HeroUI's pattern) centers on the row
+     * while the icon stays on the title's line.
+     */
+    .alert {
+        box-shadow: none;
+    }
+
+    .alert--default {
+        background: var(--default);
+    }
+
+    .alert--accent {
+        background: var(--accent-soft);
+    }
+
+    .alert--success {
+        background: var(--success-soft);
+    }
+
+    .alert--warning {
+        background: var(--warning-soft);
+    }
+
+    .alert--danger {
+        background: var(--danger-soft);
+    }
+
+    .alert .alert__title {
+        color: var(--foreground);
+    }
+
+    .alert > .button {
+        align-self: center;
+    }
+
     .alert.haus-hover-card__banner {
         border-radius: 0;
-        box-shadow: none;
         gap: calc(var(--spacing) * 2.5);
         padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3);
     }
 
     .alert.haus-hover-card__banner .alert__indicator {
         padding-inline: 0;
-    }
-
-    .alert--danger.haus-hover-card__banner {
-        background: var(--danger-soft);
     }
 
     .alert--danger.haus-hover-card__banner .alert__description {

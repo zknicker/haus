@@ -1101,6 +1101,7 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   muted tabular match count in its suffix, then Previous, Next, and Close as the toolbar's icon-only
   ghost `sm` buttons in the same tight cluster. It shares the toolbar's bottom hairline. A page not at
   100% shows its zoom as a ghost `sm` text Button at the start of the page actions.
+- **Alerts:** Every `Alert` is a tinted callout (`default-theme.css`): the status's soft fill with no card or edge, the title in the ink, the description muted, the icon in the status color, and an action as a sibling of `Alert.Content`, centered on the right of the row.
 - **Buttons:** Use HeroUI Button semantic variants. Primary actions use `variant="primary"`; alternatives use `secondary`, `tertiary`, `outline`, or `ghost`; destructive actions use `danger` or `danger-soft`. The sidebar updater keeps its primary opacity while pending because pending blocks presses there but also represents live status. Each sidebar status button (updater, offline Computers) enters once when it first appears — a 6px rise and 85% scale on a 420ms spring with one small overshoot, opacity on the 180ms ease-out — and leaves with a 160ms shrink-and-fade; phase and progress changes never replay it, and reduced motion fades only.
 - **Cursors:** Keep the desktop arrow on buttons and other app controls. Reserve the pointer for
   true hyperlinks and specialized cursors for an active manipulation such as dragging or resizing;

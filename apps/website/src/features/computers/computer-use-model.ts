@@ -58,16 +58,6 @@ export function missingComputerUsePermission(readiness: ComputerUseReadiness | u
     return computerUsePermissions(readiness).find((permission) => permission.state === 'denied');
 }
 
-export function computerUseBroken(device: {
-    computerUseEnabled: boolean;
-    reportedInventory: { computerUse?: ComputerUseReadiness } | null;
-}) {
-    return (
-        device.computerUseEnabled &&
-        missingComputerUsePermission(device.reportedInventory?.computerUse) !== undefined
-    );
-}
-
 export function wrongMacLine(input: {
     deviceName: string;
     devices: ReadonlyArray<{ id: string; name: string }>;
