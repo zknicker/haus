@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { inferAttachmentMediaType } from '@haus/api';
 import { DriveRemoteError, type DriveRemote } from './drive-remote.ts';
 import { folderFiles, isSkippedPath, sha256File } from './folder-files.ts';
+import { SymlinkedFolderError } from './folder-spelling.ts';
 import {
     areaOfPath,
     type DriveFileRecord,
@@ -21,9 +22,18 @@ export async function planDrivePush(layout: DriveFolderLayout) {
     const files = folderFiles(layout);
     const local = await files.walk();
     const records = state.current().files;
-    const missing = Object.values(records)
-        .filter((record) => !(isSkippedPath(record.path) || local.has(record.path)))
-        .sort((a, b) => a.path.localeCompare(b.path));
+    const linked: string[] = [];
+    const missing: DriveFileRecord[] = [];
+    for (const record of Object.values(records).sort((a, b) => a.path.localeCompare(b.path))) {
+        if (isSkippedPath(record.path) || local.has(record.path)) {
+            continue;
+        }
+        if (await files.underLink(record.path)) {
+            linked.push(record.path);
+        } else {
+            missing.push(record);
+        }
+    }
     const deletes = missing.filter((record) => record.mtime_ms !== unplacedMtimeMs);
     const restores = missing.filter((record) => record.mtime_ms === unplacedMtimeMs);
     const puts: { path: string; record: DriveFileRecord | null; sha256: string }[] = [];
@@ -47,8 +57,10 @@ export async function planDrivePush(layout: DriveFolderLayout) {
             deletes.length === 0 &&
             puts.length === 0 &&
             restores.length === 0 &&
+            linked.length === 0 &&
             stalePush === null,
         layout,
+        linked,
         puts,
         restores,
         stalePush,
@@ -66,7 +78,10 @@ export async function sendDrivePush(
     const { files, layout, state } = plan;
     const context: OutcomeContext = { files, layout, remote, state };
     const writer = layout.writer;
-    const failed: FileFailure[] = [];
+    const failed: FileFailure[] = plan.linked.map((path) => ({
+        message: new SymlinkedFolderError(path).message,
+        path,
+    }));
     const unrestored: FileFailure[] = [];
     const isolate = async (into: FileFailure[], path: string, send: () => Promise<void>) => {
         await send().catch(async (error: unknown) => {
@@ -129,7 +144,7 @@ export async function sendDrivePush(
                 }
             });
         }
-        const sent = plan.deletes.length + plan.puts.length - failed.length;
+        const sent = plan.deletes.length + plan.puts.length + plan.linked.length - failed.length;
         if (failed.length > 0 && !options.closeWithFailures) {
             return { failed, listed: [], pushClosed: false, sent, unrestored };
         }

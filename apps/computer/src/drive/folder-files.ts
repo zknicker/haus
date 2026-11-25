@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { chmod, link, lstat, mkdir, readdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
-import { respellParents, spellingOf } from './folder-spelling.ts';
+import {
+    refuseSymlinkedParents,
+    respellParents,
+    SymlinkedFolderError,
+    spellingOf,
+} from './folder-spelling.ts';
 import type { DriveFileRecord, DriveFolderLayout } from './folder-state.ts';
 
 export interface LocalFile {
@@ -30,6 +35,11 @@ export function folderFiles(layout: DriveFolderLayout) {
             }
             dir = join(dir, segment);
             const stat = await lstat(dir).catch(() => null);
+            if (stat?.isSymbolicLink()) {
+                throw new SymlinkedFolderError(
+                    relative(layout.folder, target).split(sep).join('/')
+                );
+            }
             if (!stat) {
                 await mkdir(dir, { mode: 0o755 });
             } else if ((stat.mode & 0o200) === 0) {
@@ -44,6 +54,7 @@ export function folderFiles(layout: DriveFolderLayout) {
     return {
         absolute,
         async inspect(path: string, record?: DriveFileRecord) {
+            await refuseSymlinkedParents(layout.folder, path);
             const stat = await lstat(absolute(path)).catch(() => null);
             if (!stat) {
                 return null;
@@ -77,6 +88,7 @@ export function folderFiles(layout: DriveFolderLayout) {
         },
         async remove(path: string, readOnlyRoot: string | null) {
             const target = absolute(path);
+            await refuseSymlinkedParents(layout.folder, path);
             if ((await spellingOf(layout.folder, path)) !== 'exact') {
                 return;
             }
@@ -87,6 +99,10 @@ export function folderFiles(layout: DriveFolderLayout) {
         async setAside(path: string, target: string, sha256: string, readOnlyRoot: string | null) {
             const source = absolute(path);
             await openParents(source, readOnlyRoot);
+            const inFolder = relative(layout.folder, target);
+            if (!inFolder.startsWith('..')) {
+                await refuseSymlinkedParents(layout.folder, inFolder.split(sep).join('/'));
+            }
             await mkdir(dirname(target), { recursive: true });
             for (let attempt = 1; ; attempt += 1) {
                 const candidate = attempt === 1 ? target : `${target}.${attempt}`;
@@ -112,6 +128,8 @@ export function folderFiles(layout: DriveFolderLayout) {
         ) {
             const source = absolute(from);
             const target = absolute(to);
+            await refuseSymlinkedParents(layout.folder, from);
+            await refuseSymlinkedParents(layout.folder, to);
             const [fromStat, toStat] = await Promise.all([
                 lstat(source).catch(() => null),
                 lstat(target).catch(() => null),
@@ -134,6 +152,16 @@ export function folderFiles(layout: DriveFolderLayout) {
             await chmod(target, 0o644);
             return (await lstat(target)).mtimeMs;
         },
+        underLink: (path: string) =>
+            refuseSymlinkedParents(layout.folder, path).then(
+                () => false,
+                (error: unknown) => {
+                    if (error instanceof SymlinkedFolderError) {
+                        return true;
+                    }
+                    throw error;
+                }
+            ),
         walk: () => walkFolder(layout.folder),
         async relock() {
             const dirs = [...lockable].sort((a, b) => b.length - a.length);

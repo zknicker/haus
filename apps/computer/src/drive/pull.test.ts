@@ -29,6 +29,7 @@ test('a first pull fetches every area, records each file, and locks other Agents
         advanced: true,
         applied: 3,
         blocked: 0,
+        held: [],
         kept: 0,
         skipped: 0,
     });

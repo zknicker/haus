@@ -22,6 +22,9 @@ export function pullWorkerDrive(folder: WorkerDriveFolder, token: string) {
             layout,
             remote: driveRemote({ serverOrigin: folder.server.serverOrigin, token }),
         });
+        for (const file of pulled.held) {
+            warn('worker.drive-pull-held', folder, `${file.path}: ${file.message}`);
+        }
         if (!pulled.advanced) {
             warn('worker.drive-pull-blocked', folder, `${pulled.blocked} local paths blocked`);
         }

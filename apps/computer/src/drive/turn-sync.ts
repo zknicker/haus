@@ -45,6 +45,9 @@ export function pullDriveForRun(agentRoot: string, run: DriveRun) {
                 layout: driveFolderLayout(agentRoot, run.agentId),
                 remote: driveRemote({ serverOrigin: run.serverOrigin, token }),
             });
+            for (const file of pulled.held) {
+                run.warn('drive-pull-held', `${file.path}: ${file.message}`);
+            }
             if (!pulled.advanced) {
                 run.warn('drive-pull-blocked', `${pulled.blocked} local paths blocked`);
             }

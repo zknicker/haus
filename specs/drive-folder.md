@@ -94,7 +94,9 @@ is never stranded.
 
 1. Walk regular files. Skip `.git`, `node_modules`, `__pycache__`, and `.DS_Store`, as
    `haus files push` did. Symbolic links are not Drive content and are skipped. An empty
-   folder exists only locally.
+   folder exists only locally. Sync never follows a symbolic link in a parent folder below
+   `drive/`: a pull holds a change under one like a blocked path, and a push neither deletes nor
+   restores a record under one. Both warn with the path.
 2. Compare each file with its record, using size and modification time as a shortcut.
 3. Send every delete, then every put, each in path order
    ([Pushes](artifact-drive.md#pushes)). A changed file goes with its recorded revision as its
@@ -294,6 +296,7 @@ D2 and D4 add these guards.
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | A pending create whose file is gone, a record never placed, a closed push, and an undispatched push never send a delete or strand state | `apps/computer/src/drive/push-recovery.test.ts` |
 | A case-only rename of a file or folder, from Drive or the Agent, respells the folder and never sends a delete | `apps/computer/src/drive/case-renames.test.ts` |
+| A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |

@@ -1,6 +1,7 @@
 import type { DriveAreaCounters } from '@haus/api';
 import type { DriveRemote } from './drive-remote.ts';
 import { folderFiles } from './folder-files.ts';
+import { SymlinkedFolderError } from './folder-spelling.ts';
 import {
     type DriveFolderArea,
     type DriveFolderLayout,
@@ -13,6 +14,7 @@ export async function pullDrive(input: { layout: DriveFolderLayout; remote: Driv
     const state = await openFolderState(input.layout);
     const files = folderFiles(input.layout);
     const tally: Record<ChangeResult, number> = { applied: 0, blocked: 0, kept: 0, skipped: 0 };
+    const held: { message: string; path: string }[] = [];
     let since: DriveAreaCounters = { ...state.current().counters };
     let until: DriveAreaCounters | undefined;
     let areas: DriveFolderArea[] = state.current().areas;
@@ -24,7 +26,15 @@ export async function pullDrive(input: { layout: DriveFolderLayout; remote: Driv
             areas = page.areas.map(({ area, root }) => ({ area, root }));
             for (const change of page.changes) {
                 const readOnlyRoot = readOnlyRootOf(areas, change.area, input.layout.writer);
-                tally[await applyChange({ ...input, files, readOnlyRoot, state }, change)] += 1;
+                const context = { ...input, files, readOnlyRoot, state };
+                const result = await applyChange(context, change).catch((error: unknown) => {
+                    if (!isHeld(error)) {
+                        throw error;
+                    }
+                    held.push({ message: error.message, path: change.path });
+                    return 'blocked' as const;
+                });
+                tally[result] += 1;
                 since = { ...since, [change.area]: change.sequence };
             }
             if (page.complete) {
@@ -37,7 +47,11 @@ export async function pullDrive(input: { layout: DriveFolderLayout; remote: Driv
     } finally {
         await files.relock();
     }
-    return { ...tally, advanced: tally.blocked === 0 };
+    return { ...tally, advanced: tally.blocked === 0, held };
+}
+
+function isHeld(error: unknown): error is Error {
+    return error instanceof SymlinkedFolderError;
 }
 
 function readOnlyRootOf(areas: readonly DriveFolderArea[], area: string, writer: string) {
