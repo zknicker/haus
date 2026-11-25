@@ -2223,6 +2223,20 @@
     }
 
     /*
+     * A record page's title mark fills its own ghost Button, so the Button's
+     * hover fill sits behind the tile. The tile answers the pointer the way a
+     * reference does: light deepens, dark brightens.
+     */
+    .channel-appearance-trigger--header:hover:not(:disabled) .channel-icon-box {
+        filter: brightness(0.94) saturate(1.2);
+    }
+
+    [data-theme='dark'] .channel-appearance-trigger--header:hover:not(:disabled) .channel-icon-box,
+    .dark .channel-appearance-trigger--header:hover:not(:disabled) .channel-icon-box {
+        filter: brightness(1.16);
+    }
+
+    /*
      * HeroUI keeps ownership of the hover card's anchor, portal, collision
      * handling, and focus lifecycle. The individual translate property adds
      * pointer-following motion without replacing React Aria's placement
@@ -3061,6 +3075,15 @@
     :root:is([data-theme="dark"], .dark):not([data-shell-variant]) {
         --field-border: color-mix(in oklab, var(--foreground) 7%, transparent);
         --border-width-field: 0.5px;
+    }
+
+    /*
+     * In a web settings row the hairline alone left a text field reading as an
+     * outline beside the filled Select in the same box. The row's fields take
+     * the desktop's step too, so every control in a settings card has a fill.
+     */
+    :root:is([data-theme="dark"], .dark):not([data-shell-variant]) .settings-frame .item-card__action {
+        --field-background: var(--shell-field-background);
     }
 
     /* band: one rounded card, inset from the canvas, holds sidebar and content. */

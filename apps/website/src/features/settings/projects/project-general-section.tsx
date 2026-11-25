@@ -10,6 +10,7 @@ import {
     projectKeyRefusal,
 } from '../../chats/project-key.ts';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
+import { ProjectWorkerPlaceRow } from './project-worker-place-row.tsx';
 
 export function ProjectGeneralSection({ chat, project }: { chat: Chat; project: Project }) {
     const isDisabled = Boolean(chat.archivedAt);
@@ -33,6 +34,8 @@ export function ProjectGeneralSection({ chat, project }: { chat: Chat; project: 
                     key={project.key}
                     project={project}
                 />
+                <Separator />
+                <ProjectWorkerPlaceRow isDisabled={isDisabled} project={project} />
             </ItemCardGroup>
         </ItemCardGroup>
     );
@@ -45,8 +48,11 @@ function ProjectNameRow({ chat, isDisabled }: { chat: Chat; isDisabled: boolean 
     const issue = channelHandleIssue(name);
     const save = () => {
         const next = name.trim();
-        if (!next || issue || next === current) {
+        if (!next || next === current) {
             setName(current);
+            return;
+        }
+        if (issue || update.error) {
             return;
         }
         update.mutate({ chatId: chat.id, name: next, serverId: chat.serverId });
@@ -61,14 +67,16 @@ function ProjectNameRow({ chat, isDisabled }: { chat: Chat; isDisabled: boolean 
             <ItemCard.Action>
                 <TextField
                     aria-label="Project name"
-                    className="w-56 max-w-full"
+                    className="w-64 max-w-full"
                     isDisabled={isDisabled || update.isPending}
-                    isInvalid={Boolean(issue)}
+                    isInvalid={Boolean(issue ?? update.error)}
                     onBlur={save}
-                    onChange={setName}
+                    onChange={(value) => {
+                        update.reset();
+                        setName(value);
+                    }}
                     onKeyDown={blurOnEnter}
                     value={name}
-                    variant="secondary"
                 >
                     <Input placeholder="planning" />
                 </TextField>
@@ -82,10 +90,15 @@ function ProjectDescriptionRow({ chat, isDisabled }: { chat: Chat; isDisabled: b
     const current = chat.description ?? '';
     const [description, setDescription] = React.useState(current);
     const save = () => {
-        if (description.trim() === current) {
+        const next = description.trim();
+        if (next === current) {
+            setDescription(current);
             return;
         }
-        update.mutate({ chatId: chat.id, description, serverId: chat.serverId });
+        if (update.error) {
+            return;
+        }
+        update.mutate({ chatId: chat.id, description: next, serverId: chat.serverId });
     };
 
     return (
@@ -98,14 +111,17 @@ function ProjectDescriptionRow({ chat, isDisabled }: { chat: Chat; isDisabled: b
             <ItemCard.Action>
                 <TextField
                     aria-label="Project description"
-                    className="w-56 max-w-full"
+                    className="w-64 max-w-full"
                     isDisabled={isDisabled || update.isPending}
+                    isInvalid={Boolean(update.error)}
                     maxLength={channelDescriptionMaxLength}
                     onBlur={save}
-                    onChange={setDescription}
+                    onChange={(value) => {
+                        update.reset();
+                        setDescription(value);
+                    }}
                     onKeyDown={blurOnEnter}
                     value={description}
-                    variant="secondary"
                 >
                     <Input placeholder="What this project is for" />
                 </TextField>
@@ -127,8 +143,11 @@ function ProjectKeyRow({
     const [key, setKey] = React.useState(project.key);
     const issue = projectKeyIssue(key) ?? projectKeyRefusal(update.error);
     const save = () => {
-        if (!key || projectKeyIssue(key) || key === project.key) {
+        if (!key || key === project.key) {
             setKey(project.key);
+            return;
+        }
+        if (issue || update.error) {
             return;
         }
         update.mutate({ chatId: chat.id, key, serverId: chat.serverId });
@@ -167,7 +186,6 @@ function ProjectKeyRow({
                     }}
                     onKeyDown={blurOnEnter}
                     value={key}
-                    variant="secondary"
                 >
                     <Input placeholder="OPS" />
                 </TextField>
@@ -176,7 +194,7 @@ function ProjectKeyRow({
     );
 }
 
-const taskKeyDescription = 'Prefixes Task numbers and locks once the first Task is filed.';
+const taskKeyDescription = 'Prefixes Task numbers. Fixed after the first Task.';
 
 function blurOnEnter(event: React.KeyboardEvent) {
     if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {

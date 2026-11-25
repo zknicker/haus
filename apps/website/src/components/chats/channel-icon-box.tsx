@@ -18,6 +18,8 @@ import { useChannelIconGlyph } from './channel-icon-catalog.ts';
 // the always-dark reference preview can rebind it — Tailwind's `dark:` variant
 // cannot.
 const channelIconBoxVariants = {
+    /** A record page's title mark: the size of the icon-only Button that edits it. */
+    header: { boxSize: 40, iconSize: 20 },
     inline: { boxSize: 20, iconSize: 14 },
     modal: { boxClassName: 'size-10 rounded-3xl', iconSize: 20 },
     preview: { boxSize: 44, iconSize: 22 },

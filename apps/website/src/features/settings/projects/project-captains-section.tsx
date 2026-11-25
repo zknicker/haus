@@ -1,6 +1,6 @@
 import type { Agent } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button, Description, Dropdown, Label, Separator } from '@heroui/react';
+import { Button, Description, Dropdown, Header, Label, Separator } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
@@ -34,41 +34,52 @@ export function ProjectCaptainsSection({
     const loaded = projects.data !== undefined && agents.data !== undefined;
     const moveHome = (agentId: string, homeId: string) =>
         move.mutate({ agentId, projectId: homeId, serverId });
+    if (!(loaded || projects.error || agents.error)) {
+        return null;
+    }
 
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Captains</ItemCardGroup.Title>
-                <Dropdown>
-                    <Button
-                        isDisabled={isDisabled || !loaded || candidates.length === 0}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        Add Captain
-                    </Button>
-                    <Dropdown.Popover placement="bottom end">
-                        <Dropdown.Menu onAction={(agentId) => moveHome(String(agentId), projectId)}>
-                            {candidates.map(({ agent, home }) => (
-                                <Dropdown.Item
-                                    id={agent.id}
-                                    key={agent.id}
-                                    textValue={agent.displayName}
-                                >
-                                    <EntityAvatar
-                                        name={agent.displayName}
-                                        size="sm"
-                                        src={agent.avatarUrl}
-                                    />
-                                    <div className="flex flex-col">
-                                        <Label>{agent.displayName}</Label>
-                                        <Description>Lives in #{home.name}</Description>
-                                    </div>
-                                </Dropdown.Item>
-                            ))}
-                        </Dropdown.Menu>
-                    </Dropdown.Popover>
-                </Dropdown>
+                <ItemCardGroup.Title>
+                    Captains
+                    {loaded ? (
+                        <>
+                            <span className="sr-only"> </span>
+                            <span className="text-muted ms-2 tabular-nums">{captains.length}</span>
+                        </>
+                    ) : null}
+                </ItemCardGroup.Title>
+                {isDisabled || candidates.length === 0 ? null : (
+                    <Dropdown>
+                        <Button isDisabled={move.isPending} size="sm" variant="secondary">
+                            Add Captain
+                        </Button>
+                        <Dropdown.Popover placement="bottom end">
+                            <Dropdown.Menu
+                                onAction={(agentId) => moveHome(String(agentId), projectId)}
+                            >
+                                {candidates.map(({ agent, home }) => (
+                                    <Dropdown.Item
+                                        id={agent.id}
+                                        key={agent.id}
+                                        textValue={agent.displayName}
+                                    >
+                                        <EntityAvatar
+                                            name={agent.displayName}
+                                            size="sm"
+                                            src={agent.avatarUrl}
+                                        />
+                                        <div className="flex flex-col">
+                                            <Label>{agent.displayName}</Label>
+                                            <Description>Lives in #{home.name}</Description>
+                                        </div>
+                                    </Dropdown.Item>
+                                ))}
+                            </Dropdown.Menu>
+                        </Dropdown.Popover>
+                    </Dropdown>
+                )}
             </ItemCardGroup.Header>
             {loaded ? (
                 <ItemCardGroup>
@@ -81,21 +92,23 @@ export function ProjectCaptainsSection({
                             <ItemCard>
                                 <EntityAvatar
                                     name={agent.displayName}
-                                    size="sm"
+                                    size={rowMarkSize}
                                     src={agent.avatarUrl}
                                 />
                                 <ItemCard.Content>
                                     <ItemCard.Title>{agent.displayName}</ItemCard.Title>
                                 </ItemCard.Content>
-                                <ItemCard.Action>
-                                    <CaptainMenu
-                                        agent={agent}
-                                        isDisabled={isDisabled || move.isPending}
-                                        onMove={(homeId) => moveHome(agent.id, homeId)}
-                                        projectId={projectId}
-                                        serverId={serverId}
-                                    />
-                                </ItemCard.Action>
+                                {isDisabled ? null : (
+                                    <ItemCard.Action>
+                                        <CaptainMenu
+                                            agent={agent}
+                                            isPending={move.isPending}
+                                            onMove={(homeId) => moveHome(agent.id, homeId)}
+                                            projectId={projectId}
+                                            serverId={serverId}
+                                        />
+                                    </ItemCard.Action>
+                                )}
                             </ItemCard>
                         </React.Fragment>
                     ))}
@@ -110,13 +123,13 @@ export function ProjectCaptainsSection({
 
 function CaptainMenu({
     agent,
-    isDisabled,
+    isPending,
     onMove,
     projectId,
     serverId,
 }: {
     agent: Agent;
-    isDisabled: boolean;
+    isPending: boolean;
     onMove: (projectId: string) => void;
     projectId: string;
     serverId: string;
@@ -124,12 +137,15 @@ function CaptainMenu({
     const projects = useProjects(serverId).data ?? [];
     const chats = useChatAppearances(serverId);
     const choices = projectChoices(projects, chats, projectId);
+    if (choices.length === 0) {
+        return null;
+    }
 
     return (
         <Dropdown>
             <Button
                 aria-label={`${agent.displayName} actions`}
-                isDisabled={isDisabled}
+                isDisabled={isPending}
                 isIconOnly
                 size="sm"
                 variant="ghost"
@@ -137,37 +153,28 @@ function CaptainMenu({
                 <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
             </Button>
             <Dropdown.Popover placement="bottom end">
-                <Dropdown.Menu>
-                    <Dropdown.SubmenuTrigger>
-                        <Dropdown.Item
-                            id="move"
-                            isDisabled={choices.length === 0}
-                            textValue="Move to"
-                        >
-                            <Label>Move to</Label>
-                            <Dropdown.SubmenuIndicator />
-                        </Dropdown.Item>
-                        <Dropdown.Popover>
-                            <Dropdown.Menu onAction={(homeId) => onMove(String(homeId))}>
-                                {choices.map((choice) => (
-                                    <Dropdown.Item
-                                        id={choice.chatId}
-                                        key={choice.chatId}
-                                        textValue={choice.name}
-                                    >
-                                        <ChannelIconBox
-                                            color={choice.color}
-                                            icon={choice.icon}
-                                            size="inline"
-                                        />
-                                        <Label>#{choice.name}</Label>
-                                    </Dropdown.Item>
-                                ))}
-                            </Dropdown.Menu>
-                        </Dropdown.Popover>
-                    </Dropdown.SubmenuTrigger>
+                <Dropdown.Menu onAction={(homeId) => onMove(String(homeId))}>
+                    <Dropdown.Section>
+                        <Header>Move to</Header>
+                        {choices.map((choice) => (
+                            <Dropdown.Item
+                                id={choice.chatId}
+                                key={choice.chatId}
+                                textValue={choice.name}
+                            >
+                                <ChannelIconBox
+                                    color={choice.color}
+                                    icon={choice.icon}
+                                    size="inline"
+                                />
+                                <Label>#{choice.name}</Label>
+                            </Dropdown.Item>
+                        ))}
+                    </Dropdown.Section>
                 </Dropdown.Menu>
             </Dropdown.Popover>
         </Dropdown>
     );
 }
+
+const rowMarkSize = 33.75;

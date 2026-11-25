@@ -7,11 +7,9 @@ import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { ProjectBandMenu } from './project-band-menu.tsx';
 import { ProjectCaptainsSection } from './project-captains-section.tsx';
+import { ProjectContextSection } from './project-context-section.tsx';
 import { ProjectGeneralSection } from './project-general-section.tsx';
 import { ProjectHeader } from './project-header.tsx';
-import { ProjectReposSection } from './project-repos-section.tsx';
-import { ProjectRulesSection } from './project-rules-section.tsx';
-import { ProjectWorkersSection } from './project-workers-section.tsx';
 
 export function ProjectPage({ projectId, serverId }: { projectId: string; serverId: string }) {
     const { server } = useServerContext();
@@ -46,14 +44,12 @@ export function ProjectPage({ projectId, serverId }: { projectId: string; server
             <SettingsPageColumn>
                 <ProjectHeader chat={chat} project={project} />
                 <ProjectGeneralSection chat={chat} project={project} />
-                <ProjectRulesSection project={project} slug={server.slug} />
                 <ProjectCaptainsSection
                     isDisabled={isArchived}
                     projectId={project.chatId}
                     serverId={serverId}
                 />
-                <ProjectWorkersSection isDisabled={isArchived} project={project} />
-                <ProjectReposSection slug={server.slug} />
+                <ProjectContextSection project={project} slug={server.slug} />
             </SettingsPageColumn>
         </>
     );

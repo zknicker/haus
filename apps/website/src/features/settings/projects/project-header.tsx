@@ -41,6 +41,7 @@ export function ProjectHeader({ chat, project }: { chat: Chat; project: Project 
                     appearance={shown}
                     isDisabled={Boolean(chat.archivedAt)}
                     onChange={pick}
+                    size="header"
                 />
                 <SettingsPageHeader
                     meta={
