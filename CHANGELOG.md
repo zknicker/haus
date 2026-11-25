@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.7.0 - 2026-11-24
+
+- Drive's file tree has one **+** menu: New file, New folder, Upload files and Upload folder. New folder asks for a name, says when it's taken, and opens an empty `untitled.md` inside the new folder. An empty area offers Add instructions, New file, New folder and Upload.
+- A file's path row folds paths deeper than three levels to All files › … › parent › file, and the … opens the hidden folders. When the window is too narrow for the tree, the path row shows the same **+** menu.
+- An empty file opens as an empty file instead of failing to load, and New file creates a truly empty `untitled.md`.
+- After a Haus Computer reconnects, the Server only asks it to sync Drive for a run whose push is still open, and pulls an active run without pushing it.
+- Server 29.6.0 ships alone. No database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.6.0 - 2026-11-24
 
 - Inside a Drive area, a file tree stays on the left while the right side shows the open folder or file, so moving between them keeps your place. The tree filters names and paths across the whole area, and its header has **New file**, which creates `untitled.md` and opens it ready to type, and **Upload**.
