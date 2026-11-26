@@ -11,6 +11,7 @@ import { readTasks } from '../tasks/task-read.ts';
 import { chatIdsOf, maxDrainRows, noticeWindow } from './drain-selection.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isNoticelessInboxSource } from './inbox-lanes.ts';
+import { readQueueDeliveryIds } from './queue-delivery.ts';
 import * as store from './store.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
@@ -90,14 +91,6 @@ async function readBatchedNotice(
             total: rows.length,
         },
     };
-}
-
-async function readQueueDeliveryIds(tx: HausDatabase, agentId: string) {
-    const rows = await tx
-        .select({ id: agentInboxTable.id })
-        .from(agentInboxTable)
-        .where(and(store.queuedFor(agentId), eq(agentInboxTable.delivery, 'queue')));
-    return new Set(rows.map((row) => row.id));
 }
 
 /** The queued reports of the Task whose oldest report no notice has named yet. */

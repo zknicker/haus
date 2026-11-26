@@ -58,6 +58,17 @@ test('a busy Task hears steer at its next boundary, never queue', async () => {
     const noticed = notice?.inbox.map((item) => item.content) ?? [];
     expect(noticed).toContain('Check the index too.');
     expect(noticed).not.toContain('Only after this turn.');
+
+    const taskRunner = await fixture.mintRunner(runId, task.agentId, task.chatId, false);
+    const pulled = await fetch(new URL('/api/agent/events', fixture.harness.url), {
+        headers: { authorization: `Bearer ${taskRunner.token}` },
+    });
+    const { messages } = (await pulled.json()) as {
+        messages: Array<{ message: { content: string } }>;
+    };
+    const pulledContent = messages.map((row) => row.message.content);
+    expect(pulledContent).toContain('Check the index too.');
+    expect(pulledContent).not.toContain('Only after this turn.');
 });
 
 test('interrupt aborts the live turn and runs again with its unseen work', async () => {
