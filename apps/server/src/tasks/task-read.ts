@@ -1,8 +1,9 @@
-import type { Task } from '@haus/api';
+import type { Task, TaskActivity } from '@haus/api';
 import { and, asc, eq, inArray, not, type SQL } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, tasksTable } from '../postgres/schema.ts';
 import { actorVisibleChats } from './actor-visible-chats.ts';
+import { taskActivitySql } from './task-activity.ts';
 import { actorFromColumns, type TaskActor } from './task-actor.ts';
 import { TaskNotFoundError } from './task-errors.ts';
 
@@ -18,7 +19,7 @@ export async function readTasks(
     input: { serverId: string; viewer?: TaskActor; where?: SQL }
 ): Promise<Task[]> {
     const rows = await db
-        .select({ task: tasksTable })
+        .select({ activity: taskActivitySql, task: tasksTable })
         .from(tasksTable)
         .leftJoin(
             chatsTable,
@@ -26,7 +27,7 @@ export async function readTasks(
         )
         .where(and(eq(tasksTable.serverId, input.serverId), input.where))
         .orderBy(asc(tasksTable.createdAt), asc(tasksTable.id));
-    const tasks = rows.map(({ task }) => toTask(task));
+    const tasks = rows.map(({ activity, task }) => toTask(task, activity));
     return input.viewer ? await withVisibleOrigins(db, input.viewer, tasks) : tasks;
 }
 
@@ -84,14 +85,20 @@ export async function withVisibleOrigins(
     );
 }
 
-function toTask(task: typeof tasksTable.$inferSelect) {
+function toTask(task: typeof tasksTable.$inferSelect, activity: TaskActivity) {
     return {
+        activity,
+        agentId: task.agentId,
         archivedAt: task.archivedAt?.toISOString() ?? null,
+        captainId: task.captainId,
         chatId: task.chatId,
+        computerId: task.computerId,
         createdAt: task.createdAt.toISOString(),
         createdBy: actorFromColumns(task.createdByUserId, task.createdByAgentId),
         description: task.description,
         id: task.id,
+        model: task.model,
+        needsYou: false,
         origin:
             task.originChatId && task.originMessageId
                 ? { chatId: task.originChatId, messageId: task.originMessageId }
@@ -100,6 +107,7 @@ function toTask(task: typeof tasksTable.$inferSelect) {
         serverId: task.serverId,
         shortId: task.shortId,
         title: task.title,
+        titleCustom: task.titleCustom,
         updatedAt: task.updatedAt.toISOString(),
         version: task.version,
     };

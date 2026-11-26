@@ -52,7 +52,8 @@ export async function listMentionOptions(
                       and(
                           eq(agentsTable.serverId, input.serverId),
                           inArray(agentsTable.id, participantAgentIds),
-                          isNull(agentsTable.retiredAt)
+                          isNull(agentsTable.retiredAt),
+                          eq(agentsTable.kind, 'captain')
                       )
                   )
                   .orderBy(agentsTable.createdAt);
@@ -131,7 +132,8 @@ async function listImplicitDmAgentIds(
             and(
                 eq(agentsTable.serverId, input.serverId),
                 eq(agentsTable.id, input.agentId),
-                isNull(agentsTable.retiredAt)
+                isNull(agentsTable.retiredAt),
+                eq(agentsTable.kind, 'captain')
             )
         )
         .limit(1);

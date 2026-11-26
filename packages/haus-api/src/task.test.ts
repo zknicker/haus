@@ -5,17 +5,24 @@ import { isTaskShortId, taskLinkSchema, taskShortIdSchema } from './task-short-i
 import { type Task, taskDetailSchema, taskMessagePlaceSchema, taskSchema } from './task.ts';
 
 const task: Task = {
+    activity: 'idle',
+    agentId: 'agt_task',
     archivedAt: null,
+    captainId: null,
     chatId: 'cht_task',
+    computerId: 'cmp_mini',
     createdAt: '2026-11-04T12:00:00.000Z',
     createdBy: { kind: 'user', userId: 'usr_zach' },
     description: 'Rotate the leaked key.',
     id: 'tsk_12',
+    model: 'claude-opus-4-7',
+    needsYou: false,
     origin: { chatId: 'cht_security', messageId: 'msg_origin' },
     projectId: 'cht_security',
     serverId: 'srv_1',
     shortId: 'k3mq7xta',
     title: 'Rotate the deploy key',
+    titleCustom: false,
     updatedAt: '2026-11-04T12:00:00.000Z',
     version: 3,
 };

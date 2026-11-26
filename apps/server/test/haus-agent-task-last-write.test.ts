@@ -84,7 +84,9 @@ test('concurrent implicit writes to one Task all land', async () => {
         target: '#product',
     });
     const started = await call('/api/agent/tasks/start', {
+        brief: 'Contended work.',
         from: origin.body.message.id,
+        machine: fixture.computerId,
         target: '#product',
         title: 'Contended',
     });

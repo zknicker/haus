@@ -1172,11 +1172,12 @@ paths:
     post:
       operationId: startAgentTask
       tags: [Agent CLI]
-      summary: Start a Task from a Message in a Channel or DM.
+      summary: Start a crew Task with a brief.
       description: >-
-        Starts a Task, a place for one piece of work, in a Project from an origin Message in a
-        Channel or DM (ADR 0055). The Task gets a short id. An Agent starting outside its
-        Project is refused with `TASK_PROJECT_NOT_HOME`.
+        A Captain starts a Task, a fresh agent session with its own chat, in its home Project
+        (ADR 0062). The Task gets a short id, a Machine and a model, and its first turn is queued.
+        An Issue in another Project is refused with `TASK_PROJECT_NOT_HOME`, and one someone else
+        holds with `ISSUE_TAKEN`. A Task's own credential cannot start a Task.
       requestBody:
         required: true
         content:
@@ -1197,6 +1198,29 @@ paths:
       operationId: archiveAgentTask
       tags: [Agent CLI]
       summary: Archive one Task; its pending reminders are canceled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentTaskArchiveRequest'
+      responses:
+        '200':
+          description: Updated Task.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskSingleResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/tasks/unarchive:
+    post:
+      operationId: unarchiveAgentTask
+      tags: [Agent CLI]
+      summary: Restore one archived Task; no turn starts.
+      description: >-
+        Refused with `TASK_PROJECT_ARCHIVED` while the Task's Project is archived. The next turn
+        starts a fresh session.
       requestBody:
         required: true
         content:
@@ -3037,37 +3061,66 @@ components:
     AgentTaskStartRequest:
       type: object
       additionalProperties: false
-      required: [from, target, title]
+      required: [brief]
+      description: >-
+        A Captain starts crew in its home Project (ADR 0062). The brief posts as the Task's first
+        message, authored by the Captain, and is queued as its first turn.
       properties:
-        description: { type: string, maxLength: 20000 }
+        brief: { type: string, minLength: 1, maxLength: 20000 }
         from:
           type: string
           minLength: 1
-          description: The origin Message id. It must be in `target`.
-        project:
+          description: A Message in `target` that becomes the Task's origin.
+        issue:
           type: string
-          pattern: '^[A-Z][A-Z0-9]{1,4}$'
+          minLength: 1
+          maxLength: 64
           description: >-
-            The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or
-            `#all` origin to the caller's Project.
+            An open Issue in the Captain's home Project, assigned to the caller or nobody. It is
+            linked and assigned to the Task; its state never changes.
+        machine:
+          type: string
+          minLength: 1
+          description: The Machine by name or id. Defaults to the crew Machine, then the Project's.
+        model:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: The model id. Defaults to the crew model, then the Captain's own.
+        requestId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: The caller's idempotency key; a retry returns the same Task.
         target:
           type: string
           minLength: 1
           description: >-
-            The Channel or DM holding the origin Message, as a send target like `#security` or
-            `dm:@ada`.
+            The chat the Captain answers in, as a send target like `#security`. Its freshness hold
+            runs first.
         title: { type: string, minLength: 1, maxLength: 200 }
     AgentTaskStartResponse:
-      type: object
-      additionalProperties: false
-      required: [target, task]
-      properties:
-        target:
-          type: string
-          pattern: '^task:[0-9a-hjkmnp-tv-z]{8}$'
-          description: The Task's target, like `task:k3mq7xta`.
-        task:
-          $ref: '#/components/schemas/AgentTaskRow'
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [state, target, task]
+          properties:
+            state: { const: started }
+            target:
+              type: string
+              pattern: '^task:[0-9a-hjkmnp-tv-z]{8}$'
+              description: The Task's target, like `task:k3mq7xta`.
+            task:
+              $ref: '#/components/schemas/AgentTaskRow'
+        - type: object
+          required: [state, newMessageCount, shownMessages]
+          description: A freshness hold in `target`; nothing was recorded.
+          properties:
+            state: { const: held }
+            formalMentionCount: { type: integer, minimum: 0 }
+            newMessageCount: { type: integer, minimum: 1 }
+            omittedMessageCount: { type: integer, minimum: 0 }
+            shownMessages: { type: array, maxItems: 12, items: { type: object } }
     AgentTaskArchiveRequest:
       type: object
       additionalProperties: false

@@ -6,8 +6,10 @@ import {
     TaskConflictError,
     TaskInvariantError,
     TaskNotFoundError,
+    TaskProjectArchivedError,
 } from '../../tasks/task-errors.ts';
 import { withVisibleOrigins } from '../../tasks/task-read.ts';
+import { announceTaskSessions } from '../../tasks/task-session.ts';
 import type { TaskWriteResult } from '../../tasks/task-write-result.ts';
 import type { HausUser } from '../../users/haus-user.ts';
 import type { HausContext } from '../context.ts';
@@ -29,7 +31,12 @@ export const taskProcedure = memberProcedure.use(async ({ next }) => {
 export async function commitTaskWrite(
     ctx: Pick<
         HausContext,
-        'agentDelivery' | 'computerConnections' | 'hausDb' | 'postCommitWork'
+        | 'agentDelivery'
+        | 'computerConnections'
+        | 'hausDb'
+        | 'invocations'
+        | 'postCommitWork'
+        | 'runnerLink'
     > & {
         member: HausUser | null;
     },
@@ -39,6 +46,10 @@ export async function commitTaskWrite(
     for (const { computerId, frame } of result.workerFrames ?? []) {
         ctx.computerConnections.send(computerId, frame);
     }
+    announceTaskSessions(
+        { invocations: ctx.invocations, runner: ctx.runnerLink },
+        result.sessions ?? []
+    );
     void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.wakes);
     const [task] = await withVisibleOrigins(ctx.hausDb, memberTaskActor(ctx.member), [result.task]);
     if (!task) {
@@ -56,6 +67,9 @@ function toTaskError(cause: unknown): TRPCError | null {
     }
     if (cause instanceof TaskInvariantError) {
         return new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
+    }
+    if (cause instanceof TaskProjectArchivedError) {
+        return new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
     if (cause instanceof ChatNotFoundError) {
         return new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });

@@ -3,6 +3,7 @@ import { agentFenceCommandSchema, invocationCommandSchemas } from '@haus/api';
 import { sendAgentHeld } from '../agent-held.ts';
 import { agentDesktopToolsRoot } from '../desktop/agent-desktop-binary.ts';
 import { driveSyncFrames } from '../drive/drive-sync-frames.ts';
+import { removeArchivedWorktrees } from '../repos/agent-worktrees.ts';
 import { bashRunner } from './bash.ts';
 import { createBrowserRunner } from './browser.ts';
 import { createDesktopRunner } from './desktop.ts';
@@ -119,6 +120,8 @@ export function attachmentInvocations(
                 invocationId,
                 serverOrigin: attachment.serverOrigin,
             }),
+        releaseWorktrees: (agentId) =>
+            removeArchivedWorktrees({ agentId, dataRoot, serverId: attachment.serverId }),
         runners: {
             bash: bashRunner,
             browser: createBrowserRunner({ browserRoot: join(serverRoot, 'browser') }),

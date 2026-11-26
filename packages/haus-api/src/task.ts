@@ -26,18 +26,37 @@ export const taskOriginSchema = z.object({ chatId: idSchema, messageId: idSchema
 
 export type TaskOrigin = z.infer<typeof taskOriginSchema>;
 
+/**
+ * Capy's thread status, derived from the Task's session and never written by hand: a turn is
+ * running or starting, the Task waits on a person or on its offline Machine, its last turn
+ * settled, or its last turn failed.
+ */
+export const taskActivitySchema = z.enum(['working', 'waiting', 'idle', 'failed']);
+
+export type TaskActivity = z.infer<typeof taskActivitySchema>;
+
+/** Auto titles are a short summary of the first message; a custom title may run to the full cap. */
+export const TASK_AUTO_TITLE_MAX_CHARS = 80;
+
 const taskFields = {
+    activity: taskActivitySchema,
+    agentId: idSchema.nullable(),
     archivedAt: timestampSchema.nullable(),
+    captainId: idSchema.nullable(),
     chatId: idSchema.nullable(),
+    computerId: idSchema.nullable(),
     createdAt: timestampSchema,
     createdBy: taskActorSchema,
     description: taskDescriptionSchema,
     id: idSchema,
+    model: z.string().min(1).max(128).nullable(),
+    needsYou: z.boolean(),
     origin: taskOriginSchema.nullable(),
     projectId: idSchema,
     serverId: idSchema,
     shortId: taskShortIdSchema,
     title: taskTitleSchema,
+    titleCustom: z.boolean(),
     updatedAt: timestampSchema,
     version: z.number().int().positive(),
 };

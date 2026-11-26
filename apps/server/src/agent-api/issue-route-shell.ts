@@ -84,7 +84,7 @@ async function respond(reply: FastifyReply, action: () => Promise<unknown>) {
     }
 }
 
-function sendAgentIssueError(reply: FastifyReply, cause: unknown) {
+export function sendAgentIssueError(reply: FastifyReply, cause: unknown) {
     if (cause instanceof IssueNotFoundError) {
         return sendAgentApiError(reply, 404, 'ISSUE_NOT_FOUND', cause.message);
     }

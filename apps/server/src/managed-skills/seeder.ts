@@ -66,7 +66,13 @@ export async function seedStaleManagedSkills(
         .select({ agentId: agentsTable.id, serverId: agentsTable.serverId })
         .from(agentsTable)
         .innerJoin(serversTable, eq(serversTable.id, agentsTable.serverId))
-        .where(and(isNull(agentsTable.retiredAt), isNull(serversTable.deletedAt)));
+        .where(
+            and(
+                isNull(agentsTable.retiredAt),
+                eq(agentsTable.kind, 'captain'),
+                isNull(serversTable.deletedAt)
+            )
+        );
     const records = await db
         .select({
             agentId: agentManagedSkillsTable.agentId,

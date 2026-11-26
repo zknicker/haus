@@ -350,16 +350,23 @@ a claim or list response.
 
 ### Task routes
 
-`GET /api/agent/tasks` lists Tasks by priority then age, 50 at most with the rest counted in
-`omitted`: `assignee` (`me`, `none`, or `@handle`), `key` (a ledger key like `SEC`), and `state`
-(a comma list or repeated; `todo,open` by default) narrow it. `GET /api/agent/tasks/show?key=SEC-12`
-adds the description, Mentioned in, and Reminders. `POST /api/agent/tasks/start` starts a Task from
-a Channel or DM Message (`{ target, from, title, project?, description?, assignee?, state?,
-priority?, dueOn? }`) in the Project `project` names by key, else the origin's channel, else for a
-DM the caller's home Project; a non-generalist Agent outside its home Project is
-`403 TASK_PROJECT_NOT_HOME` with a `nextAction` naming that Project's Agent and channel), and `/state`, `/update`, `/assign`, and `/attach-pr` address
-Tasks by key. `/attach-pr` takes `{ key, url }` and answers `{ task, pullRequest }`;
-`/unfollow` takes a `task:KEY-n` target. People file Tasks in the App instead (`task.create`). Inputs are in
+`GET /api/agent/tasks` lists the caller's active Tasks newest first, 50 at most with the rest
+counted in `omitted`; `all`, `archived` and `project` (a key like `SEC`) widen or narrow it.
+`GET /api/agent/tasks/show?task=k3mq7xta` adds the description, Mentioned in, and Reminders.
+`POST /api/agent/tasks/start` starts crew in the Captain's home Project (ADR 0062):
+`{ brief, title?, target?, from?, machine?, model?, issue?, requestId? }`. It answers
+`{ state: 'started', target, task }`, or `{ state: 'held', … }` with the newer messages when
+`target` holds the start, as `haus message send` does. The brief posts as the Captain's first
+message in the Task's chat and is queued as the Task agent's first turn; the Captain does not
+follow the Task. `machine` (a name or id) defaults to the crew Machine, then the Project's default
+Machine, and must be one the Captain may use; `model` defaults to the crew model, then the
+Captain's own. `issue` links and assigns an open Issue in the home Project held by the caller or
+nobody, without changing its state; another Project's Issue is `403 TASK_PROJECT_NOT_HOME` and a
+held one `409 ISSUE_TAKEN`. A Task agent's credential is refused with `400 INVALID_ARG` ("Tasks
+never start Tasks"). The same `requestId` answers the same Task. `/archive` and `/unarchive`
+take `{ task, expectedVersion? }`; unarchive starts no turn and is `409 TASK_PROJECT_ARCHIVED`
+while the Project is archived. `/attach-pr` takes `{ task, url }` and answers
+`{ task, pullRequest }`; `/unfollow` takes a `task:<shortId>` target. Inputs are in
 `packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
 `agent-task-refusals.ts`.
 

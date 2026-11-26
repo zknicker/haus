@@ -10,9 +10,11 @@ import type { ComputerConnections } from '../computers/connections.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
+import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { findTaskByRef, getTask, listTasks } from '../tasks/task-list.ts';
 import { readProjectByKey } from '../tasks/task-project.ts';
+import { announceTaskSessions, type TaskSessionWire } from '../tasks/task-session.ts';
 import type { TaskWriteResult } from '../tasks/task-write-result.ts';
 import { registerAgentTaskPlaceRoutes } from './task-place-routes.ts';
 import { agentActor } from './task-refs.ts';
@@ -26,23 +28,26 @@ export function registerAgentTaskRoutes(
     app: FastifyInstance,
     options: {
         agentDelivery: AgentDelivery;
+        catalog: AgentModelCatalog;
         computers: Pick<ComputerConnections, 'send'>;
         db: HausDatabase;
         postCommitWork: ServerPostCommitWork;
+        sessions: TaskSessionWire;
     }
 ) {
     const { agentDelivery, computers, db, postCommitWork } = options;
 
-    /** After a write commits: publish, wake, stop closed Workers, and shape the receipt. */
+    /** After a write commits: publish, free archived sessions, wake, stop closed Workers. */
     const commit = async (runner: ResolvedRunner, result: TaskWriteResult) => {
         publishRealtime(result.events);
         for (const { computerId, frame } of result.workerFrames ?? []) {
             computers.send(computerId, frame);
         }
+        announceTaskSessions(options.sessions, result.sessions ?? []);
         await postCommitWork.wakeAgents(agentDelivery, result.wakes);
         return await taskRow(db, runner, result.task);
     };
-    registerAgentTaskPlaceRoutes(app, { agentDelivery, commit, db });
+    registerAgentTaskPlaceRoutes(app, { agentDelivery, catalog: options.catalog, commit, db });
 
     agentTaskRead(
         app,

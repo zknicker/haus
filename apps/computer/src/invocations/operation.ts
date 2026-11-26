@@ -53,6 +53,7 @@ export interface InvocationHandlerInput {
     invocationLimit?: number;
     processLimit?: number;
     payloadsFor: (invocationId: string) => InvocationPayloads;
+    releaseWorktrees?: (agentId: string) => Promise<readonly string[]>;
     runners: OperationRunners;
     send: (frame: InvokeAccepted | InvokeResult | ProcessExitFrame) => boolean;
 }

@@ -74,7 +74,7 @@ export async function seedTaskFollowers(
         origin: { chatId: string; messageId: string } | null;
         projectId: string;
         serverId: string;
-        starter: TaskActor;
+        starter: TaskActor | null;
     }
 ): Promise<void> {
     const origin = input.origin
@@ -85,7 +85,7 @@ export async function seedTaskFollowers(
     const users = new Set([
         ...(origin?.authorUserId ? [origin.authorUserId] : []),
         ...(origin?.mentionedUserIds ?? []),
-        ...(starter.kind === 'user' ? [starter.userId] : []),
+        ...(starter?.kind === 'user' ? [starter.userId] : []),
     ]);
     for (const userId of users) {
         const visible = await canSeeChannel(tx, {
@@ -104,7 +104,7 @@ export async function seedTaskFollowers(
     const agents = new Set([
         ...(origin?.authorAgentId ? [origin.authorAgentId] : []),
         ...originAgents,
-        ...(starter.kind === 'agent' ? [starter.agentId] : []),
+        ...(starter?.kind === 'agent' ? [starter.agentId] : []),
     ]);
     for (const agentId of agents) {
         await followTaskAsAgent(tx, { ...scope, agentId });

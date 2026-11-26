@@ -11,6 +11,7 @@ import {
     noAccessText,
     notFoundText,
     ranOnLine,
+    taskMachineOnlyText,
 } from '../computer-access/access-refusal-text.ts';
 import { readComputerFacts } from '../computer-access/computer-facts.ts';
 import { desktopStoppedText, renderDesktopRefusal } from '../computer-use/computer-use-gate.ts';
@@ -128,6 +129,9 @@ async function refusalText(
               })
             : null;
         return movedText(facts?.name ?? null);
+    }
+    if (refusal === 'task-machine-only') {
+        return taskMachineOnlyText;
     }
     const { computerId } = record;
     if (!computerId) {

@@ -15,12 +15,10 @@ let originId: string;
 let first: { chatId: string; shortId: string; taskId: string };
 let second: { chatId: string; shortId: string; taskId: string };
 
-interface Reply {
-    body: Record<string, any>;
-    status: number;
-}
-
-async function call(path: string, body: unknown): Promise<Reply> {
+async function call(
+    path: string,
+    body: unknown
+): Promise<{ body: Record<string, any>; status: number }> {
     const response = await fetch(new URL(path, fixture.harness.url), {
         body: JSON.stringify(body),
         headers: { authorization: `Bearer ${runner.token}`, 'content-type': 'application/json' },
@@ -29,13 +27,17 @@ async function call(path: string, body: unknown): Promise<Reply> {
     return { body: (await response.json()) as Record<string, any>, status: response.status };
 }
 
-async function start(title: string, extra: Record<string, unknown> = {}) {
-    const started = await call('/api/agent/tasks/start', {
+async function start(title: string) {
+    const body = {
+        brief: `${title}.`,
         from: originId,
+        machine: fixture.computerId,
         target: '#product',
         title,
-        ...extra,
-    });
+    };
+    const first = await call('/api/agent/tasks/start', body);
+    const started =
+        first.body.state === 'held' ? await call('/api/agent/tasks/start', body) : first;
     expect(started.status).toBe(200);
     const detail = await fixture.owner.trpc.task.get.query({
         shortId: started.body.task.shortId,
@@ -110,7 +112,9 @@ describe('start', () => {
             targetKind: 'agent-dm',
         });
         const refused = await call('/api/agent/tasks/start', {
+            brief: 'Wrong place.',
             from: dm.message.id,
+            machine: fixture.computerId,
             target: '#product',
             title: 'Wrong place',
         });
@@ -127,7 +131,7 @@ describe('start', () => {
 });
 
 describe('followers and unread', () => {
-    test('seeds the origin author and the starter, not other Channel members', async () => {
+    test('seeds the origin author, not the Captain or other Channel members', async () => {
         const followed = async (client: HausClient) =>
             (await client.trpc.task.get.query({ serverId: fixture.serverId, taskId: first.taskId }))
                 .followed;
@@ -137,9 +141,7 @@ describe('followers and unread', () => {
             select agent_id from agent_task_follows
             where task_chat_id = ${first.chatId} and task_chat_kind = 'task' and followed
         `;
-        expect(agents.map((row: { agent_id: string }) => row.agent_id)).toEqual([
-            fixture.orbitAgentId,
-        ]);
+        expect(agents.map((row: { agent_id: string }) => row.agent_id)).toEqual([]);
     });
 
     test('a message in a Task names its origin author, whom it notifies without a mention', async () => {
@@ -280,8 +282,9 @@ test('the Channel previews each Task under its origin Message', async () => {
         [first.shortId, second.shortId].sort()
     );
     const preview = previews.find((task) => task.shortId === first.shortId);
-    expect(preview).toMatchObject({ archivedAt: null, messageCount: 2, title: 'Rotate the key' });
+    expect(preview).toMatchObject({ archivedAt: null, messageCount: 3, title: 'Rotate the key' });
     expect(preview?.recentMessages.map((message) => message.content)).toEqual([
+        'Rotate the key.',
         'Starting with the staging key.',
         'Prod key is in the vault.',
     ]);

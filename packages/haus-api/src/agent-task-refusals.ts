@@ -11,11 +11,13 @@ import * as z from 'zod';
  *   (ADR 0055).
  * - `TASK_RECURRING_REMINDER`: a recurring reminder was set on a Task; only a
  *   one-time reminder may anchor on one (decision 16).
+ * - `TASK_PROJECT_ARCHIVED`: a Task was restored while its Project is archived (ADR 0062).
  */
 export const agentTaskRefusalCodes = [
     'WORKER_TASK_REQUIRED',
     'TASK_PROJECT_NOT_HOME',
     'TASK_RECURRING_REMINDER',
+    'TASK_PROJECT_ARCHIVED',
 ] as const;
 
 export const agentTaskRefusalCodeSchema = z.enum(agentTaskRefusalCodes);

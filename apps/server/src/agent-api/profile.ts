@@ -5,6 +5,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 import { readAgentHomeKey } from '../projects/agent-home.ts';
 import { writeAgentConversationStyle } from '../server-agents/agent-conversation-style.ts';
+import { readRunnerSessionPolicy } from '../server-agents/agent-session-policy.ts';
 import { assertAgentDescriptionWrite } from '../server-agents/errors.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
@@ -23,7 +24,10 @@ export async function readAgentProfile(db: HausDatabase, runner: ResolvedRunner,
             and(
                 eq(agentsTable.serverId, runner.serverId),
                 target
-                    ? sql`lower(${agentsTable.handle}) = lower(${handle})`
+                    ? and(
+                          sql`lower(${agentsTable.handle}) = lower(${handle})`,
+                          eq(agentsTable.kind, 'captain')
+                      )
                     : eq(agentsTable.id, runner.agentId),
                 isNull(agentsTable.retiredAt)
             )
@@ -53,21 +57,22 @@ export async function readAgentProfile(db: HausDatabase, runner: ResolvedRunner,
         throw new AgentTargetError('No visible participant has that handle.');
     }
     const profile = { description: agent.description, handle: agent.handle };
+    if (agent.id !== runner.agentId) {
+        return { profile: { ...profile, isSelf: false } };
+    }
+    const self = { agentId: agent.id, serverId: runner.serverId };
+    const session = await readRunnerSessionPolicy(db, self);
     // The conversation style is private: only the Agent itself reads it here.
-    return agent.id === runner.agentId
-        ? {
-              profile: {
-                  ...profile,
-                  conversationStyle: agent.conversationStyle,
-                  isSelf: true,
-                  projectKey: await readAgentHomeKey(db, {
-                      agentId: agent.id,
-                      serverId: runner.serverId,
-                  }),
-                  signatureEmoji: agent.signatureEmoji,
-              },
-          }
-        : { profile: { ...profile, isSelf: false } };
+    return {
+        profile: {
+            ...profile,
+            conversationStyle: agent.conversationStyle,
+            isSelf: true,
+            projectKey: session.kind === 'captain' ? await readAgentHomeKey(db, self) : null,
+            signatureEmoji: agent.signatureEmoji,
+        },
+        session,
+    };
 }
 
 /**

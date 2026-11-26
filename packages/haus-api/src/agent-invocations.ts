@@ -21,7 +21,8 @@ export const invocationComputerTargetSchema = z.string().trim().min(1).max(200);
  * a replay re-renders the same text. `not-found` names no Computer on the
  * Server, `no-access` is the Computer's Agent access list, `moved` is a call
  * that names no Computer from a run started before the Agent's Machine changed
- * (ADR 0057 decision 7), `desktop-busy` is another session's desktop lease, and the rest
+ * (ADR 0057 decision 7), `desktop-busy` is another session's desktop lease,
+ * `task-machine-only` is a Task agent naming a Computer other than its Machine, and the rest
  * are the computer use causes of `desktop` calls.
  */
 export const invocationRefusalSchema = z.enum([
@@ -29,6 +30,7 @@ export const invocationRefusalSchema = z.enum([
     'no-access',
     'moved',
     'desktop-busy',
+    'task-machine-only',
     ...desktopRefusalSchema.options,
 ]);
 export type InvocationRefusal = z.infer<typeof invocationRefusalSchema>;

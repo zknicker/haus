@@ -837,8 +837,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Start a Task from a Message in a Channel or DM.
-         * @description Starts a Task, a place for one piece of work, in a Project from an origin Message in a Channel or DM (ADR 0055). The Task gets a short id. An Agent starting outside its Project is refused with `TASK_PROJECT_NOT_HOME`.
+         * Start a crew Task with a brief.
+         * @description A Captain starts a Task, a fresh agent session with its own chat, in its home Project (ADR 0062). The Task gets a short id, a Machine and a model, and its first turn is queued. An Issue in another Project is refused with `TASK_PROJECT_NOT_HOME`, and one someone else holds with `ISSUE_TAKEN`. A Task's own credential cannot start a Task.
          */
         post: operations["startAgentTask"];
         delete?: never;
@@ -858,6 +858,26 @@ export interface paths {
         put?: never;
         /** Archive one Task; its pending reminders are canceled. */
         post: operations["archiveAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore one archived Task; no turn starts.
+         * @description Refused with `TASK_PROJECT_ARCHIVED` while the Task's Project is archived. The next turn starts a fresh session.
+         */
+        post: operations["unarchiveAgentTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1959,20 +1979,36 @@ export interface components {
         AgentTaskSingleResponse: {
             task: components["schemas"]["AgentTaskRow"];
         };
+        /** @description A Captain starts crew in its home Project (ADR 0062). The brief posts as the Task's first message, authored by the Captain, and is queued as its first turn. */
         AgentTaskStartRequest: {
-            description?: string;
-            /** @description The origin Message id. It must be in `target`. */
-            from: string;
-            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or `#all` origin to the caller's Project. */
-            project?: string;
-            /** @description The Channel or DM holding the origin Message, as a send target like `#security` or `dm:@ada`. */
-            target: string;
-            title: string;
+            brief: string;
+            /** @description A Message in `target` that becomes the Task's origin. */
+            from?: string;
+            /** @description An open Issue in the Captain's home Project, assigned to the caller or nobody. It is linked and assigned to the Task; its state never changes. */
+            issue?: string;
+            /** @description The Machine by name or id. Defaults to the crew Machine, then the Project's. */
+            machine?: string;
+            /** @description The model id. Defaults to the crew model, then the Captain's own. */
+            model?: string;
+            /** @description The caller's idempotency key; a retry returns the same Task. */
+            requestId?: string;
+            /** @description The chat the Captain answers in, as a send target like `#security`. Its freshness hold runs first. */
+            target?: string;
+            title?: string;
         };
         AgentTaskStartResponse: {
+            /** @constant */
+            state: "started";
             /** @description The Task's target, like `task:k3mq7xta`. */
             target: string;
             task: components["schemas"]["AgentTaskRow"];
+        } | {
+            /** @constant */
+            state: "held";
+            formalMentionCount?: number;
+            newMessageCount: number;
+            omittedMessageCount?: number;
+            shownMessages: Record<string, never>[];
         };
         AgentTaskArchiveRequest: {
             /** @description Apply only if the Task is still at this version; omit to use the current one. */
@@ -3985,6 +4021,31 @@ export interface operations {
         };
     };
     archiveAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskArchiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated Task. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    unarchiveAgentTask: {
         parameters: {
             query?: never;
             header?: never;

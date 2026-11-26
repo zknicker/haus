@@ -6,72 +6,58 @@ import { args, harness, task } from './agent-task-test-fixtures.ts';
 
 const startArgs = {
     '--from': 'msg_1a2b3c4d5e6f',
+    '--issue': 'SEC-12',
     '--target': '#security',
     '--title': 'Rotate the signing key',
 };
 
-test('start sends the origin message and names where the Task lives', async () => {
-    const { calls, lines, run } = harness(() => ({ target: 'task:k3mq7xta', task }));
+const started = { state: 'started', target: 'task:k3mq7xta', task };
 
-    await run(runTaskStart, args({ values: { ...startArgs, '--description': '-' } }));
+test('start sends the brief from stdin and says the Task is queued, never started', async () => {
+    const { calls, lines, run } = harness(() => started);
+
+    await run(runTaskStart, args({ values: { ...startArgs, '--request-id': 'req-1' } }));
 
     expect(calls[0]?.route).toBe('/api/agent/tasks/start');
     expect(calls[0]?.input?.body).toEqual({
-        description: 'From stdin',
+        brief: 'From stdin',
         from: 'msg_1a2b3c4d5e6f',
-        project: undefined,
+        issue: 'SEC-12',
+        machine: undefined,
+        model: undefined,
+        requestId: 'req-1',
         target: '#security',
         title: 'Rotate the signing key',
     });
     expect(lines.join('')).toBe(
         [
-            'Started k3mq7xta "Rotate the signing key" · started by @kit',
-            'Task target: task:k3mq7xta',
-            'Started from message 1a2b3c4d in #security; you, its author and anyone it mentions follow the Task.',
+            'Queued k3mq7xta "Rotate the signing key" · started by @kit',
+            'Its brief posted as its first message, and its first turn is queued. Task target: task:k3mq7xta',
+            'Started from message 1a2b3c4d in #security.',
             '',
         ].join('\n')
     );
 });
 
-test('start sends a DM origin with the Project it names', async () => {
-    const { calls, lines, run } = harness(() => ({ target: 'task:k3mq7xta', task }));
+test('a held start shows the newer messages and records nothing', async () => {
+    const { lines, run } = harness(() => ({
+        formalMentionCount: 0,
+        newMessageCount: 1,
+        omittedMessageCount: 0,
+        shownMessages: [],
+        state: 'held',
+    }));
 
-    await run(
-        runTaskStart,
-        args({ values: { ...startArgs, '--project': 'SEC', '--target': 'dm:@zero' } })
-    );
+    await run(runTaskStart, args({ values: { '--target': '#security' } }));
 
-    expect(calls[0]?.input?.body).toMatchObject({
-        from: 'msg_1a2b3c4d5e6f',
-        project: 'SEC',
-        target: 'dm:@zero',
-    });
-    expect(lines.join('')).toContain('Started from message 1a2b3c4d in dm:@zero;');
+    expect(lines.join('')).toContain('The Task was not started: nothing was recorded.');
 });
 
-test('start refuses an origin inside a Task before asking the Server', async () => {
-    const { calls, run } = harness(() => ({ target: 'task:k3mq7xta', task }));
-    const refusal = run(
-        runTaskStart,
-        args({ values: { ...startArgs, '--target': 'task:h4tq9z2b' } })
-    );
-    await expect(refusal).rejects.toMatchObject({
-        code: 'INVALID_ARG',
-        options: {
-            nextAction: 'Start it from the message in the channel or DM that asked for the work.',
-        },
-    });
-    expect(calls).toHaveLength(0);
-});
-
-test('start needs an origin and a title', async () => {
-    const { calls, run } = harness(() => ({ target: 'task:k3mq7xta', task }));
+test('start needs the chat of its origin message before asking the Server', async () => {
+    const { calls, run } = harness(() => started);
     await expect(
-        run(runTaskStart, args({ values: { ...startArgs, '--from': '' } }))
-    ).rejects.toThrow('--from is required.');
-    await expect(
-        run(runTaskStart, args({ values: { ...startArgs, '--title': '' } }))
-    ).rejects.toThrow('--title is required.');
+        run(runTaskStart, args({ values: { '--from': 'msg_1a2b3c4d5e6f' } }))
+    ).rejects.toThrow('--from needs the chat it is in as --target.');
     expect(calls).toHaveLength(0);
 });
 
@@ -85,7 +71,7 @@ test('archive takes a short id, a task: target, or a full id', async () => {
         { expectedVersion: undefined, task: 'tsk_12' },
     ]);
     expect(lines[0]).toBe(
-        'k3mq7xta is archived. It leaves the sidebar and its pending reminders are canceled.\n'
+        'k3mq7xta is archived. Its session is freed, it leaves the sidebar, and its pending reminders are canceled.\n'
     );
 });
 

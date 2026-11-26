@@ -1,6 +1,5 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
-import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 import { taskShortIdSchema } from './task-short-id.ts';
 import { taskDescriptionSchema, taskTitleSchema } from './task.ts';
 
@@ -82,23 +81,61 @@ export const taskCreateInputSchema = z
     })
     .strict();
 
+export const TASK_BRIEF_MAX_CHARS = 20_000;
+
+export const taskBriefSchema = z.string().trim().min(1).max(TASK_BRIEF_MAX_CHARS);
+
+/** The starter's idempotency key: a retried start with the same id returns the same Task. */
+export const taskStartRequestIdSchema = z.string().trim().min(1).max(128);
+
+/** A model the Server's model logins run, by id; the harness follows the model. */
+export const taskModelSchema = z.string().trim().min(1).max(128);
+
 /**
- * `POST /api/agent/tasks/start` (openapi `AgentTaskStartRequest`): an Agent
- * starts a Task from Message `from` in Channel or DM `target` (ADR 0055). The
- * Project is `project` by key, else the origin's channel, else for a DM origin
- * the Agent's home Project.
+ * `task.start`: a person starts a Task in a Project (ADR 0062). The prompt is its first message.
+ * The Machine defaults to the Project's default Machine, and the title to a summary of the
+ * prompt. With `origin`, that Channel message becomes its origin. Answers with
+ * `taskMutationResultSchema`; the same `requestId` answers the same Task.
  */
-export const agentTaskStartInputSchema = z
+export const taskStartInputSchema = z
     .object({
-        description: taskDescriptionSchema.optional(),
-        from: idSchema,
-        project: taskKeyPrefixSchema.optional(),
-        target: z.string().trim().min(1).max(200),
-        title: taskTitleSchema,
+        computerId: idSchema.optional(),
+        model: taskModelSchema,
+        origin: z.object({ chatId: idSchema, messageId: idSchema }).strict().optional(),
+        projectId: idSchema,
+        prompt: taskBriefSchema,
+        requestId: taskStartRequestIdSchema,
+        serverId: idSchema,
+        title: taskTitleSchema.optional(),
     })
     .strict();
 
+/**
+ * `POST /api/agent/tasks/start` (openapi `AgentTaskStartRequest`): a Captain starts crew in its
+ * home Project with `brief` as the first message. `target` names the chat it answers in, and
+ * `from` a message there that becomes the origin. `machine` and `model` default to the
+ * Captain's crew Machine and crew model, then the Project's default Machine and the Captain's
+ * own model. `issue` links and assigns that Issue to the Task without changing its state.
+ */
+export const agentTaskStartInputSchema = z
+    .object({
+        brief: taskBriefSchema,
+        from: idSchema.optional(),
+        issue: z.string().trim().min(1).max(64).optional(),
+        machine: z.string().trim().min(1).max(200).optional(),
+        model: taskModelSchema.optional(),
+        requestId: taskStartRequestIdSchema.optional(),
+        target: z.string().trim().min(1).max(200).optional(),
+        title: taskTitleSchema.optional(),
+    })
+    .strict()
+    .refine((input) => input.from === undefined || input.target !== undefined, {
+        message: 'Name the chat of the `from` message with `target`.',
+        path: ['target'],
+    });
+
 export type AgentTaskStartInput = z.infer<typeof agentTaskStartInputSchema>;
+export type TaskStartInput = z.infer<typeof taskStartInputSchema>;
 export type TaskCreateInput = z.infer<typeof taskCreateInputSchema>;
 export type TaskListInput = z.infer<typeof taskListInputSchema>;
 export type TaskGetInput = z.infer<typeof taskGetInputSchema>;

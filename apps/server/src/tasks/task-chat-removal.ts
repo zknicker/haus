@@ -1,6 +1,12 @@
-import { and, eq, inArray, or } from 'drizzle-orm';
+import { type AnyColumn, and, eq, inArray, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { tasksTable } from '../postgres/schema.ts';
+import {
+    agentDeliveryTable,
+    agentInboxTable,
+    agentRunnerCredentialsTable,
+    agentsTable,
+    tasksTable,
+} from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { closeDeletedTaskWorkers } from '../workers/close-deleted-task-workers.ts';
 import type { WorkerFrame } from '../workers/worker-effects.ts';
@@ -18,7 +24,7 @@ export async function deleteTasksOfRemovedChats(
         return nothingDeleted;
     }
     const tasks = await tx
-        .select({ id: tasksTable.id, version: tasksTable.version })
+        .select({ agentId: tasksTable.agentId, id: tasksTable.id, version: tasksTable.version })
         .from(tasksTable)
         .where(
             and(
@@ -37,6 +43,10 @@ export async function deleteTasksOfRemovedChats(
     await tx
         .delete(tasksTable)
         .where(and(eq(tasksTable.serverId, input.serverId), inArray(tasksTable.id, taskIds)));
+    await retireTaskAgents(tx, {
+        agentIds: tasks.flatMap(({ agentId }) => (agentId ? [agentId] : [])),
+        serverId: input.serverId,
+    });
     const events = tasks.map((task) =>
         prepareTaskUpdatedEvent({
             chatId: null,
@@ -46,4 +56,25 @@ export async function deleteTasksOfRemovedChats(
         })
     );
     return { events, workerFrames };
+}
+
+async function retireTaskAgents(tx: Tx, input: { agentIds: string[]; serverId: string }) {
+    if (input.agentIds.length === 0) {
+        return;
+    }
+    const scoped = <Table extends { agentId: AnyColumn; serverId: AnyColumn }>(table: Table) =>
+        and(eq(table.serverId, input.serverId), inArray(table.agentId, input.agentIds));
+    await tx.delete(agentRunnerCredentialsTable).where(scoped(agentRunnerCredentialsTable));
+    await tx.delete(agentInboxTable).where(scoped(agentInboxTable));
+    await tx.delete(agentDeliveryTable).where(scoped(agentDeliveryTable));
+    await tx
+        .update(agentsTable)
+        .set({ retiredAt: sql`now()` })
+        .where(
+            and(
+                eq(agentsTable.serverId, input.serverId),
+                eq(agentsTable.kind, 'task'),
+                inArray(agentsTable.id, input.agentIds)
+            )
+        );
 }

@@ -530,9 +530,11 @@ POST /api/agent/issues/link        { code, taskId? , pullRequestUrl? } → { iss
 POST /api/agent/issues/unlink      { code, taskId? , pullRequestUrl? } → { issue }
 GET  /api/agent/tasks              ?archived=&project= → { tasks, omitted }
 GET  /api/agent/tasks/show         ?id= → { task, issues, pullRequests }
-POST /api/agent/tasks/start        { requestId, title, brief, target?, from?, repo?, ref?,
-                                     machine?, model?, issue? } → { task }
-                                   (403 TASK_PROJECT_NOT_HOME only for an Issue elsewhere)
+POST /api/agent/tasks/start        { brief, requestId?, title?, target?, from?, repo?, ref?,
+                                     machine?, model?, issue? }
+                                   → { state: started, target, task } | { state: held, … }
+                                   (403 TASK_PROJECT_NOT_HOME only for an Issue elsewhere;
+                                   repo and ref are not built yet)
 POST /api/agent/tasks/send         { id, body, delivery? } → { message }
 POST /api/agent/tasks/report       { outcome, text, ask?, person?, pullRequestUrls? } → { report }
 POST /api/agent/tasks/rename       { id, title } → { task }

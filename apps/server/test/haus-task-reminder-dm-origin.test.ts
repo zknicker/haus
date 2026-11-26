@@ -52,7 +52,9 @@ beforeAll(async () => {
     });
     dmMessageId = dm.message.id;
     const started = await agentPost('/api/agent/tasks/start', {
+        brief: 'Benchmark the offer against last year.',
         from: dmMessageId,
+        machine: fixture.computerId,
         target: 'dm:@ada',
         title: 'Benchmark the offer',
     });
@@ -67,26 +69,21 @@ afterAll(async () => {
     await connection?.close();
 });
 
-test('a reminder on a DM-origin Task with no messages is refused, not anchored on the DM', async () => {
+test('a reminder on a DM-origin Task anchors on the Task’s own brief, never on the DM', async () => {
     const scheduled = await agentPost('/api/agent/reminders/schedule', {
-        commandId: 'task-reminder-empty-dm-origin',
+        commandId: 'task-reminder-dm-origin-brief',
         fireAt: '2099-01-01T00:00:00.000Z',
         target: `task:${taskShortId}`,
         title: 'Check the offer',
     });
 
-    expect(scheduled).toEqual({
-        body: {
-            code: 'INVALID_ARG',
-            message:
-                'This Task has no messages yet, and a reminder on it anchors on one of its own. Post in the Task first.',
-        },
-        status: 409,
-    });
-    const [anchored] = (await fixture.harness.sql`
-        select count(*)::int as total from reminders where anchor_message_id = ${dmMessageId}
-    `) as { total: number }[];
-    expect(anchored?.total).toBe(0);
+    expect(scheduled.status).toBe(200);
+    const anchors = (await fixture.harness.sql`
+        select anchor_chat_id, anchor_message_id from reminders
+        where title = 'Check the offer'
+    `) as { anchor_chat_id: string; anchor_message_id: string }[];
+    expect(anchors.map((row) => row.anchor_chat_id)).toEqual([taskChatId]);
+    expect(anchors.map((row) => row.anchor_message_id)).not.toContain(dmMessageId);
 });
 
 test('the fire context never shows a DM anchor to a Task reader outside the DM', async () => {

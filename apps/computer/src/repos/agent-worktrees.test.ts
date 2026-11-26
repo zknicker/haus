@@ -10,6 +10,7 @@ import {
     checkoutAgentWorktree,
     pruneIdleAgentWorktrees,
     removeAgentWorktrees,
+    removeArchivedWorktrees,
 } from './agent-worktrees.ts';
 import { githubAppGit } from './github-git.ts';
 import { git, registerRepoFixture } from './repo.fixture.ts';
@@ -133,6 +134,32 @@ describe('Agent worktree cleanup', () => {
             path,
         ]);
         expect(existsSync(join(path, 'draft.md'))).toBe(true);
+    });
+
+    test('an archived Task loses its clean worktree and branch, and keeps an unpushed one', async () => {
+        const clean = setup();
+        await clean.checkout();
+        expect(
+            await removeArchivedWorktrees({
+                agentId,
+                dataRoot: clean.dataRoot,
+                serverId: 'srv_1',
+            })
+        ).toEqual([]);
+        expect(existsSync(clean.path)).toBe(false);
+        expect(git(clean.folder, 'branch', '--list', 'haus/*')).toBe('');
+
+        const unpushed = setup();
+        await unpushed.checkout();
+        git(unpushed.path, 'commit', '--quiet', '--allow-empty', '-m', 'unpushed');
+        expect(
+            await removeArchivedWorktrees({
+                agentId,
+                dataRoot: unpushed.dataRoot,
+                serverId: 'srv_1',
+            })
+        ).toEqual([unpushed.path]);
+        expect(git(unpushed.path, 'log', '--format=%s', '-1')).toBe('unpushed');
     });
 
     test('the sweep keeps what an invocation writes while it waits for that invocation', async () => {

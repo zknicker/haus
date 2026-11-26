@@ -1,4 +1,6 @@
-export const warmIdleMs = 60 * 60_000;
+import { captainWarmIdleMs } from '@haus/api';
+
+export const warmIdleMs = captainWarmIdleMs;
 
 export interface WarmIdentity {
     readonly launchKey: string;
@@ -6,6 +8,7 @@ export interface WarmIdentity {
 }
 
 interface Parked<Process> extends WarmIdentity {
+    readonly idleMs: number;
     readonly parkedAt: number;
     readonly process: Process;
 }
@@ -31,15 +34,20 @@ export class WarmPool<Process> {
 
     closingTimes() {
         return [...this.parked].map(
-            ([agentId, entry]) =>
-                [agentId, entry.process, entry.parkedAt + this.limits.idleMs] as const
+            ([agentId, entry]) => [agentId, entry.process, entry.parkedAt + entry.idleMs] as const
         );
     }
 
-    park(agentId: string, identity: WarmIdentity, process: Process, now: number) {
+    park(
+        agentId: string,
+        identity: WarmIdentity,
+        process: Process,
+        now: number,
+        idleMs = this.limits.idleMs
+    ) {
         const previous = this.parked.get(agentId);
         this.parked.delete(agentId);
-        this.parked.set(agentId, { ...identity, parkedAt: now, process });
+        this.parked.set(agentId, { ...identity, idleMs, parkedAt: now, process });
         const closing = previous && previous.process !== process ? [previous.process] : [];
         closing.push(...this.expire(now));
         for (const [key, entry] of this.parked) {
@@ -61,7 +69,7 @@ export class WarmPool<Process> {
         const reusable =
             entry.launchKey === want.launchKey &&
             entry.nativeSessionId === want.nativeSessionId &&
-            now - entry.parkedAt < this.limits.idleMs;
+            now - entry.parkedAt < entry.idleMs;
         return reusable
             ? { closing: [], process: entry.process }
             : { closing: [entry.process], process: undefined };
@@ -88,7 +96,7 @@ export class WarmPool<Process> {
     expire(now: number) {
         const expired: Process[] = [];
         for (const [key, entry] of this.parked) {
-            if (now - entry.parkedAt >= this.limits.idleMs && !this.limits.holds?.(key)) {
+            if (now - entry.parkedAt >= entry.idleMs && !this.limits.holds?.(key)) {
                 this.parked.delete(key);
                 expired.push(entry.process);
             }

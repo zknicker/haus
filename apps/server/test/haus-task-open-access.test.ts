@@ -102,24 +102,32 @@ test('an Agent outside #ops that posts in a Task there hears it, and posts in #o
     const opsy = await fixture.mintRunner('run_open_access_opsy', opsAgentId, opsId);
     const orbit = await fixture.mintRunner('run_open_access_orbit');
     const origin = await humanSend(fixture.channelId, 'The ops dashboard is down');
-    const started = await agentCall(opsy, '/api/agent/tasks/start', {
+    const body = {
+        brief: 'Restore the ops dashboard.',
         from: origin.message.id,
-        project: 'OPS',
+        machine: fixture.computerId,
         target: '#product',
         title: 'Restore the ops dashboard',
-    });
+    };
+    const first = await agentCall(opsy, '/api/agent/tasks/start', body);
+    const started =
+        first.body.state === 'held' ? await agentCall(opsy, '/api/agent/tasks/start', body) : first;
     expect(started.status).toBe(200);
     const target = started.body.target as string;
     const { shortId } = started.body.task as { shortId: string };
     expect(target).toBe(`task:${shortId}`);
-
-    expect(
-        await agentCall(orbit, '/api/agent/messages/send', {
-            content: 'Looking at the dashboard host.',
-            nonce: 'open-access-orbit-send',
-            target,
-        })
-    ).toMatchObject({ body: { state: 'sent' }, status: 200 });
+    const post = {
+        content: 'Looking at the dashboard host.',
+        nonce: 'open-access-orbit-send',
+        target,
+    };
+    expect(await agentCall(orbit, '/api/agent/messages/send', post)).toMatchObject({
+        body: { shownMessages: [{ content: 'Restore the ops dashboard.' }], state: 'held' },
+    });
+    expect(await agentCall(orbit, '/api/agent/messages/send', post)).toMatchObject({
+        body: { state: 'sent' },
+        status: 200,
+    });
     const task = await fixture.owner.trpc.task.get.query({ serverId: fixture.serverId, shortId });
     const reply = await humanSend(task.chatId ?? '', 'It went down at noon.');
     expect(await inboxAgentsFor(reply.message.id)).toEqual(
@@ -131,7 +139,11 @@ test('an Agent outside #ops that posts in a Task there hears it, and posts in #o
         '#product',
     ]);
     expect(await historyContents(orbit, target)).toEqual({
-        contents: ['Looking at the dashboard host.', 'It went down at noon.'],
+        contents: [
+            'Restore the ops dashboard.',
+            'Looking at the dashboard host.',
+            'It went down at noon.',
+        ],
         status: 200,
     });
 

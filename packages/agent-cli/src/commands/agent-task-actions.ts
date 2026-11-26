@@ -49,14 +49,20 @@ export async function runTaskArchive(args: ParsedArgs, deps: TaskDeps): Promise<
         method: 'POST',
     });
     deps.write(
-        `${task.shortId} is archived. It leaves the sidebar and its pending reminders are canceled.\n`
+        `${task.shortId} is archived. Its session is freed, it leaves the sidebar, and its pending reminders are canceled.\n`
     );
     return 0;
 }
 
-export async function readDescription(args: ParsedArgs, deps: TaskDeps) {
-    const value = args.values['--description'];
-    return value === '-' ? (await deps.readStdin()).trim() : value;
+export async function runTaskUnarchive(args: ParsedArgs, deps: TaskDeps): Promise<number> {
+    const { task } = await deps.client.request('/api/agent/tasks/unarchive', taskSingleSchema, {
+        body: { expectedVersion: expectedVersion(args), task: positionalTask(args) },
+        method: 'POST',
+    });
+    deps.write(
+        `${task.shortId} is active again. Nothing runs until a message reaches it; its next turn starts a fresh session.\n`
+    );
+    return 0;
 }
 
 export function expectedVersion(args: ParsedArgs) {
