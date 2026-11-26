@@ -8,7 +8,7 @@ import {
     assignNewIssue,
     issueInboxRows,
     seedTaskBoard,
-} from './issue-delivery-fixture.ts';
+} from './issue-delivery.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 
@@ -48,7 +48,9 @@ test('one malformed Issue assignment is set aside and the rest still drain toget
         'Patch the host',
     ]);
     const rows = await issueInboxRows(connection.db, seed.agentId);
-    expect(rows.map((row) => [row.dedupeKey.startsWith('issue-assign:iss_broken'), row.state])).toEqual([
+    expect(
+        rows.map((row) => [row.dedupeKey.startsWith('issue-assign:iss_broken'), row.state])
+    ).toEqual([
         [false, 'accepted'],
         [false, 'accepted'],
         [true, 'seen'],

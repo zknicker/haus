@@ -4,11 +4,10 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../src/postgres/schema.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
+import { seedTaskBoard } from './issue-delivery.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
-import { seedTaskBoard } from './issue-delivery-fixture.ts';
 
-/** When a requeued claim assignment leaves the queue undelivered (ADR 0051 decision 5). */
 let cluster: TestDatabase;
 let connection: HausConnection;
 

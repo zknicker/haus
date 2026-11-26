@@ -4,18 +4,13 @@ import { issueIdOfWakeKey } from '../issues/issue-inbox.ts';
 import { readIssues } from '../issues/issue-read.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, issuesTable } from '../postgres/schema.ts';
-import type { AgentTurnIssueTriggers, AgentTurnTriggerRecord } from './agent-turn-trigger.ts';
+import type { AgentTurnTriggerRecord } from './agent-turn-trigger.ts';
 
-/**
- * Names the Issue runs on a page: each run's lead Issue (the row its trigger recorded) and how
- * many more items of its kind rode the same run, in two reads. An Issue that no longer exists
- * leaves its trigger unknown.
- */
 export async function readAgentTurnIssueTriggers(
     db: HausDatabase,
     serverId: string,
     records: readonly (AgentTurnTriggerRecord | null)[]
-): Promise<AgentTurnIssueTriggers> {
+) {
     const leads = records.flatMap((record) => {
         const issueId =
             record && isBatchedChatlessInboxSource(record.source)

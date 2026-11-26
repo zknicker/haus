@@ -29,8 +29,8 @@ import {
 } from './issue-fields.ts';
 import { readIssue } from './issue-read.ts';
 import { deriveIssueWrite } from './issue-wakes.ts';
-import { insertIssueTaskLink, type IssueWriteResult } from './issue-write.ts';
 import { settleIssueWrite } from './issue-write-effects.ts';
+import { insertIssueTaskLink, type IssueWriteResult } from './issue-write.ts';
 
 export async function createIssue(db: HausDatabase, actor: IssueActor, input: IssueCreateInput) {
     return await db.transaction(async (tx) => {

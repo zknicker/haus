@@ -73,7 +73,12 @@ async function writeLink(
         requireIssueVersion(current.version, input.expectedVersion);
         const wasLinked = current.taskIds.includes(input.taskId);
         if (!(await change(tx, current))) {
-            return { agentWakes: [], events: [], issue: current, wakes: [] } satisfies IssueWriteResult;
+            return {
+                agentWakes: [],
+                events: [],
+                issue: current,
+                wakes: [],
+            } satisfies IssueWriteResult;
         }
         await tx
             .update(issuesTable)

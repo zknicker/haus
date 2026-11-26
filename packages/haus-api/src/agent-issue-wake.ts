@@ -13,11 +13,6 @@ export const agentIssueWakeBatchLimit = 50;
 /** Longest comment excerpt an `issue_event` carries; `haus issue show` prints the whole thread. */
 export const agentIssueCommentExcerptMaxChars = 2000;
 
-/**
- * Who made the change: `@handle` for a person or Captain, `task:<shortId>` for a Task, null
- * for the Server (an archive hand-back) or a member with no handle. `byAgent` marks
- * agent-authored work, which spends the automation chain; a person's change resets it.
- */
 const issueWakeAuthorFields = {
     by: z.string().min(1).max(128).nullable(),
     byAgent: z.boolean(),

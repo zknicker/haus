@@ -13,12 +13,6 @@ import { queueIssueWakes, retireIssueAssignments } from './issue-inbox.ts';
 import type { IssueWake } from './issue-wakes.ts';
 import type { IssueTx } from './issue-write.ts';
 
-/**
- * What every Issue write does after its own rows, in the same transaction: withdraw the
- * Issue's queued assignments when its assignee changed, queue the derived wakes, and prepare
- * the person's assignment notification for push. Returns the events to publish and the
- * agents to dispatch once it commits.
- */
 export async function settleIssueWrite(
     tx: IssueTx,
     input: {
@@ -50,7 +44,6 @@ export async function settleIssueWrite(
     };
 }
 
-/** A comment's wakes, and a push for every subscriber but its author. */
 export async function settleIssueComment(
     tx: IssueTx,
     input: { actor: IssueActor; commentId: string; issue: Issue; wakes: IssueWake[] }

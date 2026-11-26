@@ -84,7 +84,13 @@ export async function updateIssue(
             const parent = await readIssue(tx, serverId, issue.parentId);
             wakes.push(...deriveSubIssuesClosed({ actor, eventId: closed.id, parent }));
         }
-        const settled = await settleIssueWrite(tx, { actor, before: current, events, issue, wakes });
+        const settled = await settleIssueWrite(tx, {
+            actor,
+            before: current,
+            events,
+            issue,
+            wakes,
+        });
         return { ...settled, issue, wakes } satisfies IssueWriteResult;
     });
 }

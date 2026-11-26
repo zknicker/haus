@@ -26,11 +26,6 @@ export interface IssueAgentWake {
     serverId: string;
 }
 
-/**
- * Queues each derived wake as its inbox item (specs/inbox.md#issue-items) in the write's
- * transaction, and returns the agents to dispatch once it commits. A wake whose recipient has
- * no agent to run it (an archived Task, or a Task no agent started) queues nothing.
- */
 export async function queueIssueWakes(
     tx: IssueTx,
     input: { actor: IssueActor | null; serverId: string; wakes: readonly IssueWake[] }
@@ -78,10 +73,6 @@ export async function queueIssueWakes(
     return [...new Map(queued.map((wake) => [wake.agentId, wake])).values()];
 }
 
-/**
- * Withdraws the Issue's assignments no run has taken yet: it was reassigned or unassigned
- * first. An assignment a run already carries stays with that run.
- */
 export async function retireIssueAssignments(
     tx: IssueTx,
     input: { issueId: string; serverId: string }
@@ -107,14 +98,12 @@ export function decodeIssueEvent(content: string) {
     return agentIssueEventSchema.parse(JSON.parse(content));
 }
 
-/** Whether an agent caused a stored Issue item, which spends the automation chain. */
 export function issueItemByAgent(source: string, content: string) {
     return (
         source === 'issue_assignment' ? decodeIssueAssignment(content) : decodeIssueEvent(content)
     ).byAgent;
 }
 
-/** The Issue an `issue_assignment` or `issue_event` identity names, or null for any other. */
 export function issueIdOfWakeKey(dedupeKey: string) {
     const [prefix, issueId] = dedupeKey.split(':');
     return (prefix === 'issue-assign' || prefix === 'issue-event') && issueId ? issueId : null;
@@ -122,10 +111,6 @@ export function issueIdOfWakeKey(dedupeKey: string) {
 
 const issueAssignmentKeyPrefix = 'issue-assign:';
 
-/**
- * The agent a recipient runs as. A Task has no agent of its own until Task agents land (ADR
- * 0062 step 5), so until then it wakes the Captain that started it, as pull request wakes do.
- */
 async function recipientAgent(tx: IssueTx, serverId: string, recipient: IssueWakeRecipient) {
     if (recipient.kind === 'captain') {
         return (await activeAgent(tx, serverId, recipient.agentId)) ? recipient.agentId : null;
@@ -159,11 +144,7 @@ async function activeAgent(tx: IssueTx, serverId: string, agentId: string) {
     return rows.length > 0;
 }
 
-async function readEventChange(
-    tx: IssueTx,
-    serverId: string,
-    wake: IssueWake
-): Promise<AgentIssueEventChange> {
+async function readEventChange(tx: IssueTx, serverId: string, wake: IssueWake) {
     const eventId = wake.identity.split(':')[2] ?? '';
     const [comment] = await tx
         .select({ body: issueCommentsTable.body })
@@ -177,7 +158,7 @@ async function readEventChange(
             commentId: eventId,
             kind: 'commented',
             truncated,
-        };
+        } satisfies AgentIssueEventChange;
     }
     const [event] = await tx
         .select({ change: issueEventsTable.change, issueId: issueEventsTable.issueId })
@@ -189,9 +170,16 @@ async function readEventChange(
     }
     if (event.issueId !== wake.issueId) {
         const parent = await readIssue(tx, serverId, wake.issueId);
-        return { kind: 'sub_issues_closed', total: parent.subIssueCount };
+        return {
+            kind: 'sub_issues_closed',
+            total: parent.subIssueCount,
+        } satisfies AgentIssueEventChange;
     }
-    return { from: event.change.from, kind: 'state_changed', to: event.change.to };
+    return {
+        from: event.change.from,
+        kind: 'state_changed',
+        to: event.change.to,
+    } satisfies AgentIssueEventChange;
 }
 
 async function actorLabel(tx: IssueTx, serverId: string, actor: IssueActor | null) {

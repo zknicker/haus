@@ -44,7 +44,6 @@ export async function requireIssueAssignee(db: Reader, serverId: string, assigne
     }
 }
 
-/** An open Issue is never left with an archived Task (specs/issues.md#assignee-and-wakes). */
 export async function requireActiveTaskAssignee(
     db: Reader,
     issue: { assignee: IssueActor | null; code: string | null; open: boolean; serverId: string }

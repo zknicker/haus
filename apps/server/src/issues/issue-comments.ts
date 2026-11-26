@@ -16,8 +16,8 @@ import { IssueInvariantError, IssueNotFoundError } from './issue-errors.ts';
 import { subscribeToIssue } from './issue-fields.ts';
 import { lockIssue } from './issue-read.ts';
 import { deriveIssueComment } from './issue-wakes.ts';
-import type { IssueWriteGuard } from './issue-write.ts';
 import { settleIssueComment } from './issue-write-effects.ts';
+import type { IssueWriteGuard } from './issue-write.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 type CommentRow = typeof issueCommentsTable.$inferSelect;

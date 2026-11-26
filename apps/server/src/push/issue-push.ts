@@ -25,11 +25,6 @@ import { clampName } from './push-payload.ts';
 import type { PushQueue } from './push-queue.ts';
 import type { PushSender } from './push-sender.ts';
 
-/**
- * iPhone push for Issues (specs/issues.md#assignee-and-wakes): the post-commit `issue.notified`
- * fact, on the message push's queue and sender, after its read grace. Resolves when `signal`
- * aborts.
- */
 export async function listenForIssuePushes(
     db: HausDatabase,
     sender: PushSender,
@@ -62,10 +57,6 @@ export async function listenForIssuePushes(
     }
 }
 
-/**
- * Pushes one Issue notification, unless it stopped being news during the grace: the Issue
- * went to someone else, or the person unsubscribed before the comment's push.
- */
 export async function pushIssueNotification(
     db: HausDatabase,
     sender: PushSender,
@@ -80,7 +71,9 @@ export async function pushIssueNotification(
         return;
     }
     const body =
-        event.commentId === null ? issue.title : await readCommentBody(db, serverId, event.commentId);
+        event.commentId === null
+            ? issue.title
+            : await readCommentBody(db, serverId, event.commentId);
     const payload: PushIssuePayload = {
         aps: {
             alert: {
@@ -106,11 +99,7 @@ export async function pushIssueNotification(
     });
 }
 
-async function stillNews(
-    db: HausDatabase,
-    event: IssueNotifiedEvent,
-    assignee: IssueActor | null
-) {
+async function stillNews(db: HausDatabase, event: IssueNotifiedEvent, assignee: IssueActor | null) {
     if (event.kind === 'assigned') {
         return sameIssueActor(assignee, { kind: 'user', userId: event.userId });
     }

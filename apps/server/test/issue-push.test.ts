@@ -87,7 +87,9 @@ test('a comment pushes every subscriber but its author', async () => {
     const pushes = await sender.sentFor(comment.id, 1);
     expect(pushes.map((push) => push.device.token)).toEqual([adaToken]);
     expect(pushes[0]?.payload).toMatchObject({
-        aps: { alert: { body: 'Two keys are still live.', title: `Bo commented on ${issue.code}` } },
+        aps: {
+            alert: { body: 'Two keys are still live.', title: `Bo commented on ${issue.code}` },
+        },
         kind: 'issue_comment',
     });
 });

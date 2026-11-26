@@ -21,7 +21,6 @@ export async function seedTaskBoard(db: HausDatabase) {
     return { keyId, seed };
 }
 
-/** Files an Issue assigned to the seeded Captain; `actor` defaults to the seeded person. */
 export async function assignNewIssue(
     db: HausDatabase,
     { seed }: TaskBoard,
@@ -71,7 +70,6 @@ export async function insertTaskPlace(
     return taskId;
 }
 
-/** A second Agent on the seeded Server. */
 export async function addPeerAgent(db: HausDatabase, seed: Seed) {
     const peerId = createOpaqueId('agt');
     await db.insert(agentsTable).values({
@@ -85,7 +83,6 @@ export async function addPeerAgent(db: HausDatabase, seed: Seed) {
     return peerId;
 }
 
-/** The Agent's Issue inbox rows, oldest first. */
 export async function issueInboxRows(db: HausDatabase, agentId: string) {
     return await db
         .select({

@@ -1,6 +1,11 @@
 import { type IssueActor, openIssueStates, type TaskActor } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { agentsTable, issuesTable, serverMembershipsTable, tasksTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    issuesTable,
+    serverMembershipsTable,
+    tasksTable,
+} from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { actorColumns } from './issue-actor.ts';
 import { appendIssueEvents, prepareIssueUpdatedEvent } from './issue-events.ts';
@@ -8,15 +13,9 @@ import { subscribeToIssue } from './issue-fields.ts';
 import type { IssueAgentWake } from './issue-inbox.ts';
 import { lockIssue, readIssue } from './issue-read.ts';
 import { deriveIssueWrite } from './issue-wakes.ts';
-import type { IssueTx } from './issue-write.ts';
 import { settleIssueWrite } from './issue-write-effects.ts';
+import type { IssueTx } from './issue-write.ts';
 
-/**
- * Archiving a Task hands each open Issue assigned to it back to the Task's Captain, else to
- * the person who started it, with an `assignee_changed` row whose actor is the Server
- * (specs/issues.md#when-a-task-archives). The archiver is the change's actor for wakes and
- * notifications, so a Captain archiving its own Task is not woken by its own Issues.
- */
 export async function handBackArchivedTaskIssues(
     tx: IssueTx,
     input: { actor: TaskActor; serverId: string; taskId: string }

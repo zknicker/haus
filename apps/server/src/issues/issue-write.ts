@@ -11,7 +11,6 @@ export type IssueTx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
 export type IssueWriteGuard = (tx: IssueTx, issue: Issue) => Promise<void>;
 
-/** `wakes` are derived and already queued; `agentWakes` are the agents to dispatch after commit. */
 export interface IssueWriteResult {
     agentWakes: IssueAgentWake[];
     events: PreparedRealtimeEvent[];

@@ -10,7 +10,7 @@ import {
     assignNewIssue,
     seedTaskBoard,
     type TaskBoard,
-} from './issue-delivery-fixture.ts';
+} from './issue-delivery.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 
@@ -83,10 +83,7 @@ test('at the ceiling an agent assignment waits until a person assigns, then both
     await assignNewIssue(connection.db, board, 'From a person');
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
     const [start] = runner.starts();
-    expect(start?.issueAssignments?.map((issue) => issue.title)).toEqual([
-        'Loop',
-        'From a person',
-    ]);
+    expect(start?.issueAssignments?.map((issue) => issue.title)).toEqual(['Loop', 'From a person']);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, start?.runId ?? ''));
     expect(await turnsOf(seed)).toBe(0);
 });

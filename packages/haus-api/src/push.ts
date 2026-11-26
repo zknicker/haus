@@ -148,7 +148,7 @@ export const pushIssuePayloadSchema = z
     })
     .strict();
 
-export type PushRegisterDeviceInput =z.infer<typeof pushRegisterDeviceInputSchema>;
+export type PushRegisterDeviceInput = z.infer<typeof pushRegisterDeviceInputSchema>;
 export type PushUnregisterDeviceInput = z.infer<typeof pushUnregisterDeviceInputSchema>;
 export type PushDeviceResult = z.infer<typeof pushDeviceResultSchema>;
 export type PushNotificationSender = z.infer<typeof pushNotificationSenderSchema>;

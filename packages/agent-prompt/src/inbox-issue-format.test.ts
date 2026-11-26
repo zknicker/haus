@@ -69,7 +69,9 @@ test('an event run quotes a comment and names state changes and closed sub-issue
 });
 
 test('a busy notice counts Issue items without their content', () => {
-    expect(composeInboxNotice([], 0, { issueItems: { ids: ['issue-assign:iss_12:2'], total: 3 } })).toBe(
+    expect(
+        composeInboxNotice([], 0, { issueItems: { ids: ['issue-assign:iss_12:2'], total: 3 } })
+    ).toBe(
         [
             '[Haus inbox notice:',
             '3 Issue updates for you',

@@ -115,9 +115,7 @@ export function inboxStore(runtimeDir: string) {
                             pending.length,
                             notice.totalPending - alreadyVisible
                         ),
-                        ...(notice.issueItems
-                            ? { issueItems: notice.issueItems }
-                            : {}),
+                        ...(notice.issueItems ? { issueItems: notice.issueItems } : {}),
                     },
                     receipt
                 );

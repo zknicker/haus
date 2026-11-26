@@ -21,7 +21,6 @@ export const issueProcedure = memberProcedure.use(async ({ next }) => {
     throw toIssueError(result.error.cause) ?? result.error;
 });
 
-/** After an Issue write commits: publish its events and wake the agents it queued for. */
 export function commitIssueWrite(
     ctx: Pick<HausContext, 'agentDelivery' | 'postCommitWork'>,
     result: Pick<IssueWriteResult, 'agentWakes' | 'events' | 'issue'>

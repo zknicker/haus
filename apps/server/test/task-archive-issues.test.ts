@@ -13,7 +13,7 @@ import {
     issueInboxRows,
     seedTaskBoard,
     type TaskBoard,
-} from './issue-delivery-fixture.ts';
+} from './issue-delivery.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase;
@@ -100,9 +100,9 @@ test("archiving a Task hands its open Issues to its Captain, with the Server's a
         change: { from: { kind: 'task', taskId }, kind: 'assignee_changed', to: captain },
     });
     expect(archived.wakes).toContainEqual({ agentId: seed.agentId, serverId: seed.serverId });
-    expect(
-        (await issueInboxRows(connection.db, seed.agentId)).map((row) => row.dedupeKey)
-    ).toEqual([`issue-assign:${open.issue.id}:2`]);
+    expect((await issueInboxRows(connection.db, seed.agentId)).map((row) => row.dedupeKey)).toEqual(
+        [`issue-assign:${open.issue.id}:2`]
+    );
 });
 
 test('a Task a person started hands its open Issues back to that person', async () => {

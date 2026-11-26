@@ -62,7 +62,12 @@ test('an Issue event names a comment, a state change, or closed sub-issues', () 
     const base = { ...assignment, id: 'issue-event:iss_12:iev_1' };
     const { priority: _priority, state: _state, ...event } = base;
     for (const change of [
-        { body: 'Is the old key revoked?', commentId: 'icm_1', kind: 'commented', truncated: false },
+        {
+            body: 'Is the old key revoked?',
+            commentId: 'icm_1',
+            kind: 'commented',
+            truncated: false,
+        },
         { from: 'todo', kind: 'state_changed', to: 'done' },
         { kind: 'sub_issues_closed', total: 3 },
     ]) {

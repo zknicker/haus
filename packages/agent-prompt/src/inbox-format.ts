@@ -7,8 +7,8 @@ import {
     inboxBodyText,
     shortInboxId,
 } from './inbox-header-format.ts';
-import { formatInboxTargetRow } from './inbox-target-row.ts';
 import { formatIssueItemsNotice, nextTurnNoticeGuidance } from './inbox-issue-format.ts';
+import { formatInboxTargetRow } from './inbox-target-row.ts';
 import { formatWorkerReport, formatWorkerReportsNotice } from './inbox-worker-report-format.ts';
 import { formatInlineReplyContext } from './inline-reply-format.ts';
 

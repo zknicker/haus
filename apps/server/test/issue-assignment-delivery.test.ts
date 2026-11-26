@@ -14,7 +14,7 @@ import {
     issueInboxRows,
     seedTaskBoard,
     type TaskBoard,
-} from './issue-delivery-fixture.ts';
+} from './issue-delivery.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 
@@ -109,9 +109,12 @@ test('one run carries at most fifty assignments; the rest wait for the next', as
     const first = await wake();
     expect(first?.issueAssignments).toHaveLength(50);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, first?.runId ?? ''));
-    expect(runner.starts().at(-1)?.issueAssignments?.map((issue) => issue.title)).toEqual([
-        'Issue 51',
-    ]);
+    expect(
+        runner
+            .starts()
+            .at(-1)
+            ?.issueAssignments?.map((issue) => issue.title)
+    ).toEqual(['Issue 51']);
 });
 
 test('a busy Captain gets a content-free count, then the Issues on its next turn', async () => {

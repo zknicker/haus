@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readUnworkedTaskWakes } from '../src/github/pull-request-task-wakes.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { taskPullRequestsTable } from '../src/postgres/schema.ts';
-import { insertTaskPlace, seedTaskBoard } from './issue-delivery-fixture.ts';
+import { insertTaskPlace, seedTaskBoard } from './issue-delivery.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase;
