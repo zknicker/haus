@@ -30,31 +30,45 @@ shape instead of a second protocol package.
 
 ## Development
 
-Install dependencies:
+You need Bun `1.4.4` (the root `packageManager` pin), PostgreSQL 16 binaries,
+and `versitygw` on your `PATH`. On macOS, install the host tools once and leave
+the Homebrew PostgreSQL service stopped; the managed stack owns its own cluster:
+
+```bash
+brew install postgresql@16 versitygw
+```
+
+Linux and cloud sessions use the install path in
+[Development](docs/operations/development.md#linux-and-cloud-sessions).
+
+Set up this checkout:
 
 ```bash
 bun run setup:worktree
 ```
 
-The setup keeps lifecycle scripts disabled, installs the frozen Bun dependency
-graph, and explicitly downloads the pinned HeroUI React Pro artifacts. Both
-licensed registry credentials it needs resolve from 1Password through the
-committed `.env.schema`; there is no `.env` step. See
-[docs/operations/environment.md](docs/operations/environment.md).
+That command installs the frozen Bun dependency graph with lifecycle scripts
+disabled, then downloads the pinned HeroUI React Pro artifacts. The two licensed
+registry credentials resolve from 1Password through the committed `.env.schema`.
+There is no `.env` file. See
+[Environment and secrets](docs/operations/environment.md).
 
-Run the full local stack:
+Start the local stack:
 
 ```bash
 bun run dev
 ```
 
-`bun run dev` starts PostgreSQL, Haus Server, Haus Computer, and the App dev
-server; `bun run dev-app` adds the Electron shell.
+This starts an isolated PostgreSQL cluster, a local Files storage gateway, Haus
+Server, Haus Computer, and the App dev server. Use `bun run dev-app` for the same
+stack inside the Electron shell.
 
-Dev state is isolated under the worktree-specific Haus dev root.
+Dev state lives under `~/.haus/dev/<worktree-id>/`. Ports come from the worktree
+path so multiple checkouts can run at once. Inspect the assigned group with
+`dev-port`.
 
-Local dev ports are derived from the worktree path so multiple worktrees can run
-at once. Use `dev-port` to inspect the assigned port group.
+For the full local workflow, see
+[Development](docs/operations/development.md).
 
 ## Desktop Build
 
