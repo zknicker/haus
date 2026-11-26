@@ -1,22 +1,31 @@
 import type { Task } from '@haus/api';
 import type { TaskListFilters } from '../../hooks/tasks/use-task-list.ts';
-import { isTaskState, type TaskState, taskStateOf } from './task-state.ts';
 
-export interface TasksPageFilters {
-    state: null | TaskState;
+export const taskViews = [
+    { id: 'mine', label: 'My tasks' },
+    { id: 'all', label: 'All tasks' },
+    { id: 'archived', label: 'Archived' },
+] as const;
+
+export type TaskView = (typeof taskViews)[number]['id'];
+
+export function readTaskView(params: URLSearchParams): TaskView {
+    const view = params.get('view');
+    return taskViews.some((entry) => entry.id === view) ? (view as TaskView) : 'mine';
 }
 
-export function readTasksPageFilters(params: URLSearchParams): TasksPageFilters {
-    const state = params.get('state');
-    return { state: isTaskState(state) ? state : null };
+export function taskListFilters(view: TaskView): TaskListFilters {
+    return view === 'archived' ? { archived: true } : {};
 }
 
-export function isFiltered(filters: TasksPageFilters) {
-    return filters.state !== null;
-}
-
-export function taskListFilters(filters: TasksPageFilters): TaskListFilters {
-    return filters.state === 'archived' ? { archived: true } : {};
+export function tasksForView(tasks: readonly Task[], view: TaskView, viewerUserId: null | string) {
+    const shown =
+        view === 'mine'
+            ? tasks.filter(
+                  (task) => task.createdBy.kind === 'user' && task.createdBy.userId === viewerUserId
+              )
+            : tasks;
+    return orderTasksForPage(shown);
 }
 
 export function orderTasksForPage(tasks: readonly Task[]) {
@@ -25,25 +34,6 @@ export function orderTasksForPage(tasks: readonly Task[]) {
             Date.parse(b.archivedAt ?? b.createdAt) - Date.parse(a.archivedAt ?? a.createdAt) ||
             a.shortId.localeCompare(b.shortId)
     );
-}
-
-export interface TaskStateGroup {
-    state: TaskState;
-    tasks: Task[];
-}
-
-export function groupTasksByState(ordered: readonly Task[]): TaskStateGroup[] {
-    const groups: TaskStateGroup[] = [];
-    for (const task of ordered) {
-        const state = taskStateOf(task);
-        const last = groups.at(-1);
-        if (last?.state === state) {
-            last.tasks.push(task);
-        } else {
-            groups.push({ state, tasks: [task] });
-        }
-    }
-    return groups;
 }
 
 export function taskAge(task: Pick<Task, 'createdAt'>, now: number) {
