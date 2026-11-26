@@ -363,7 +363,8 @@ Machine, and must be one the Captain may use; `model` defaults to the crew model
 Captain's own. `issue` links and assigns an open Issue in the home Project held by the caller or
 nobody, without changing its state; another Project's Issue is `403 TASK_PROJECT_NOT_HOME` and a
 held one `409 ISSUE_TAKEN`. `repo` (`owner/name`, one of the Server's Repos) and `ref` (which needs
-`repo`) are recorded on the Task and named in its prompt. A Task agent's credential is refused with
+`repo`) are recorded on the Task, and the runner checks the repo out on the Task's Machine before
+each fresh session's first turn. A Task agent's credential is refused with
 `403 TASK_START_NOT_CAPTAIN`. The same `requestId` answers the same Task. `/archive` and `/unarchive`
 take `{ task, expectedVersion? }`; unarchive starts no turn and is `409 TASK_PROJECT_ARCHIVED`
 while the Project is archived. `/attach-pr` takes `{ task, url }` and answers
@@ -380,6 +381,16 @@ who can read the Task (`400 TASK_PERSON_UNKNOWN` lists its followers); a crew re
 Captain as a `crew_report` inbox item unless it is `needs-you` for a named person. Inputs are in
 `packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
 `agent-task-refusals.ts`.
+
+`GET /api/agent/tasks/replay?before=<sequence>` answers a Task agent's own chat for a fresh
+session (`packages/haus-api/src/task-replay.ts`): `messages`, the newest 50 before `before`,
+oldest first, and `brief`, the chat's first message when it falls outside them. Any other caller
+gets `400 INVALID_ARG`. A `sequence`-less call reads the newest 50.
+
+A Task credential is refused `403 TASK_CREDENTIAL_SCOPE` before the route runs on every non-GET
+route under `/api/agent/agents`, `/artifacts`, `/channels`, `/claims`, `/connections`,
+`/drive/push`, `/profile/update` and `/triggers`, and on the `delete-` and `publish-` artifact
+actions (`apps/server/src/tasks/task-credential-scope.ts`).
 
 Omitting `expectedVersion` means the last write wins: a write that lost a race retries on the
 current version, a bounded number of times. A named `expectedVersion` that is stale, or a race still
