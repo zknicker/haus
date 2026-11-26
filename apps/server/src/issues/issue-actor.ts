@@ -14,11 +14,11 @@ export interface ActorColumns {
     userId: string | null;
 }
 
-export function memberIssueActor(member: HausUser | null): IssueActor {
+export function memberIssueActor(member: HausUser | null) {
     if (!member) {
         throw new ServerAccessDeniedError();
     }
-    return { kind: 'user', userId: member.id };
+    return { kind: 'user' as const, userId: member.id };
 }
 
 export async function requireIssueActor(db: Reader, serverId: string, actor: IssueActor) {

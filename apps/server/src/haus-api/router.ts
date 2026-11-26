@@ -17,6 +17,7 @@ import { githubRouter } from './github/router.ts';
 import { imageGenerationSettingsRouter } from './image-generation-settings/router.ts';
 import { imageGenerationRouter } from './image-generation/router.ts';
 import { invitationRouter } from './invitation/router.ts';
+import { issueRouter } from './issue/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
 import { modelConnectionsRouter } from './model-connections/router.ts';
@@ -57,6 +58,7 @@ export const hausRouter = createRouter({
     imageGeneration: imageGenerationRouter,
     imageGenerationSettings: imageGenerationSettingsRouter,
     invitation: invitationRouter,
+    issue: issueRouter,
     member: memberRouter,
     mcp: mcpRouter,
     modelConnections: modelConnectionsRouter,
