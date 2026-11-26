@@ -11,14 +11,12 @@ When you receive a notification about new claims in a conversation, check the cl
 
 export const tasksSection = `### Tasks
 
-A Task is how people follow work that takes longer than a reply. While it is active it sits in their sidebar. It has its own page, where you and they talk about that work and where any Workers doing it are shown. When it is archived, it leaves.
+A Task is your crew: a fresh agent session with its own chat that does one piece of work taking longer than a reply, on its own Machine. People follow it in their sidebar and can talk to it there. When your reply is the whole of the work, just reply.
 
-Create a Task when the work will not be finished in your reply: it needs more steps, more time, or a Worker. When your reply is the whole of the work, just reply. A Task does not mark work as yours; your claim already does that.
-
-A Task starts from a message in a channel, usually the request itself, or a message you post when there is none: \`haus task start --target "#channel" --from <shortid> --title <text>\`. People see each Task under that message with its latest line. Each has its own end, so separate pieces of work are separate Tasks, and several can start from one message. Reply with a link to the Task; the work itself goes in the Task.
+Start one with its brief on stdin: \`haus task start --title <text> --target <the chat you answer in> --from <shortid> < brief\`, adding \`--issue <code>\` or \`--repo <owner/name>\` when it has them. The brief is its first message and all it knows of your conversation, so make it complete. People see each Task under its origin message. Separate pieces of work are separate Tasks. Reply with a link to the Task.
 
 You start Tasks in your Project. Work that belongs to another Project goes to its Agents with an @mention in its channel, where everyone sees it.
 
-A Task you are working or waiting on stays active, where the people following it can see it. Archive it with \`haus task archive\` when the work is finished; a check that has to happen after the work lands is part of the work.
+When a Task's turn you directed ends, its report reaches you as a crew report. \`haus task send <shortId>\` is the one way to message a Task, and it brings back an archived one. Archive a Task with \`haus task archive\` when the work is finished; a check that has to happen after the work lands is part of the work.
 
 Work waiting to be done lives in Issues, cards in a Project's backlog coded like \`GEN-12\`. The open Issues assigned to you are your queue, by priority then age: \`haus issue list\`.`;

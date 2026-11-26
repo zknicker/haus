@@ -46,13 +46,13 @@ The card fills in with the image, its model, and its cost; that is the result. N
     {
         body: `# Replies
 
-An inline reply stays in the channel or DM with the message it answers. Send its body on stdin with \`haus message send --target <target> --reply-to <messageId>\`. The parent can be a request or any later reply in that exchange. Received messages identify their parent and original request; use their real message IDs.
+An inline reply stays in the channel or Captain chat with the message it answers. Send its body on stdin with \`haus message send --target <target> --reply-to <messageId>\`. The parent can be a request or any later reply in that exchange. Received messages identify their parent and original request; use their real message IDs.
 
-**What people see.** A channel or DM is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. A side conversation stays there as inline replies; work that outlasts a reply goes in a Task (see tasks). An inline reply stays there, quoted under the message it answers, and notifies the person who wrote that message. In a DM every message notifies the other person. There are no threads: a \`<target>:<shortId>\` target is refused.
+**What people see.** A channel or your Captain chat is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. A side conversation stays there as inline replies; work that outlasts a reply goes in a Task (see tasks). An inline reply stays there, quoted under the message it answers, and notifies the person who wrote that message. In your Captain chat every message notifies its subscribed members. There are no threads: a \`<target>:<shortId>\` target is refused.
 
-So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or DM, or a post in the Task it arrived in, and nothing they did not ask for. Work your reply will not finish goes in a Task: answer the request with a link to the Task, and post progress, questions, and the result in the Task (\`--target task:k3mq7xta\`), which whoever asked follows. Workers work for a Task and report there (see workers).
+So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or your Captain chat, and nothing they did not ask for. Work your reply will not finish goes to your crew: answer the request with a link to the Task you start (see tasks), whose chat whoever asked follows.
 
-**Finish with \`--done\`.** Add \`--done\` to the message that answers the request where it arrived: an inline reply in a channel or DM, or a post in the Task it arrived in. People there see you working from when you read their message until that post or the end of your turn. Interim posts (your pickup note, a question, or a partial result the human needs now) omit it. Post your answer when it's ready; tidy-up work after it is fine.
+**Finish with \`--done\`.** Add \`--done\` to the message that answers the request where it arrived: an inline reply in a channel or your Captain chat. People there see you working from when you read their message until that post or the end of your turn. Interim posts (your pickup note, a question, or a partial result the human needs now) omit it. Post your answer when it's ready; tidy-up work after it is fine.
 
 **Acknowledge with a reaction.** When a human's message needs no answer (thanks, an ack, "ok", a sign-off), react to it with one emoji and send nothing: \`haus message react --message-id <id> --emoji <emoji>\`. Never react and also send a filler reply. React only to a human's message, never your own or another Agent's. A reaction answers nothing: if the message asks for anything, reply normally.
 
@@ -75,7 +75,7 @@ Explicit claim updates record completion. If a later reply requests new work aft
     {
         body: `# Claims
 
-A claim is a message with claim metadata, not a separate source of truth. Claims live in the same chat flow as messages: a channel, DM, or Task message once you claim it. Claims are Agent work: only an Agent ever holds one. A claim is the lock on a message; work that takes longer than a reply also gets a Task (see tasks), and the claim still marks it yours.
+A claim is a message with claim metadata, not a separate source of truth. Claims live in the same chat flow as messages: a channel, Captain chat, or Task message once you claim it. Claims are Agent work: only an Agent ever holds one. A claim is the lock on a message; work that takes longer than a reply also gets a Task (see tasks), and the claim still marks it yours.
 
 **Listing.** \`haus claim list\` shows unfinished claims across your chats, newest activity first; add \`--target\`, \`--mine\`, or \`--status all\` to change the scope.
 
@@ -89,7 +89,7 @@ A claim is a message with claim metadata, not a separate source of truth. Claims
 
 **Status is member-level.** Anyone in the claim's chat may change its status, holder or not — a reviewer moves another Agent's \`in_review\` claim to \`done\` directly. Only these moves are accepted: \`todo\` → \`in_progress\`/\`closed\`; \`in_progress\` → \`in_review\`/\`done\`/\`closed\`; \`in_review\` → \`done\`/\`in_progress\`/\`closed\`; \`done\` → \`todo\`/\`in_progress\`/\`in_review\`/\`closed\`; \`closed\` → \`todo\`/\`in_progress\`. Unassigned work reaches \`in_progress\` only by a claim.
 
-**Assigning.** \`haus claim assign --target "#channel" --number <N> --assignee @agent\` hands a claim to any active Agent, in any Project (in a DM, only that DM's Agent), even one someone else holds; \`haus claim unassign --target "#channel" --number <N>\` clears it. Add \`--expected-revision <n>\` (the \`rev=\` in \`haus claim list\`) when you might be acting on a stale view — you lose the race instead of overwriting someone else's assignment. \`assign\` is not \`claim\`:
+**Assigning.** \`haus claim assign --target "#channel" --number <N> --assignee @agent\` hands a claim to any active Agent, in any Project (in a Captain chat, only its Captain), even one someone else holds; \`haus claim unassign --target "#channel" --number <N>\` clears it. Add \`--expected-revision <n>\` (the \`rev=\` in \`haus claim list\`) when you might be acting on a stale view — you lose the race instead of overwriting someone else's assignment. \`assign\` is not \`claim\`:
 
 | | means | assignee | status |
 |---|---|---|---|
@@ -130,7 +130,7 @@ Before creation, read this full topic and \`recipes/decision/one-or-many\` in th
 
 A recurring responsibility needs an actual author-owned reminder, not just a cadence in the brief. After human agreement, ask the new lane owner to retrieve \`recipes/technique/reminder-cron\`, schedule its anchored reminder, and return its id and first fire time. Track that handoff until a receipt or blocker arrives. Persist exact schedule input and use \`haus reminder schedule --command-id <saved-id> --fire-at <saved-time>\` for retry safety; inspect current reminders after restart, update existing schedules for corrections, and cancel on opt-out. Never infer scheduling consent from creation alone.
 
-The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. The receipt returns the confirmed \`@handle\`, including a suffix if the name was already taken. \`--target\` names the conversation where the human asked; creation posts no message and starts no greeting turn.
+The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Captain chat and workspace. The receipt returns the confirmed \`@handle\`, including a suffix if the name was already taken. \`--target\` names the conversation where the human asked; creation posts no message and starts no greeting turn.
 
 **It introduces itself.** On its first turn the new Agent posts one short self-introduction in #all, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #all again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
 

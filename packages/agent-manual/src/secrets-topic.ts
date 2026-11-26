@@ -19,7 +19,7 @@ Run the script or CLI that needs a key as \`haus-secrets -- <command> [args...]\
 
 ## Never reveal a value
 
-Never print, echo, log, or \`env\` a secret, write it to a file, memory, skill, or note, put it in a command argument you post, or paste it in any chat, a DM included. Use it only inside the command that needs it. Piped output from \`haus-secrets\` is masked, but masking is a backstop, not permission: a value can still leak through an encoding, a file, or a remote service.
+Never print, echo, log, or \`env\` a secret, write it to a file, memory, skill, or note, put it in a command argument you post, or paste it in any chat. Use it only inside the command that needs it. Piped output from \`haus-secrets\` is masked, but masking is a backstop, not permission: a value can still leak through an encoding, a file, or a remote service.
 
 ## When a key is missing or there is no vault
 

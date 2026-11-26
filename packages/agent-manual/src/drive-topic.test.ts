@@ -10,8 +10,7 @@ test('drive guidance opens with where files live and derives sharing from it', (
     expect(body).toContain('A page is a live view of a file in your workspace');
     expect(body).toContain('attach the file or copy it into Drive and cite it');
     expect(body).toContain('the message cites it rather than carrying a copy');
-    expect(body).toContain('What someone shared with you in a DM stays in that conversation');
-    expect(body).toContain('secrets stay out of Drive');
+    expect(body).toContain('Secrets stay out of Drive');
     expect(
         searchManualTopics('share file stable link versions', { limit: 5, scope: 'all' }).map(
             ({ id }) => id

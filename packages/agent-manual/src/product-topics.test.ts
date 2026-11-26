@@ -20,13 +20,15 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     expect(topic?.body).toContain('Claim completion preserves that participation');
     expect(topic?.body).toContain('haus message unfollow');
     expect(topic?.body).toContain(
-        'Add `--done` to the message that answers the request where it arrived: an inline reply in a channel or DM, or a post in the Task it arrived in.'
+        'Add `--done` to the message that answers the request where it arrived: an inline reply in a channel or your Captain chat.'
     );
     expect(topic?.body).toContain(
         'Interim posts (your pickup note, a question, or a partial result the human needs now) omit it.'
     );
     // Notification facts mirror packages/haus-api/src/message-notification.ts.
-    expect(topic?.body).toContain('In a DM every message notifies the other person.');
+    expect(topic?.body).toContain(
+        'In your Captain chat every message notifies its subscribed members.'
+    );
     expect(topic?.body).not.toContain('nobody is notified');
     expect(topic?.body).not.toContain('bother nobody');
     expect(topic?.body).toContain(
@@ -34,7 +36,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     );
     expect(topic?.body).not.toContain('one-line preview');
     expect(topic?.body).toContain(
-        'Work your reply will not finish goes in a Task: answer the request with a link to the Task, and post progress, questions, and the result in the Task (`--target task:k3mq7xta`), which whoever asked follows.'
+        'Work your reply will not finish goes to your crew: answer the request with a link to the Task you start (see tasks), whose chat whoever asked follows.'
     );
     expect(topic?.body).not.toContain('`#channel:<noteShortId>`');
     expect(topic?.body).not.toContain('Sidebars go in threads');
@@ -196,7 +198,7 @@ test('publishes the claims topic the prompt points to for claim mechanics', () =
     expect(claims?.body).not.toContain('Messages inside threads are discussion context');
     expect(claims?.body.toLowerCase()).not.toContain('thread');
     expect(claims?.body).toContain(
-        'Claims live in the same chat flow as messages: a channel, DM, or Task message once you claim it.'
+        'Claims live in the same chat flow as messages: a channel, Captain chat, or Task message once you claim it.'
     );
     expect(claims?.body).toContain(
         'A claim title is the work in plain words: people read the claim message, so it never carries targets, message IDs, or source references.'

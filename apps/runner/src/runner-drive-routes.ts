@@ -37,6 +37,7 @@ export function captainSession(handle: string, projectKey: string | null) {
             ...(projectKey === null ? [] : [`projects/${projectKey}/AGENTS.md`]),
             `agents/${handle}/AGENTS.md`,
         ],
+        task: null,
         warmIdleMs: captainWarmIdleMs,
     };
     return session;

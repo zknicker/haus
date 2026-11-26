@@ -42,8 +42,8 @@ function formatInboxTags(row: InboxTargetSummary): string {
 }
 
 function targetTag(target: string): string | null {
-    if (target.startsWith('dm:')) {
-        return 'dm';
+    if (target.startsWith('captain:')) {
+        return 'your Captain chat';
     }
     return target.startsWith('task:') ? 'task' : null;
 }

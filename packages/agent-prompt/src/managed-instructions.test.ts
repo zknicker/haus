@@ -85,7 +85,7 @@ test('claim updates follow the requesting conversation', () => {
 
 test('the inline reply that answers the request carries --done', () => {
     expect(renderPrompt()).toContain(
-        'an inline reply to their message in a channel or DM, with `--done` on the message that answers it'
+        'an inline reply to their message in a channel or your Captain chat, with `--done` on the message that answers it'
     );
 });
 
@@ -224,8 +224,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // E2d (ADR 0059): -1 for the #all welcome rule, +37 for "You always hear #all, the team room."; W3: +22 for `haus worker places`. Measured after all three: 37,648.
     // Raised by exactly 128 (37,648 → 37,776) for the Computers entry (ADR 0057), 116 (→ 37,892) for Repos (ADR 0060).
     // Raised by exactly 59 (37,892 → 37,951): web sources are cited as Markdown links (ADR 0061).
-    // Lowered by exactly 38 (37,951 → 37,913): Tasks name `archive` (ADR 0062). Raised by exactly 364 (→ 38,277): Captains work from Issues (step 3).
-    expect(prompt.length).toBeLessThanOrEqual(38_277);
+    // Lowered by exactly 38 (37,951 → 37,913): Tasks name `archive` (ADR 0062). Raised by exactly 364 (→ 38,277): Captains work from Issues (step 3). Lowered by exactly 198 (→ 38,079): Captain chat, crew Tasks (step 5b).
+    expect(prompt.length).toBeLessThanOrEqual(38_079);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');

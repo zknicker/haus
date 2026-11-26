@@ -141,6 +141,13 @@ test('a crew Task reads the Haus and Project rules and its Captain’s WORKER.md
             kind: 'task',
             memoryPath: null,
             rulePaths: [hausRules, projectRules, workerRules],
+            task: {
+                captainHandle: 'blippy',
+                issues: [],
+                repo: null,
+                shortId: 'k3mq7xta',
+                title: 'Rotate the signing key',
+            },
             warmIdleMs: taskWarmIdleMs,
         }
     );

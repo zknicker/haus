@@ -7,9 +7,11 @@ import { clearPendingNotice, type NoticeReceipt, writePendingNotice } from './pe
 
 type InboxItem = AgentStartCommand['inbox'][number];
 type IssueItemsNotice = NonNullable<AgentNoticeCommand['issueItems']>;
+type CrewReportsNotice = NonNullable<AgentNoticeCommand['crewReports']>;
 
 interface PendingInbox {
     readonly consumedMessageIds: readonly string[];
+    readonly crewReports?: CrewReportsNotice;
     readonly items: readonly InboxItem[];
     readonly issueItems?: IssueItemsNotice;
     readonly totalPending: number;
@@ -17,6 +19,7 @@ interface PendingInbox {
 
 const pendingSchema = z.object({
     consumedMessageIds: z.array(z.string()),
+    crewReports: z.custom<CrewReportsNotice>().optional(),
     items: z.array(z.custom<InboxItem>((value) => typeof value === 'object' && value !== null)),
     issueItems: z.custom<IssueItemsNotice>().optional(),
     totalPending: z.number().int().nonnegative(),
@@ -43,6 +46,7 @@ export function inboxStore(runtimeDir: string) {
     const write = async (state: PendingInbox, receipt?: NoticeReceipt) => {
         await writeJsonAtomic(pendingPath, state);
         const notice = composeInboxNotice([...state.items], state.totalPending, {
+            ...(state.crewReports ? { crewReports: state.crewReports } : {}),
             ...(state.issueItems ? { issueItems: state.issueItems } : {}),
         });
         if (notice) {
@@ -52,11 +56,14 @@ export function inboxStore(runtimeDir: string) {
         }
         return notice;
     };
-    const consumeLocked = async (ids: readonly string[], dropIssueItems = false) => {
+    const consumeLocked = async (
+        ids: readonly string[],
+        drop: { crewReports?: boolean; issueItems?: boolean } = {}
+    ) => {
         const state = await read();
         const visible = new Set(ids);
         const remaining = state.items.filter((item) => !visible.has(item.id));
-        const { issueItems, ...rest } = state;
+        const { crewReports, issueItems, ...rest } = state;
         await write({
             ...rest,
             consumedMessageIds: [...new Set([...state.consumedMessageIds, ...ids])],
@@ -65,7 +72,8 @@ export function inboxStore(runtimeDir: string) {
                 remaining.length,
                 state.totalPending - (state.items.length - remaining.length)
             ),
-            ...(issueItems && !dropIssueItems ? { issueItems } : {}),
+            ...(issueItems && !drop.issueItems ? { issueItems } : {}),
+            ...(crewReports && !drop.crewReports ? { crewReports } : {}),
         });
     };
     return {
@@ -87,7 +95,11 @@ export function inboxStore(runtimeDir: string) {
                 await writeJsonAtomic(pendingPath, { ...state, consumedMessageIds });
                 await consumeLocked(
                     start.inbox.map((item) => item.id),
-                    start.issueAssignments !== undefined || start.issueEvents !== undefined
+                    {
+                        crewReports: start.crewReports !== undefined,
+                        issueItems:
+                            start.issueAssignments !== undefined || start.issueEvents !== undefined,
+                    }
                 );
             });
         },
@@ -116,6 +128,7 @@ export function inboxStore(runtimeDir: string) {
                             notice.totalPending - alreadyVisible
                         ),
                         ...(notice.issueItems ? { issueItems: notice.issueItems } : {}),
+                        ...(notice.crewReports ? { crewReports: notice.crewReports } : {}),
                     },
                     receipt
                 );

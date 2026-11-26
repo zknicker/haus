@@ -1,6 +1,12 @@
-import type { AgentIssueWakeNotice, UnreadElsewhere, WorkerReportsNotice } from '@haus/api';
+import type {
+    AgentIssueWakeNotice,
+    CrewReportsNotice,
+    UnreadElsewhere,
+    WorkerReportsNotice,
+} from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { formatWorkerAttention, formatPullRequestNotice } from './inbox-attention-format.ts';
+import { formatCrewReportsNotice } from './inbox-crew-report-format.ts';
 import {
     formatInboxTimeFields,
     formatSenderLabel,
@@ -13,6 +19,7 @@ import { formatWorkerReport, formatWorkerReportsNotice } from './inbox-worker-re
 import { formatInlineReplyContext } from './inline-reply-format.ts';
 
 export interface PendingCounts {
+    crewReports?: CrewReportsNotice;
     issueItems?: AgentIssueWakeNotice;
     workerReports?: WorkerReportsNotice;
 }
@@ -80,8 +87,8 @@ export function formatUnreadElsewhere(entries: readonly UnreadElsewhere[]): stri
 
 /**
  * Content-free, target-level notice, closed by its handling guidance. Bodies never enter this
- * projection. Queued Issue items and one Task's queued Worker reports, which arrive in the
- * next turn rather than as rows, each add one count line.
+ * projection. Queued Issue items, crew reports and one Task's queued Worker reports, which
+ * arrive in the next turn rather than as rows, each add one count line.
  */
 export function composeInboxNotice(
     items: AgentInboxItem[],
@@ -91,6 +98,7 @@ export function composeInboxNotice(
     const issueItems = counts.issueItems?.total ?? 0;
     const countLines = [
         ...(issueItems > 0 ? [formatIssueItemsNotice(issueItems)] : []),
+        ...(counts.crewReports ? [formatCrewReportsNotice(counts.crewReports.total)] : []),
         ...(counts.workerReports ? [formatWorkerReportsNotice(counts.workerReports)] : []),
     ];
     if (items.length === 0) {
