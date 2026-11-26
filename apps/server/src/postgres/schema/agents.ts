@@ -48,6 +48,10 @@ export const agentsTable = pgTable(
         createdByUserId: text('created_by_user_id'),
         /** The Agent-authored Message that carries this Agent's creation. */
         creationMessageId: text('creation_message_id'),
+        /** A Captain's crew Machine (Capy's "Crew runs on"); null falls back to the Project's. */
+        crewComputerId: text('crew_computer_id'),
+        /** A Captain's crew model; null runs crew on the Captain's own model. */
+        crewModel: text('crew_model'),
         desiredModelId: text('desired_model_id'),
         desiredReasoningEffort: text('desired_reasoning_effort')
             .notNull()
@@ -78,6 +82,8 @@ export const agentsTable = pgTable(
         homeProjectId: text('home_project_id'),
         homeTimezone: text('home_timezone').notNull(),
         id: text('id').primaryKey(),
+        /** A Captain, or the hidden agent of one Task (ADR 0062), which no roster lists. */
+        kind: text('kind').notNull().default('captain').$type<'captain' | 'task'>(),
         /**
          * The Agent's optional voice layer on top of the house personality, written by Owners,
          * Admins, or the Agent itself. It rides only the Agent's own start frame and self profile;
@@ -150,9 +156,25 @@ export const agentsTable = pgTable(
                 or (${table.createdByAgentId} is not null and ${table.creationNonce} is not null
                     and ${table.creationRequestHash} is not null)`
         ),
+        foreignKey({
+            columns: [table.serverId, table.crewComputerId],
+            foreignColumns: [computersTable.serverId, computersTable.id],
+            name: 'agents_crew_computer_fk',
+        }).onDelete('set null (crew_computer_id)' as UpdateDeleteAction),
+        check('agents_kind', sql`${table.kind} in ('captain', 'task')`),
         check(
             'agents_home_project_shape',
-            sql`${table.homeProjectId} is not null or ${table.retiredAt} is not null`
+            sql`case when ${table.kind} = 'task'
+                then ${table.homeProjectId} is null
+                else ${table.homeProjectId} is not null or ${table.retiredAt} is not null end`
+        ),
+        check(
+            'agents_crew_shape',
+            sql`${table.kind} = 'captain' or (${table.crewComputerId} is null and ${table.crewModel} is null)`
+        ),
+        check(
+            'agents_crew_model_length',
+            sql`${table.crewModel} is null or char_length(${table.crewModel}) between 1 and 128`
         ),
         check(
             'agents_reasoning_effort',
