@@ -1,6 +1,5 @@
 import { TASK_AUTO_TITLE_MAX_CHARS } from '@haus/api';
 
-/** A Task's automatic title: the first line of its first message, cut to a short summary. */
 export function autoTaskTitle(firstMessage: string) {
     const line =
         firstMessage

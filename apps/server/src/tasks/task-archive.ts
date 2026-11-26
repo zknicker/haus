@@ -27,10 +27,6 @@ export async function archiveTask(
     });
 }
 
-/**
- * Archive in the caller's transaction (specs/tasks.md#archive): the record, reminders, Workers,
- * and a generation-stamped reset of the Task's session. Archiving an archived Task changes nothing.
- */
 export async function archiveLockedTask(
     tx: Tx,
     actor: TaskActor,
@@ -76,7 +72,6 @@ export async function archiveLockedTask(
     return result;
 }
 
-/** Restore (Capy's unarchive): starts no turn; the next turn runs a fresh session. */
 export async function unarchiveTask(db: HausDatabase, actor: TaskActor, input: TaskArchiveInput) {
     return await db.transaction(async (tx) => {
         const current = await lockForArchive(tx, actor, input);

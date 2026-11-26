@@ -19,7 +19,6 @@ export class AgentDriveReadError extends Error {
     }
 }
 
-/** The agent's handle and the session policy the Server names for its runs. */
 export async function readAgentProfile(authority: RunAuthority) {
     const { profile, session } = profileSchema.parse(
         await agentGet(authority, '/api/agent/profile', 'the profile')

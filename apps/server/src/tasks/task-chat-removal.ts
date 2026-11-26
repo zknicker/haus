@@ -58,7 +58,6 @@ export async function deleteTasksOfRemovedChats(
     return { events, workerFrames };
 }
 
-/** A deleted Task's hidden agent goes with it: retired, with no queue or credential left. */
 async function retireTaskAgents(tx: Tx, input: { agentIds: string[]; serverId: string }) {
     if (input.agentIds.length === 0) {
         return;

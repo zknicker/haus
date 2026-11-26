@@ -24,7 +24,10 @@ async function call(as: { token: string }, path: string, body: unknown) {
         headers: { authorization: `Bearer ${as.token}`, 'content-type': 'application/json' },
         method: 'POST',
     });
-    return { body: (await response.json()) as StartReply & Record<string, unknown>, status: response.status };
+    return {
+        body: (await response.json()) as StartReply & Record<string, unknown>,
+        status: response.status,
+    };
 }
 
 function start(body: Record<string, unknown>, as = orbit) {
@@ -42,9 +45,17 @@ async function startedTask(body: Record<string, unknown>) {
 beforeAll(async () => {
     const { owner, serverId } = fixture;
     const kitAgentId = await fixture.createAgent('Kit', 'kit');
-    await owner.trpc.agent.setHome.mutate({ agentId: kitAgentId, projectId: fixture.channelId, serverId });
+    await owner.trpc.agent.setHome.mutate({
+        agentId: kitAgentId,
+        projectId: fixture.channelId,
+        serverId,
+    });
     opsId = (await owner.trpc.project.create.mutate({ key: 'OPS', name: 'ops', serverId })).chat.id;
-    await owner.trpc.agent.setHome.mutate({ agentId: fixture.peerAgentId, projectId: opsId, serverId });
+    await owner.trpc.agent.setHome.mutate({
+        agentId: fixture.peerAgentId,
+        projectId: opsId,
+        serverId,
+    });
     orbit = await fixture.mintRunner('run_task_start_orbit');
     kit = await fixture.mintRunner('run_task_start_kit', kitAgentId);
     peer = await fixture.mintRunner('run_task_start_peer', fixture.peerAgentId, opsId);
@@ -135,7 +146,10 @@ describe('a Captain starts crew', () => {
         );
         const reply = await start(body);
         expect(reply.status).toBe(200);
-        expect(reply.body).toMatchObject({ state: 'started', target: `task:${reply.body.task?.shortId}` });
+        expect(reply.body).toMatchObject({
+            state: 'started',
+            target: `task:${reply.body.task?.shortId}`,
+        });
         const task = await fixture.owner.trpc.task.get.query({
             serverId: fixture.serverId,
             shortId: reply.body.task?.shortId ?? '',
@@ -218,11 +232,15 @@ describe('a Captain starts crew', () => {
             origin: { chatId: dm.message.chatId, messageId: dm.message.id },
             projectId: fixture.channelId,
         });
-        expect((await bea.trpc.task.get.query({ serverId, shortId: task.shortId })).origin).toBeNull();
+        expect(
+            (await bea.trpc.task.get.query({ serverId, shortId: task.shortId })).origin
+        ).toBeNull();
     });
 
     test('--issue links and assigns an open Issue without changing its state', async () => {
-        const filed = await call(orbit, '/api/agent/issues/create', { title: 'Patch the login bug' });
+        const filed = await call(orbit, '/api/agent/issues/create', {
+            title: 'Patch the login bug',
+        });
         const code = (filed.body.issue as { code: string }).code;
         const task = await startedTask({ brief: 'Patch the login bug.', issue: code });
         const [issue] = (await fixture.harness.sql`
@@ -230,13 +248,19 @@ describe('a Captain starts crew', () => {
         `) as { assignee_task_id: string; state: string }[];
         expect(issue).toEqual({ assignee_task_id: task.id, state: 'todo' });
         expect(
-            await fixture.harness.sql`select task_id from issue_task_links where task_id = ${task.id}`
+            await fixture.harness
+                .sql`select task_id from issue_task_links where task_id = ${task.id}`
         ).toEqual([{ task_id: task.id }]);
     });
 
     test('--issue refuses another Project’s Issue and one someone else holds', async () => {
-        const ops = await call(peer, '/api/agent/issues/create', { title: 'Restore the dashboard' });
-        const elsewhere = await start({ brief: 'Restore it.', issue: (ops.body.issue as { code: string }).code });
+        const ops = await call(peer, '/api/agent/issues/create', {
+            title: 'Restore the dashboard',
+        });
+        const elsewhere = await start({
+            brief: 'Restore it.',
+            issue: (ops.body.issue as { code: string }).code,
+        });
         expect(elsewhere).toMatchObject({ body: { code: 'TASK_PROJECT_NOT_HOME' }, status: 403 });
 
         const held = await call(kit, '/api/agent/issues/create', { title: 'Tune the cache' });
@@ -244,9 +268,9 @@ describe('a Captain starts crew', () => {
         await call(kit, '/api/agent/issues/update', { assignee: 'me', code, expectAssignee: null });
         const taken = await start({ brief: 'Tune it.', issue: code });
         expect(taken).toMatchObject({ body: { code: 'ISSUE_TAKEN' }, status: 409 });
-        expect(
-            await fixture.harness.sql`select id from tasks where title = 'Tune it.'`
-        ).toEqual([]);
+        expect(await fixture.harness.sql`select id from tasks where title = 'Tune it.'`).toEqual(
+            []
+        );
     });
 
     test('a Task never starts a Task, and a start needs a Machine', async () => {

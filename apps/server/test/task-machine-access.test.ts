@@ -66,12 +66,17 @@ test('crew uses its Machine exactly while its Captain’s current grant allows t
     expect(await access(crew.agentId, studioId)).toBe('no-access');
     await setGrant(fixture.orbitAgentId, true);
     expect(await access(crew.agentId, studioId)).toBe('allowed');
-    expect([...(await readAccessibleComputerIds(connection.db, { ...crew, serverId: fixture.serverId }))]).toEqual([
-        studioId,
-    ]);
+    expect([
+        ...(await readAccessibleComputerIds(connection.db, {
+            ...crew,
+            serverId: fixture.serverId,
+        })),
+    ]).toEqual([studioId]);
     await setGrant(fixture.orbitAgentId, false);
     expect(await access(crew.agentId, studioId)).toBe('no-access');
-    const barred = (await readAgentsBarredFrom(connection.db, studioId)).map(({ agentId }) => agentId);
+    const barred = (await readAgentsBarredFrom(connection.db, studioId)).map(
+        ({ agentId }) => agentId
+    );
     expect(barred).toContain(crew.agentId);
     expect(barred).toContain(fixture.orbitAgentId);
 });
@@ -95,9 +100,11 @@ test('a person’s Task follows its starter: the attacher, or All Captains on th
     const beas = await seedOnStudio({ starterUserId: beaUserId });
     expect(await access(owners.agentId, studioId)).toBe('allowed');
     expect(await access(beas.agentId, studioId)).toBe('no-access');
-    await fixture.harness.sql`update computers set agent_access_scope = 'all' where id = ${studioId}`;
+    await fixture.harness
+        .sql`update computers set agent_access_scope = 'all' where id = ${studioId}`;
     expect(await access(beas.agentId, studioId)).toBe('allowed');
     await fixture.harness.sql`update tasks set archived_at = now() where id = ${beas.taskId}`;
     expect(await access(beas.agentId, studioId)).toBe('no-access');
-    await fixture.harness.sql`update computers set agent_access_scope = 'selected' where id = ${studioId}`;
+    await fixture.harness
+        .sql`update computers set agent_access_scope = 'selected' where id = ${studioId}`;
 });

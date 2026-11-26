@@ -50,7 +50,9 @@ export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<nu
         [
             `Queued ${describeTask(response.task)}`,
             `Its brief posted as its first message, and its first turn is queued. Task target: ${response.target}`,
-            ...(from && target ? [`Started from message ${shortMessageId(from)} in ${target}.`] : []),
+            ...(from && target
+                ? [`Started from message ${shortMessageId(from)} in ${target}.`]
+                : []),
             '',
         ].join('\n')
     );

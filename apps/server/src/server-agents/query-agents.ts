@@ -76,7 +76,8 @@ export async function queryAgents(
                 eq(agentsTable.serverId, serverId),
                 agentId ? eq(agentsTable.id, agentId) : undefined,
                 isNotNull(agentsTable.computerId),
-                isNull(agentsTable.retiredAt), eq(agentsTable.kind, 'captain')
+                isNull(agentsTable.retiredAt),
+                eq(agentsTable.kind, 'captain')
             )
         )
         .orderBy(agentsTable.createdAt);

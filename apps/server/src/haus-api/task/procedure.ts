@@ -69,7 +69,7 @@ function toTaskError(cause: unknown): TRPCError | null {
         return new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
     }
     if (cause instanceof TaskProjectArchivedError) {
-        return new TRPCError({ cause, code: 'PRECONDITION_FAILED', message: cause.message });
+        return new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
     if (cause instanceof ChatNotFoundError) {
         return new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });

@@ -4,8 +4,8 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentTaskFollowsTable, chatsTable, tasksTable } from '../postgres/schema.ts';
-import { insertTaskAgent } from './task-agent.ts';
 import { creatorColumns } from './task-actor.ts';
+import { insertTaskAgent } from './task-agent.ts';
 import { TaskInvariantError } from './task-errors.ts';
 import { seedTaskFollowers } from './task-follows.ts';
 import type { TaskSessionChoice } from './task-session-choice.ts';
@@ -20,7 +20,6 @@ export interface StartedTaskRecord {
     taskId: string;
 }
 
-/** The Task, its Chat under the Project, and its hidden agent, one to one (ADR 0062). */
 export async function insertStartedTask(
     tx: Tx,
     input: {
@@ -75,7 +74,6 @@ export async function insertStartedTask(
     return record;
 }
 
-/** The Task an earlier start with the same request id made, so a retry answers it again. */
 export async function readStartedByRequest(
     db: Pick<HausDatabase, 'select'>,
     input: { requestId?: string | undefined; serverId: string; starter: TaskActor }
@@ -110,7 +108,6 @@ export async function readStartedByRequest(
     return task.id;
 }
 
-/** A crew Task's Captain does not follow it; it hears its crew through reports (specs/tasks.md). */
 export async function unfollowAsCaptain(
     tx: Pick<HausDatabase, 'update'>,
     input: { captainId: string; chatId: string; serverId: string }
@@ -127,7 +124,6 @@ export async function unfollowAsCaptain(
         );
 }
 
-/** Queues the first message as the Task agent's first turn, addressed to it alone. */
 export async function queueTaskTurn(
     tx: Tx,
     agentDelivery: Pick<AgentDelivery, 'enqueue'>,

@@ -8,7 +8,6 @@ interface ContextReader {
     readonly log: (line: string) => void;
 }
 
-/** The turn's Drive context, read from the paths the session policy names. */
 export async function readAgentContext(input: ContextReader) {
     const profile = await readAgentProfile(input.authority).catch((error: unknown) => {
         input.log(`Runner could not read the Agent's profile: ${String(error)}`);

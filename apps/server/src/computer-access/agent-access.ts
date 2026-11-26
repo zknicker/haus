@@ -14,10 +14,6 @@ export async function isAgentAllowedOn(
     return (await readAgentAccess(db, input)) === 'allowed';
 }
 
-/**
- * A Captain's Agent access on one Computer. A Task agent has none of its own: it may use only its
- * Task's Machine, exactly while its Captain's or starter's grant there allows it (ADR 0062).
- */
 export async function readAgentAccess(
     db: Reader,
     input: { agentId: string; computerId: string; serverId: string }
@@ -68,7 +64,6 @@ export async function readAccessibleComputerIds(
     );
 }
 
-/** Every agent whose access no longer reaches this Computer, Task agents on it included. */
 export async function readAgentsBarredFrom(db: Reader, computerId: string) {
     const rows = await db
         .select({

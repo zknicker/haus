@@ -15,12 +15,10 @@ let originId: string;
 let first: { chatId: string; shortId: string; taskId: string };
 let second: { chatId: string; shortId: string; taskId: string };
 
-interface Reply {
-    body: Record<string, any>;
-    status: number;
-}
-
-async function call(path: string, body: unknown): Promise<Reply> {
+async function call(
+    path: string,
+    body: unknown
+): Promise<{ body: Record<string, any>; status: number }> {
     const response = await fetch(new URL(path, fixture.harness.url), {
         body: JSON.stringify(body),
         headers: { authorization: `Bearer ${runner.token}`, 'content-type': 'application/json' },
@@ -38,7 +36,8 @@ async function start(title: string) {
         title,
     };
     const first = await call('/api/agent/tasks/start', body);
-    const started = first.body.state === 'held' ? await call('/api/agent/tasks/start', body) : first;
+    const started =
+        first.body.state === 'held' ? await call('/api/agent/tasks/start', body) : first;
     expect(started.status).toBe(200);
     const detail = await fixture.owner.trpc.task.get.query({
         shortId: started.body.task.shortId,

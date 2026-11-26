@@ -28,7 +28,6 @@ type Tx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 export interface StartCrewTaskInput {
     brief: string;
     captainId: string;
-    /** The chat the Captain is answering in; its freshness hold runs before anything is written. */
     hold: (tx: Tx, chatId: string) => Promise<unknown>;
     issue?: string;
     machine?: string;
@@ -41,11 +40,6 @@ export interface StartCrewTaskInput {
     title?: string;
 }
 
-/**
- * `haus task start`: a Captain starts crew in its home Project (specs/tasks.md#a-captain-starts-crew).
- * One transaction creates the Task, its Chat and its agent, posts the brief as the Captain,
- * queues the brief as the Task's first turn, and with `issue` links and assigns that Issue.
- */
 export async function startCrewTask(
     db: HausDatabase,
     deps: { agentDelivery: AgentDelivery; catalog: AgentModelCatalog },
@@ -59,7 +53,10 @@ export async function startCrewTask(
         const captain = await requireCaptain(tx, input);
         const repeated = await readStartedByRequest(tx, { ...input, starter });
         if (repeated) {
-            return { kind: 'started', result: await startedResult(tx, serverId, repeated) } as const;
+            return {
+                kind: 'started',
+                result: await startedResult(tx, serverId, repeated),
+            } as const;
         }
         const held = input.targetChatId ? await input.hold(tx, input.targetChatId) : null;
         if (held) {
@@ -73,7 +70,9 @@ export async function startCrewTask(
                   serverId,
               })
             : null;
-        const origin = input.origin ? await requireStartOrigin(tx, { ...input.origin, serverId }) : null;
+        const origin = input.origin
+            ? await requireStartOrigin(tx, { ...input.origin, serverId })
+            : null;
         const session = await chooseTaskSession(tx, deps.catalog, {
             captain,
             ...(input.machine === undefined ? {} : { machine: { name: input.machine } }),

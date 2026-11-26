@@ -13,7 +13,6 @@ interface Parked<Process> extends WarmIdentity {
     readonly process: Process;
 }
 
-/** Parked harness processes; each closes after its own session's idle time (a Task's is short). */
 export class WarmPool<Process> {
     private readonly parked = new Map<string, Parked<Process>>();
 

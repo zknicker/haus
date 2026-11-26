@@ -12,7 +12,6 @@ export interface TaskSessionGrant {
     starterUserId: string | null;
 }
 
-/** The Task an agent id runs and whose grant reaches its Machine; null for a Captain. */
 export async function readTaskSession(db: Reader, input: { agentId: string; serverId: string }) {
     const [task] = await db
         .select({
@@ -37,7 +36,6 @@ export async function readTaskSession(db: Reader, input: { agentId: string; serv
     return grant;
 }
 
-/** The agents of a Captain's active crew on one Computer, which lose it with their Captain. */
 export async function readCrewOn(
     db: Reader,
     input: { captainId: string; computerId: string; serverId: string }
@@ -56,10 +54,6 @@ export async function readCrewOn(
     return rows.flatMap(({ agentId }) => (agentId ? [agentId] : []));
 }
 
-/**
- * An active crew Task uses its Machine exactly while its Captain may; a person's Task exactly
- * while its starter attached that Computer or the Computer allows All Captains on this Server.
- */
 export async function taskMayUse(
     db: Reader,
     task: TaskSessionGrant,

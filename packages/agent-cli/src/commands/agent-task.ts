@@ -1,7 +1,12 @@
 import { createAgentApiClient } from '../agent-api-client.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
-import { runTaskArchive, runTaskList, runTaskShow, runTaskUnarchive } from './agent-task-actions.ts';
+import {
+    runTaskArchive,
+    runTaskList,
+    runTaskShow,
+    runTaskUnarchive,
+} from './agent-task-actions.ts';
 import { runTaskAttachPullRequest, runTaskStart } from './agent-task-place-actions.ts';
 import { TASK_UNFOLLOW_SUBCOMMAND } from './agent-task-unfollow.ts';
 import type { TaskDeps } from './agent-task-view.ts';
@@ -31,7 +36,8 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<text>',
             },
             {
-                description: 'The Machine it runs on; defaults to your crew Machine, then the Project’s',
+                description:
+                    'The Machine it runs on; defaults to your crew Machine, then the Project’s',
                 name: '--machine',
                 valueName: '<name>',
             },

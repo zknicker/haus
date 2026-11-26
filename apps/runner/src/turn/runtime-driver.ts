@@ -18,7 +18,6 @@ export interface RuntimeLaunch {
     readonly connection: RunnerModelConnection;
     readonly instructions: string;
     readonly modelId: string;
-    /** The Server's session policy; without one (the profile read failed) it parks as a Captain. */
     readonly policy?: RunnerSessionPolicy;
     readonly reasoningEffort: AgentReasoningEffort;
     readonly runId: string;

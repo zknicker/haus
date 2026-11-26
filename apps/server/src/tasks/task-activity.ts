@@ -2,7 +2,6 @@ import type { TaskActivity } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { tasksTable } from '../postgres/schema.ts';
 
-/** specs/tasks.md#activity-status, derived from the Task agent's delivery state. */
 export const taskActivitySql = sql<TaskActivity>`case
     when ${tasksTable.agentId} is null then 'idle'
     when exists (

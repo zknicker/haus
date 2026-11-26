@@ -11,16 +11,11 @@ import { TaskInvariantError } from './task-errors.ts';
 import { requireStartOrigin } from './task-origin.ts';
 import { requireFilingProject } from './task-project.ts';
 import { chooseTaskSession } from './task-session-choice.ts';
-import { startedResult } from './task-start.ts';
 import { insertStartedTask, queueTaskTurn, readStartedByRequest } from './task-start-record.ts';
+import { startedResult } from './task-start.ts';
 import { autoTaskTitle } from './task-title.ts';
 import type { TaskWriteResult } from './task-write-result.ts';
 
-/**
- * `task.start`: a person starts a Task in a Project with their prompt as its first message
- * (specs/tasks.md#a-person-starts-a-task). It has no Captain; its Machine access is the
- * person's own grant there.
- */
 export async function startPersonTask(
     db: HausDatabase,
     deps: { agentDelivery: AgentDelivery; catalog: AgentModelCatalog },
@@ -42,7 +37,9 @@ export async function startPersonTask(
             : null;
         const session = await chooseTaskSession(tx, deps.catalog, {
             captain: null,
-            ...(input.computerId === undefined ? {} : { machine: { computerId: input.computerId } }),
+            ...(input.computerId === undefined
+                ? {}
+                : { machine: { computerId: input.computerId } }),
             model: input.model,
             projectId: project.projectId,
             serverId,

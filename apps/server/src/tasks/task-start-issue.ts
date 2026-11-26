@@ -5,17 +5,16 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { TaskInvariantError } from './task-errors.ts';
 import { notHomeProjectError } from './task-project.ts';
 
-/**
- * `haus task start --issue` (specs/issues.md#claiming): an open Issue in the Captain's home
- * Project. Whether it is the caller's or nobody's is checked by the assignment's compare-and-swap.
- */
 export async function readStartIssue(
     db: HausDatabase,
     input: { captainId: string; code: string; homeProjectId: string; serverId: string }
 ) {
     const issue = await findIssueByCode(db, input.serverId, input.code);
     if (issue.projectId !== input.homeProjectId) {
-        throw await notHomeProjectError(db, { projectId: issue.projectId, serverId: input.serverId });
+        throw await notHomeProjectError(db, {
+            projectId: issue.projectId,
+            serverId: input.serverId,
+        });
     }
     if (issue.state.type !== 'open') {
         throw new TaskInvariantError(
@@ -25,7 +24,6 @@ export async function readStartIssue(
     return issue;
 }
 
-/** Links and assigns the Issue to the new Task, never changing its state; it queues no wake. */
 export async function assignStartIssue(
     db: HausDatabase,
     issue: Issue,

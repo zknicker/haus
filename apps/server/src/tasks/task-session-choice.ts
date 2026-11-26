@@ -13,7 +13,6 @@ export interface TaskSessionChoice {
     runtimeId: string;
 }
 
-/** The Captain fields crew falls back to, Capy's "Crew runs on". */
 export interface CrewDefaults {
     crewComputerId: string | null;
     crewModel: string | null;
@@ -21,10 +20,6 @@ export interface CrewDefaults {
     desiredRuntimeId: string | null;
 }
 
-/**
- * A Task's Machine and model, fixed at start: the explicit pick, else the Captain's crew
- * Machine and crew model, else the Project's default Machine and the Captain's own model.
- */
 export async function chooseTaskSession(
     db: Reader,
     catalog: AgentModelCatalog,

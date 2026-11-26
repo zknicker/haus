@@ -4,7 +4,6 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { TaskInvariantError } from './task-errors.ts';
 
-/** The message a Task starts from: in a Channel or DM, never inside a Task. */
 export async function requireStartOrigin(
     tx: HausDatabase,
     input: { chatId: string; messageId: string; serverId: string }

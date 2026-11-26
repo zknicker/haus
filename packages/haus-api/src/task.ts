@@ -40,21 +40,16 @@ export const TASK_AUTO_TITLE_MAX_CHARS = 80;
 
 const taskFields = {
     activity: taskActivitySchema,
-    /** The hidden `task` agent; null only for a Task started before Task agents. */
     agentId: idSchema.nullable(),
     archivedAt: timestampSchema.nullable(),
-    /** The Captain whose crew this is; null for a Task a person started. */
     captainId: idSchema.nullable(),
     chatId: idSchema.nullable(),
-    /** The Task's Machine, fixed at start. */
     computerId: idSchema.nullable(),
     createdAt: timestampSchema,
     createdBy: taskActorSchema,
     description: taskDescriptionSchema,
     id: idSchema,
-    /** The model the Task runs, fixed at start. */
     model: z.string().min(1).max(128).nullable(),
-    /** True exactly while the Task waits on a person's answer. */
     needsYou: z.boolean(),
     origin: taskOriginSchema.nullable(),
     projectId: idSchema,

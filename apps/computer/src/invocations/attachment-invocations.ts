@@ -1,9 +1,9 @@
 import { join } from 'node:path';
 import { agentFenceCommandSchema, invocationCommandSchemas } from '@haus/api';
 import { sendAgentHeld } from '../agent-held.ts';
-import { removeArchivedWorktrees } from '../repos/agent-worktrees.ts';
 import { agentDesktopToolsRoot } from '../desktop/agent-desktop-binary.ts';
 import { driveSyncFrames } from '../drive/drive-sync-frames.ts';
+import { removeArchivedWorktrees } from '../repos/agent-worktrees.ts';
 import { bashRunner } from './bash.ts';
 import { createBrowserRunner } from './browser.ts';
 import { createDesktopRunner } from './desktop.ts';

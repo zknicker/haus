@@ -27,7 +27,6 @@ export function driveRoutes(
     return routes;
 }
 
-/** The policy the Server names for a Captain, as `agent-session-policy.ts` builds it. */
 export function captainSession(handle: string, projectKey: string | null) {
     const session: RunnerSessionPolicy = {
         idleCompaction: true,

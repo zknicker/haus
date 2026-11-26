@@ -6,7 +6,6 @@ import { TaskInvariantError, TaskProjectNotHomeError } from './task-errors.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/** The refusal for work in a Project that is not the Captain's home (ADR 0055). */
 export async function notHomeProjectError(
     db: Reader,
     input: { projectId: string; serverId: string }

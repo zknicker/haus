@@ -8,7 +8,6 @@ import { lockTask } from './task-read.ts';
 
 type Tx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
-/** Retiring a Captain archives its active crew in the same transaction (specs/tasks.md). */
 export async function archiveCrew(
     tx: Tx,
     agentDelivery: AgentDelivery,

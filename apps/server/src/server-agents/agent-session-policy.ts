@@ -7,11 +7,6 @@ import { readAgentHomeKey } from '../projects/agent-home.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/**
- * How the runner hosts this agent's session (specs/runtime-drivers.md#session-kinds). A Captain
- * keeps its memory, its own rules and an hour warm; a Task reads the Haus and Project rules and,
- * as crew, its Captain's WORKER.md, has no memory, and parks after five minutes (ADR 0062).
- */
 export async function readRunnerSessionPolicy(
     db: Reader,
     input: { agentId: string; serverId: string }
@@ -27,7 +22,10 @@ export async function readRunnerSessionPolicy(
         .from(agentsTable)
         .leftJoin(
             tasksTable,
-            and(eq(tasksTable.serverId, agentsTable.serverId), eq(tasksTable.agentId, agentsTable.id))
+            and(
+                eq(tasksTable.serverId, agentsTable.serverId),
+                eq(tasksTable.agentId, agentsTable.id)
+            )
         )
         .leftJoin(
             captain,
@@ -74,7 +72,11 @@ export async function readRunnerSessionPolicy(
         idleCompaction: true,
         kind: 'captain',
         memoryPath: `agents/${agent.handle}/MEMORY.md`,
-        rulePaths: [hausRules, `projects/${projectKey}/AGENTS.md`, `agents/${agent.handle}/AGENTS.md`],
+        rulePaths: [
+            hausRules,
+            `projects/${projectKey}/AGENTS.md`,
+            `agents/${agent.handle}/AGENTS.md`,
+        ],
         warmIdleMs: captainWarmIdleMs,
     };
     return captainPolicy;

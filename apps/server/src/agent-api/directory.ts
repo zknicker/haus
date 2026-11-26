@@ -90,7 +90,8 @@ export async function readAgentChannelMembers(
             and(
                 eq(agentsTable.serverId, runner.serverId),
                 eq(agentsTable.homeProjectId, channel.id),
-                isNull(agentsTable.retiredAt), eq(agentsTable.kind, 'captain')
+                isNull(agentsTable.retiredAt),
+                eq(agentsTable.kind, 'captain')
             )
         )
         .orderBy(asc(agentsTable.handle));
@@ -160,7 +161,8 @@ async function listAgents(db: HausDatabase, runner: ResolvedRunner, input: Agent
         .where(
             and(
                 eq(agentsTable.serverId, runner.serverId),
-                isNull(agentsTable.retiredAt), eq(agentsTable.kind, 'captain'),
+                isNull(agentsTable.retiredAt),
+                eq(agentsTable.kind, 'captain'),
                 input.query ? ilike(agentsTable.handle, `%${escapeLike(input.query)}%`) : undefined
             )
         )

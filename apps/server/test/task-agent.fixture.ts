@@ -3,10 +3,6 @@ import type { HausServerHarness } from './haus-server-harness.ts';
 
 const crockford = '0123456789abcdefghjkmnpqrstvwxyz';
 
-/**
- * One Task with its hidden `task` agent, as a start writes it (ADR 0062). Seed it beside the
- * Captains a roster, picker or access list reads, so the test proves the Task agent stays out.
- */
 export async function seedTaskAgent(
     harness: Pick<HausServerHarness, 'sql'>,
     input: {

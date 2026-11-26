@@ -30,7 +30,12 @@ async function session(agentId: string) {
             (select count(*)::int from agent_inbox where agent_id = agents.id and state = 'queued') as queued
         from agents left join agent_delivery delivery on delivery.agent_id = agents.id
         where agents.id = ${agentId}
-    `) as { queued: number; session_generation: number; session_reset_kind: string; stopped: boolean }[];
+    `) as {
+        queued: number;
+        session_generation: number;
+        session_reset_kind: string;
+        stopped: boolean;
+    }[];
     return row;
 }
 

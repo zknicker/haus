@@ -10,7 +10,6 @@ import { agentsTable } from '../postgres/schema.ts';
 import { type PreparedRealtimeEvent, publishRealtime } from '../realtime/topic.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
 
-/** What archive and unarchive tell the runner and the Computer once the write commits. */
 export interface TaskSessionReset {
     activity: AgentActivityEvent | null;
     agentId: string;
@@ -27,11 +26,6 @@ export interface TaskSessionWire {
     runner: Pick<RunnerLink, 'send'>;
 }
 
-/**
- * Bumps the Task agent's session generation (specs/tasks.md#archive). Archive also ends its
- * run, drops its queued chat work and holds delivery, so a restored Task starts no turn; the
- * next run of a newer generation starts fresh, as a full reset does, wherever it lands.
- */
 export async function rotateTaskSession(
     tx: HausDatabase,
     input: { agentId: string; archived: boolean; chatId: string; serverId: string }
@@ -62,7 +56,6 @@ export async function rotateTaskSession(
     return rotated;
 }
 
-/** After commit: settle the ended run, then free the session on the runner and the Machine. */
 export function announceTaskSessions(wire: TaskSessionWire, resets: readonly TaskSessionReset[]) {
     for (const reset of resets) {
         const { agentId, serverId } = reset;

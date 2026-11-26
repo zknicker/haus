@@ -38,7 +38,8 @@ export async function readRoutingAgents(
         .where(
             and(
                 eq(agentsTable.serverId, serverId),
-                isNull(agentsTable.retiredAt), eq(agentsTable.kind, 'captain'),
+                isNull(agentsTable.retiredAt),
+                eq(agentsTable.kind, 'captain'),
                 inArray(agentsTable.id, agentIds)
             )
         )

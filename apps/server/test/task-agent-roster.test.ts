@@ -28,7 +28,10 @@ test('the App’s Captain list leaves the Task agent out', async () => {
     expect(agents.map((agent) => agent.id)).toContain(fixture.orbitAgentId);
     expect(agents.map((agent) => agent.id)).not.toContain(taskAgent.agentId);
     await expect(
-        fixture.owner.trpc.agent.get.query({ agentId: taskAgent.agentId, serverId: fixture.serverId })
+        fixture.owner.trpc.agent.get.query({
+            agentId: taskAgent.agentId,
+            serverId: fixture.serverId,
+        })
     ).rejects.toThrow();
 });
 

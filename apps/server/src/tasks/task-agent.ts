@@ -4,11 +4,6 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import type { TaskSessionChoice } from './task-session-choice.ts';
 
-/**
- * The Task's hidden agent (ADR 0062 decision 3): kind `task`, a Server-minted handle, no home
- * Project, and its Task's Machine and model. Delivery runs it on that Machine; its access is
- * never its own (`computer-access/agent-access.ts`).
- */
 export async function insertTaskAgent(
     tx: Pick<HausDatabase, 'insert'>,
     input: {
