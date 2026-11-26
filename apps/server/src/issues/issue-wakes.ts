@@ -38,6 +38,9 @@ export function deriveIssueWrite(input: {
     const assigned = before === null || !sameIssueActor(before.assignee, after.assignee);
     const leftBacklog = before?.state.id === 'backlog';
     if (assigned || leftBacklog) {
+        if (after.state.type === 'closed') {
+            return [] satisfies IssueWake[];
+        }
         return [
             {
                 identity: `issue-assign:${after.id}:${after.version}`,

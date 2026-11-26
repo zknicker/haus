@@ -24,7 +24,7 @@ export interface InboxConversationsQuery {
 /**
  * `haus inbox check` (Raft's `listAgentInbox`): every conversation that reaches
  * the Agent (specs/inbox.md#hearing) with someone else's message past its read
- * position: its home Project's channel and Tasks, Tasks it follows elsewhere,
+ * position: its home Project's channel, the Tasks it follows,
  * its DMs, and another channel while what reached the Agent there, a mention or
  * a followed reply chain, is unread. Such a channel counts only those messages.
  * One statement, so the list, its paging, and its totals share one snapshot.
@@ -191,10 +191,9 @@ export function conversationsSql(runner: ResolvedRunner) {
           and (parent.id is null or parent.deleted_at is null)
           and ${visibleChatSql(runner)}
           and (
-              -- Reading a Task is open, but this list follows hearing: the home
-              -- Project's Tasks, and elsewhere the Tasks the Agent follows.
+              -- Reading a Task is open, but this list follows hearing: no Task is
+              -- heard ambiently, so only the Tasks the Agent follows (ADR 0062).
               chats.kind <> 'task'
-              or chats.parent_chat_id = me.home_project_id
               or exists (
                   select 1 from agent_task_follows follow
                   where follow.server_id = chats.server_id

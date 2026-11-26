@@ -4,10 +4,12 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { moveAgentsOffRemovedComputer } from '../agent-machine/removal-moves.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, computersTable } from '../postgres/schema.ts';
+import { agentsTable, computersTable, tasksTable } from '../postgres/schema.ts';
 import { clearComputerDefaults } from '../projects/project-worker-defaults.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { memberTaskActor } from '../tasks/task-actor.ts';
+import { archiveMachineTasks } from '../tasks/task-bulk-archive.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { failRemovedCarrierTurns } from '../workers/fail-removed-carrier-turns.ts';
 import { ComputerSetupDeniedError } from './service.ts';
@@ -53,6 +55,17 @@ export async function removeServerComputer(
         if (!computer) {
             throw new ComputerSetupDeniedError('That Computer no longer exists.');
         }
+        const tasks = await archiveMachineTasks(tx, agentDelivery, {
+            actor: memberTaskActor(member),
+            computerId: computer.id,
+            serverId: input.serverId,
+        });
+        await tx
+            .update(tasksTable)
+            .set({ computerId: null })
+            .where(
+                and(eq(tasksTable.serverId, input.serverId), eq(tasksTable.computerId, computer.id))
+            );
         const moved = await moveAgentsOffRemovedComputer(tx, {
             computerId: computer.id,
             moves: input.machineMoves,
@@ -74,6 +87,6 @@ export async function removeServerComputer(
         });
         const projectIds = await clearComputerDefaults(tx, input.serverId, computer.id);
         await tx.delete(computersTable).where(eq(computersTable.id, computer.id));
-        return { computerId: computer.id, moved, projectIds, workers };
+        return { computerId: computer.id, moved, projectIds, tasks, workers };
     });
 }

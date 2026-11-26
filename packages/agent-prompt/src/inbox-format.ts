@@ -1,4 +1,4 @@
-import type { AgentTaskAssignmentNotice, UnreadElsewhere, WorkerReportsNotice } from '@haus/api';
+import type { AgentIssueWakeNotice, UnreadElsewhere, WorkerReportsNotice } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { formatWorkerAttention, formatPullRequestNotice } from './inbox-attention-format.ts';
 import {
@@ -7,13 +7,13 @@ import {
     inboxBodyText,
     shortInboxId,
 } from './inbox-header-format.ts';
+import { formatIssueItemsNotice, nextTurnNoticeGuidance } from './inbox-issue-format.ts';
 import { formatInboxTargetRow } from './inbox-target-row.ts';
-import { nextTurnNoticeGuidance } from './inbox-task-assignment-format.ts';
 import { formatWorkerReport, formatWorkerReportsNotice } from './inbox-worker-report-format.ts';
 import { formatInlineReplyContext } from './inline-reply-format.ts';
 
 export interface PendingCounts {
-    taskAssignments?: AgentTaskAssignmentNotice;
+    issueItems?: AgentIssueWakeNotice;
     workerReports?: WorkerReportsNotice;
 }
 
@@ -80,7 +80,7 @@ export function formatUnreadElsewhere(entries: readonly UnreadElsewhere[]): stri
 
 /**
  * Content-free, target-level notice, closed by its handling guidance. Bodies never enter this
- * projection. Queued Task assignments and one Task's queued Worker reports, which arrive in the
+ * projection. Queued Issue items and one Task's queued Worker reports, which arrive in the
  * next turn rather than as rows, each add one count line.
  */
 export function composeInboxNotice(
@@ -88,9 +88,9 @@ export function composeInboxNotice(
     totalPending = items.length,
     counts: PendingCounts = {}
 ): string | null {
-    const assigned = counts.taskAssignments?.total ?? 0;
+    const issueItems = counts.issueItems?.total ?? 0;
     const countLines = [
-        ...(assigned > 0 ? [`${assigned} ${plural(assigned, 'task')} assigned to you`] : []),
+        ...(issueItems > 0 ? [formatIssueItemsNotice(issueItems)] : []),
         ...(counts.workerReports ? [formatWorkerReportsNotice(counts.workerReports)] : []),
     ];
     if (items.length === 0) {

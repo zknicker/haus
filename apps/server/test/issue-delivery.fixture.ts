@@ -1,11 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import { GENERAL_TASK_KEY } from '@haus/api';
-import { and, eq, sql } from 'drizzle-orm';
-import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
+import { GENERAL_TASK_KEY, type IssueActor, type IssuePriority } from '@haus/api';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { createIssue } from '../src/issues/issue-create.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentInboxTable, agentsTable, projectsTable } from '../src/postgres/schema.ts';
-import { encodeTaskAssignment, taskAssignmentKey } from '../src/tasks/task-assignment-envelope.ts';
 import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
 import { randomShortId } from '../src/tasks/task-short-id.ts';
 import { testAgentHome } from './agent-home.ts';
@@ -22,62 +21,27 @@ export async function seedTaskBoard(db: HausDatabase) {
     return { keyId, seed };
 }
 
-/**
- * Queues one `task_assignment` for the seeded Agent on a new Task, as the lane's
- * producer did before Tasks lost their assignee (ADR 0062): the lane stays until
- * `issue_assignment` replaces it. `assigner` defaults to the seeded person.
- */
-export async function assignNewTask(
+export async function assignNewIssue(
     db: HausDatabase,
-    delivery: AgentDelivery,
-    board: TaskBoard,
+    { seed }: TaskBoard,
     title: string,
-    assigner: { agentId: string } | null = null
+    options: { actor?: IssueActor; priority?: IssuePriority } = {}
 ) {
-    const { seed } = board;
-    const taskId = await insertTaskPlace(db, board, title);
-    const [entry] = (await db.execute(sql`
-        update task_keys set next_number = next_number + 1
-        where server_id = ${seed.serverId} and id = ${board.keyId}
-        returning key, next_number - 1 as number
-    `)) as unknown as { key: string; number: number }[];
-    const [handle] = assigner
-        ? await db
-              .select({ handle: agentsTable.handle })
-              .from(agentsTable)
-              .where(eq(agentsTable.id, assigner.agentId))
-        : [{ handle: seed.humanHandle }];
-    const dedupeKey = taskAssignmentKey(taskId, 1);
-    await db.transaction(async (tx) => {
-        await delivery.enqueue(tx, {
-            agentId: seed.agentId,
-            chatId: null,
-            content: encodeTaskAssignment({
-                assignedBy: handle?.handle ?? null,
-                assignedByAgent: assigner !== null,
-                id: dedupeKey,
-                key: `${entry?.key}-${entry?.number}`,
-                priority: 'high',
-                taskId,
-                title,
-            }),
-            dedupeKey,
-            mentioned: true,
-            serverId: seed.serverId,
-            source: 'task_assignment',
-        });
+    return await createIssue(db, options.actor ?? { kind: 'user', userId: seed.userId }, {
+        assignee: { agentId: seed.agentId, kind: 'captain' },
+        priority: options.priority ?? 'high',
+        projectId: seed.channelId,
+        serverId: seed.serverId,
+        title,
     });
-    return {
-        task: { id: taskId },
-        wakes: [{ agentId: seed.agentId, serverId: seed.serverId }],
-    };
 }
 
 export async function insertTaskPlace(
     db: HausDatabase,
     { seed }: TaskBoard,
-    title: string
-): Promise<string> {
+    title: string,
+    startedBy: { agentId: string } | null = null
+) {
     const messageId = createOpaqueId('msg');
     const chatId = createOpaqueId('cht');
     const taskId = createOpaqueId('tsk');
@@ -98,15 +62,15 @@ export async function insertTaskPlace(
     `);
     await db.execute(sql`
         insert into tasks (id, server_id, short_id, title, chat_id, created_by_user_id,
-            project_id, origin_chat_id, origin_message_id)
+            created_by_agent_id, project_id, origin_chat_id, origin_message_id)
         values (${taskId}, ${seed.serverId}, ${randomShortId()}, ${title}, ${chatId},
-            ${seed.userId}, ${seed.channelId}, ${seed.channelId}, ${messageId})
+            ${startedBy ? null : seed.userId}, ${startedBy?.agentId ?? null},
+            ${seed.channelId}, ${seed.channelId}, ${messageId})
     `);
     return taskId;
 }
 
-/** A second Agent on the seeded Server. */
-export async function addPeerAgent(db: HausDatabase, seed: Seed): Promise<string> {
+export async function addPeerAgent(db: HausDatabase, seed: Seed) {
     const peerId = createOpaqueId('agt');
     await db.insert(agentsTable).values({
         displayName: 'Peer',
@@ -119,19 +83,21 @@ export async function addPeerAgent(db: HausDatabase, seed: Seed): Promise<string
     return peerId;
 }
 
-/** The Agent's `task_assignment` inbox rows. */
-export async function taskInboxRows(db: HausDatabase, seed: Seed) {
+export async function issueInboxRows(db: HausDatabase, agentId: string) {
     return await db
         .select({
+            content: agentInboxTable.content,
             dedupeKey: agentInboxTable.dedupeKey,
             mentioned: agentInboxTable.mentioned,
+            source: agentInboxTable.source,
             state: agentInboxTable.state,
         })
         .from(agentInboxTable)
         .where(
             and(
-                eq(agentInboxTable.agentId, seed.agentId),
-                eq(agentInboxTable.source, 'task_assignment')
+                eq(agentInboxTable.agentId, agentId),
+                inArray(agentInboxTable.source, ['issue_assignment', 'issue_event'])
             )
-        );
+        )
+        .orderBy(agentInboxTable.createdAt, agentInboxTable.id);
 }

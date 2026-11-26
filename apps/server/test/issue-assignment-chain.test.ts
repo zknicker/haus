@@ -1,25 +1,19 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { maxAgentChainTurns } from '../src/agent-delivery/chain-budget.ts';
-import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import * as store from '../src/agent-delivery/store.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentDeliveryTable } from '../src/postgres/schema.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
-import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
-import { settledTurn } from './settled-turn-fixture.ts';
 import {
     addPeerAgent,
-    assignNewTask,
+    assignNewIssue,
     seedTaskBoard,
     type TaskBoard,
-} from './task-delivery-fixture.ts';
+} from './issue-delivery.fixture.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { settledTurn } from './settled-turn-fixture.ts';
 
-/**
- * Task assignments and the automation chain (specs/github-triggers.md): one an
- * Agent made is Agent-authored traffic, so two Agents assigning each other stop at
- * the ceiling; one a person made starts fresh.
- */
 let cluster: TestDatabase;
 let connection: HausConnection;
 
@@ -45,55 +39,51 @@ async function seedChain(turns: number) {
     return { board, peerId, seed };
 }
 
-async function assignFromAgent(
-    delivery: AgentDelivery,
-    board: TaskBoard,
-    peerId: string,
-    title: string
-) {
-    return await assignNewTask(connection.db, delivery, board, title, { agentId: peerId });
+function assignFromAgent(board: TaskBoard, peerId: string, title: string) {
+    return assignNewIssue(connection.db, board, title, {
+        actor: { agentId: peerId, kind: 'captain' },
+    });
 }
 
 async function turnsOf(seed: Seed) {
     return (await store.readDeliveryState(connection.db, seed.agentId))?.agentChainTurns;
 }
 
-test('an assignment from another Agent spends the chain', async () => {
+test('an assignment from another agent spends the chain', async () => {
     const { board, peerId, seed } = await seedChain(3);
     const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
-    await assignFromAgent(delivery, board, peerId, 'From a peer');
+    await assignFromAgent(board, peerId, 'From a peer');
 
     const start = await wake();
-    expect(start?.taskAssignments?.[0]?.assignedByAgent).toBe(true);
+    expect(start?.issueAssignments?.[0]?.byAgent).toBe(true);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, start?.runId ?? ''));
     expect(await turnsOf(seed)).toBe(4);
     expect(runner.starts()).toHaveLength(1);
 });
 
-test('a person assigning a Task resets the chain', async () => {
+test('a person assigning an Issue resets the chain', async () => {
     const { board, seed } = await seedChain(3);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
-    await assignNewTask(connection.db, delivery, board, 'From a person');
+    await assignNewIssue(connection.db, board, 'From a person');
 
     const start = await wake();
-    expect(start?.taskAssignments?.[0]?.assignedByAgent).toBe(false);
+    expect(start?.issueAssignments?.[0]?.byAgent).toBe(false);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, start?.runId ?? ''));
     expect(await turnsOf(seed)).toBe(0);
 });
 
-test('at the ceiling an Agent assignment holds until a person assigns, then both drain', async () => {
+test('at the ceiling an agent assignment waits until a person assigns, then both drain', async () => {
     const { board, peerId, seed } = await seedChain(maxAgentChainTurns);
     const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
-    await assignFromAgent(delivery, board, peerId, 'Loop');
+    await assignFromAgent(board, peerId, 'Loop');
 
     expect(await wake()).toBeUndefined();
-    await delivery.dispatchAgent(seed.agentId, seed.serverId);
     expect(runner.starts()).toHaveLength(0);
 
-    await assignNewTask(connection.db, delivery, board, 'From a person');
+    await assignNewIssue(connection.db, board, 'From a person');
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
     const [start] = runner.starts();
-    expect(start?.taskAssignments?.map((task) => task.title)).toEqual(['Loop', 'From a person']);
+    expect(start?.issueAssignments?.map((issue) => issue.title)).toEqual(['Loop', 'From a person']);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, start?.runId ?? ''));
     expect(await turnsOf(seed)).toBe(0);
 });

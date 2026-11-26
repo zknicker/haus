@@ -1,15 +1,16 @@
+import { isBatchedChatlessInboxSource } from '@haus/api';
 import { and, eq, gt, inArray, isNull, lt, notInArray, notLike, or, sql } from 'drizzle-orm';
+import { issueItemByAgent } from '../issues/issue-inbox.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentInboxTable } from '../postgres/schema.ts';
-import { decodeTaskAssignment } from '../tasks/task-assignment-envelope.ts';
 import { concreteInboxSources } from './inbox-lanes.ts';
 import { type InboxItemRow, inboxItemColumns, inboxOrder, queuedFor } from './store.ts';
 
 // The automation chain budget (specs/github-triggers.md#automation-chain-budget).
 // A drain made only of automation-authored work (Agent messages, Trigger fires,
-// Trigger problem notices, Task assignments an Agent made) spends one turn; any
-// other work (a human message, a Reminder, a claim assignment, a person's Task
-// assignment) resets the chain. At the ceiling the drain
+// Trigger problem notices, Issue items an agent caused) spends one turn; any
+// other work (a human message, a Reminder, a claim assignment, a person's Issue
+// change) resets the chain. At the ceiling the drain
 // holds until a human speaks. A chain that has sat idle for half an hour below
 // the ceiling restarts, so spaced, legitimate fires never accumulate.
 
@@ -18,7 +19,7 @@ export const maxAgentChainTurns = 16;
 export const agentChainIdleResetMs = 30 * 60 * 1000;
 
 interface AuthoredWork {
-    /** Read only for a `task_assignment`, whose attention names who made it. */
+    /** Read only for an Issue item, whose attention names who made it. */
     content?: string;
     source: string;
 }
@@ -48,8 +49,8 @@ const automationInboxSources = [
 ] as const;
 
 export function isAutomationAuthored(row: AuthoredWork): boolean {
-    if (row.source === 'task_assignment') {
-        return row.content !== undefined && decodeTaskAssignment(row.content).assignedByAgent;
+    if (isBatchedChatlessInboxSource(row.source)) {
+        return row.content !== undefined && issueItemByAgent(row.source, row.content);
     }
     return (
         row.source.startsWith('agent:') ||
@@ -213,9 +214,9 @@ async function findOldestQueuedChainResetItem(
                 queuedFor(agentId),
                 notLike(agentInboxTable.source, 'agent:%'),
                 notInArray(agentInboxTable.source, [...automationInboxSources]),
-                // A case, so only a Task assignment's content is ever read as JSON.
-                sql`case when ${agentInboxTable.source} = 'task_assignment'
-                    then (${agentInboxTable.content}::jsonb ->> 'assignedByAgent') = 'false'
+                // A case, so only an Issue item's content is ever read as JSON.
+                sql`case when ${agentInboxTable.source} in ('issue_assignment', 'issue_event')
+                    then (${agentInboxTable.content}::jsonb ->> 'byAgent') = 'false'
                     else true end`,
                 or(
                     inArray(agentInboxTable.source, [...concreteInboxSources]),

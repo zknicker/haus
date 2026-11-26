@@ -191,7 +191,7 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
     async function archive(command: SessionArchiveCommand) {
         await fences.archive(command.agentId, command.generation);
         await stopSessions(command.agentId, command.generation);
-        const kept = (await input.releaseWorktrees?.(command.agentId)) ?? [];
+        const kept = (await input.releaseWorktrees?.(command.agentId, command.generation)) ?? [];
         for (const path of kept) {
             console.warn(`Kept ${path} for archived ${command.agentId}: it has unpushed work.`);
         }

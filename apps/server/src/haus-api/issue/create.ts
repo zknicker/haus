@@ -7,5 +7,5 @@ export const createIssueProcedure = issueProcedure
     .input(issueCreateInputSchema)
     .output(issueMutationResultSchema)
     .mutation(async ({ ctx, input }) =>
-        commitIssueWrite(await createIssue(ctx.hausDb, memberIssueActor(ctx.member), input))
+        commitIssueWrite(ctx, await createIssue(ctx.hausDb, memberIssueActor(ctx.member), input))
     );

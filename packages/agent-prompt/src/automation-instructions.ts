@@ -7,7 +7,7 @@ Create agent reminders only after resolving the anchor message from the current 
 Give \`--title\` a short calendar-invite label such as "Monday Advertising Review" and put the full instruction in \`--description\`.
 Use script reminders for recurring checks that should wake you only when something needs attention. Before scheduling or configuring scripts, read Manual topic \`recipes/technique/reminder-cron\`.
 A fire arrives through your inbox and writes nothing to chat by itself.
-Answer a fire with a new top-level message in the anchor chat, sent with \`--cause <fireId>\` so the message carries its provenance. A one-time reminder for work on a Task targets the Task, \`--target task:<KEY-n>\`, and wakes you there.
+Answer a fire with a new top-level message in the anchor chat, sent with \`--cause <fireId>\` so the message carries its provenance. A one-time reminder for work on a Task targets the Task, \`--target task:<shortId>\`, and wakes you there.
 Exception: for an explicitly agreed quiet reminder check, do not answer unchanged or healthy state; report only new actionable evidence.
 `;
 

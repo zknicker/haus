@@ -310,6 +310,8 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
     every dispatch, on request and on resend. A revoke of the Captain's or starter's grant fences
     the Task's queued calls and stops its running one, as a revoke does for a Captain.
   - A per-call `computer` target other than the Task's Machine is refused `TASK_MACHINE_ONLY`.
+- **Removed.** Removing a Machine archives its active Tasks and clears every Task's
+  `computer_id` there; such a Task stays archived, since a Task's Machine never changes.
 - **Offline.** A tool call to an offline Machine fails fast, as today. A Task whose Machine is
   offline when a turn is due parks as `waiting` without holding a runner slot, and the turn starts
   when the Machine reconnects.
@@ -456,7 +458,8 @@ credentials, as deleting a Captain retires it
 
 | Contract | Guard |
 | --- | --- |
-| A Task agent never appears in rosters, mention options, hearing candidates or access lists | `apps/server/test/task-agent-roster.test.ts` (shared fixture `task-agent.fixture.ts`); hearing candidates (`agent-delivery/hearing.ts`) join it with step 5b's delivery wiring |
+| A Task agent never appears in rosters, mention options, hearing candidates or access lists | `apps/server/test/task-agent-roster.test.ts` (shared fixture `task-agent.fixture.ts`) |
+| Removing a Machine archives its Tasks and clears their Machine; deleting a Project stops its Task sessions before their agents retire | `apps/server/test/task-removals.test.ts` |
 | A Task credential cannot post outside its chat or start a Task | `apps/server/test/task-agent-credential.test.ts` |
 | Steer, interrupt and queue deliver as their rows say | `apps/server/test/task-delivery-modes.test.ts`, `apps/runner/src/turn/turn-notices.test.ts` |
 | Archive then unarchive runs a fresh generation, and a stale-generation dispatch is refused | `apps/server/test/task-archive.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |

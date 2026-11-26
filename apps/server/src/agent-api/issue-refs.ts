@@ -1,4 +1,4 @@
-import { type Issue, type IssueActor, sameIssueActor } from '@haus/api';
+import { type Issue, type IssueActor, isTaskShortId, sameIssueActor } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import {
@@ -127,11 +127,24 @@ export async function resolveProjectKey(db: Reader, serverId: string, key: strin
     return project.projectId;
 }
 
-async function resolveTaskRef(db: Reader, serverId: string, taskId: string) {
+export async function taskIdOfRef(db: Reader, serverId: string, ref: string) {
+    if (!isTaskShortId(ref)) {
+        return ref;
+    }
     const [task] = await db
         .select({ id: tasksTable.id })
         .from(tasksTable)
-        .where(and(eq(tasksTable.serverId, serverId), eq(tasksTable.id, taskId)))
+        .where(and(eq(tasksTable.serverId, serverId), eq(tasksTable.shortId, ref)))
+        .limit(1);
+    return task?.id ?? ref;
+}
+
+async function resolveTaskRef(db: Reader, serverId: string, taskId: string) {
+    const column = isTaskShortId(taskId) ? tasksTable.shortId : tasksTable.id;
+    const [task] = await db
+        .select({ id: tasksTable.id })
+        .from(tasksTable)
+        .where(and(eq(tasksTable.serverId, serverId), eq(column, taskId)))
         .limit(1);
     if (!task) {
         throw new IssueNotFoundError(`No Task ${taskId} exists on this Server.`);

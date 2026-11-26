@@ -47,7 +47,6 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `onboarding` | Retired. Cove's one-shot bootstrap instruction from the removed Server onboarding flow ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md)); nothing writes one, migration 0138 settled every unsettled row `seen`, and seen rows stay as history | Its own bootstrap identity | None |
 | `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits (a sub-agent wake still leads, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
-| `task_assignment` | A Task assigned to this Agent; no Chat. Replaced by [`issue_assignment`](#issue-items) in step 3 of ADR 0062 | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
 | `drive_conflict` | One Drive push that kept both versions of a file, kept an edit over a delete, or refused a file ([artifact-drive.md](artifact-drive.md#pushes)). It lists every such file of the push. A Worker's push goes to its Agent. No Chat | `drive-conflict:<pushId>`, where the push id is the pushing run's id, so one per push | Concrete. Queued when the push closes. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain, and at the ceiling it waits for the chain to reset instead of being refused. Retired as `seen` when its run settles |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
@@ -102,7 +101,7 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 | Its own Task chat (a Task agent) | Always, addressed; a Task agent hears nothing else |
 
 [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md) sets the rows
-for Tasks and Captain chats (steps 3 and 5, released together):
+for Tasks and Captain chats (steps 3 and 5, released together; step 3 built no ambient Task hearing):
 
 - **No ambient Task hearing.** A Project's hearers do not hear its Tasks. A Captain hears a Task
   chat only when a message @mentions it, when it follows the Task, or through its own crew's
@@ -209,18 +208,17 @@ A durable `message.created` is planned once by Server delivery
   A pull request becoming ready for review or its checks finishing after the newest Run settled is
   a `pull_request` notice carrying `pullRequestChange`; one on a Task with no cloud work wakes the
   Task's assignee Agent with no Run behind it ([Workers](workers.md#pull-request-readings)).
-- Assigning a Task to another Agent queues one `task_assignment` item for that Agent, with
-  `mentioned=true`. It has no Chat, so the row holds its typed attention as JSON rather than an
-  envelope: the Task's key, title, priority, and the assigner's handle as they stood when
-  assigned. Self-assignment queues nothing. Reassigning or unassigning retires a queued item;
-  a run that already holds it keeps it, and a failed run forgets it on requeue
-  (`retireStaleRequeuedItems`), as it does when the same Agent already holds a newer assignment of
-  the Task. An assignment an Agent made is Agent-authored traffic and spends the automation chain;
-  one a person made resets it ([chain budget](github-triggers.md#automation-chain-budget)).
+- An Issue write queues its derived wakes ([Issue items](#issue-items)) in its own transaction.
+  Each is `mentioned=true` and has no Chat, so the row holds its typed attention as JSON rather
+  than an envelope. Reassigning, unassigning, or moving the Issue to `backlog`, `done` or `canceled` retires a queued `issue_assignment`; a run that
+  already holds it keeps it, and a failed run forgets it on requeue (`retireStaleRequeuedItems`)
+  unless the Issue is still `todo` or `in_progress` and assigned to the agent. A change an agent
+  made spends the automation chain; one a person made resets it
+  ([chain budget](github-triggers.md#automation-chain-budget)).
 - A Drive push that closes with any `kept_both`, `kept_edit`, or `refused` outcome
   ([artifact-drive.md](artifact-drive.md#pushes)) queues one `drive_conflict` item for the Agent
   that pushed, or for a Worker's push, the Worker's Agent. It has no Chat, so the row holds its
-  typed attention as JSON, as a Task assignment's does. That attention is `driveConflict` in
+  typed attention as JSON, as an Issue item's does. That attention is `driveConflict` in
   `packages/haus-api/src/agent-inbox.ts`: the push id, the writer (the Agent, or a Worker with its
   Task), and every listed file of the push, uncapped because conflicts are rare. Each file carries
   `path`, `outcome`, `copyPath` for `kept_both`, `currentRevisionId`, `currentAuthorHandle`, and
@@ -258,10 +256,10 @@ A durable `message.created` is planned once by Server delivery
   the prompt of a distinct turn; a busy recipient receives only the content-free notice at a safe
   boundary, then the still-queued item in the next turn. A concrete drain never mixes kinds, so each
   concrete item earns its own dedicated wake, and a human drain never shares a run with a fire, which
-  is what keeps the sole-fire cause inference readable. Task assignments are the one batch: all
-  queued rows ride one chatless run, whose start frame carries them as `taskAssignments`, so ten
-  assignments wake an idle Agent once. That run resumes the main session,
-  and the Computer renders one envelope line per Task and a one-line instruction. An automation
+  is what keeps the sole-fire cause inference readable. Issue items are the chatless batch: the
+  queued rows of one kind ride one chatless run, whose start frame carries them as
+  `issueAssignments` or `issueEvents`, so ten assignments wake an idle agent once. That run resumes
+  the main session, and the runner renders one line per Issue and the item's guidance. An automation
   fire's envelope prints `msg=-`, since a fire has no Chat message to address; its id rides the
   envelope's own `fire=` and `--cause` lines. Humans keep their own read/unread system; the inbox is
   agent-only state.
@@ -362,11 +360,11 @@ remains unacknowledged and is offered by the next turn in the same session.
 Runtime acceptance must be acknowledged; writing to an adapter's local input
 queue is insufficient. A notice advances no cursor.
 
-Task assignments have no target to list under, so the notice frame carries them beside its rows as
-`taskAssignments: { ids, total }`, and a notice may carry only that. The Agent reads one line, `N
-tasks assigned to you`, and the Tasks themselves arrive in its next turn. The ack covers those ids
-like any row, which stops the count repeating. The Computer keeps the count in its pending mirror
-and drops it when a Task assignment run is accepted.
+Issue items have no target to list under, so the notice frame carries both kinds beside its rows
+as one count, `issueItems: { ids, total }`, and a notice may carry only that. The agent reads one
+line, `N Issue updates for you`, and the items themselves arrive in its next turn. The ack covers
+those ids like any row, which stops the count repeating. The runner keeps the count in its pending
+mirror and drops it when an Issue item run is accepted.
 
 The notice carries its own handling guidance after the closing `]`, as Raft's inbox update does,
 so the standing system prompt keeps only the collaboration principle (collaborate
@@ -476,7 +474,7 @@ turn starts when its creator sends the working brief.
 | Addressing is decided at enqueue and survives stale, uncertain or kept routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
-| Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/runner/src/turn/turn-input.test.ts`, `apps/runner/src/turn/inbox-store.test.ts` |
+| Issue assignments coalesce into one main-session run by priority, up to 50, a busy agent gets a count then the Issues, and reassigning retires a queued item | `apps/server/test/issue-assignment-delivery.test.ts`, `apps/server/test/issue-assignment-undeliverable.test.ts`, `packages/agent-prompt/src/inbox-issue-format.test.ts` |
 | One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping | `apps/server/test/drive-conflict-delivery.test.ts`, `apps/server/test/drive-conflict-chain.test.ts` |
 
 ## Presentation split (I1/I4)
@@ -510,7 +508,7 @@ A `stopped` turn queues nothing, because the Agent or a person stopped it on pur
 Task is the exception: each closed Worker's final outcome queues one item
 ([Closing](workers.md#closing)).
 
-`worker_report` is the one kind besides `task_assignment` that batches. Six Workers reporting on
+`worker_report` batches too, like the Issue items. Six Workers reporting on
 one Task wake an idle Agent once, with the start frame carrying them as `workerReports`. A busy
 Agent gets a count in its notice, `N Worker reports in <KEY-n>`, and the reports in its next run.
 Reports from different Tasks never share a run.
@@ -557,6 +555,27 @@ Both spend the automation chain when an agent caused them, and wait at the ceili
 being refused. A change made by a Captain's own crew Task rides that Task's crew report and queues
 no separate item for the Captain. Pull request changes on a linked pull request are never an
 `issue_event`; they ride the existing `pull_request` item ([issues.md](issues.md#links-and-pull-requests)).
+
+Built in step 3 (`apps/server/src/issues/issue-inbox.ts`):
+
+- Both kinds are chatless (`chatlessInboxSources`) and batched (`batchedChatlessInboxSources`): a
+  run carries one kind only, as `issueAssignments` (sorted by priority, then age) or `issueEvents`
+  on the start frame. The typed attentions are `agentIssueAssignmentSchema` and
+  `agentIssueEventSchema` in `packages/haus-api/src/agent-issue-wake.ts`: the Issue's code, id and
+  title, `by` (`@handle`, `task:<shortId>`, or null for the Server), `byAgent`, and for an
+  assignment its priority and state, for an event its change. A comment event carries the comment's
+  first 2,000 characters and whether it was cut.
+- Until Task agents exist (step 5), a wake whose recipient is a Task goes to the Captain that
+  started the Task, as pull request wakes do. A Task a person started, or an archived one, queues
+  nothing.
+- The formatter (`packages/agent-prompt/src/inbox-issue-format.ts`) prints one line per item and its
+  own guidance, so no standing prompt text teaches the item:
+
+  ```text
+  2 Issues assigned to you:
+  [Haus issue assignment GEN-12 priority=high state=todo by=@ada] Rotate the deploy key
+  [Haus issue assignment GEN-9 priority=normal state=todo] Patch the host
+  ```
 
 ### Crew reports
 

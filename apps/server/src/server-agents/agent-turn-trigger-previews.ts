@@ -2,7 +2,7 @@ import { AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH, type AgentTurnTrigger } from '@h
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable, chatMessagesTable } from '../postgres/schema.ts';
-import { readAgentTurnTaskTriggers } from './agent-turn-task-triggers.ts';
+import { readAgentTurnIssueTriggers } from './agent-turn-issue-triggers.ts';
 import {
     type AgentTurnTriggerPreviews,
     type AgentTurnTriggerRecord,
@@ -13,7 +13,7 @@ import {
 
 /**
  * Names each record's trigger, quoting the waking messages in one read and
- * reading which Tasks woke a run in one more, none per run.
+ * reading which Issues woke a run in one more, none per run.
  * Only visible triggers are quoted, so a Chat the reader cannot see never leaks
  * text; the caller must already have gated `visible` by Chat visibility.
  */
@@ -22,15 +22,15 @@ export async function resolveAgentTurnTriggers(
     serverId: string,
     records: readonly (AgentTurnTriggerRecord | null)[]
 ): Promise<(AgentTurnTrigger | null)[]> {
-    const [previews, tasks] = await Promise.all([
+    const [previews, issues] = await Promise.all([
         readTriggerPreviews(
             db,
             serverId,
             records.map(agentTurnTriggerMessageRef).filter((ref) => ref !== null)
         ),
-        readAgentTurnTaskTriggers(db, serverId, records),
+        readAgentTurnIssueTriggers(db, serverId, records),
     ]);
-    return records.map((record) => agentTurnTrigger(record, previews, tasks));
+    return records.map((record) => agentTurnTrigger(record, previews, issues));
 }
 
 async function readTriggerPreviews(

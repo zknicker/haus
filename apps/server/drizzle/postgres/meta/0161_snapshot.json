@@ -1,5 +1,5 @@
 {
-  "id": "23c2ecbb-f2cc-4c21-9285-739e34126cfb",
+  "id": "e8d9d8d4-d412-4898-9d6e-804ee87e450d",
   "prevId": "f5f6aacf-ba69-46f1-abbf-d919cb305398",
   "version": "7",
   "dialect": "postgresql",
@@ -1802,7 +1802,7 @@
         },
         "agent_inbox_chat": {
           "name": "agent_inbox_chat",
-          "value": "\"agent_inbox\".\"source\" = 'task_assignment'\n                or (\"agent_inbox\".\"chat_id\" is null) = (\"agent_inbox\".\"source\" in ('subagent', 'drive_conflict', 'process_exit'))"
+          "value": "(\"agent_inbox\".\"chat_id\" is null) = (\"agent_inbox\".\"source\" in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event'))"
         },
         "agent_inbox_undelivered_shape": {
           "name": "agent_inbox_undelivered_shape",
@@ -2361,7 +2361,7 @@
         },
         "agent_invocations_refusal": {
           "name": "agent_invocations_refusal",
-          "value": "\"agent_invocations\".\"refusal\" is null or (\"agent_invocations\".\"refusal\" in ('not-found', 'no-access', 'moved', 'desktop-busy', 'task-machine-only', 'off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and \"agent_invocations\".\"state\" = 'finished')"
+          "value": "\"agent_invocations\".\"refusal\" is null or (\"agent_invocations\".\"refusal\" in ('not-found', 'no-access', 'moved', 'desktop-busy', 'off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and \"agent_invocations\".\"state\" = 'finished')"
         },
         "agent_invocations_sent_shape": {
           "name": "agent_invocations_sent_shape",
@@ -3018,7 +3018,7 @@
       "checkConstraints": {
         "agent_run_triggers_chat": {
           "name": "agent_run_triggers_chat",
-          "value": "\"agent_run_triggers\".\"source\" = 'task_assignment'\n                or (\"agent_run_triggers\".\"chat_id\" is null) = (\"agent_run_triggers\".\"source\" in ('subagent', 'drive_conflict', 'process_exit'))"
+          "value": "(\"agent_run_triggers\".\"chat_id\" is null) = (\"agent_run_triggers\".\"source\" in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event'))"
         }
       },
       "isRLSEnabled": false
@@ -3787,18 +3787,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "crew_computer_id": {
-          "name": "crew_computer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "crew_model": {
-          "name": "crew_model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "desired_model_id": {
           "name": "desired_model_id",
           "type": "text",
@@ -3908,13 +3896,6 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'captain'"
         },
         "personality": {
           "name": "personality",
@@ -4085,21 +4066,6 @@
           ],
           "onDelete": "set null (model_connection_id)",
           "onUpdate": "no action"
-        },
-        "agents_crew_computer_fk": {
-          "name": "agents_crew_computer_fk",
-          "tableFrom": "agents",
-          "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "crew_computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "set null (crew_computer_id)",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4136,21 +4102,9 @@
           "name": "agents_creation_request",
           "value": "(\"agents\".\"creation_nonce\" is null and \"agents\".\"creation_request_hash\" is null)\n                or (\"agents\".\"created_by_agent_id\" is not null and \"agents\".\"creation_nonce\" is not null\n                    and \"agents\".\"creation_request_hash\" is not null)"
         },
-        "agents_kind": {
-          "name": "agents_kind",
-          "value": "\"agents\".\"kind\" in ('captain', 'task')"
-        },
         "agents_home_project_shape": {
           "name": "agents_home_project_shape",
-          "value": "case when \"agents\".\"kind\" = 'task'\n                then \"agents\".\"home_project_id\" is null\n                else \"agents\".\"home_project_id\" is not null or \"agents\".\"retired_at\" is not null end"
-        },
-        "agents_crew_shape": {
-          "name": "agents_crew_shape",
-          "value": "\"agents\".\"kind\" = 'captain' or (\"agents\".\"crew_computer_id\" is null and \"agents\".\"crew_model\" is null)"
-        },
-        "agents_crew_model_length": {
-          "name": "agents_crew_model_length",
-          "value": "\"agents\".\"crew_model\" is null or char_length(\"agents\".\"crew_model\") between 1 and 128"
+          "value": "\"agents\".\"home_project_id\" is not null or \"agents\".\"retired_at\" is not null"
         },
         "agents_reasoning_effort": {
           "name": "agents_reasoning_effort",
@@ -15247,32 +15201,14 @@
       "name": "tasks",
       "schema": "",
       "columns": {
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "archived_at": {
           "name": "archived_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
-        "captain_id": {
-          "name": "captain_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "chat_id": {
           "name": "chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "computer_id": {
-          "name": "computer_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -15309,12 +15245,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "origin_chat_id": {
           "name": "origin_chat_id",
           "type": "text",
@@ -15345,24 +15275,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "start_request_id": {
-          "name": "start_request_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "title": {
           "name": "title",
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "title_custom": {
-          "name": "title_custom",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "updated_at": {
           "name": "updated_at",
@@ -15412,65 +15329,6 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_agent_key": {
-          "name": "tasks_agent_key",
-          "columns": [
-            {
-              "expression": "agent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_start_request_key": {
-          "name": "tasks_start_request_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "start_request_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"tasks\".\"start_request_id\" is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_captain_idx": {
-          "name": "tasks_captain_idx",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "captain_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"tasks\".\"captain_id\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -15537,51 +15395,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "tasks_agent_fk": {
-          "name": "tasks_agent_fk",
-          "tableFrom": "tasks",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "tasks_captain_fk": {
-          "name": "tasks_captain_fk",
-          "tableFrom": "tasks",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "captain_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "tasks_computer_fk": {
-          "name": "tasks_computer_fk",
-          "tableFrom": "tasks",
-          "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "tasks_chat_fk": {
@@ -15692,22 +15505,6 @@
       },
       "policies": {},
       "checkConstraints": {
-        "tasks_session_shape": {
-          "name": "tasks_session_shape",
-          "value": "num_nonnulls(\"tasks\".\"agent_id\", \"tasks\".\"computer_id\", \"tasks\".\"model\") in (0, 3)"
-        },
-        "tasks_captain_shape": {
-          "name": "tasks_captain_shape",
-          "value": "\"tasks\".\"captain_id\" is null or (\"tasks\".\"agent_id\" is not null and \"tasks\".\"created_by_agent_id\" = \"tasks\".\"captain_id\")"
-        },
-        "tasks_start_request_length": {
-          "name": "tasks_start_request_length",
-          "value": "\"tasks\".\"start_request_id\" is null or char_length(\"tasks\".\"start_request_id\") between 1 and 128"
-        },
-        "tasks_model_length": {
-          "name": "tasks_model_length",
-          "value": "\"tasks\".\"model\" is null or char_length(\"tasks\".\"model\") between 1 and 128"
-        },
         "tasks_origin_shape": {
           "name": "tasks_origin_shape",
           "value": "(\"tasks\".\"origin_chat_id\" is null) = (\"tasks\".\"origin_message_id\" is null)"

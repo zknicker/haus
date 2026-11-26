@@ -58,7 +58,7 @@ test('one push queues one item that wakes an idle Agent as its own chatless run'
         warmDrainItemIds: [],
     });
     expect(start?.driveConflict).toEqual(attention);
-    expect(start).not.toHaveProperty('taskAssignments');
+    expect(start).not.toHaveProperty('issueAssignments');
     expect(start).not.toHaveProperty('subagentWake');
     expect(agentCommandSchema.safeParse(start).success).toBe(true);
 

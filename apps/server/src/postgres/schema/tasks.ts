@@ -80,7 +80,12 @@ export const tasksTable = pgTable(
         }),
         check(
             'tasks_session_shape',
-            sql`num_nonnulls(${table.agentId}, ${table.computerId}, ${table.model}) in (0, 3)`
+            sql`(${table.agentId} is null) = (${table.model} is null)
+                and (${table.agentId} is not null or ${table.computerId} is null)`
+        ),
+        check(
+            'tasks_machine_shape',
+            sql`${table.computerId} is not null or ${table.agentId} is null or ${table.archivedAt} is not null`
         ),
         check(
             'tasks_captain_shape',

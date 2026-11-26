@@ -1,11 +1,16 @@
-import type { AgentCommand, AgentStartCommand, chatlessInboxSources } from '@haus/api';
+import {
+    type AgentCommand,
+    type AgentStartCommand,
+    type chatlessInboxSources,
+    issuePriorities,
+} from '@haus/api';
 import { decodeProcessExit } from '../agent-invocations/process-exits.ts';
 import { decodeDriveConflict } from '../drive/conflict-item.ts';
+import { decodeIssueAssignment, decodeIssueEvent } from '../issues/issue-inbox.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { recordRunTrigger } from '../server-agents/record-agent-turn.ts';
-import { decodeTaskAssignment } from '../tasks/task-assignment-envelope.ts';
 import type { ConfiguredAgent } from './deferred-configuration.ts';
 import type { DispatchPlan } from './delivery.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
@@ -26,8 +31,8 @@ type ChatlessFrameConfig = Pick<
 type ChatlessRow = Pick<store.InboxItemRow, 'content' | 'createdAt' | 'dedupeKey' | 'source'>;
 
 /**
- * Starts the run a queued sub-agent wake, Drive conflict, process exit, or batch of Task
- * assignments leads. Each
+ * Starts the run a queued sub-agent wake, Drive conflict, process exit, or batch of Issue
+ * items leads. Each
  * is concrete work with no Chat, so its run carries its attention alone: no inbox
  * items, no Chat lifecycle event. Busy notices, settlement, failure, and Stop treat
  * it like any concrete run, and it resumes the main session.
@@ -92,7 +97,7 @@ export async function planChatlessRun(
 
 /**
  * The chatless run's start frame, identical on first dispatch and every resend.
- * `rows` is the run's whole attention: several only for Task assignments.
+ * `rows` is the run's whole attention: several only for a batch of Issue items.
  */
 export function chatlessStartFrame(
     state: Pick<
@@ -125,7 +130,7 @@ export function chatlessStartFrame(
 
 type ChatlessAttention = Pick<
     AgentStartCommand,
-    'driveConflict' | 'processExit' | 'subagentWake' | 'taskAssignments'
+    'driveConflict' | 'issueAssignments' | 'issueEvents' | 'processExit' | 'subagentWake'
 >;
 
 type ChatlessSource = (typeof chatlessInboxSources)[number];
@@ -140,8 +145,16 @@ const chatlessAttentions: Record<
     subagent: ([row]) => ({
         subagentWake: { createdAt: row.createdAt.toISOString(), id: row.dedupeKey },
     }),
-    task_assignment: (rows) => ({
-        taskAssignments: rows.map((assignment) => decodeTaskAssignment(assignment.content)),
+    issue_assignment: (rows) => ({
+        issueAssignments: rows
+            .map((row) => decodeIssueAssignment(row.content))
+            .sort(
+                (left, right) =>
+                    issuePriorities.indexOf(left.priority) - issuePriorities.indexOf(right.priority)
+            ),
+    }),
+    issue_event: (rows) => ({
+        issueEvents: rows.map((row) => decodeIssueEvent(row.content)),
     }),
 };
 

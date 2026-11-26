@@ -15,7 +15,7 @@ import {
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { archiveCrew } from '../tasks/task-crew-archive.ts';
+import { archiveCrew } from '../tasks/task-bulk-archive.ts';
 import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentDeleteDeniedError } from './agent-config-errors.ts';

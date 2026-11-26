@@ -1,6 +1,4 @@
 import { expect, test } from 'bun:test';
-import { agentDeliveryRecordSchema, isChatlessInboxSource } from './agent-deliveries.ts';
-import { type AgentTurnTrigger, agentTurnTriggerSchema } from './agent-turn-trigger.ts';
 import { chatMessageSchema } from './chat.ts';
 import { taskGetInputSchema, taskListInputSchema, taskUpdateInputSchema } from './task-input.ts';
 import { isTaskShortId, taskLinkSchema, taskShortIdSchema } from './task-short-id.ts';
@@ -144,36 +142,4 @@ test('chat messages carry resolved task links, defaulting to none', () => {
     expect(taskLinkSchema.safeParse({ ...link, shortId: 'SEC-12' }).success).toBe(false);
     expect(chatMessageSchema.shape.taskLinks.parse(undefined)).toEqual([]);
     expect(chatMessageSchema.shape.taskLinks.parse([link])).toEqual([link]);
-});
-
-test('a task assignment run is chatless and names its Task by short id', () => {
-    expect(isChatlessInboxSource('task_assignment')).toBe(true);
-    const delivery = {
-        acceptedAt: null,
-        agentId: 'agt_zero',
-        chatId: null,
-        createdAt: '2026-11-04T12:00:00.000Z',
-        messageId: null,
-        seenAt: null,
-        servedAt: null,
-        source: 'task_assignment',
-        state: 'queued',
-        turnId: null,
-        workId: 'wrk_1',
-    } as const;
-    expect(agentDeliveryRecordSchema.safeParse(delivery).success).toBe(true);
-    expect(agentDeliveryRecordSchema.safeParse({ ...delivery, chatId: 'cht_1' }).success).toBe(
-        false
-    );
-    const trigger: AgentTurnTrigger = {
-        kind: 'task',
-        shortId: 'k3mq7xta',
-        taskId: 'tsk_12',
-        title: 'Rotate the key',
-    };
-    expect(agentTurnTriggerSchema.parse(trigger)).toEqual(trigger);
-    expect(agentTurnTriggerSchema.safeParse({ ...trigger, chatId: 'cht_1' }).success).toBe(false);
-    expect(agentTurnTriggerSchema.safeParse({ kind: 'task', taskId: 'tsk_12' }).success).toBe(
-        false
-    );
 });

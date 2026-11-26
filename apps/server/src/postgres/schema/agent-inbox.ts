@@ -171,8 +171,7 @@ export const agentInboxTable = pgTable(
         addressedReason: text('addressed_reason').$type<AddressedReason>(),
         agentId: text('agent_id').notNull(),
         /**
-         * Null exactly for the chatless `subagent` wake. A `task_assignment` names its Task's
-         * Chat when it has one.
+         * Null exactly for the chatless sources (`chatlessInboxSources` in `@haus/api`).
          */
         chatId: text('chat_id'),
         /** The Worker turn a `worker_report`, `worker_stall`, or `pull_request` row is about. */
@@ -256,8 +255,7 @@ export const agentInboxTable = pgTable(
         ),
         check(
             'agent_inbox_chat',
-            sql`${table.source} = 'task_assignment'
-                or (${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict', 'process_exit'))`
+            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event'))`
         ),
         check(
             'agent_inbox_undelivered_shape',

@@ -7,12 +7,16 @@ import { resolveMachinePath } from './paths.ts';
 export async function recordWorktreeUse(
     agentsRoot: string,
     operation: InvocationOperation,
-    context: Pick<OperationContext, 'cwd' | 'env'>
+    context: Pick<OperationContext, 'cwd' | 'env' | 'sessionGeneration'>
 ) {
     const path = usedPath(operation);
     if (path !== null) {
         const root = join(dirname(agentsRoot), 'worktrees');
-        await touchAgentWorktreeAt(resolveMachinePath(path, context), root);
+        await touchAgentWorktreeAt(
+            resolveMachinePath(path, context),
+            root,
+            context.sessionGeneration
+        );
     }
 }
 

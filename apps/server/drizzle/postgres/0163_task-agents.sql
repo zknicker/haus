@@ -25,7 +25,9 @@ ALTER TABLE "agents" ADD CONSTRAINT "agents_crew_model_length" CHECK ("agents"."
 ALTER TABLE "agents" ADD CONSTRAINT "agents_home_project_shape" CHECK (case when "agents"."kind" = 'task'
                 then "agents"."home_project_id" is null
                 else "agents"."home_project_id" is not null or "agents"."retired_at" is not null end);--> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_session_shape" CHECK (num_nonnulls("tasks"."agent_id", "tasks"."computer_id", "tasks"."model") in (0, 3));--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_session_shape" CHECK (("tasks"."agent_id" is null) = ("tasks"."model" is null)
+                and ("tasks"."agent_id" is not null or "tasks"."computer_id" is null));--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_machine_shape" CHECK ("tasks"."computer_id" is not null or "tasks"."agent_id" is null or "tasks"."archived_at" is not null);--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_captain_shape" CHECK ("tasks"."captain_id" is null or ("tasks"."agent_id" is not null and "tasks"."created_by_agent_id" = "tasks"."captain_id"));--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_start_request_length" CHECK ("tasks"."start_request_id" is null or char_length("tasks"."start_request_id") between 1 and 128);--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_model_length" CHECK ("tasks"."model" is null or char_length("tasks"."model") between 1 and 128);--> statement-breakpoint

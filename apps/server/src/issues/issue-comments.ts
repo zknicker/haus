@@ -16,6 +16,7 @@ import { IssueInvariantError, IssueNotFoundError } from './issue-errors.ts';
 import { subscribeToIssue } from './issue-fields.ts';
 import { lockIssue } from './issue-read.ts';
 import { deriveIssueComment } from './issue-wakes.ts';
+import { settleIssueComment } from './issue-write-effects.ts';
 import type { IssueWriteGuard } from './issue-write.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
@@ -55,11 +56,17 @@ export async function addIssueComment(
         if (author.userId) {
             await subscribeToIssue(tx, { issueId: issue.id, serverId, userId: author.userId });
         }
+        const wakes = deriveIssueComment({ actor, commentId: id, issue });
+        const settled = await settleIssueComment(tx, { actor, commentId: id, issue, wakes });
         return {
+            agentWakes: settled.agentWakes,
             comment: await readComment(tx, serverId, id),
-            events: [issueCommentedTopic.prepare({ commentId: id, issueId: issue.id, serverId })],
+            events: [
+                issueCommentedTopic.prepare({ commentId: id, issueId: issue.id, serverId }),
+                ...settled.events,
+            ],
             issue,
-            wakes: deriveIssueComment({ actor, commentId: id, issue }),
+            wakes,
         };
     });
 }

@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import type * as z from 'zod';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import {
+    IssueAssigneeArchivedError,
     IssueConflictError,
     IssueInvariantError,
     IssueNotFoundError,
@@ -91,6 +92,9 @@ export function sendAgentIssueError(reply: FastifyReply, cause: unknown) {
         return sendAgentApiError(reply, 409, refusal('ISSUE_TAKEN'), cause.message, {
             nextAction: `Leave it with ${cause.holder}, or ask them before taking it.`,
         });
+    }
+    if (cause instanceof IssueAssigneeArchivedError) {
+        return sendAgentApiError(reply, 409, refusal('ISSUE_ASSIGNEE_ARCHIVED'), cause.message);
     }
     if (cause instanceof IssueProjectNotHomeError) {
         return sendAgentApiError(reply, 403, refusal('ISSUE_PROJECT_NOT_HOME'), cause.message, {

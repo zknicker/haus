@@ -93,6 +93,7 @@ describe('repo folder requests', () => {
             }),
             ref: null,
             repository: 'acme/app',
+            sessionGeneration: 1,
         });
         const listed = await answerRepoFolderOperation({ kind: 'worktrees', path: folder }, scope);
         await rm(folder, { force: true, recursive: true });

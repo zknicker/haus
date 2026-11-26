@@ -4,11 +4,10 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../src/postgres/schema.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
+import { seedTaskBoard } from './issue-delivery.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
-import { assignNewTask, seedTaskBoard, taskInboxRows } from './task-delivery-fixture.ts';
 
-/** When a requeued item leaves the queue undelivered (ADR 0051 decision 5, ADR 0062). */
 let cluster: TestDatabase;
 let connection: HausConnection;
 
@@ -23,25 +22,6 @@ afterAll(async () => {
 });
 
 const seedBoard = () => seedTaskBoard(connection.db);
-
-test('a failed run forgets its Task assignment: a Task has no assignee to hand it back to', async () => {
-    const board = await seedBoard();
-    const { seed } = board;
-    const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
-    await assignNewTask(connection.db, delivery, board, 'Queued before Tasks lost assignees');
-    transport.online.add(seed.computerId);
-    runner.attach(seed.agentId);
-    await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    expect((await taskInboxRows(connection.db, seed)).map((row) => row.state)).toEqual([
-        'accepted',
-    ]);
-
-    await delivery.onTurnSettled(seed.computerId, {
-        ...settledTurn(seed, runner.starts()[0]?.runId ?? ''),
-        status: 'failed',
-    });
-    expect(await taskInboxRows(connection.db, seed)).toEqual([]);
-});
 
 test('a failed run forgets a claim assignment whose claim is gone, and keeps a live one', async () => {
     const claimAssignments = async (seed: Seed) =>

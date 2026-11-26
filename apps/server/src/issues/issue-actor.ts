@@ -9,7 +9,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireServerMembership, ServerAccessDeniedError } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { IssueInvariantError } from './issue-errors.ts';
+import { IssueAssigneeArchivedError, IssueInvariantError } from './issue-errors.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -41,6 +41,24 @@ export async function requireIssueAssignee(db: Reader, serverId: string, assigne
         throw new IssueInvariantError(
             'An Issue is assigned to an active member, a Captain, or a Task of this Server.'
         );
+    }
+}
+
+export async function requireActiveTaskAssignee(
+    db: Reader,
+    issue: { assignee: IssueActor | null; code: string | null; open: boolean; serverId: string }
+) {
+    const { assignee } = issue;
+    if (!issue.open || assignee?.kind !== 'task') {
+        return;
+    }
+    const [task] = await db
+        .select({ archivedAt: tasksTable.archivedAt })
+        .from(tasksTable)
+        .where(and(eq(tasksTable.serverId, issue.serverId), eq(tasksTable.id, assignee.taskId)))
+        .limit(1);
+    if (task?.archivedAt) {
+        throw new IssueAssigneeArchivedError(issue.code);
     }
 }
 

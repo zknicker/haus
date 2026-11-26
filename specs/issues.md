@@ -128,9 +128,11 @@ from the assignee in the same transaction:
 | A person | Nobody; the person gets human unread and push |
 | None | Nobody |
 
-- The actor never wakes itself.
+- The actor never wakes itself, including a Captain whose own Task is the assignee.
 - Assigning while the Issue is in `backlog` wakes nobody. Moving an assigned Issue from `backlog`
-  to `todo` or `in_progress` wakes as an assignment.
+  to `todo` or `in_progress` wakes as an assignment. Assigning a closed Issue wakes nobody either.
+- Until Task agents exist (step 5), a Task assignee wakes the Captain that started the Task, as pull
+  request wakes do; a Task a person started wakes nobody.
 - No agent follows an Issue, and no other agent is woken by an Issue change. Linked Tasks other
   than the assignee are context only. To reach another agent, @mention it in a chat it hears.
 - A change made by a Captain's own crew Task rides that Task's crew report instead of waking the
@@ -140,23 +142,27 @@ from the assignee in the same transaction:
 by someone else, plus one wake when its Issue's last open sub-issue closes. Title, description,
 priority, label and due-date edits are activity only.
 
-**Inbox items** ([inbox.md](inbox.md#issue-items)). Step 2 derives each item, its recipient and
-its identity in the write's transaction (`apps/server/src/issues/issue-wakes.ts`) and returns them
-with the write; step 3 queues them. A comment's `timelineEventId` is the comment id. A closed last
-sub-issue is keyed by the parent's id and the child's `state_changed` event id.
+**Inbox items** ([inbox.md](inbox.md#issue-items)). Each write derives its items, their recipient
+and identity (`apps/server/src/issues/issue-wakes.ts`) and queues them in the same transaction
+(`issue-inbox.ts`, through `settleIssueWrite` in `issue-write-effects.ts`); the agents are
+dispatched after commit. A comment's `timelineEventId` is the comment id. A closed last sub-issue
+is keyed by the parent's id and the child's `state_changed` event id.
 
-- `issue_assignment` (step 3) replaces `task_assignment`. Identity
-  `issue-assign:<issueId>:<version>`. Every queued assignment for one agent rides one run, up to
-  50, by priority then age, and a busy agent gets a count. Reassigning or unassigning before a run
-  takes it retires it, as `applyTaskAssignmentChange` does today
-  (`apps/server/src/tasks/task-assignment.ts:45`).
-- `issue_event` (step 3) carries a comment, a state change, or a closed last sub-issue. Identity
-  `issue-event:<issueId>:<timelineEventId>`. Coalesced per agent per run, up to 50.
+- `issue_assignment` replaces `task_assignment`. Identity `issue-assign:<issueId>:<version>`.
+  Every queued assignment for one agent rides one run, up to 50, by priority then age, and a busy
+  agent gets a count. Reassigning, unassigning, or moving it to `backlog`, `done` or `canceled` before a run takes it retires it
+  (`retireIssueAssignments`).
+- `issue_event` carries a comment, a state change, or a closed last sub-issue. Identity
+  `issue-event:<issueId>:<timelineEventId>`. Coalesced per agent per run, up to 50; a run carries
+  assignments or events, never both.
 - An assignment or event from another agent spends the automation chain; a person's resets it.
 
-**People.** Assigning someone other than yourself notifies them in the App and by iPhone push
-after the read grace, as Task assignment does today (`taskAssignmentNotifiedUserId` in
-`@haus/api`). People subscribe to an Issue (Capy's Subscribe) in `issue_subscriptions
+**People.** Assigning someone other than yourself notifies them by iPhone push after the read
+grace (`issueAssignmentNotifiedUserId` in `@haus/api`, `apps/server/src/push/issue-push.ts`), and
+a comment pushes every subscriber but its author (`issueCommentNotifiedUserIds`). Both ride the
+Server-internal `issue.notified` fact; a push that stopped being news during the grace (the Issue
+went to someone else, or the person unsubscribed) is dropped. The App's notification and an
+`@handle` in a comment notifying a person are step 6. People subscribe to an Issue (Capy's Subscribe) in `issue_subscriptions
 (issue_id, user_id)`: its creator, its assignee, anyone who comments, and anyone who subscribes by
 hand. A subscriber gets human unread for comments and state changes. Subscriptions are for people
 only.
@@ -182,7 +188,10 @@ Archiving a Task ([tasks.md](tasks.md#archive)) hands each open Issue assigned t
 Task's Captain, else to the person who started it, in the archive transaction, with an
 `assignee_changed` activity row whose actor is the Server. A closed Issue keeps its archived Task
 as assignee for history. Unarchiving the Task does not take the Issues back; someone reassigns
-them explicitly.
+them explicitly. The hand-back wakes and notifies as an assignment by whoever archived the Task
+(`apps/server/src/issues/issue-handback.ts`), so a Captain archiving its own Task is not woken by
+its own Issues. Reopening a closed Issue whose assignee is an archived Task is refused
+`ISSUE_ASSIGNEE_ARCHIVED` too.
 
 ## Sub-issues
 
@@ -273,3 +282,5 @@ Issue.
 | Archiving a Task hands its open Issues back with an activity row | `apps/server/test/task-archive-issues.test.ts` |
 | Assignments coalesce into one run up to 50, and reassigning retires a queued item | `apps/server/test/issue-assignment-delivery.test.ts` |
 | A pull request shared by several linked Tasks notifies once | `apps/server/test/pull-request-wake.test.ts` |
+| A pull request a person's Task attached first still wakes the agent-started Task | `apps/server/test/pull-request-task-wakes.test.ts` |
+| An assignment pushes the person, and a comment pushes every subscriber but its author | `apps/server/test/issue-push.test.ts` |

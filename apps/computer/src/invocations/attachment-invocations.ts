@@ -120,8 +120,13 @@ export function attachmentInvocations(
                 invocationId,
                 serverOrigin: attachment.serverOrigin,
             }),
-        releaseWorktrees: (agentId) =>
-            removeArchivedWorktrees({ agentId, dataRoot, serverId: attachment.serverId }),
+        releaseWorktrees: (agentId, generation) =>
+            removeArchivedWorktrees({
+                agentId,
+                dataRoot,
+                generation,
+                serverId: attachment.serverId,
+            }),
         runners: {
             bash: bashRunner,
             browser: createBrowserRunner({ browserRoot: join(serverRoot, 'browser') }),

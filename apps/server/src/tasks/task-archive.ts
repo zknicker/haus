@@ -1,13 +1,19 @@
 import type { TaskArchiveInput } from '@haus/api';
 import { and, eq, type SQL, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { handBackArchivedTaskIssues } from '../issues/issue-handback.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, tasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { closeTaskWorkers } from '../workers/close-task-workers.ts';
 import { requireTaskActor, type TaskActor } from './task-actor.ts';
 import { cancelTaskReminders } from './task-close-reminders.ts';
-import { TaskProjectArchivedError, requireTaskPlace, requireTaskVersion } from './task-errors.ts';
+import {
+    requireTaskPlace,
+    requireTaskVersion,
+    TaskInvariantError,
+    TaskProjectArchivedError,
+} from './task-errors.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
 import { type LockedTask, lockTask, readTask } from './task-read.ts';
 import { rotateTaskSession } from './task-session.ts';
@@ -51,6 +57,7 @@ export async function archiveLockedTask(
         taskChatId: current.chatId,
         taskId: current.id,
     });
+    const issues = await handBackArchivedTaskIssues(tx, { actor, serverId, taskId: current.id });
     const sessions = current.agentId
         ? [
               await rotateTaskSession(tx, {
@@ -63,10 +70,15 @@ export async function archiveLockedTask(
         : [];
     const task = await readTask(tx, serverId, current.id);
     const result: TaskWriteResult = {
-        events: [prepareTaskUpdatedEvent(task), ...reminderEvents, ...workers.events],
+        events: [
+            prepareTaskUpdatedEvent(task),
+            ...reminderEvents,
+            ...workers.events,
+            ...issues.events,
+        ],
         sessions,
         task,
-        wakes: workers.wakes,
+        wakes: [...workers.wakes, ...issues.agentWakes],
         workerFrames: workers.frames,
     };
     return result;
@@ -85,6 +97,11 @@ export async function unarchiveTask(db: HausDatabase, actor: TaskActor, input: T
         }
         requireTaskPlace(current);
         await requireProjectActive(tx, current);
+        if (current.agentId && !current.computerId) {
+            throw new TaskInvariantError(
+                'This Task’s Machine was removed, so it stays archived. Start a new Task instead.'
+            );
+        }
         await setArchivedAt(tx, current, null);
         const sessions = current.agentId
             ? [

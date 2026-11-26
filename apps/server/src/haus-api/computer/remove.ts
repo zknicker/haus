@@ -3,8 +3,10 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { removeServerComputer } from '../../computers/remove-computer.ts';
 import { ComputerSetupDeniedError } from '../../computers/service.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
 import { computerUpdatedTopic, projectUpdatedTopic } from '../../realtime/topics.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';
+import { announceTaskSessions } from '../../tasks/task-session.ts';
 import { commitWorkerEffects } from '../../workers/worker-effects.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -28,6 +30,15 @@ export const removeComputerProcedure = memberProcedure
                 input,
                 ctx.artifactStorage
             );
+            announceTaskSessions(
+                { invocations: ctx.invocations, runner: ctx.runnerLink },
+                removed.tasks.sessions
+            );
+            publishRealtime(removed.tasks.events);
+            for (const { computerId, frame } of removed.tasks.workerFrames) {
+                ctx.computerConnections.send(computerId, frame);
+            }
+            void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, removed.tasks.wakes);
             ctx.computerConnections.disconnectComputer(removed.computerId);
             await ctx.agentDelivery.commitMachineSteps(removed.moved);
             computerUpdatedTopic.announce({

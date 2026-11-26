@@ -76,7 +76,7 @@ test('an idle Agent gets one chatless wake run, recorded with a sub-agent trigge
         inboxDelivery: 'concrete',
         subagentWake: { id: `subagent:${seed.agentId}:wake_000000000001` },
     });
-    expect(start).not.toHaveProperty('taskAssignments');
+    expect(start).not.toHaveProperty('issueAssignments');
     const [trigger] = await connection.db
         .select()
         .from(agentRunTriggersTable)

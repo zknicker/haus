@@ -1,5 +1,6 @@
 import type { ChannelDeleteReceipt, ChannelLifecycleReceipt } from '@haus/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
@@ -7,6 +8,8 @@ import { refuseProjectWithHomeAgents } from '../projects/project-homes.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { memberTaskActor } from '../tasks/task-actor.ts';
+import { archiveProjectTasks } from '../tasks/task-bulk-archive.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import type { WorkerFrame } from '../workers/worker-effects.ts';
 import { purgeDeletedChannel } from './channel-deletion.ts';
@@ -104,9 +107,10 @@ export async function deleteChannel(
     db: HausDatabase,
     attachmentRoot: AttachmentRoot,
     member: HausUser | null,
-    input: { chatId: string; confirmation: string; serverId: string }
+    input: { chatId: string; confirmation: string; serverId: string },
+    agentDelivery: AgentDelivery
 ) {
-    const events = await db.transaction(async (tx) => {
+    const { events, tasks } = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
         const channel = await requireRegularChannel(tx, input);
@@ -115,16 +119,23 @@ export async function deleteChannel(
         }
         await refuseProjectWithHomeAgents(tx, input);
         if (channel.deletedAt) {
-            return [];
+            return { events: [], tasks: null };
         }
-
+        const archived = await archiveProjectTasks(tx, agentDelivery, {
+            actor: memberTaskActor(member),
+            projectId: input.chatId,
+            serverId: input.serverId,
+        });
         const deletedAt = new Date();
         await tx
             .update(chatsTable)
             .set({ deletedAt, deletedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        return [prepareLifecycleEvent(input, 'deleted')];
+        return {
+            events: [prepareLifecycleEvent(input, 'deleted'), ...archived.events],
+            tasks: archived,
+        };
     });
 
     // The committed tombstone is the deletion. A failed purge must not report
@@ -142,7 +153,9 @@ export async function deleteChannel(
     return {
         events,
         receipt: { chatId: input.chatId, serverId: input.serverId } satisfies ChannelDeleteReceipt,
-        workerFrames,
+        taskSessions: tasks?.sessions ?? [],
+        taskWakes: tasks?.wakes ?? [],
+        workerFrames: [...(tasks?.workerFrames ?? []), ...workerFrames],
     };
 }
 

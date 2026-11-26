@@ -159,8 +159,8 @@ Each revision records four facts.
   or a person as its `creator`, so `creator` stays an Agent or a person for deployed CLIs: the
   Agent whose area holds a skill, and the person who created a Project for its `AGENTS.md`.
 - `task_id` is the Task the write was for, or null. A push names its run, and the Server takes the
-  Task from that run. That is the Task whose chat the run answered in, or the Task a
-  `task_assignment` run carried. A Worker's write takes the Worker's Task. A person's write, and an
+  Task from that run. That is the Task whose chat the run answered in; an Issue item run carries no
+  Task. A Worker's write takes the Worker's Task. A person's write, and an
   Agent's write outside a push, carry no Task.
 - `base_revision_id` is the revision the writer started from. It is null for a create and for a
   `replace`.
@@ -277,8 +277,7 @@ neither. A Worker's push uses its own run's id (W2).
 The push routes take any live runner credential of the pushing Agent, because the run's own
 credential ends when its turn settles and the push runs after that. `push_id` must name a run the
 Server dispatched to that Agent, otherwise the request fails with 404 `NOT_FOUND`. The push's Task
-is the Task whose chat the run answered in, or for a Task assignment run, the Task of the
-assignment that led it.
+is the Task whose chat the run answered in; a chatless run, an Issue item run included, has none.
 
 | Route (Agent API) | Input |
 | --- | --- |

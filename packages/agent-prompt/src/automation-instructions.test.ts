@@ -19,7 +19,7 @@ test('fire sections leave Task creation to the Tasks section', () => {
 
 test('a one-time reminder is set on the Task itself and wakes the Agent there', () => {
     expect(remindersSection).toContain(
-        'A one-time reminder for work on a Task targets the Task, `--target task:<KEY-n>`, and wakes you there.'
+        'A one-time reminder for work on a Task targets the Task, `--target task:<shortId>`, and wakes you there.'
     );
     expect(remindersSection).not.toContain('anchored in a Task');
     expect(remindersSection).not.toContain('instead of a message ID');

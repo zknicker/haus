@@ -10,14 +10,21 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { issuesTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { issueActorLabel, nameIssueActors } from './issue-actor-names.ts';
-import { actorColumns, requireIssueActor, requireIssueAssignee } from './issue-actor.ts';
+import {
+    actorColumns,
+    requireActiveTaskAssignee,
+    requireIssueActor,
+    requireIssueAssignee,
+} from './issue-actor.ts';
 import { IssueTakenError, requireIssueVersion } from './issue-errors.ts';
 import { appendIssueEvents, prepareIssueUpdatedEvent } from './issue-events.ts';
 import { requireIssueParent, subscribeToIssue, writeIssueLabels } from './issue-fields.ts';
 import { lockIssue, readIssue } from './issue-read.ts';
-import { deriveIssueWrite, deriveSubIssuesClosed } from './issue-wakes.ts';
+import { deriveIssueWrite, deriveSubIssuesClosed, type IssueWake } from './issue-wakes.ts';
+import { settleIssueWrite } from './issue-write-effects.ts';
 import {
     insertIssueTaskLink,
     type IssueTx,
@@ -43,7 +50,12 @@ export async function updateIssue(
         }
         const changes = await applyPatch(tx, actor, current, input.patch);
         if (changes.length === 0) {
-            return { events: [], issue: current, wakes: [] } satisfies IssueWriteResult;
+            return {
+                agentWakes: [],
+                events: [],
+                issue: current,
+                wakes: [],
+            } satisfies IssueWriteResult;
         }
         await tx
             .update(issuesTable)
@@ -56,18 +68,30 @@ export async function updateIssue(
             serverId,
         });
         const issue = await readIssue(tx, serverId, current.id);
-        const result: IssueWriteResult = {
-            events: [prepareIssueUpdatedEvent(issue)],
-            issue,
-            wakes: deriveIssueWrite({ actor, after: issue, before: current, events: recorded }),
-        };
-        await recordParentChanges(tx, { actor, current, issue, result });
+        if (
+            !sameIssueActor(current.assignee, issue.assignee) ||
+            current.state.type !== issue.state.type
+        ) {
+            await requireActiveTaskAssignee(tx, { ...issue, open: issue.state.type === 'open' });
+        }
+        const events = [prepareIssueUpdatedEvent(issue)];
+        const wakes: IssueWake[] = [
+            ...deriveIssueWrite({ actor, after: issue, before: current, events: recorded }),
+        ];
+        await recordParentChanges(tx, { actor, current, events, issue });
         const closed = recorded.find((event) => event.change.kind === 'state_changed');
         if (closed && issue.parentId && closedNow(current, issue)) {
             const parent = await readIssue(tx, serverId, issue.parentId);
-            result.wakes.push(...deriveSubIssuesClosed({ actor, eventId: closed.id, parent }));
+            wakes.push(...deriveSubIssuesClosed({ actor, eventId: closed.id, parent }));
         }
-        return result;
+        const settled = await settleIssueWrite(tx, {
+            actor,
+            before: current,
+            events,
+            issue,
+            wakes,
+        });
+        return { ...settled, issue, wakes } satisfies IssueWriteResult;
     });
 }
 
@@ -184,9 +208,9 @@ async function changeAssignee(
 
 async function recordParentChanges(
     tx: IssueTx,
-    input: { actor: IssueActor; current: Issue; issue: Issue; result: IssueWriteResult }
+    input: { actor: IssueActor; current: Issue; events: PreparedRealtimeEvent[]; issue: Issue }
 ) {
-    const { actor, current, issue, result } = input;
+    const { actor, current, events, issue } = input;
     const { serverId } = issue;
     const touched = new Set<string>();
     if (current.parentId !== issue.parentId) {
@@ -209,7 +233,7 @@ async function recordParentChanges(
         touched.add(issue.parentId);
     }
     for (const parentId of touched) {
-        result.events.push(prepareIssueUpdatedEvent(await readIssue(tx, serverId, parentId)));
+        events.push(prepareIssueUpdatedEvent(await readIssue(tx, serverId, parentId)));
     }
 }
 

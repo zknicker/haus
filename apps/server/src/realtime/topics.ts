@@ -13,6 +13,7 @@ import {
     invitationUpdatedEventSchema,
     issueCommentedEventSchema,
     issueCreatedEventSchema,
+    issueNotifiedEventSchema,
     issueSubscriptionUpdatedEventSchema,
     issueUpdatedEventSchema,
     mcpUpdatedEventSchema,
@@ -96,6 +97,8 @@ export const taskFollowUpdatedTopic = createTopic(
 export const issueCreatedTopic = createTopic('issue.created', issueCreatedEventSchema);
 export const issueUpdatedTopic = createTopic('issue.updated', issueUpdatedEventSchema);
 export const issueCommentedTopic = createTopic('issue.commented', issueCommentedEventSchema);
+/** Server-internal: iPhone push listens; no client stream carries it. */
+export const issueNotifiedTopic = createTopic('issue.notified', issueNotifiedEventSchema);
 export const issueSubscriptionUpdatedTopic = createTopic(
     'issue.subscription.updated',
     issueSubscriptionUpdatedEventSchema

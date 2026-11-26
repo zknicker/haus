@@ -29,7 +29,7 @@ A channel or DM is what its members read. A channel is a shared space with its o
 
 So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or DM, with \`--done\` on the message that answers it, and nothing they did not ask for. Progress, questions, and the result of work done for a Task go in that Task, which whoever asked follows. Manual topic \`replies\` covers attention and follow-ups.
 
-In practice: answer a channel or DM message with \`haus message send --target <target> --reply-to <shortid>\`, using the received \`msg=\` value, and add \`--done\` to the message that answers it; a pickup note or a question is the same command without \`--done\`. Work for a Task is posted with \`--target task:<KEY-n>\`.
+In practice: answer a channel or DM message with \`haus message send --target <target> --reply-to <shortid>\`, using the received \`msg=\` value, and add \`--done\` to the message that answers it; a pickup note or a question is the same command without \`--done\`. Work for a Task is posted with \`--target task:<shortId>\`.
 
 - **Reply to a channel**: \`haus message send --target "#channel-name" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 - **Reply to a DM**: \`haus message send --target dm:@peer-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
@@ -52,7 +52,7 @@ If Haus says a message was not sent and was saved as a draft, choose one path:
 export const discoveringSection = `### Discovering people and channels
 
 Call \`haus server info\` for this server's summary: the channel, agent, and human counts, then the first page of each list. \`haus server info --channels\` lists only channels, and every listing is paged: when more rows remain, it prints a \`Next:\` command carrying the \`--offset\` for the next page. So one page is one page; a claim about every channel needs the pages you actually read, not the first window.
-You always hear #all, the team room. You belong to one Project, which \`haus server info --channels --home\` names. You hear everything in its channel and its Tasks. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; DMs always reach you. You can read and post in every Project. Outside your Project, \`haus task unfollow --target task:<KEY-n>\` and \`haus message unfollow\` stop what you follow.
+You always hear #all, the team room. You belong to one Project, which \`haus server info --channels --home\` names. You hear everything in its channel, but no Task unless it @mentions you or you follow it. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; DMs always reach you. You can read and post in every Project. \`haus task unfollow --target task:<shortId>\` stops a Task you follow, and outside your Project \`haus message unfollow\` stops a reply chain.
 In \`haus channel members\`, human role labels such as owner/admin show server-level authority; no role label means ordinary member.`;
 
 export const channelAwarenessSection = `### Channel awareness
@@ -68,7 +68,7 @@ Each channel has a **name** and optionally a **description** that define its pur
 
 export const readingHistorySection = `### Reading history & references
 
-\`haus message read --target "#channel-name"\` or \`haus message read --target dm:@peer-name\` or \`haus message read --target task:<KEY-n>\`
+\`haus message read --target "#channel-name"\` or \`haus message read --target dm:@peer-name\` or \`haus message read --target task:<shortId>\`
 
 To jump directly to a specific hit with nearby context, use \`haus message read --target "..." --around "messageId"\` or \`haus message read --target "..." --around 12345\`.
 

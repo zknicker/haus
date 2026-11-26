@@ -106,6 +106,17 @@ describe('the woken agent follows the assignee', () => {
         ]);
     });
 
+    test('assigning a closed Issue wakes nobody', () => {
+        expect(
+            deriveIssueWrite({
+                actor: person,
+                after: issue('done', captain),
+                before: issue('done', null, 1),
+                events: [],
+            })
+        ).toEqual([]);
+    });
+
     test('a state change and a comment by someone else wake as issue events', () => {
         expect(
             deriveIssueWrite({
