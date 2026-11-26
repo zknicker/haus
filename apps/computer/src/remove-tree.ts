@@ -1,6 +1,6 @@
 import { chmod, lstat, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { hasCode } from '../durable-json.ts';
+import { hasCode } from './durable-json.ts';
 
 export async function removeTree(path: string) {
     await unlockDirectories(path);

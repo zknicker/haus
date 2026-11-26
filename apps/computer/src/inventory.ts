@@ -1,15 +1,8 @@
-import type {
-    AgentReasoningEffort,
-    CloudAgentProvider,
-    ComputerInventory,
-    ComputerModelFeature,
-} from '@haus/api';
+import type { AgentReasoningEffort, ComputerInventory, ComputerModelFeature } from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
 import { detectComputerUseReadiness } from './desktop/desktop-readiness.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 import { supportsSubagents } from './runtime/runtime-subagents.ts';
-import { detectWorkerRuntimes } from './workers/computer/runtime-readiness.ts';
-import { detectCloudAgentProviders } from './workers/registry.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];
 
@@ -47,25 +40,15 @@ const knownRuntimes: ComputerRuntime[] = [
     ]),
 ];
 
-/**
- * Reports the sanitized runtime/model inventory, plus Cloud Agent provider
- * readiness. Worker access is its own Computer capability, separate from
- * the runtime harnesses even when a provider shares a vendor with one.
- */
+/** Reports the sanitized runtime/model inventory, plus computer use readiness. */
 export async function detectFullInventory(options: {
     dataRoot: string;
-    defaultCloudAgentProvider?: CloudAgentProvider;
     searchPath?: string;
 }): Promise<ComputerInventory> {
     const computerUse = await detectComputerUseReadiness({ dataRoot: options.dataRoot });
     return {
         ...detectInventory(options),
         ...(computerUse ? { computerUse } : {}),
-        cloudAgentProviders: await detectCloudAgentProviders(
-            options.defaultCloudAgentProvider ?? 'cursor',
-            options.dataRoot
-        ),
-        workerRuntimes: await detectWorkerRuntimes(),
     };
 }
 

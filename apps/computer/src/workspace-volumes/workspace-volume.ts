@@ -1,7 +1,7 @@
 import { lstat, mkdir, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { removeTree } from '../workers/computer/remove-tree.ts';
+import { removeTree } from '../remove-tree.ts';
 import { hostWorkspaceDisk, type WorkspaceDisk } from './disk-image.ts';
 import { isMissing, readJson, withStorageLock } from './storage-ledger.ts';
 import {

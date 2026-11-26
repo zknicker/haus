@@ -5,7 +5,7 @@ import type { AttachmentRecord as Attachment } from '../attachment.ts';
 import { resolveComputerLogin } from '../login.ts';
 import { inspectRepoFolder } from '../repos/repo-folder-requests.ts';
 import { listWorktrees } from '../repos/worktree.ts';
-import { worktreesRoot } from '../workers/computer/layout.ts';
+import { worktreesRoot } from '../repos/layout.ts';
 import type { CliRenderer } from './render.ts';
 import { postComputerRoute } from './server-request.ts';
 

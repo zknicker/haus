@@ -1,9 +1,9 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
-import { reposRoot, worktreesRoot } from '../workers/computer/layout.ts';
-import { directories } from '../workers/computer/repos.ts';
-import { hasCode } from '../workers/durable-json.ts';
+import { reposRoot, worktreesRoot } from './layout.ts';
+import { directories } from './repo-clones.ts';
+import { hasCode } from '../durable-json.ts';
 import { removeCleanWorktreesOf } from './worktree.ts';
 
 export async function releasePartitionWorktrees(dataRoot: string, serverId: string) {

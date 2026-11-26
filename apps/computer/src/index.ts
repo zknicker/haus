@@ -41,7 +41,6 @@ import {
 import { createAttachmentStore } from './attachment-store.ts';
 import { recordAttachmentManagementEvent } from './attachment-system-event-outbox.ts';
 import { runAttachmentUpdate } from './attachment-update.ts';
-import { handleWorkerFrame } from './attachment-workers.ts';
 import type { Attachment, AttachmentRecord } from './attachment.ts';
 import { handleBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
@@ -127,8 +126,6 @@ import {
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
 import { saveOpenRouterManagementKey } from './usage/openrouter-settings.ts';
 import { createUsageReporter } from './usage/report.ts';
-import { startCloudAgentModelCatalogRefresh } from './workers/model-catalog.ts';
-import { WorkerSupervisor } from './workers/work-runner.ts';
 import { handleAgentWorkspaceRequest } from './workspace-files.ts';
 import { runWorkspaceMaintenance } from './workspace-volumes/command.ts';
 
@@ -392,8 +389,7 @@ async function main(args: string[]) {
         guardDevDaemonMemory(attachment.slug);
         process.exitCode = await withDaemonRuntime(async (runtime) => {
             const partition = { dataRoot, serverId: attachment.serverId };
-            const workers = new WorkerSupervisor(runtime, { ...partition, server: attachment });
-            const daemonWork = new AttachmentDaemonWork(runtime, workers);
+            const daemonWork = new AttachmentDaemonWork(runtime);
             return withAttachmentShutdown(daemonWork, runtime, partition, () =>
                 runAttachmentDaemon(runtime, {
                     attachmentExists: async () => (await readAttachmentRecord(target)) !== null,
@@ -852,7 +848,6 @@ async function connect(
             heartbeat?.dispose();
             void Promise.allSettled([
                 connectionWork.close(),
-                daemonWork.workers?.detach(),
                 deletionPromise ?? Promise.resolve(),
             ]).finally(() => {
                 resolve({ connected: opened, deleted: deleting });
@@ -898,7 +893,6 @@ async function connect(
                 sendFrame({ type: 'heartbeat-negotiate' });
                 if (bootstrap.mode === 'ordinary') {
                     invocations.connected();
-                    daemonWork.workers?.attach(sendFrame);
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
                             sendComputerReport(sendFrame, attachment.serverId, computerName, true),
@@ -939,9 +933,6 @@ async function connect(
                                 )
                         );
                     }
-                    startCloudAgentModelCatalogRefresh(connectionWork, () =>
-                        trackWriter(reportComputer())
-                    );
                     startAgentWorktreeSweep(connectionWork, {
                         dataRoot,
                         serverId: attachment.serverId,
@@ -971,19 +962,6 @@ async function connect(
                     release: update.release,
                     restart: restartAfterUpdate,
                 }).catch(console.error);
-                return;
-            }
-            if (
-                handleWorkerFrame(frame, {
-                    runtime,
-                    dataRoot,
-                    workers: daemonWork.workers,
-                    track: trackWriter,
-                    send: sendFrame,
-                    refresh: () => sendComputerReport(sendFrame, attachment.serverId, computerName),
-                    onFailure: reportStateError,
-                })
-            ) {
                 return;
             }
             if (

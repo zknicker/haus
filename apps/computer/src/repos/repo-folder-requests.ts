@@ -11,9 +11,9 @@ import {
     gitOutput,
     githubRepositoryOfRemote,
     readOrigin,
-    WorkerCheckoutError,
-} from '../workers/computer/git.ts';
-import { worktreesRoot } from '../workers/computer/layout.ts';
+    RepoCheckoutError,
+} from './git.ts';
+import { worktreesRoot } from './layout.ts';
 
 interface FolderScope {
     dataRoot: string;
@@ -94,11 +94,11 @@ export async function answerRepoFolderOperation(
 
 export async function inspectRepoFolder(path: string) {
     if (!existsSync(path)) {
-        throw new WorkerCheckoutError(`${path} does not exist on this Computer.`);
+        throw new RepoCheckoutError(`${path} does not exist on this Computer.`);
     }
     const top = await gitOutput(['rev-parse', '--show-toplevel'], path);
     if (top === null) {
-        throw new WorkerCheckoutError(`${path} is not a git checkout.`);
+        throw new RepoCheckoutError(`${path} is not a git checkout.`);
     }
     const folder = realpathSync(top);
     const [gitDir, commonDir] = await Promise.all(
@@ -107,17 +107,17 @@ export async function inspectRepoFolder(path: string) {
         )
     );
     if (gitDir && commonDir && resolve(gitDir) !== resolve(commonDir)) {
-        throw new WorkerCheckoutError(
+        throw new RepoCheckoutError(
             `${folder} is a git worktree. Add its main checkout instead.`
         );
     }
     const url = await readOrigin(folder);
     if (url === null) {
-        throw new WorkerCheckoutError(`${folder} has no origin remote.`);
+        throw new RepoCheckoutError(`${folder} has no origin remote.`);
     }
     const repository = githubRepositoryOfRemote(url);
     if (repository === null) {
-        throw new WorkerCheckoutError(`${folder}'s origin ${url} is not a repo on github.com.`);
+        throw new RepoCheckoutError(`${folder}'s origin ${url} is not a repo on github.com.`);
     }
     return { path: folder, repository };
 }

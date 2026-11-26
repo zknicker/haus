@@ -4,7 +4,7 @@ import { legacyRoots } from './drive-migration/drive-sources.ts';
 import { hasDriveSeedReceipt } from './drive-migration/prepare-agent-drive.ts';
 import { driveFolderLayout } from './drive/folder-state.ts';
 import { settleDriveFolder } from './drive/turn-sync.ts';
-import { removeTree } from './workers/computer/remove-tree.ts';
+import { removeTree } from './remove-tree.ts';
 import {
     ensureAgentWorkspace,
     exists,

@@ -1,7 +1,7 @@
 import { basename, dirname } from 'node:path';
 import { agentCheckoutText, checkoutAgentWorktree } from '../repos/agent-worktrees.ts';
 import { githubAppGit } from '../repos/github-git.ts';
-import { WorkerCheckoutError } from '../workers/computer/git.ts';
+import { RepoCheckoutError } from '../repos/git.ts';
 import { type OperationRunner, stoppedOutcome, textResult } from './operation.ts';
 
 export function createRepoCheckoutRunner(agentsRoot: string) {
@@ -37,7 +37,7 @@ export function createRepoCheckoutRunner(agentsRoot: string) {
                     `Stopped before the worktree of ${operation.repository} was ready.`
                 );
             }
-            if (cause instanceof WorkerCheckoutError) {
+            if (cause instanceof RepoCheckoutError) {
                 return textResult('failed', cause.message);
             }
             throw cause;

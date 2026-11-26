@@ -1,22 +1,4 @@
-import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { unavailableCloudAgentProvider } from './workers/provider.ts';
-import { setCloudAgentProvider } from './workers/registry.ts';
-
-const restores: Array<() => void> = [];
-
-// A report reads Cloud Agent readiness, which must not reach this machine's own logins.
-beforeEach(() => {
-    restores.push(
-        setCloudAgentProvider(unavailableCloudAgentProvider('claude')),
-        setCloudAgentProvider(unavailableCloudAgentProvider('cursor'))
-    );
-});
-
-afterEach(() => {
-    while (restores.length > 0) {
-        restores.pop()?.();
-    }
-});
+import { expect, test } from 'bun:test';
 
 test('Computer publishes sanitized runtime issues in its existing inventory report', async () => {
     const { mkdtemp, rm } = await import('node:fs/promises');

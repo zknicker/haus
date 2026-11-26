@@ -3,7 +3,6 @@ import { validateEmbeddedAgentDesktop } from './desktop/agent-desktop-binary.ts'
 import { validateMcpExecutor } from './mcp-executor-release.ts';
 import { runGitCredentialHelper } from './repos/git-credential-helper.ts';
 import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
-import { runWorkerCli } from './worker-cli/worker-cli.ts';
 
 export async function runInternalCommand(args: string[]): Promise<boolean> {
     switch (args[0]) {
@@ -19,9 +18,6 @@ export async function runInternalCommand(args: string[]): Promise<boolean> {
                 writeErr: (text) => process.stderr.write(text),
                 writeOut: (text) => process.stdout.write(text),
             });
-            return true;
-        case '__worker':
-            process.exitCode = await runWorkerCli(args.slice(1));
             return true;
         case '__release-check':
             validateComputerRuntimeAssets();

@@ -3,10 +3,10 @@ import {
     type GithubAppGit,
     githubGitArgs,
     githubGitRefusalPrefix,
-} from '../../repos/github-git.ts';
+} from './github-git.ts';
 
-export class WorkerCheckoutError extends Error {
-    override readonly name = 'WorkerCheckoutError';
+export class RepoCheckoutError extends Error {
+    override readonly name = 'RepoCheckoutError';
 }
 
 export type GitCredentials = 'machine' | 'none' | GithubAppGit;
@@ -32,7 +32,7 @@ export async function runGit(args: readonly string[], options: GitOptions) {
             return stdout.trim();
         }
         if (!(lockError.test(stderr) && attempt < lockAttempts) || options.signal?.aborted) {
-            throw new WorkerCheckoutError(`Could not ${options.action}: ${failureLine(stderr)}`);
+            throw new RepoCheckoutError(`Could not ${options.action}: ${failureLine(stderr)}`);
         }
         await Bun.sleep(lockBackoffMs * attempt);
     }
@@ -54,7 +54,7 @@ export async function gitOutput(
     try {
         return await runGit(args, { action: `run git ${args[0]}`, credentials, cwd });
     } catch (cause) {
-        if (cause instanceof WorkerCheckoutError) {
+        if (cause instanceof RepoCheckoutError) {
             return null;
         }
         throw cause;

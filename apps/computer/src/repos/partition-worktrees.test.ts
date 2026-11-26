@@ -4,9 +4,6 @@ import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { purgeRetiredAgent } from '../agent-retirement.ts';
 import { pendingPurgeMarker, purgeServerPartition } from '../server-partition-purge.ts';
-import { addWorkerWorktree } from '../workers/computer/checkout.ts';
-import { worktreePath } from '../workers/computer/layout.ts';
-import { resolveWorkerRepo } from '../workers/computer/repos.ts';
 import { checkoutAgentWorktree } from './agent-worktrees.ts';
 import { githubAppGit } from './github-git.ts';
 import { git, registerRepoFixture } from './repo.fixture.ts';
@@ -20,16 +17,7 @@ describe('worktrees when a Server or an Agent goes', () => {
         const fixture = repos();
         const { dataRoot } = fixture;
         const person = fixture.folder();
-        const clone = await resolveWorkerRepo(
-            { checkoutPath: null, repository: 'acme/app' },
-            { dataRoot, remoteUrl: fixture.remoteUrl, serverId }
-        );
-        await addWorkerWorktree({
-            branch: 'haus/wrk_1/a',
-            folder: clone,
-            path: worktreePath(dataRoot, serverId, 'wrk_1', 'acme/app'),
-            startingRef: null,
-        });
+        const clone = fixture.folder(join(dataRoot, 'servers', serverId, 'repos', 'acme', 'app'));
         const kept = (
             await checkoutAgentWorktree({
                 agentId,

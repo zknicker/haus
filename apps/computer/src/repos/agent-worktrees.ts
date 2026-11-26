@@ -1,9 +1,9 @@
 import { existsSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { agentRepoBranch, agentWorktreeIdleMs } from '@haus/api';
-import { type GitCredentials, runGit, WorkerCheckoutError } from '../workers/computer/git.ts';
-import { worktreePath, worktreesRoot } from '../workers/computer/layout.ts';
-import { verifyRepoFolder } from '../workers/computer/repos.ts';
+import { type GitCredentials, runGit, RepoCheckoutError } from './git.ts';
+import { worktreePath, worktreesRoot } from './layout.ts';
+import { verifyRepoFolder } from './repo-clones.ts';
 import { withAgentCleanup } from './agent-use.ts';
 import { type GithubAppGit, githubAppGit } from './github-git.ts';
 import {
@@ -44,7 +44,7 @@ export async function checkoutAgentWorktree(input: AgentCheckout) {
     const branch = agentRepoBranch(input.agentId, input.repository);
     const existing = existsSync(join(path, '.git'));
     if (existing && (await worktreeGitDirs(path)) === null) {
-        throw new WorkerCheckoutError(
+        throw new RepoCheckoutError(
             `The worktree at ${path} no longer belongs to ${input.folder}. Move any work out of it and delete it, then check out again.`
         );
     }
@@ -185,7 +185,7 @@ async function resetAgentWorktree(
 ) {
     return await withFolderLock(input.folder, async () => {
         if (await hasLocalWork(input.path)) {
-            throw new WorkerCheckoutError(
+            throw new RepoCheckoutError(
                 `${input.path} has uncommitted or unpushed work on ${input.branch}, so it was not moved to ${input.ref}. Commit and push it first, or check out without --ref.`
             );
         }
