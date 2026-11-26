@@ -1,8 +1,16 @@
 -- ADR 0062 step 5b: one shared Captain chat per Captain replaces Captain DMs, Captains get a human
 -- owner, inbox rows carry a Task delivery mode, crew reports are chatless inbox items, and crew
--- Tasks may name a repo and ref. Inbox rows addressed 'dm' become 'task_chat' in Task chats and
--- are deleted elsewhere. The one-off script retires old Captain DMs before this runs, so the
--- narrowed chats_shape holds.
+-- Tasks may name a repo and ref. Old Captain DMs (kind 'dm' with dm_agent_id) are dropped first,
+-- with the reminders and Triggers anchored in them; messages, claims, inbox rows, follows and reads
+-- cascade. Inbox rows still addressed 'dm' become 'task_chat' in Task chats and are deleted
+-- elsewhere. SET CONSTRAINTS ALL IMMEDIATE flushes the deletes' pending trigger events before the
+-- ALTERs.
+DELETE FROM "reminder_agent_attention" WHERE ("server_id", "anchor_chat_id") IN (SELECT "server_id", "id" FROM "chats" WHERE "kind" = 'dm' AND "dm_agent_id" IS NOT NULL);--> statement-breakpoint
+DELETE FROM "reminders" WHERE ("server_id", "anchor_chat_id") IN (SELECT "server_id", "id" FROM "chats" WHERE "kind" = 'dm' AND "dm_agent_id" IS NOT NULL) OR ("server_id", "anchor_message_id") IN (SELECT "message"."server_id", "message"."id" FROM "chat_messages" "message" JOIN "chats" "chat" ON "chat"."server_id" = "message"."server_id" AND "chat"."id" = "message"."chat_id" WHERE "chat"."kind" = 'dm' AND "chat"."dm_agent_id" IS NOT NULL);--> statement-breakpoint
+DELETE FROM "triggers" WHERE ("server_id", "anchor_chat_id") IN (SELECT "server_id", "id" FROM "chats" WHERE "kind" = 'dm' AND "dm_agent_id" IS NOT NULL);--> statement-breakpoint
+DELETE FROM "chats" WHERE "kind" = 'dm' AND "dm_agent_id" IS NOT NULL;--> statement-breakpoint
+SET CONSTRAINTS ALL IMMEDIATE;--> statement-breakpoint
+SET CONSTRAINTS ALL DEFERRED;--> statement-breakpoint
 CREATE TABLE "captain_chat_members" (
 	"chat_id" text NOT NULL,
 	"chat_kind" text DEFAULT 'captain' NOT NULL,
