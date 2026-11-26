@@ -143,6 +143,7 @@ test('a crew Task reads the Haus and Project rules and its Captain’s WORKER.md
             rulePaths: [hausRules, projectRules, workerRules],
             task: {
                 captainHandle: 'blippy',
+                driveFolders: ['agents/blippy/reports/k3mq7xta'],
                 issues: [],
                 repo: null,
                 shortId: 'k3mq7xta',

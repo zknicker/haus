@@ -3,6 +3,7 @@ import {
     agentTaskListQuerySchema,
     agentTaskShowQuerySchema,
     type Task,
+    taskReplayQuerySchema,
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -13,8 +14,11 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
+import { registerTaskCredentialScope } from '../tasks/task-credential-scope.ts';
+import { TaskInvariantError } from '../tasks/task-errors.ts';
 import { findTaskByRef, getTask, listTasks } from '../tasks/task-list.ts';
 import { readProjectByKey } from '../tasks/task-project.ts';
+import { readTaskReplay } from '../tasks/task-replay.ts';
 import { announceTaskSessions, type TaskSessionWire } from '../tasks/task-session.ts';
 import type { TaskWriteResult } from '../tasks/task-write-result.ts';
 import { registerAgentTaskMessageRoutes } from './task-message-routes.ts';
@@ -50,6 +54,7 @@ export function registerAgentTaskRoutes(
         await postCommitWork.wakeAgents(agentDelivery, result.wakes);
         return await taskRow(db, runner, result.task);
     };
+    registerTaskCredentialScope(app, db);
     registerAgentTaskPlaceRoutes(app, { agentDelivery, catalog: options.catalog, commit, db });
     registerAgentTaskMessageRoutes(app, options);
 
@@ -73,6 +78,19 @@ export function registerAgentTaskRoutes(
                 ...(await toAgentTaskRefs(db, detail)),
                 task: await taskRow(db, runner, detail),
             };
+        }
+    );
+
+    agentTaskRead(
+        app,
+        db,
+        { path: '/api/agent/tasks/replay', query: taskReplayQuerySchema },
+        async (runner, { before }) => {
+            const replay = await readTaskReplay(db, { ...runner, before });
+            if (!replay) {
+                throw new TaskInvariantError('Only a Task agent rereads its own chat.');
+            }
+            return replay;
         }
     );
 }

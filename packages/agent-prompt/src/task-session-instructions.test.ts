@@ -10,6 +10,11 @@ const base = {
 };
 const task = {
     captainHandle: 'orbit',
+    driveFolders: [
+        'agents/orbit/reports/k3mq7xta',
+        'agents/orbit/renders/k3mq7xta',
+        'agents/orbit/handoffs/k3mq7xta',
+    ],
     issues: [],
     repo: { name: 'haus/haus', ref: 'main' },
     shortId: 'k3mq7xta',
@@ -24,7 +29,10 @@ test('a crew Task works in its one chat and reports the turns its Captain direct
     expect(prompt).toContain('Post there with `haus message send --target task:k3mq7xta`');
     expect(prompt).toContain('End every commit with `Haus-Task: k3mq7xta`.');
     expect(prompt).toContain(
-        'Start by checking out haus/haus: `haus repo checkout haus/haus --ref main`.'
+        'Haus checks out haus/haus at main for you when your session starts; your first input says where.'
+    );
+    expect(prompt).toContain(
+        'Put deliverables in Drive with `haus drive write <path> < file` under `agents/orbit/reports/k3mq7xta/`, `agents/orbit/renders/k3mq7xta/`, `agents/orbit/handoffs/k3mq7xta/`, and cite the link it prints.'
     );
     expect(prompt).toContain(
         'End each turn your Captain directed (its brief, or its `haus task send`) with a report; a turn a person drove needs one only when it failed or needs your Captain.'
@@ -37,14 +45,20 @@ test('a crew Task works in its one chat and reports the turns its Captain direct
 test('a Task a person started reports to its starter and has no Captain', () => {
     const prompt = renderTaskInstructions({
         ...base,
-        task: { ...task, captainHandle: null, repo: null },
+        task: {
+            ...task,
+            captainHandle: null,
+            driveFolders: ['projects/GEN/tasks/k3mq7xta'],
+            repo: null,
+        },
     });
     expect(prompt).toContain(
         'A person started you; their first message in your chat is your brief.'
     );
     expect(prompt).toContain('Report when you finish or need your starter.');
+    expect(prompt).toContain('under `projects/GEN/tasks/k3mq7xta/`');
     expect(prompt).not.toContain('Captain');
-    expect(prompt).not.toContain('Start by checking out');
+    expect(prompt).not.toContain('Haus checks out');
 });
 
 test('a Task working an Issue carries its code, title and description, and its trailer', () => {
@@ -61,5 +75,5 @@ test('a Task working an Issue carries its code, title and description, and its t
 });
 
 test('keeps the Task prompt within its reviewed size budget', () => {
-    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2413);
+    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2658);
 });

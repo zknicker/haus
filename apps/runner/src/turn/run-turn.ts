@@ -22,6 +22,7 @@ import { createRunActivity } from './run-activity.ts';
 import type { runRecords } from './run-records.ts';
 import { harnessFor, type RuntimeDriverFactory, type RuntimeTurn } from './runtime-driver.ts';
 import { readAgentSession, resolveTurnSession, writeAgentSession } from './session-file.ts';
+import { composeTaskOpening } from './task-opening.ts';
 import type { RuntimeTokenUsage } from './turn-event.ts';
 import { TurnStalledError } from './turn-failure.ts';
 import { composeTurnInput } from './turn-input.ts';
@@ -156,6 +157,9 @@ export async function runTurn(input: RunTurnInput) {
         await unknown.read()
     );
     await attestComposedDrain(input, turnInput.drained);
+    const opening = live.isResume
+        ? null
+        : await composeTaskOpening({ ...input, policy: context.policy });
     const noProgress = new AbortController();
     const turnSignal = AbortSignal.any([input.signal, noProgress.signal]);
     let turn: RuntimeTurn;
@@ -166,7 +170,9 @@ export async function runTurn(input: RunTurnInput) {
                 memoryBlock: memory.block,
                 rulesBlock: rules.block,
                 skillNotice: context.skillNotice,
-                turnContent: turnInput.turnContent,
+                turnContent: opening
+                    ? `${opening}\n\n${turnInput.turnContent}`
+                    : turnInput.turnContent,
             }),
             signal: turnSignal,
         });

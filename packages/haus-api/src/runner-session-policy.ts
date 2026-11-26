@@ -15,13 +15,15 @@ export const runnerSessionPolicySchema = z
         /** The Drive rule files the turn carries, outermost first. */
         rulePaths: z.array(z.string().min(1).max(512)).max(8),
         /**
-         * A Task session's own facts for its instructions: who started it, its linked Issues and
-         * the repo it checks out first. Null for a Captain.
+         * A Task session's own facts for its instructions: who started it, its Drive folders, its
+         * linked Issues and the repo Haus checks out for it. Null for a Captain.
          */
         task: z
             .object({
                 /** The crew Task's Captain; null for a Task a person started. */
                 captainHandle: z.string().min(1).max(64).nullable(),
+                /** The Drive folders `haus drive write` accepts from this Task. */
+                driveFolders: z.array(z.string().min(1).max(512)).min(1).max(3),
                 issues: z
                     .array(
                         z

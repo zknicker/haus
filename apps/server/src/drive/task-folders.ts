@@ -8,11 +8,6 @@ import { agentsTable, projectsTable, taskKeysTable, tasksTable } from '../postgr
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/**
- * The folders a Task agent writes (specs/tasks.md#drive): a crew Task's reports, renders and
- * handoffs under its Captain's area, or a person's Task's own folder in its Project. Null when
- * the writer is not a Task agent.
- */
 export async function readTaskDriveFolders(
     db: Reader,
     access: Pick<ArtifactAccess, 'agentId' | 'serverId'>
@@ -54,12 +49,19 @@ export async function readTaskDriveFolders(
     if (!task) {
         return null;
     }
-    const folders = task.captainHandle
+    return { folders: taskDriveFolders(task), taskId: task.id };
+}
+
+export function taskDriveFolders(task: {
+    captainHandle: string | null;
+    projectKey: string | null;
+    shortId: string;
+}) {
+    return task.captainHandle
         ? ['reports', 'renders', 'handoffs'].map(
               (kind) => `agents/${task.captainHandle}/${kind}/${task.shortId}`
           )
         : [`projects/${task.projectKey}/tasks/${task.shortId}`];
-    return { folders, taskId: task.id };
 }
 
 export function requireTaskDriveFolder(folders: readonly string[], path: string) {
