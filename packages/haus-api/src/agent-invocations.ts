@@ -227,6 +227,7 @@ export const invokeCommandSchema = z
     .object({
         agentId: idSchema,
         invocationId: idSchema,
+        notAfter: z.iso.datetime({ offset: true }),
         operation: invocationOperationSchema,
         runId: idSchema,
         timeoutMs: z.number().int().positive().max(invocationTimeoutsMs.bash.max),
@@ -236,7 +237,11 @@ export const invokeCommandSchema = z
 export type InvokeCommand = z.infer<typeof invokeCommandSchema>;
 
 export const invokeCancelCommandSchema = z
-    .object({ invocationId: idSchema, type: z.literal('invoke-cancel') })
+    .object({
+        dropIfNotStarted: z.literal(true).optional(),
+        invocationId: idSchema,
+        type: z.literal('invoke-cancel'),
+    })
     .strict();
 export type InvokeCancelCommand = z.infer<typeof invokeCancelCommandSchema>;
 

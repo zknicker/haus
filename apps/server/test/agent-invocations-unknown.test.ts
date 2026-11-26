@@ -128,6 +128,11 @@ test('a connected Computer that answers past the window leaves the invocation un
         truncated: false,
         type: 'invocation-result',
     });
+    expect(await computer.next(frameOfType('invoke-cancel', { invocationId }))).toEqual({
+        dropIfNotStarted: true,
+        invocationId,
+        type: 'invoke-cancel',
+    });
 
     computer.send({
         exitCode: 0,

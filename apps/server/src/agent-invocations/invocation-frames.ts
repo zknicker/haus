@@ -2,8 +2,11 @@ import {
     type DispatchKey,
     type InvocationOperation,
     type InvocationOutcome,
+    type InvocationRequestFrame,
     type InvocationResultFrame,
+    type InvokeCommand,
     type InvokeResult,
+    invocationGraceMs,
     invocationOutcomeNotices,
     invocationTimeoutsMs,
 } from '@haus/api';
@@ -14,6 +17,29 @@ type AnswerKey = DispatchKey & { agentId: string };
 export function clampTimeoutMs(operation: InvocationOperation, requestedMs: number | undefined) {
     const limits = invocationTimeoutsMs[operation.kind];
     return Math.min(requestedMs ?? limits.default, limits.max);
+}
+
+export function invokeCommand(
+    frame: Pick<InvocationRequestFrame, 'agentId' | 'runId'>,
+    input: {
+        invocationId: string;
+        operation: InvocationOperation;
+        requestedAt: Date;
+        timeoutMs: number;
+    }
+) {
+    const command: InvokeCommand = {
+        agentId: frame.agentId,
+        invocationId: input.invocationId,
+        notAfter: new Date(
+            input.requestedAt.getTime() + input.timeoutMs + invocationGraceMs
+        ).toISOString(),
+        operation: input.operation,
+        runId: frame.runId,
+        timeoutMs: input.timeoutMs,
+        type: 'invoke',
+    };
+    return command;
 }
 
 export function noticeAnswer(

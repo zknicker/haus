@@ -245,8 +245,10 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
 
 7. **Every tool invocation has an id.** The Computer records a call as accepted before running it,
    and keeps its result in a ledger, so a call whose acknowledgement was lost never runs twice. A
-   crash mid-command leaves the outcome "unknown", and Haus never reruns it on its own. Commands
-   have timeouts, cancellation and output limits.
+   crash mid-command leaves the outcome "unknown", and Haus never reruns it on its own. A call
+   that has not started by the time Haus may answer "unknown" never starts: each call carries a
+   start deadline, and the expiry cancels a call still waiting. Commands have timeouts,
+   cancellation and output limits.
 
 8. **The Server holds the Agent's model logins, configured in the App.** A person connects them in
    Settings → Models: a Claude plan by pasting a setup-token, ChatGPT and SuperGrok plans by

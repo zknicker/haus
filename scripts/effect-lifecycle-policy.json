@@ -355,7 +355,7 @@
             "disposition": "finite-cleanup",
             "reason": "One AbortController per active invocation carries cancel; the active entry is removed in finally after the finished record is durable, and every frame's work is tracked until settled().",
             "risks": {
-                "abortController": 3,
+                "abortController": 2,
                 "catchAndIgnore": 0,
                 "finallyBlock": 1,
                 "manualPromise": 0,

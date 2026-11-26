@@ -23,6 +23,7 @@ export async function executeInvocation(
         logPath: string;
         payloads: InvocationPayloads;
         runners: OperationRunners;
+        start: () => boolean;
     }
 ) {
     const { operation } = command;
@@ -37,6 +38,9 @@ export async function executeInvocation(
             operation.kind === 'bash' ? operation.cwd : undefined
         );
         result = await withAgentUse(command.agentId, async () => {
+            if (!input.start()) {
+                return notStartedResult;
+            }
             const ran = await runOperation(input.runners, operation, {
                 agentId: command.agentId,
                 cwd,
@@ -68,8 +72,10 @@ export async function executeInvocation(
     });
 }
 
+const notStartedResult = textResult('cancelled', 'Cancelled before it started.');
+
 export function cancelledBeforeStart(invocationId: string) {
-    return invokeResult(invocationId, textResult('cancelled', 'Cancelled before it started.'));
+    return invokeResult(invocationId, notStartedResult);
 }
 
 function invokeResult(invocationId: string, result: OperationResult) {

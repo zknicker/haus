@@ -53,6 +53,20 @@ export function stopDesktopCommands(
     return stopped;
 }
 
+export function dropUnstarted(
+    computers: Pick<ComputerConnections, 'send'>,
+    invocationId: string,
+    invocation: OpenInvocation | undefined
+) {
+    if (invocation) {
+        computers.send(invocation.computerId, {
+            dropIfNotStarted: true,
+            invocationId,
+            type: 'invoke-cancel',
+        });
+    }
+}
+
 export function stoppedResult(invocationId: string) {
     const result: InvokeResult = {
         invocationId,
