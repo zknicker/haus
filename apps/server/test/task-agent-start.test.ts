@@ -56,6 +56,64 @@ beforeAll(async () => {
     await bea.trpc.invitation.accept.mutate({ token });
 });
 
+describe('a person starts a Task', () => {
+    test('the prompt is its first message and first turn, and the person is its starter', async () => {
+        const request = {
+            computerId: fixture.computerId,
+            model: 'gpt-5.6-sol',
+            projectId: fixture.channelId,
+            prompt: 'Find why the nightly export is slow',
+            requestId: 'req-person-start',
+            serverId: fixture.serverId,
+        };
+        const { task } = await fixture.owner.trpc.task.start.mutate(request);
+        expect(task).toMatchObject({
+            captainId: null,
+            computerId: fixture.computerId,
+            createdBy: { kind: 'user', userId: fixture.ownerUserId },
+            title: 'Find why the nightly export is slow',
+            titleCustom: false,
+        });
+        expect((await fixture.owner.trpc.task.start.mutate(request)).task.id).toBe(task.id);
+        const page = await fixture.owner.trpc.chat.messages.query({
+            chatId: task.chatId ?? '',
+            serverId: fixture.serverId,
+        });
+        expect(page.messages.map((message) => message.content)).toEqual([request.prompt]);
+        expect(
+            await fixture.harness.sql`
+                select source, state from agent_inbox where agent_id = ${task.agentId}
+            `
+        ).toEqual([{ source: 'human', state: 'queued' }]);
+        const detail = await fixture.owner.trpc.task.get.query({
+            serverId: fixture.serverId,
+            taskId: task.id,
+        });
+        expect(detail.followed).toBe(true);
+    });
+
+    test('a person’s Task needs a Machine they attached or one open to All Captains', async () => {
+        await fixture.harness.sql`
+            update computers set attached_by_user_id = ${await fixture.readUserId('user_task_start_bea')}
+            where id = ${fixture.computerId}
+        `;
+        await expect(
+            fixture.owner.trpc.task.start.mutate({
+                computerId: fixture.computerId,
+                model: 'gpt-5.6-sol',
+                projectId: fixture.channelId,
+                prompt: 'Not on my Machine',
+                requestId: 'req-person-refused',
+                serverId: fixture.serverId,
+            })
+        ).rejects.toThrow('Machine you attached');
+        await fixture.harness.sql`
+            update computers set attached_by_user_id = ${fixture.ownerUserId}
+            where id = ${fixture.computerId}
+        `;
+    });
+});
+
 describe('a Captain starts crew', () => {
     test('one start makes the Task, its chat and its hidden agent, posts the brief and queues it', async () => {
         const origin = await fixture.owner.trpc.chat.send.mutate({
