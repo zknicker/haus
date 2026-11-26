@@ -5,10 +5,7 @@ import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentInboxTable, agentsTable, projectsTable } from '../src/postgres/schema.ts';
-import {
-    encodeTaskAssignment,
-    taskAssignmentKey,
-} from '../src/tasks/task-assignment-envelope.ts';
+import { encodeTaskAssignment, taskAssignmentKey } from '../src/tasks/task-assignment-envelope.ts';
 import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
 import { randomShortId } from '../src/tasks/task-short-id.ts';
 import { testAgentHome } from './agent-home.ts';

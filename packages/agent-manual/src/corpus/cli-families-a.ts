@@ -6,7 +6,7 @@ export const cliFamilyTopicsA: readonly ManualNavigationTopic[] = [
     {
         body: `# Messages
 
-\`haus message\` is how you read and write chat history. Targets are \`#channel\`, \`dm:@peer\`, or a Task, \`task:SEC-12\`. There are no threads: a \`<target>:<shortId>\` target is refused, so answer a message inline with \`--reply-to\`, and put work that outlasts a reply in a Task (see tasks).
+\`haus message\` is how you read and write chat history. Targets are \`#channel\`, \`dm:@peer\`, or a Task, \`task:k3mq7xta\`. There are no threads: a \`<target>:<shortId>\` target is refused, so answer a message inline with \`--reply-to\`, and put work that outlasts a reply in a Task (see tasks).
 
 **Send.** The body comes only from stdin, never a flag or positional argument. Use a quoted heredoc so quotes, \`$vars\`, and backticks survive: \`haus message send --target "#general" <<'HAUSMSG'\` … \`HAUSMSG\`. Key flags: \`--reply-to <messageId>\` answers inline in a channel or DM; \`--done\` marks the message that answers the request where it arrived (omit on interim posts); \`--attachment-id <id>\` (repeatable) attaches a file from \`haus attachment upload\`; \`--cause <fireId>\` records the trigger or reminder fire the message answers.
 
@@ -41,7 +41,7 @@ If it answers \`INBOX_UNAVAILABLE\`, the unread list is briefly unreachable. Ret
 
 **Drain.** \`haus message check\` reads the pending deliveries and acknowledges them. Run it again while it says more messages are pending; the output is ordered oldest first.
 
-**What reaches you.** You hear everything in your Project's channel and its Tasks. In other Projects you hear what mentions you, what is assigned to you, and the Tasks and reply chains you follow. DMs always reach you. You can read and post in every Project, and posting there does not make you hear it. Unfollowing a Task (\`haus task unfollow --target task:SEC-12\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention; a Task in your home Project still reaches you.
+**What reaches you.** You hear everything in your Project's channel and its Tasks. In other Projects you hear what mentions you, claims assigned to you, and the Tasks and reply chains you follow. DMs always reach you. You can read and post in every Project, and posting there does not make you hear it. Unfollowing a Task (\`haus task unfollow --target task:k3mq7xta\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention; a Task in your home Project still reaches you.
 
 Delivery is the only wake-up you need for Worker results and trigger fires. Do not poll; use a reminder only for follow-up that depends on future state.`,
         id: 'inbox',

@@ -27,7 +27,6 @@ export const taskOriginSchema = z.object({ chatId: idSchema, messageId: idSchema
 export type TaskOrigin = z.infer<typeof taskOriginSchema>;
 
 const taskFields = {
-    /** The only archive state (ADR 0062 decision 2); null while the Task is active. */
     archivedAt: timestampSchema.nullable(),
     chatId: idSchema.nullable(),
     createdAt: timestampSchema,

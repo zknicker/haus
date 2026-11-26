@@ -91,7 +91,11 @@ test('a start records the Worker and its brief, posts no Message, and dispatches
 });
 
 test('the Haus Worker instructions name the Task trailer and the final lines, within their cap', () => {
-    const text = workerInstructions({ agentHandle: 'forge', place: 'cloud', taskShortId: 'k3mq7xta' });
+    const text = workerInstructions({
+        agentHandle: 'forge',
+        place: 'cloud',
+        taskShortId: 'k3mq7xta',
+    });
     expect(text.length).toBeLessThanOrEqual(workerInstructionsMaxLength);
     expect(text).toContain('`Haus-Task: k3mq7xta`');
     expect(text).toContain('Haus-Outcome: done, needs-you, or failed');

@@ -167,11 +167,9 @@ test('a Task that @mentions you in an unread message waits on you and sorts firs
         task('t2', 'sec00002', '2026-11-18T09:00:00.000Z', 'c2'),
         task('t3', 'eng00003', '2026-11-18T11:00:00.000Z', 'c3'),
     ];
-    expect(openTaskSlots(tasks, waitingChatIds(previews, 'zach')).map((slot) => slot.shortId)).toEqual([
-        'sec00002',
-        'eng00001',
-        'eng00003',
-    ]);
+    expect(
+        openTaskSlots(tasks, waitingChatIds(previews, 'zach')).map((slot) => slot.shortId)
+    ).toEqual(['sec00002', 'eng00001', 'eng00003']);
     const waiting = openTaskRow({
         task: tasks[1] as Task,
         unread: taskUnread(previews[0], 'zach'),

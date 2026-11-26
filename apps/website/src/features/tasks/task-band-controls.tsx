@@ -33,7 +33,11 @@ export function TaskBandControls({
     const isHistory = task.chatId === null;
     return (
         <>
-            {isHistory ? <TaskStateText state={taskStateOf(task)} /> : <TaskStateSelect task={task} />}
+            {isHistory ? (
+                <TaskStateText state={taskStateOf(task)} />
+            ) : (
+                <TaskStateSelect task={task} />
+            )}
             {detailsInBand && !isHistory ? <DetailsButton task={task} /> : null}
             {isHistory ? null : <FollowButton task={task} />}
             <Tooltip>

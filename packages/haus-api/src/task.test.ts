@@ -25,7 +25,14 @@ const task: Task = {
 test('a short id is 8 lowercase Crockford base32 characters', () => {
     expect(isTaskShortId('k3mq7xta')).toBe(true);
     expect(isTaskShortId('0123abcz')).toBe(true);
-    for (const shortId of ['K3MQ7XTA', 'k3mq7xt', 'k3mq7xtaa', 'k3mq7xti', 'k3mq7xtl', 'k3mq7xto']) {
+    for (const shortId of [
+        'K3MQ7XTA',
+        'k3mq7xt',
+        'k3mq7xtaa',
+        'k3mq7xti',
+        'k3mq7xtl',
+        'k3mq7xto',
+    ]) {
         expect(isTaskShortId(shortId)).toBe(false);
         expect(taskShortIdSchema.safeParse(shortId).success).toBe(false);
     }

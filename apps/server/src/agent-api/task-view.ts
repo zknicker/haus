@@ -1,11 +1,7 @@
 import type { HausApiSchema, Task, TaskActor, TaskDetail } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    remindersTable,
-    serverMembershipsTable,
-} from '../postgres/schema.ts';
+import { agentsTable, remindersTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { targetForChat } from './message-view.ts';
 
 type AgentTaskRow = HausApiSchema<'AgentTaskRow'>;

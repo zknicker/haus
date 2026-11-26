@@ -4,10 +4,6 @@ import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { tasksTable } from '../postgres/schema.ts';
 
-/**
- * A short id no Task on the Server holds. The caller holds the Server row lock,
- * so a free candidate stays free until its insert; a taken one is minted again.
- */
 export async function mintTaskShortId(tx: Pick<HausDatabase, 'select'>, serverId: string) {
     for (;;) {
         const candidate = randomShortId();

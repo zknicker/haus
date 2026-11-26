@@ -7,8 +7,5 @@ export const createTaskProcedure = taskProcedure
     .input(taskCreateInputSchema)
     .output(taskMutationResultSchema)
     .mutation(async ({ ctx, input }) =>
-        commitTaskWrite(
-            ctx,
-            await createTask(ctx.hausDb, memberTaskActor(ctx.member), input)
-        )
+        commitTaskWrite(ctx, await createTask(ctx.hausDb, memberTaskActor(ctx.member), input))
     );

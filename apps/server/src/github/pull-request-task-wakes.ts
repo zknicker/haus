@@ -7,11 +7,6 @@ export interface UnworkedTaskWake {
     chatId: string;
 }
 
-/**
- * The active Task that attached the pull request first, when no Worker carries
- * it: its starting Agent hears the change on that Task, once however many
- * Tasks share the pull request (specs/tasks.md, pull requests).
- */
 export async function readUnworkedTaskWakes(
     db: Pick<HausDatabase, 'select'>,
     pull: { number: number; repository: string; serverId: string }

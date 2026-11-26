@@ -6,7 +6,6 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 import { tabIntentState } from '../desktop-tabs/tab-navigation.ts';
 import { currentOpenGesture } from '../desktop-tabs/tab-open-gesture.ts';
 
-/** Opens a Task's page, `/tasks/<shortId>`, reading the short id when the caller has only the id. */
 export function useOpenTaskReference(serverId: string) {
     const navigate = useNavigate();
     const { slug = '' } = useParams();

@@ -10,18 +10,13 @@ import { cancelTaskReminders } from './task-close-reminders.ts';
 import { requireTaskPlace, requireTaskVersion } from './task-errors.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
 import { lockTask, readTask } from './task-read.ts';
-import type { TaskWriteResult } from './task-write-result.ts';
 
-/**
- * `task.archive`: sets `archived_at`, cancels the Task's pending reminders, and
- * closes its Workers. Archiving an archived Task changes nothing.
- */
 export async function archiveTask(
     db: HausDatabase,
     actor: TaskActor,
     agentDelivery: AgentDelivery,
     input: TaskArchiveInput
-): Promise<TaskWriteResult> {
+) {
     return await db.transaction(async (tx) => {
         const current = await lockForArchive(tx, actor, input);
         if (current.archivedAt !== null) {
@@ -49,12 +44,7 @@ export async function archiveTask(
     });
 }
 
-/** `task.unarchive`: clears `archived_at`. Canceled reminders stay canceled. */
-export async function unarchiveTask(
-    db: HausDatabase,
-    actor: TaskActor,
-    input: TaskArchiveInput
-): Promise<TaskWriteResult> {
+export async function unarchiveTask(db: HausDatabase, actor: TaskActor, input: TaskArchiveInput) {
     return await db.transaction(async (tx) => {
         const current = await lockForArchive(tx, actor, input);
         if (current.archivedAt === null) {
@@ -77,11 +67,7 @@ async function lockForArchive(tx: Tx, actor: TaskActor, input: TaskArchiveInput)
     return current;
 }
 
-async function setArchivedAt(
-    tx: Tx,
-    input: TaskArchiveInput,
-    archivedAt: SQL | null
-) {
+async function setArchivedAt(tx: Tx, input: TaskArchiveInput, archivedAt: SQL | null) {
     await tx
         .update(tasksTable)
         .set({ archivedAt, updatedAt: sql`now()`, version: sql`${tasksTable.version} + 1` })

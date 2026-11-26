@@ -10,7 +10,11 @@ const directory: ReferenceDirectory = {
     chatsById: new Map([['cht_ops', { color: 'green', icon: null }]]),
     humans: humanDirectory([]),
 };
-const ops26: TaskLink = { shortId: 'k3mq7xta', taskId: 'tsk_26', text: '[the rollout](task://tsk_26)' };
+const ops26: TaskLink = {
+    shortId: 'k3mq7xta',
+    taskId: 'tsk_26',
+    text: '[the rollout](task://tsk_26)',
+};
 
 /**
  * A Task description as `task.get` returns it for the production text: the

@@ -90,8 +90,9 @@ test('a DM origin starts a Task in the Agent’s home Project, shown only to tha
     expect(await taskChatParent(seen.chatId ?? '')).toBe(fixture.channelId);
     expect((await bea.trpc.task.get.query({ serverId, shortId })).origin).toBeNull();
     expect(
-        (await bea.trpc.task.listActive.query({ serverId })).find((task) => task.shortId === shortId)
-            ?.origin
+        (await bea.trpc.task.listActive.query({ serverId })).find(
+            (task) => task.shortId === shortId
+        )?.origin
     ).toBeNull();
 
     const page = await owner.trpc.chat.messages.query({ chatId: dm.message.chatId, serverId });

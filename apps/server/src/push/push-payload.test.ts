@@ -67,9 +67,9 @@ describe('buildPushPayload', () => {
             taskShortId: 'k3mq7xta',
         });
         expect(pushNotificationPayloadSchema.parse(payload)).toEqual(payload as never);
-        expect(pushNotificationPayloadSchema.safeParse({ ...payload, taskShortId: null }).success).toBe(
-            false
-        );
+        expect(
+            pushNotificationPayloadSchema.safeParse({ ...payload, taskShortId: null }).success
+        ).toBe(false);
         expect(
             pushNotificationPayloadSchema.safeParse({ ...payload, anchorMessageId: 'msg_origin' })
                 .success

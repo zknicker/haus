@@ -114,7 +114,7 @@ test('a refusal from the Server reaches the caller untouched', async () => {
     const { run } = harness(() => {
         throw new AgentCliError('TASK_NOT_FOUND', 'No task is k3mq7xta.');
     });
-    await expect(
-        run(runTaskArchive, args({ positionals: ['k3mq7xta'] }))
-    ).rejects.toMatchObject({ code: 'TASK_NOT_FOUND' });
+    await expect(run(runTaskArchive, args({ positionals: ['k3mq7xta'] }))).rejects.toMatchObject({
+        code: 'TASK_NOT_FOUND',
+    });
 });

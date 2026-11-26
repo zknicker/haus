@@ -2,7 +2,6 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { readTaskByRef } from '../tasks/task-list.ts';
 import { WorkerTaskClosedError, WorkerTaskRequiredError } from './errors.ts';
 
-/** The active Task a Worker starts on, named by its short id or full id. */
 export async function requireOpenWorkerTask(
     db: Pick<HausDatabase, 'select'>,
     runner: { serverId: string },

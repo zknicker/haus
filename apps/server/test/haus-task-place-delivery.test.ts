@@ -217,7 +217,8 @@ test('archiving a Task cancels a pending reminder on it', async () => {
     });
     expect(closed.status).toBe(200);
     expect(
-        await fixture.harness.sql`select status from reminders where title = 'Canceled by archiving'`
+        await fixture.harness
+            .sql`select status from reminders where title = 'Canceled by archiving'`
     ).toEqual([{ status: 'canceled' }]);
 });
 

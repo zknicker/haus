@@ -56,11 +56,7 @@ function TaskDetailView({
                         : 'flex min-h-0 flex-1'
                 }
             >
-                <TaskConversation
-                    chatId={chatId}
-                    origin={task.origin}
-                    title={task.title}
-                />
+                <TaskConversation chatId={chatId} origin={task.origin} title={task.title} />
                 {panelShown ? (
                     <div className="task-rail">
                         <TaskDetailsSection task={task} />

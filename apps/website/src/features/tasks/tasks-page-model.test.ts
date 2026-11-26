@@ -56,12 +56,12 @@ test('the ordered list splits into one run per state, in order', () => {
         task('aaaa0003', '2026-11-03T00:00:00Z'),
         task('aaaa0001', '2026-11-01T00:00:00Z', '2026-11-02T00:00:00Z'),
     ]);
-    expect(
-        groups.map((group) => [group.state, group.tasks.map((entry) => entry.shortId)])
-    ).toEqual([
-        ['active', ['aaaa0005', 'aaaa0003']],
-        ['archived', ['aaaa0001']],
-    ]);
+    expect(groups.map((group) => [group.state, group.tasks.map((entry) => entry.shortId)])).toEqual(
+        [
+            ['active', ['aaaa0005', 'aaaa0003']],
+            ['archived', ['aaaa0001']],
+        ]
+    );
     expect(groupTasksByState([])).toEqual([]);
 });
 

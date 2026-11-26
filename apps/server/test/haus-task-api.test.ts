@@ -172,9 +172,9 @@ describe('reads', () => {
             expect.objectContaining({ chatId: allChatId, messageId: mention.id }),
         ]);
         expect(detail.reminders).toEqual([]);
-        await expect(
-            owner.trpc.task.get.query({ serverId, shortId: 'zzzzzzzz' })
-        ).rejects.toThrow(/zzzzzzzz/);
+        await expect(owner.trpc.task.get.query({ serverId, shortId: 'zzzzzzzz' })).rejects.toThrow(
+            /zzzzzzzz/
+        );
 
         const inProject = await owner.trpc.task.list.query({
             projectId: task.projectId,

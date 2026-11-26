@@ -75,6 +75,8 @@ function useOpenTask(serverId: string, taskId: string) {
         (tasks: Task[]) => tasks.find((task) => task.id === taskId),
         [taskId]
     );
-    return hausTrpc.task.listActive.useQuery({ serverId }, { ...queryPolicy.syncedSnapshot, select })
-        .data;
+    return hausTrpc.task.listActive.useQuery(
+        { serverId },
+        { ...queryPolicy.syncedSnapshot, select }
+    ).data;
 }

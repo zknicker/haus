@@ -40,7 +40,9 @@ function TaskPreviewList({
             {previews.map((preview) => (
                 <TaskPreviewBlock
                     key={preview.taskId}
-                    onOpen={() => void openTask({ shortId: preview.shortId, taskId: preview.taskId })}
+                    onOpen={() =>
+                        void openTask({ shortId: preview.shortId, taskId: preview.taskId })
+                    }
                     preview={preview}
                 />
             ))}

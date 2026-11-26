@@ -98,7 +98,6 @@ export async function postMessage(
     return { id, sequence: chat.sequence };
 }
 
-
 export async function addTask(
     db: HausDatabase,
     seed: Seed,

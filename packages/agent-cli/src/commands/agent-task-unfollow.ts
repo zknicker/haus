@@ -8,7 +8,11 @@ import { taskShortIdArgument } from './agent-command-utils.ts';
 export const TASK_UNFOLLOW_SUBCOMMAND: SubCommand = {
     examples: ['haus task unfollow --target task:k3mq7xta'],
     flags: [
-        { description: 'The Task to stop following', name: '--target', valueName: '<task:shortId>' },
+        {
+            description: 'The Task to stop following',
+            name: '--target',
+            valueName: '<task:shortId>',
+        },
     ],
     name: 'unfollow',
     positionals: [],

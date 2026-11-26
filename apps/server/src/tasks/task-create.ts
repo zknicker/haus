@@ -10,13 +10,8 @@ import { seedTaskFollowers } from './task-follows.ts';
 import { requireFilingProject } from './task-project.ts';
 import { readTask } from './task-read.ts';
 import { mintTaskShortId } from './task-short-id.ts';
-import type { TaskWriteResult } from './task-write-result.ts';
 
-export async function createTask(
-    db: HausDatabase,
-    actor: TaskActor,
-    input: TaskCreateInput
-): Promise<TaskWriteResult> {
+export async function createTask(db: HausDatabase, actor: TaskActor, input: TaskCreateInput) {
     if (actor.kind !== 'user') {
         throw new TaskInvariantError('People file Tasks; an Agent starts one from a Message.');
     }

@@ -152,7 +152,13 @@ test('places lists every place with its access, switch, runtimes, repo folders, 
         task: 'k3mq7xta',
     };
     await runWorkerPlaces(
-        { flags: {}, help: false, positionals: [], valueLists: {}, values: { '--task': 'k3mq7xta' } },
+        {
+            flags: {},
+            help: false,
+            positionals: [],
+            valueLists: {},
+            values: { '--task': 'k3mq7xta' },
+        },
         {
             ...deps(seen, output),
             client: {

@@ -1,4 +1,10 @@
-import { isTaskShortId, type Task, type TaskDetail, type TaskGetInput, type TaskListInput } from '@haus/api';
+import {
+    isTaskShortId,
+    type Task,
+    type TaskDetail,
+    type TaskGetInput,
+    type TaskListInput,
+} from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, tasksTable } from '../postgres/schema.ts';

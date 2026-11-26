@@ -1,6 +1,5 @@
 import type { ClaimStatus } from '../claims/claim-presentation.ts';
 
-/** A Task is active or archived (ADR 0062); `archivedAt` is the only record of it. */
 export type TaskState = 'active' | 'archived';
 
 export const taskStateOrder: readonly TaskState[] = ['active', 'archived'];
@@ -15,8 +14,8 @@ export const taskStateDiscs: Record<TaskState, ClaimStatus> = {
     archived: 'closed',
 };
 
-export function taskStateOf(task: { archivedAt: string | null }): TaskState {
-    return task.archivedAt === null ? 'active' : 'archived';
+export function taskStateOf(task: { archivedAt: string | null }) {
+    return (task.archivedAt === null ? 'active' : 'archived') satisfies TaskState;
 }
 
 export function isTaskState(value: unknown): value is TaskState {

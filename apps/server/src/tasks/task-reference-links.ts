@@ -1,11 +1,7 @@
 import type { TaskLink } from '@haus/api';
 import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    taskMessageLinksTable,
-    taskReminderLinksTable,
-    tasksTable,
-} from '../postgres/schema.ts';
+import { taskMessageLinksTable, taskReminderLinksTable, tasksTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
 import { readTaskReferenceCandidates } from './task-reference-scan.ts';
@@ -65,7 +61,9 @@ async function resolveTaskLinkRows(db: Reader, input: { content: string; serverI
                 or(inArray(tasksTable.id, refs), inArray(tasksTable.shortId, refs))
             )
         );
-    const byRef = new Map(rows.flatMap((row) => [[row.id, row] as const, [row.shortId, row] as const]));
+    const byRef = new Map(
+        rows.flatMap((row) => [[row.id, row] as const, [row.shortId, row] as const])
+    );
     return candidates
         .flatMap((candidate) => {
             const task = byRef.get(candidate.taskId);

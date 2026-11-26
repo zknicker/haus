@@ -17,7 +17,7 @@ export const taskShortIdSchema = z.string().trim().regex(TASK_SHORT_ID_PATTERN, 
 /** A Task as an Agent or URL names it: its short id or its full `tsk_` id. */
 export const taskRefSchema = z.string().trim().min(1).max(128);
 
-export function isTaskShortId(value: string): boolean {
+export function isTaskShortId(value: string) {
     return TASK_SHORT_ID_PATTERN.test(value);
 }
 

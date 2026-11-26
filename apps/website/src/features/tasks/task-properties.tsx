@@ -48,7 +48,6 @@ export function TaskStateSelect({ task }: { task: TaskVersion }) {
     );
 }
 
-/** Archives or unarchives a Task at the version the caller read. */
 export function useChangeTaskState() {
     const archive = useArchiveTask();
     const unarchive = useUnarchiveTask();

@@ -53,9 +53,9 @@ test('archive inputs and Project keys validate their shapes', () => {
 });
 
 test('the Agent Task list filters by scope, archive and Project', () => {
-    expect(agentTaskListQuerySchema.parse({ all: 'true', archived: 'false', project: 'SEC' })).toEqual(
-        { all: true, archived: false, project: 'SEC' }
-    );
+    expect(
+        agentTaskListQuerySchema.parse({ all: 'true', archived: 'false', project: 'SEC' })
+    ).toEqual({ all: true, archived: false, project: 'SEC' });
     expect(agentTaskListQuerySchema.parse({ state: 'open' })).toEqual({});
     expect(agentTaskListQuerySchema.safeParse({ all: 'yes' }).success).toBe(false);
     expect(agentTaskListQuerySchema.safeParse({ project: 'sec' }).success).toBe(false);

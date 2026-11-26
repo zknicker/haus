@@ -60,7 +60,11 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         flags: [
             { description: 'Every Task, not only the ones you started', name: '--all' },
             { description: 'Archived Tasks instead of active ones', name: '--archived' },
-            { description: "One Project's Tasks, by its key", name: '--project', valueName: '<KEY>' },
+            {
+                description: "One Project's Tasks, by its key",
+                name: '--project',
+                valueName: '<KEY>',
+            },
         ],
         name: 'list',
         notes: [
@@ -93,7 +97,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
             },
         ],
         name: 'archive',
-        notes: ['Archiving cancels the Task\'s pending reminders; its chat stays readable.'],
+        notes: ["Archiving cancels the Task's pending reminders; its chat stays readable."],
         positionals: [idPositional],
         run: (args) => runTaskArchive(args, defaultDeps()),
         summary: 'Archive a Task',

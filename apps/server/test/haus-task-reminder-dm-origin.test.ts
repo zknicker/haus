@@ -58,7 +58,8 @@ beforeAll(async () => {
     });
     taskShortId = started.body.task?.shortId ?? '';
     taskChatId =
-        (await owner.trpc.task.get.query({ serverId, shortId: taskShortId })).chatId ?? 'missing task chat';
+        (await owner.trpc.task.get.query({ serverId, shortId: taskShortId })).chatId ??
+        'missing task chat';
 });
 
 afterAll(async () => {

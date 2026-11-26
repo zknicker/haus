@@ -63,7 +63,9 @@ export function agentHearingFixture() {
     async function unfollow(handle: string, task: TestTask) {
         const runner = await fixture.mintRunner(createOpaqueId('run'), agents[handle], task.chatId);
         return (
-            await fixture.post('/api/agent/tasks/unfollow', runner, { target: `task:${task.shortId}` })
+            await fixture.post('/api/agent/tasks/unfollow', runner, {
+                target: `task:${task.shortId}`,
+            })
         ).status;
     }
 
