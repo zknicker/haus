@@ -14,7 +14,7 @@ export async function insertTaskKeyEntry(
     return id;
 }
 
-export async function allocateTaskNumber(
+export async function allocateIssueNumber(
     tx: Writer,
     input: { keyId: string; serverId: string }
 ): Promise<number> {
@@ -24,11 +24,25 @@ export async function allocateTaskNumber(
         .where(and(eq(taskKeysTable.serverId, input.serverId), eq(taskKeysTable.id, input.keyId)))
         .for('update');
     if (!ledger) {
-        throw new Error(`Task key ${input.keyId} is not a ledger entry.`);
+        throw new Error(`Project key ${input.keyId} is not a ledger entry.`);
     }
     await tx
         .update(taskKeysTable)
         .set({ nextNumber: ledger.next + 1 })
         .where(and(eq(taskKeysTable.serverId, input.serverId), eq(taskKeysTable.id, input.keyId)));
     return ledger.next;
+}
+
+export { allocateIssueNumber as allocateTaskNumber };
+
+export async function keyHasNumbered(
+    db: Pick<HausDatabase, 'select'>,
+    input: { keyId: string; serverId: string }
+) {
+    const [ledger] = await db
+        .select({ next: taskKeysTable.nextNumber })
+        .from(taskKeysTable)
+        .where(and(eq(taskKeysTable.serverId, input.serverId), eq(taskKeysTable.id, input.keyId)))
+        .limit(1);
+    return (ledger?.next ?? 1) > 1;
 }

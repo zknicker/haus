@@ -18,6 +18,7 @@ import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentDispatchIds } from './dispatch-hooks.ts';
 import { registerAgentImageGenerationRoutes } from './image-generation-routes.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
+import { registerAgentIssueRoutes } from './issue-routes.ts';
 import { registerAgentManagedSkillRoutes } from './managed-skill-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
@@ -123,6 +124,7 @@ export function registerAgentApiRoutes(
         imageGeneration: options.imageGeneration,
     });
     registerAgentInboxRoutes(app, options);
+    registerAgentIssueRoutes(app, options.db);
     registerAgentManagedSkillRoutes(app, options.db);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
