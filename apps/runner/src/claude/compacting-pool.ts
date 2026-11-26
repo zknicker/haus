@@ -60,6 +60,10 @@ export class CompactingPool<Process extends IdleCompactable> {
         return this.closed(this.pool.take(agentId));
     }
 
+    evictOldest() {
+        return this.closed(this.pool.evictOldest());
+    }
+
     expire(now: number) {
         return this.closed(this.pool.expire(now));
     }

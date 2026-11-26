@@ -138,7 +138,7 @@ async function restartRunner(server: ServerStandIn, dataDir: string) {
     });
     const turnHost = createTurnHost({
         book,
-        config: { dataDir, maxWarm: 1 },
+        config: { dataDir, maxClaude: 1, maxWarm: 1 },
         journal,
         ledger,
         link,

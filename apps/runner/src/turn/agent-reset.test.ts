@@ -20,7 +20,7 @@ test('a full reset deletes the Agent data on the volume, and a restart or sessio
     }
     const turnHost = createTurnHost({
         book: createConnectionBook(),
-        config: { dataDir, maxWarm: 1 },
+        config: { dataDir, maxClaude: 1, maxWarm: 1 },
         ledger: openDispatchLedger(dataDir),
         link: { send: () => undefined },
         log: () => undefined,
@@ -46,7 +46,7 @@ test('a full reset applies once per session generation, and an older or repeated
     const agentDir = join(dataDir, 'agents', 'agt_alpha');
     const turnHost = createTurnHost({
         book: createConnectionBook(),
-        config: { dataDir, maxWarm: 1 },
+        config: { dataDir, maxClaude: 1, maxWarm: 1 },
         ledger: openDispatchLedger(dataDir),
         link: { send: () => undefined },
         log: () => undefined,

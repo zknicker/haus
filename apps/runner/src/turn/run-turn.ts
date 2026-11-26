@@ -93,6 +93,12 @@ export async function runTurn(input: RunTurnInput) {
     input.timings.mark('harnessReadyMs');
     const live = await input.timings.measure('sessionCreateMs', () =>
         driver.openSession({
+            onSlotWait: (waitedMs) => {
+                input.timings.record('slotWaitMs', waitedMs);
+                input.log(
+                    `Runner held ${start.agentId}'s turn ${start.runId} ${waitedMs} ms for a Claude slot.`
+                );
+            },
             resumeFrom: stored.nativeSessionId ?? undefined,
             sessionId: `${start.agentId}-${stored.generation}`,
             signal: input.signal,

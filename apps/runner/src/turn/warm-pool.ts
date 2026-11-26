@@ -73,6 +73,15 @@ export class WarmPool<Process> {
         return entry ? [entry.process] : [];
     }
 
+    evictOldest() {
+        const [oldest] = this.parked;
+        if (!oldest) {
+            return [];
+        }
+        this.parked.delete(oldest[0]);
+        return [oldest[1].process];
+    }
+
     expire(now: number) {
         const expired: Process[] = [];
         for (const [key, entry] of this.parked) {

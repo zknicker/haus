@@ -38,7 +38,7 @@ interface ActiveRun {
 export function createTurnHost(input: {
     book: ConnectionBook;
     capacity?: CapacityReader;
-    config: Pick<RunnerConfig, 'dataDir' | 'maxWarm'>;
+    config: Pick<RunnerConfig, 'dataDir' | 'maxClaude' | 'maxWarm'>;
     journal?: JournalUploads;
     ledger: DispatchLedger;
     link: RunnerLink;
@@ -52,6 +52,7 @@ export function createTurnHost(input: {
         ...(input.journal ? { journal: input.journal } : {}),
         link: input.link,
         log,
+        maxClaude: input.config.maxClaude,
         maxWarm: input.config.maxWarm,
     });
     const host = createTurnHostWith({

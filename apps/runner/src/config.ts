@@ -2,6 +2,7 @@ import * as z from 'zod';
 
 const configSchema = z.object({
     HAUS_RUNNER_DATA_DIR: z.string().trim().min(1).default('/data'),
+    HAUS_RUNNER_MAX_CLAUDE: z.coerce.number().int().positive().max(64).default(6),
     HAUS_RUNNER_MAX_WARM: z.coerce.number().int().positive().max(256).default(16),
     HAUS_RUNNER_TOKEN: z.string().min(32).max(512),
     HAUS_SERVER_URL: z.url({ protocol: /^https?$/u }),
@@ -20,6 +21,7 @@ export function parseRunnerConfig(environment: Record<string, string | undefined
     const env = parsed.data;
     return {
         dataDir: env.HAUS_RUNNER_DATA_DIR,
+        maxClaude: env.HAUS_RUNNER_MAX_CLAUDE,
         maxWarm: env.HAUS_RUNNER_MAX_WARM,
         runnerToken: env.HAUS_RUNNER_TOKEN,
         serverUrl: env.HAUS_SERVER_URL.replace(/\/+$/u, ''),

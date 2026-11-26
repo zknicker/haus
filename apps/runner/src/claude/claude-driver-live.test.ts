@@ -46,7 +46,7 @@ liveTest(
             skillListing: '',
             tools: localTools(),
         };
-        const warm = createClaudeHarness({ hooks: idleCompactionHooks(), maxWarm: 2 });
+        const warm = createClaudeHarness({ hooks: idleCompactionHooks(), maxClaude: 2, maxWarm: 2 });
         const session = await warm.driver(launch).openSession({
             resumeFrom: undefined,
             sessionId: 'agent-live-1',
@@ -84,7 +84,7 @@ liveTest(
         expect(warm.warm).toBe(1);
         warm.close();
 
-        const cold = createClaudeHarness({ hooks: idleCompactionHooks(), maxWarm: 2 });
+        const cold = createClaudeHarness({ hooks: idleCompactionHooks(), maxClaude: 2, maxWarm: 2 });
         const resumed = await cold.driver(launch).openSession({
             resumeFrom: nativeSessionId,
             sessionId: 'agent-live-1',

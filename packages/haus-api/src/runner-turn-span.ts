@@ -25,6 +25,7 @@ export const runnerTurnTimingsSchema = z
         lastSendMs: turnMsSchema,
         sentChats: chatCountSchema,
         sessionCreateMs: turnMsSchema,
+        slotWaitMs: turnMsSchema,
     })
     .strict()
     .refine((timings) => (timings.doneChats ?? 0) <= (timings.sentChats ?? 0), {

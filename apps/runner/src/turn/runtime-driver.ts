@@ -36,6 +36,7 @@ export interface RuntimeDriver {
 }
 
 export interface OpenSessionOptions {
+    readonly onSlotWait?: (waitedMs: number) => void;
     readonly resumeFrom: string | undefined;
     readonly sessionId: string;
     readonly signal?: AbortSignal;
