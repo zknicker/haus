@@ -8,8 +8,7 @@ import { boolean, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-c
  * `deletedAt` is the tombstone an Owner sets when deleting the Server: it
  * disables every membership gate immediately while the asynchronous purge
  * cascades away the rows and local attachment bytes. It is never cleared —
- * deletion has no restore path. Cloud Agent model choices live per provider
- * in `cloud_agent_model_settings`. `idleCompaction` is the Owner's Server setting that lets
+ * deletion has no restore path. `idleCompaction` is the Owner's Server setting that lets
  * Computers compact parked Claude Code sessions before their prompt cache expires.
  */
 export const serversTable = pgTable(

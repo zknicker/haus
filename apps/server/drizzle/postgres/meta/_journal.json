@@ -1149,6 +1149,13 @@
       "when": 1795729737446,
       "tag": "0164_crew-and-captain-chat",
       "breakpoints": true
+    },
+    {
+      "idx": 164,
+      "version": "7",
+      "when": 1795736678265,
+      "tag": "0165_delete-workers",
+      "breakpoints": true
     }
   ]
 }

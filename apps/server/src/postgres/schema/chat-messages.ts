@@ -96,7 +96,7 @@ export const chatMessagesTable = pgTable(
         check('chat_messages_positive_sequence', sql`${table.sequence} > 0`),
         check(
             'chat_messages_body_kind',
-            sql`${table.bodyKind} in ('text', 'agent-created', 'worker-report', 'worker-follow-up')`
+            sql`${table.bodyKind} in ('text', 'agent-created')`
         ),
         // Every durable Chat message is human-readable, so every row has a
         // human or an Agent author. Agent-only deliveries ride the agent inbox.

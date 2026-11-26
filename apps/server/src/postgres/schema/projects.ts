@@ -1,4 +1,3 @@
-import type { WorkerPlaceKind } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,
@@ -21,8 +20,8 @@ export const projectsTable = pgTable(
         chatIsAll: boolean('chat_is_all').notNull().default(false),
         chatKind: text('chat_kind').notNull().default('channel'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-        defaultWorkerComputerId: text('default_worker_computer_id'),
-        defaultWorkerPlace: text('default_worker_place').$type<WorkerPlaceKind>(),
+        /** The Machine a Task started here runs on when its starter names none (specs/projects.md). */
+        defaultTaskComputerId: text('default_task_computer_id'),
         serverId: text('server_id').notNull(),
         taskKeyId: text('task_key_id').notNull(),
     },
@@ -40,21 +39,11 @@ export const projectsTable = pgTable(
             name: 'projects_task_key_fk',
         }),
         foreignKey({
-            columns: [table.serverId, table.defaultWorkerComputerId],
+            columns: [table.serverId, table.defaultTaskComputerId],
             foreignColumns: [computersTable.serverId, computersTable.id],
-            name: 'projects_default_worker_computer_fk',
-        }).onDelete('set null (default_worker_computer_id)' as UpdateDeleteAction),
+            name: 'projects_default_task_computer_fk',
+        }).onDelete('set null (default_task_computer_id)' as UpdateDeleteAction),
         check('projects_chat_kind', sql`${table.chatKind} = 'channel'`),
         check('projects_chat_not_all', sql`${table.chatIsAll} = false`),
-        check(
-            'projects_default_worker_place',
-            sql`${table.defaultWorkerPlace} is null
-                or ${table.defaultWorkerPlace} in ('cursor', 'claude', 'computer')`
-        ),
-        check(
-            'projects_default_worker_computer',
-            sql`coalesce(${table.defaultWorkerPlace} = 'computer', false)
-                = (${table.defaultWorkerComputerId} is not null)`
-        ),
     ]
 );

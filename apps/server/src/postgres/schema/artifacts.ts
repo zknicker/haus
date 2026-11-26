@@ -14,7 +14,6 @@ import {
 import { agentsTable } from './agents.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
-import { workersTable } from './workers.ts';
 
 export const artifactsTable = pgTable(
     'artifacts',
@@ -24,7 +23,7 @@ export const artifactsTable = pgTable(
         creatorUserId: text('creator_user_id'),
         currentRevisionId: text('current_revision_id'),
         deletedAt: timestamp('deleted_at', { withTimezone: true }),
-        /** Who deleted the file, as an author key (`agent:<id>`, `user:<id>`, or `worker:<id>`); null while live. */
+        /** Who deleted the file, as an author key (`agent:<id>` or `user:<id>`); null while live. */
         deletedBy: text('deleted_by'),
         id: text('id').primaryKey(),
         nextRevision: integer('next_revision').notNull().default(1),
@@ -51,7 +50,7 @@ export const artifactsTable = pgTable(
             .where(sql`${table.deletedAt} is null`),
         check(
             'artifacts_deleted_by_shape',
-            sql`${table.deletedBy} is null or ${table.deletedBy} ~ '^(agent|user|worker):.+$'`
+            sql`${table.deletedBy} is null or ${table.deletedBy} ~ '^(agent|user):.+$'`
         ),
         check(
             'artifacts_creator_shape',
@@ -85,8 +84,6 @@ export const artifactRevisionsTable = pgTable(
         authorAgentId: text('author_agent_id'),
         authorKey: text('author_key').notNull(),
         authorUserId: text('author_user_id'),
-        /** The Worker that wrote it through its push, beside its delegating Agent in `author_agent_id`. */
-        authorWorkerId: text('author_worker_id'),
         /** The revision the writer started from; null for a create or a replace. */
         baseRevisionId: text('base_revision_id'),
         byteSize: bigint('byte_size', { mode: 'number' }).notNull().default(0),
@@ -138,11 +135,6 @@ export const artifactRevisionsTable = pgTable(
         foreignKey({
             columns: [table.serverId, table.authorUserId],
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
-        }),
-        foreignKey({
-            columns: [table.serverId, table.authorWorkerId],
-            foreignColumns: [workersTable.serverId, workersTable.id],
-            name: 'artifact_revisions_author_worker_fk',
         }),
         check(
             'artifact_revision_author_shape',
