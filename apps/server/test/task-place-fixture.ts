@@ -1,13 +1,14 @@
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import { randomShortId } from '../src/tasks/task-short-id.ts';
 import type { HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
 
 export interface TestTask {
     chatId: string;
     id: string;
-    key: string;
     originMessageId: string;
     projectId: string;
+    shortId: string;
 }
 
 type Sql = HausServerHarness['sql'];
@@ -17,7 +18,6 @@ export async function startTestTask(
     owner: HausClient,
     input: {
         channelId: string;
-        key?: string;
         originMessageId?: string;
         serverId: string;
         title: string;
@@ -34,38 +34,28 @@ export async function startTestTask(
             })
         ).message.id;
     const project = await taskProject(harness.sql, input.serverId, input.channelId);
-    const [entry] = (await harness.sql`
-        update task_keys set next_number = next_number + 1
-        where server_id = ${input.serverId} and key = ${input.key ?? project.key}
-        returning id, key, next_number - 1 as number
-    `) as { id: string; key: string; number: number }[];
     const [creator] = (await harness.sql`
         select user_id from server_memberships
         where server_id = ${input.serverId} and role = 'owner' and revoked_at is null
         order by created_at limit 1
     `) as { user_id: string }[];
-    if (!(entry && creator)) {
-        throw new Error(`Server ${input.serverId} has no such Task key, or no Owner.`);
+    if (!creator) {
+        throw new Error(`Server ${input.serverId} has no Owner.`);
     }
     const chatId = createOpaqueId('cht');
     const taskId = createOpaqueId('tsk');
+    const shortId = randomShortId();
     await harness.sql`
         insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind)
         values (${chatId}, ${input.serverId}, 'task', ${project.id}, 'channel')
     `;
     await harness.sql`
-        insert into tasks (id, server_id, key_id, number, title, chat_id, created_by_user_id,
+        insert into tasks (id, server_id, short_id, title, chat_id, created_by_user_id,
             project_id, origin_chat_id, origin_message_id)
-        values (${taskId}, ${input.serverId}, ${entry.id}, ${entry.number}, ${input.title},
+        values (${taskId}, ${input.serverId}, ${shortId}, ${input.title},
             ${chatId}, ${creator.user_id}, ${project.id}, ${input.channelId}, ${originMessageId})
     `;
-    return {
-        chatId,
-        id: taskId,
-        key: `${entry.key}-${entry.number}`,
-        originMessageId,
-        projectId: project.id,
-    };
+    return { chatId, id: taskId, originMessageId, projectId: project.id, shortId };
 }
 
 async function taskProject(sql: Sql, serverId: string, channelId: string) {

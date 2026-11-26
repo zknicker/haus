@@ -13,7 +13,7 @@ import {
     tasksTable,
 } from '../src/postgres/schema.ts';
 import { moveAgentHome } from '../src/projects/agent-home.ts';
-import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
+import { randomShortId } from '../src/tasks/task-short-id.ts';
 import { testAgentHome, testProject } from './agent-home.ts';
 import { FakeTransport, type Seed, seedAgent } from './agent-inbox-harness.ts';
 
@@ -98,7 +98,6 @@ export async function postMessage(
     return { id, sequence: chat.sequence };
 }
 
-let taskKeys = 0;
 
 export async function addTask(
     db: HausDatabase,
@@ -114,19 +113,16 @@ export async function addTask(
         parentChatKind: 'channel',
         serverId: seed.serverId,
     });
-    taskKeys += 1;
-    const key = `TK${taskKeys}`;
-    const keyId = await insertTaskKeyEntry(db, { key, serverId: seed.serverId });
+    const shortId = randomShortId();
     await db.insert(tasksTable).values({
         chatId,
         createdByAgentId: seed.agentId,
         id: createOpaqueId('tsk'),
-        keyId,
-        number: 1,
         originChatId: input.parentChatId,
         originMessageId: input.anchorId,
         projectId: input.parentChatId,
         serverId: seed.serverId,
+        shortId,
         title: 'Fixture Task',
     });
     if (input.followed) {
@@ -136,7 +132,7 @@ export async function addTask(
             taskChatId: chatId,
         });
     }
-    return { chatId, target: `task:${key}-1` };
+    return { chatId, target: `task:${shortId}` };
 }
 
 /** A second Agent on the same Server, for messages the reader did not write. */

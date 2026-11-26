@@ -12,8 +12,8 @@ let bea: HausClient;
 let cal: HausClient;
 let calUserId: string;
 let originId: string;
-let first: { chatId: string; key: string; taskId: string };
-let second: { chatId: string; key: string; taskId: string };
+let first: { chatId: string; shortId: string; taskId: string };
+let second: { chatId: string; shortId: string; taskId: string };
 
 interface Reply {
     body: Record<string, any>;
@@ -38,11 +38,11 @@ async function start(title: string, extra: Record<string, unknown> = {}) {
     });
     expect(started.status).toBe(200);
     const detail = await fixture.owner.trpc.task.get.query({
-        key: started.body.task.key,
+        shortId: started.body.task.shortId,
         serverId: fixture.serverId,
     });
-    expect(started.body.target).toBe(`task:${detail.key}`);
-    return { chatId: detail.chatId ?? '', key: detail.key, taskId: detail.id };
+    expect(started.body.target).toBe(`task:${detail.shortId}`);
+    return { chatId: detail.chatId ?? '', shortId: detail.shortId, taskId: detail.id };
 }
 
 async function join(subject: string, email: string) {
@@ -82,23 +82,22 @@ beforeAll(async () => {
     expect(product.project).toMatchObject({ key: 'SEC', keyEditable: true });
     originId = (await send(owner, fixture.channelId, 'Two problems in the deploy')).message.id;
     first = await start('Rotate the key');
-    second = await start('Fix the health check', { state: 'todo' });
+    second = await start('Fix the health check');
 });
 
 describe('start', () => {
-    test('takes the Channel key and numbers several Tasks on one Message', async () => {
-        expect([first.key, second.key]).toEqual(['SEC-1', 'SEC-2']);
+    test('gives several Tasks on one Message their own short ids and takes no number', async () => {
+        expect(first.shortId).not.toBe(second.shortId);
         const keys = await fixture.owner.trpc.taskKey.list.query({ serverId: fixture.serverId });
-        expect(keys.find((entry) => entry.key === 'SEC')?.nextNumber).toBe(3);
+        expect(keys.find((entry) => entry.key === 'SEC')?.nextNumber).toBe(1);
         const detail = await fixture.owner.trpc.task.get.query({
             serverId: fixture.serverId,
             taskId: first.taskId,
         });
         expect(detail).toMatchObject({
-            assignee: { agentId: fixture.orbitAgentId, kind: 'agent' },
+            archivedAt: null,
             createdBy: { agentId: fixture.orbitAgentId, kind: 'agent' },
             origin: { chatId: fixture.channelId, messageId: originId },
-            state: 'open',
         });
     });
 
@@ -128,7 +127,7 @@ describe('start', () => {
 });
 
 describe('followers and unread', () => {
-    test('seeds the origin author and the assignee, not other Channel members', async () => {
+    test('seeds the origin author and the starter, not other Channel members', async () => {
         const followed = async (client: HausClient) =>
             (await client.trpc.task.get.query({ serverId: fixture.serverId, taskId: first.taskId }))
                 .followed;
@@ -168,7 +167,7 @@ describe('followers and unread', () => {
             serverId: fixture.serverId,
         });
         expect(adaPreviews.previews.find((row) => row.chatId === first.chatId)).toMatchObject({
-            task: { key: 'SEC-1', projectId: fixture.channelId, state: 'open' },
+            task: { archivedAt: null, projectId: fixture.channelId, shortId: first.shortId },
         });
         const detail = await cal.trpc.task.get.query({
             serverId: fixture.serverId,
@@ -188,22 +187,17 @@ describe('followers and unread', () => {
     });
 });
 
-describe('sidebar, state, and reminders', () => {
-    test('listOpen keeps open Tasks in Channels the viewer can see', async () => {
-        const keys = async (client: HausClient) =>
-            (await client.trpc.task.listOpen.query({ serverId: fixture.serverId })).map(
-                (task) => task.key
-            );
-        expect(await keys(fixture.owner)).toEqual(['SEC-1']);
-        expect(await keys(bea)).toEqual([]);
-        const all = await fixture.owner.trpc.task.list.query({
-            serverId: fixture.serverId,
-            states: ['todo'],
-        });
-        expect(all.map((task) => task.key)).toContain('SEC-2');
+describe('sidebar, archive, and reminders', () => {
+    test('listActive keeps active Tasks in Channels the viewer can see', async () => {
+        const shortIds = async (client: HausClient) =>
+            (await client.trpc.task.listActive.query({ serverId: fixture.serverId }))
+                .map((task) => task.shortId)
+                .sort();
+        expect(await shortIds(fixture.owner)).toEqual([first.shortId, second.shortId].sort());
+        expect(await shortIds(bea)).toEqual([]);
     });
 
-    test('closing checks the version, cancels one-time reminders, and leaves the sidebar', async () => {
+    test('archiving checks the version, cancels one-time reminders, and leaves the sidebar', async () => {
         const anchor = (await send(fixture.owner, second.chatId, 'Check back later.')).message.id;
         const once = createOpaqueId('rem');
         const daily = createOpaqueId('rem');
@@ -228,21 +222,18 @@ describe('sidebar, state, and reminders', () => {
             taskId: second.taskId,
         });
         await expect(
-            fixture.owner.trpc.task.setState.mutate({
+            fixture.owner.trpc.task.archive.mutate({
                 expectedVersion: current.version + 5,
                 serverId: fixture.serverId,
-                state: 'done',
                 taskId: second.taskId,
             })
         ).rejects.toThrow(/changed/u);
-        const { task } = await fixture.owner.trpc.task.setState.mutate({
+        const { task } = await fixture.owner.trpc.task.archive.mutate({
             expectedVersion: current.version,
             serverId: fixture.serverId,
-            state: 'done',
             taskId: second.taskId,
         });
-        expect(task).toMatchObject({ state: 'done' });
-        expect(task.completedAt).not.toBeNull();
+        expect(task.archivedAt).not.toBeNull();
         const statuses = await fixture.harness.sql`
             select id, status from reminders where anchor_chat_id = ${second.chatId}
         `;
@@ -251,17 +242,17 @@ describe('sidebar, state, and reminders', () => {
         expect(byId.get(daily)?.status).toBe('scheduled');
     });
 
-    test('posting in a closed Task reopens it without restoring reminders', async () => {
+    test('posting in an archived Task leaves it archived and its reminders canceled', async () => {
         await send(fixture.owner, second.chatId, 'One more thing.');
-        const reopened = await fixture.owner.trpc.task.get.query({
+        const after = await fixture.owner.trpc.task.get.query({
             serverId: fixture.serverId,
             taskId: second.taskId,
         });
-        expect(reopened).toMatchObject({ completedAt: null, state: 'open' });
-        const keys = (await fixture.owner.trpc.task.listOpen.query({ serverId: fixture.serverId }))
-            .map((task) => task.key)
-            .sort();
-        expect(keys).toEqual(['SEC-1', 'SEC-2']);
+        expect(after.archivedAt).not.toBeNull();
+        const active = (
+            await fixture.owner.trpc.task.listActive.query({ serverId: fixture.serverId })
+        ).map((task) => task.shortId);
+        expect(active).toEqual([first.shortId]);
         const canceled = await fixture.harness.sql`
             select count(*)::integer as count from reminders
             where anchor_chat_id = ${second.chatId} and status = 'canceled'
@@ -269,9 +260,13 @@ describe('sidebar, state, and reminders', () => {
         expect(canceled[0]?.count).toBe(1);
     });
 
-    test('an Agent sets state by key', async () => {
-        const closed = await call('/api/agent/tasks/state', { key: 'SEC-2', state: 'canceled' });
-        expect(closed).toMatchObject({ body: { task: { state: 'canceled' } }, status: 200 });
+    test('an Agent archives by short id, and archiving again changes nothing', async () => {
+        const archived = await call('/api/agent/tasks/archive', { task: second.shortId });
+        expect(archived).toMatchObject({
+            body: { task: { shortId: second.shortId } },
+            status: 200,
+        });
+        expect(archived.body.task.archivedAt).not.toBeNull();
     });
 });
 
@@ -281,19 +276,21 @@ test('the Channel previews each Task under its origin Message', async () => {
         serverId: fixture.serverId,
     });
     const previews = page.tasks.filter((task) => task.originMessageId === originId);
-    expect(previews.map((task) => task.key).sort()).toEqual(['SEC-1', 'SEC-2']);
-    const preview = previews.find((task) => task.key === 'SEC-1');
-    expect(preview).toMatchObject({ messageCount: 2, state: 'open', title: 'Rotate the key' });
+    expect(previews.map((task) => task.shortId).sort()).toEqual(
+        [first.shortId, second.shortId].sort()
+    );
+    const preview = previews.find((task) => task.shortId === first.shortId);
+    expect(preview).toMatchObject({ archivedAt: null, messageCount: 2, title: 'Rotate the key' });
     expect(preview?.recentMessages.map((message) => message.content)).toEqual([
         'Starting with the staging key.',
         'Prod key is in the vault.',
     ]);
 });
 
-test('search names a Task Chat message by its Task key', async () => {
+test('search names a Task Chat message by its Task short id', async () => {
     const [hit] = await fixture.owner.trpc.chat.search.query({
         query: 'vault',
         serverId: fixture.serverId,
     });
-    expect(hit).toMatchObject({ chatId: first.chatId, taskKey: 'SEC-1' });
+    expect(hit).toMatchObject({ chatId: first.chatId, taskShortId: first.shortId });
 });

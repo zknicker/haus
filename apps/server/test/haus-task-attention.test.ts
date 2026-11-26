@@ -16,7 +16,6 @@ test('a followed Task outside the home wakes the Agent; unfollow quiets it until
     });
     const task = await startTestTask(fixture.harness, fixture.owner, {
         channelId: design.id,
-        key: 'DSN',
         serverId: fixture.serverId,
         title: 'Attention check',
     });
@@ -39,7 +38,7 @@ test('a followed Task outside the home wakes the Agent; unfollow quiets it until
     const ordinary = await send('Routine update.', 'attention-ordinary');
     expect(await pending(ordinary)).toEqual([{ mentioned: false, task_follow_reactivated: false }]);
 
-    const target = `task:${task.key}`;
+    const target = `task:${task.shortId}`;
     expect(await agentPost(runner, '/api/agent/tasks/unfollow', { target })).toMatchObject({
         body: { target, unfollowed: true },
         status: 200,

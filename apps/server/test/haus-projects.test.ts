@@ -79,7 +79,7 @@ test('a key already in the ledger is TASK_KEY_TAKEN on create and on update', as
     ).rejects.toEqual(refusedWith('TASK_KEY_TAKEN'));
 });
 
-test('a key changes in place until a Task carries it, then it is PROJECT_KEY_FIXED', async () => {
+test('a key changes in place until its ledger numbers something, then it is PROJECT_KEY_FIXED', async () => {
     const web = await owner.trpc.project.create.mutate({ name: 'web', serverId });
     const renamed = await owner.trpc.project.update.mutate({
         chatId: web.chat.id,
@@ -92,13 +92,18 @@ test('a key changes in place until a Task carries it, then it is PROJECT_KEY_FIX
         taskKeyId: web.project.taskKeyId,
     });
 
-    const task = await startTestTask(harness, owner, {
+    await startTestTask(harness, owner, {
         channelId: web.chat.id,
-        key: 'SITE',
         serverId,
         title: 'Ship the landing page',
     });
-    expect(task.key).toBe('SITE-1');
+    const [stillEditable] = (await owner.trpc.project.list.query({ serverId })).filter(
+        (project) => project.chatId === web.chat.id
+    );
+    expect(stillEditable).toMatchObject({ key: 'SITE', keyEditable: true });
+    await harness.sql`
+        update task_keys set next_number = next_number + 1 where id = ${web.project.taskKeyId}
+    `;
     const [listed] = (await owner.trpc.project.list.query({ serverId })).filter(
         (project) => project.chatId === web.chat.id
     );

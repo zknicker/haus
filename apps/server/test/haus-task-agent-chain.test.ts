@@ -5,14 +5,12 @@ import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import * as store from '../src/agent-delivery/store.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentDeliveryTable } from '../src/postgres/schema.ts';
-import { assignTask } from '../src/tasks/task-assign.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 import {
     addPeerAgent,
     assignNewTask,
-    insertTaskPlace,
     seedTaskBoard,
     type TaskBoard,
 } from './task-delivery-fixture.ts';
@@ -53,14 +51,7 @@ async function assignFromAgent(
     peerId: string,
     title: string
 ) {
-    const { seed } = board;
-    const taskId = await insertTaskPlace(connection.db, board, title);
-    return await assignTask(connection.db, { agentId: peerId, kind: 'agent' }, delivery, {
-        assignee: { agentId: seed.agentId, kind: 'agent' },
-        expectedVersion: 1,
-        serverId: seed.serverId,
-        taskId,
-    });
+    return await assignNewTask(connection.db, delivery, board, title, { agentId: peerId });
 }
 
 async function turnsOf(seed: Seed) {
