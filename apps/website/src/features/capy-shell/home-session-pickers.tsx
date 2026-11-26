@@ -33,12 +33,13 @@ export function useHomeMachines(serverId: string, projectId: string | undefined)
 export function useHomeModels(serverId: string) {
     const read = useModelConnections(serverId).data;
     return React.useMemo(() => {
-        const models = agentModelOptions(read?.runnerModels ?? [], read?.connections ?? null)
-            .filter((option) => option.connected)
-            .map((option) => ({ id: option.model.id, label: option.label }))
+        const options = [...agentModelOptions(read?.runnerModels ?? [], read?.connections ?? null)]
+            .sort((left, right) => Number(right.connected) - Number(left.connected))
             .filter(
-                (option, index, all) => all.findIndex((other) => other.id === option.id) === index
+                (option, index, all) =>
+                    all.findIndex((other) => other.model.id === option.model.id) === index
             );
+        const models = options.map((option) => ({ id: option.model.id, label: option.label }));
         return { fallback: models[0] ?? null, models };
     }, [read]);
 }
@@ -76,7 +77,7 @@ export function HomeModelPicker({
     return (
         <HomeChoicePicker
             choices={models}
-            empty="No model connected"
+            empty="No models"
             icon={AiBrain01Icon}
             label="Model"
             onChange={onChange}

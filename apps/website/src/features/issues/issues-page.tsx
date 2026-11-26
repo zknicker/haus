@@ -50,6 +50,7 @@ function IssueViewTabs({ view }: { view: IssuesPageFilters['view'] }) {
     const setParam = useSetSearchParam();
     return (
         <Tabs
+            className="view-tabs"
             onSelectionChange={(key) => setParam('view', key === 'for-you' ? null : String(key))}
             selectedKey={view}
             variant="secondary"

@@ -100,7 +100,8 @@ function IssueBoardColumn({
 
 function IssueCard({ issue }: { issue: Issue }) {
     return (
-        <Kanban.Card textValue={`${issue.code} ${issue.title}`}>
+        <Kanban.Card id={issue.id} textValue={`${issue.code} ${issue.title}`}>
+            <Kanban.DragHandle aria-label={`Move ${issue.code}`} />
             <span className="flex items-center justify-between gap-2">
                 <span className="text-muted text-xs tabular-nums">{issue.code}</span>
                 <IssuePriorityMark priority={issue.priority} />

@@ -52,6 +52,7 @@ function TaskViewTabs({ view }: { view: TaskView }) {
     const setParam = useSetSearchParam();
     return (
         <Tabs
+            className="view-tabs"
             onSelectionChange={(key) => setParam('view', key === 'mine' ? null : String(key))}
             selectedKey={view}
             variant="secondary"
