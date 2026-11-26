@@ -81,8 +81,9 @@ Wire shapes live in `packages/haus-api/src/task.ts`. The tRPC surface is
   `createOpaqueId` mints it (`apps/server/src/postgres/opaque-id.ts:9`); `@haus/api` validates Task
   ids only as strings, so nothing there changes. Lowercase keeps it safe in macOS git refs, which
   ignore case, and fits the agent handle grammar
-  (`apps/server/src/postgres/schema/agents.ts:173-174`). The one-off script gives existing Tasks
-  short ids.
+  (`apps/server/src/postgres/schema/agents.ts:173-174`). Migration 0159 gives existing Tasks
+  short ids through a random column default it drops in the same statement batch; a collision
+  fails the migration rather than retrying.
 - The short id is the Task's handle: `haus task show k3mq7xta`, the URL `/tasks/k3mq7xta`, the
   branch `haus/k3mq7xta-<slug>`, and the trailer `Haus-Task: k3mq7xta`. Full ids resolve
   everywhere a short id does.
@@ -92,7 +93,8 @@ Wire shapes live in `packages/haus-api/src/task.ts`. The tRPC surface is
   sets `titleCustom: true`; a later regenerate never replaces a custom title.
 - People refer to a Task by title. The @ picker searches active Tasks by title, shows each with
   its Project, age and activity, and inserts a `task://<taskId>` link
-  (`apps/server/src/tasks/task-reference-links.ts:33`). A crew Task working one Issue displays as
+  (`apps/server/src/tasks/task-reference-links.ts`); a `task://<shortId>` link an Agent writes
+  resolves the same way. A crew Task working one Issue displays as
   "GEN-12 · title".
 - A bare code such as `GEN-12` always means an Issue, never a Task ([issues.md](issues.md#references)).
 
@@ -347,7 +349,8 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   `haus task attach-pr`. A change after the turn settled reaches the active Task that attached it
   first through the existing `pull_request` item, once per change and head commit
   (`apps/server/src/github/pull-request-task-wakes.ts`, re-pointed from Task state to
-  `archived_at is null`); [issues.md](issues.md#links-and-pull-requests) has the fallback.
+  `archived_at is null`); [issues.md](issues.md#links-and-pull-requests) has the fallback. Until
+  Task agents (step 5), the wake goes to the Agent that started that Task.
 - **Change summary.** At each turn boundary the Computer reports a `--stat` summary of each
   worktree the turn touched, with its Computer and repo. The side panel shows the newest one.
 
@@ -389,6 +392,11 @@ unarchive does not restore them.
 A person, the Task's Captain, or the Task itself archives it (step 2 for the record, step 5 for
 the session). Archive frees the Task's resources; it is **not** the runner's retire, which bars an
 agent id for the runner's lifetime (`apps/runner/src/turn/agent-sessions.ts:26-28,61-66`).
+
+Step 2 ships the record only: `task.archive` and `haus task archive` set `archived_at`, cancel
+pending reminders and close the Task's Workers, and archiving an archived Task changes nothing.
+`task.unarchive` clears `archived_at` and starts no turn. A post in an archived Task leaves it
+archived, and nothing refuses unarchive under an archived Project yet; both arrive with step 5.
 
 In one Server transaction archive sets `tasks.archived_at`, hands its open Issues back
 ([issues.md](issues.md#when-a-task-archives)), cancels pending reminders, releases the desktop

@@ -35,8 +35,8 @@ ids and small facts, never rows.
 | `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `chat.unreadPreviews`; `deleted` runs the Chat-loss purge and invalidates `worker.listActive` and the cached Task reads, since a Worker outlives the Chat |
 | `claim.onChanged` | `useClaimChangeStream` | Invalidate the claim Message's entity and `claim.list` |
 | `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `claim.list` |
-| `task.onCreated` | `useTaskCreatedStream` | `task.list`, `task.listOpen`, and the origin Channel's loaded pages so the new preview shows |
-| `task.onUpdated` | `useTaskUpdatedStream` | The Task's reads, `task.list`, `task.listOpen` |
+| `task.onCreated` | `useTaskCreatedStream` | `task.list`, `task.listActive`, and the origin Channel's loaded pages so the new preview shows |
+| `task.onUpdated` | `useTaskUpdatedStream` | The Task's reads, `task.list`, `task.listActive` |
 | `task.onFollowUpdated` (follower only) | `useTaskFollowStream` | The Task's reads (its `followed` and unread) |
 | `worker.onUpdated` | `useWorkerStream` | One event per Worker change, scoped to readers of its Task. Invalidate the Task's reads (`task.get` carries its Workers), `worker.get`, `worker.listActive` |
 | `imageGeneration.onUpdated` | `useImageGenerationStream` | One event per linking Message in a live Chat. Invalidate that Message's entity |
@@ -157,8 +157,8 @@ facts (`authorUserId`, `conversationKind`, `mentionedUserIds`, `replyToAuthorUse
 `messageNotificationReason` reads. Only live events notify; a
 restart's recovery reads never do, and a message whose Chat is read through it stays silent.
 
-**iPhone push** is a Server-side consumer of the in-process `message.created` and `task.assigned`
-topics after commit (`apps/server/src/push/`), with the same rule for messages. Delivery is best-effort; see
+**iPhone push** is a Server-side consumer of the in-process `message.created`
+topic after commit (`apps/server/src/push/`), with the same rule for messages. Delivery is best-effort; see
 [iPhone push](../operations/ios-push.md).
 
 The desktop dock badge is `chat.list` plus the followed
