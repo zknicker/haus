@@ -2,7 +2,14 @@ import type { WorkerTurnStartFrame } from '@haus/api';
 import { and, asc, eq, lt, sql } from 'drizzle-orm';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, chatsTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    chatsTable,
+    projectsTable,
+    taskKeysTable,
+    workerTurnsTable,
+    workersTable,
+} from '../postgres/schema.ts';
 import { readRepoFolder } from '../repos/repo-folder-read.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { composeWorkerInput } from './compose-worker-input.ts';
@@ -33,14 +40,16 @@ export async function workerTurnStartFrame(
         )
         .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
     const place = workerPlaceOf(worker);
+    const project = await readProjectFacts(tx, worker.serverId, task.projectId);
     const composed = await composeWorkerInput(tx, storage, {
         agentHandle: await agentHandleOf(tx, worker),
         delivered: worker.workerMdRevisionId,
         inputs: turn.input,
-        isHausProject: await isHausProject(tx, worker.serverId, task.projectId),
+        isHausProject: project.isHaus,
         place: place.kind === 'computer' ? 'computer' : 'cloud',
+        projectKey: project.key,
         serverId: worker.serverId,
-        taskKey: task.key,
+        taskShortId: task.shortId,
     });
     const [sent] = await tx
         .update(workerTurnsTable)
@@ -55,7 +64,7 @@ export async function workerTurnStartFrame(
     if (!sent) {
         throw new Error(`Worker turn ${turn.id} vanished before its start was sent.`);
     }
-    const branch = worker.branch ?? `haus/${worker.id}/${task.key.toLowerCase()}`;
+    const branch = worker.branch ?? `haus/${worker.id}/${task.shortId}`;
     if (place.kind === 'computer' && !worker.branch) {
         await tx
             .update(workersTable)
@@ -116,11 +125,28 @@ async function agentHandleOf(tx: HausDatabase, worker: WorkerRow) {
     return agent.handle;
 }
 
-async function isHausProject(tx: HausDatabase, serverId: string, projectId: string) {
-    const [chat] = await tx
-        .select({ isAll: chatsTable.isAll })
-        .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, projectId)))
+async function readProjectFacts(tx: HausDatabase, serverId: string, projectId: string) {
+    const [project] = await tx
+        .select({ isHaus: chatsTable.isAll, key: taskKeysTable.key })
+        .from(projectsTable)
+        .innerJoin(
+            chatsTable,
+            and(
+                eq(chatsTable.serverId, projectsTable.serverId),
+                eq(chatsTable.id, projectsTable.chatId)
+            )
+        )
+        .innerJoin(
+            taskKeysTable,
+            and(
+                eq(taskKeysTable.serverId, projectsTable.serverId),
+                eq(taskKeysTable.id, projectsTable.taskKeyId)
+            )
+        )
+        .where(and(eq(projectsTable.serverId, serverId), eq(projectsTable.chatId, projectId)))
         .limit(1);
-    return chat?.isAll ?? false;
+    if (!project) {
+        throw new Error(`Project ${projectId} is missing, so a Worker turn cannot compose.`);
+    }
+    return project;
 }

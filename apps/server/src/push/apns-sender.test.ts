@@ -69,7 +69,7 @@ const payload: PushNotificationPayload = {
     sender: { avatarUrl: null, id: 'agt_orbit', kind: 'agent', name: 'Orbit' },
     serverId: 'srv_1',
     taskId: null,
-    taskKey: null,
+    taskShortId: null,
 };
 
 function request(token: string): PushRequest {

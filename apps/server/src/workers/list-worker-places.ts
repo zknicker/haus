@@ -5,13 +5,12 @@ import {
     cloudAgentProviders,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import { resolveTaskTargetChat } from '../agent-api/resolve-task-target.ts';
 import { readAccessibleComputerIds } from '../computer-access/agent-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, workerPlaceLimitsTable } from '../postgres/schema.ts';
 import { readRepoFolderNames } from '../repos/repo-folder-read.ts';
-import { readTask } from '../tasks/task-read.ts';
+import { readTaskByRef } from '../tasks/task-list.ts';
 import { isComputerPlaceUsable, readComputerPlaces } from './computer-places.ts';
 import { defaultWorkerPlaceLimit, readFreeSlots } from './dispatch-worker-turns.ts';
 import { WorkerTaskRequiredError } from './errors.ts';
@@ -23,10 +22,10 @@ type Reader = Pick<HausDatabase, 'select'>;
 export async function listWorkerPlaces(
     db: Reader,
     runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
-    taskKey: string | undefined
+    taskRef: string | undefined
 ) {
     const { serverId } = runner;
-    const task = taskKey ? await readPlacesTask(db, runner, taskKey) : null;
+    const task = taskRef ? await readPlacesTask(db, runner, taskRef) : null;
     const projectDefault = task
         ? await readProjectDefaultPlace(db, serverId, task.projectId)
         : null;
@@ -71,7 +70,7 @@ export async function listWorkerPlaces(
             workersEnabled: computer.workersEnabled,
         })),
     ];
-    return { places, task: task?.key ?? null } satisfies WorkerPlacesResponse;
+    return { places, task: task?.shortId ?? null } satisfies WorkerPlacesResponse;
 }
 
 async function readMachineId(db: Reader, runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>) {
@@ -86,13 +85,13 @@ async function readMachineId(db: Reader, runner: Pick<ResolvedRunner, 'agentId' 
 async function readPlacesTask(
     db: Reader,
     runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
-    taskKey: string
+    taskRef: string
 ) {
-    const reached = await resolveTaskTargetChat(db, runner, taskKey);
-    if (!reached) {
-        throw new WorkerTaskRequiredError(`Task ${taskKey} does not exist or you cannot see it.`);
+    const task = await readTaskByRef(db, { ref: taskRef, serverId: runner.serverId });
+    if (!task) {
+        throw new WorkerTaskRequiredError(`Task ${taskRef} does not exist or you cannot see it.`);
     }
-    return await readTask(db, runner.serverId, reached.taskId);
+    return task;
 }
 
 async function cloudLimits(db: Reader, serverId: string) {

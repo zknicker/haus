@@ -6,7 +6,6 @@ import { buildPushPayload } from './push-payload.ts';
 import { createPushQueue } from './push-queue.ts';
 import { readPushRecipients } from './push-recipients.ts';
 import type { PushSender } from './push-sender.ts';
-import { listenForTaskPushes } from './task-push.ts';
 
 export interface MessagePush {
     /** Stops listening and waits for pushes already in flight. */
@@ -38,8 +37,7 @@ const pushBacklog = 1000;
  * every human the shared notification rule names: one alert per device per message,
  * sent off the send path after `pushReadGraceMs`, to humans who have not read it
  * by then. Failures are logged and recorded on the device;
- * they never reach the sender of the message. Task assignments (ADR 0051) share
- * this queue and sender; see `task-push.ts`.
+ * they never reach the sender of the message.
  */
 export function startMessagePush(
     db: HausDatabase,
@@ -89,17 +87,11 @@ export function startMessagePush(
             }
         }
     })();
-    const listeningForTasks = listenForTaskPushes(db, sender, queue, {
-        ...options,
-        readGraceMs: options.readGraceMs ?? pushReadGraceMs,
-        signal: abort.signal,
-    });
 
     return {
         async close() {
             abort.abort();
             await listening;
-            await listeningForTasks;
             await queue.drain();
             await sender.close();
         },

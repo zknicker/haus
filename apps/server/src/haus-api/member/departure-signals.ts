@@ -1,6 +1,5 @@
 import { publishChatComposition } from '../../chats/composition-hub.ts';
 import { createOpaqueId } from '../../postgres/opaque-id.ts';
-import { publishRealtime } from '../../realtime/topic.ts';
 import { memberUpdatedTopic, serverUpdatedTopic } from '../../realtime/topics.ts';
 import type { RemovedServerMember } from '../../servers/remove-member.ts';
 
@@ -26,7 +25,6 @@ export function announceDeparture(departure: RemovedServerMember): void {
         });
     }
 
-    publishRealtime(departure.taskEvents);
     memberUpdatedTopic.announce({ memberId: departure.userId, serverId: departure.serverId });
     // The membership sentinel: the departed member's `server.onUpdated` rechecks
     // and ends with `membership_lost`.

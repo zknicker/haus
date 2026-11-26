@@ -9,6 +9,6 @@ export const createTaskProcedure = taskProcedure
     .mutation(async ({ ctx, input }) =>
         commitTaskWrite(
             ctx,
-            await createTask(ctx.hausDb, memberTaskActor(ctx.member), ctx.agentDelivery, input)
+            await createTask(ctx.hausDb, memberTaskActor(ctx.member), input)
         )
     );

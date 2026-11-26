@@ -14,8 +14,6 @@ import {
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
-import type { TaskAgentDelivery } from '../tasks/task-assignment.ts';
 import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentDeleteDeniedError } from './agent-config-errors.ts';
@@ -23,7 +21,6 @@ import { AgentDeleteDeniedError } from './agent-config-errors.ts';
 /** Retires an Agent in the Server transaction; local Computer cleanup is never a prerequisite. */
 export async function deleteAgent(
     db: HausDatabase,
-    agentDelivery: TaskAgentDelivery,
     member: HausUser | null,
     input: DeleteAgentInput
 ): Promise<{
@@ -119,11 +116,6 @@ export async function deleteAgent(
             );
         await tx.delete(agentDeliveryTable).where(owner);
         const claimEvents = await clearClaimAssignments(tx, input.serverId, agent.id);
-        const assignmentEvents = await clearTaskAssignments(tx, agentDelivery, {
-            actor: { kind: 'user', userId: member.id },
-            assignee: { agentId: agent.id, kind: 'agent' },
-            serverId: input.serverId,
-        });
         await tx
             .update(agentsTable)
             .set({
@@ -142,7 +134,7 @@ export async function deleteAgent(
             agentId: agent.id,
             claimEvents,
             computerId: agent.computerId,
-            taskEvents: [...reminderTaskEvents, ...assignmentEvents],
+            taskEvents: reminderTaskEvents,
         };
     });
 }

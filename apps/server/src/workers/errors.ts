@@ -75,8 +75,8 @@ export class WorkerTaskRequiredError extends Error {
 }
 
 export class WorkerTaskClosedError extends Error {
-    constructor(taskKey: string) {
-        super(`Task ${taskKey} is closed. Reopen it, or start the Worker on an open Task.`);
+    constructor(shortId: string) {
+        super(`Task ${shortId} is archived. Start the Worker on an active Task.`);
         this.name = 'WorkerTaskClosedError';
     }
 }

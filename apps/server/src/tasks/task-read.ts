@@ -1,74 +1,32 @@
-import { formatTaskKey, type Task } from '@haus/api';
+import type { Task } from '@haus/api';
 import { and, asc, eq, inArray, not, type SQL } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    chatsTable,
-    taskKeysTable,
-    taskLabelAssignmentsTable,
-    tasksTable,
-} from '../postgres/schema.ts';
+import { chatsTable, tasksTable } from '../postgres/schema.ts';
 import { actorVisibleChats } from './actor-visible-chats.ts';
-import { actorFromColumns, optionalActorFromColumns, type TaskActor } from './task-actor.ts';
+import { actorFromColumns, type TaskActor } from './task-actor.ts';
 import { TaskNotFoundError } from './task-errors.ts';
 
 type TaskReader = Pick<HausDatabase, 'select'>;
 
 /**
  * Tasks on one Server matching `where`, oldest first, as the contract shapes
- * them: the key derived from the key-ledger entry's current key, and labels in
- * label-id order. With a `viewer`, a DM origin shows only to a reader of that
- * DM (specs/tasks.md, "The Task target").
+ * them. With a `viewer`, a DM origin shows only to a reader of that DM
+ * (specs/tasks.md, "The Task target").
  */
 export async function readTasks(
     db: TaskReader,
     input: { serverId: string; viewer?: TaskActor; where?: SQL }
 ): Promise<Task[]> {
     const rows = await db
-        .select({ ledgerKey: taskKeysTable.key, task: tasksTable })
+        .select({ task: tasksTable })
         .from(tasksTable)
-        .innerJoin(
-            taskKeysTable,
-            and(
-                eq(taskKeysTable.serverId, tasksTable.serverId),
-                eq(taskKeysTable.id, tasksTable.keyId)
-            )
-        )
         .leftJoin(
             chatsTable,
             and(eq(chatsTable.serverId, tasksTable.serverId), eq(chatsTable.id, tasksTable.chatId))
         )
         .where(and(eq(tasksTable.serverId, input.serverId), input.where))
-        .orderBy(asc(tasksTable.createdAt), asc(tasksTable.number));
-    const labels = await readTaskLabelIds(
-        db,
-        input.serverId,
-        rows.map(({ task }) => task.id)
-    );
-    const tasks = rows.map(({ ledgerKey, task }) => ({
-        assignee: optionalActorFromColumns(task.assigneeUserId, task.assigneeAgentId),
-        chatId: task.chatId,
-        completedAt: task.completedAt?.toISOString() ?? null,
-        createdAt: task.createdAt.toISOString(),
-        createdBy: actorFromColumns(task.createdByUserId, task.createdByAgentId),
-        description: task.description,
-        dueOn: task.dueOn,
-        id: task.id,
-        key: formatTaskKey(ledgerKey, task.number),
-        keyId: task.keyId,
-        labelIds: labels.get(task.id) ?? [],
-        number: task.number,
-        origin:
-            task.originChatId && task.originMessageId
-                ? { chatId: task.originChatId, messageId: task.originMessageId }
-                : null,
-        priority: task.priority,
-        projectId: task.projectId,
-        serverId: task.serverId,
-        state: task.state,
-        title: task.title,
-        updatedAt: task.updatedAt.toISOString(),
-        version: task.version,
-    }));
+        .orderBy(asc(tasksTable.createdAt), asc(tasksTable.id));
+    const tasks = rows.map(({ task }) => toTask(task));
     return input.viewer ? await withVisibleOrigins(db, input.viewer, tasks) : tasks;
 }
 
@@ -126,30 +84,23 @@ export async function withVisibleOrigins(
     );
 }
 
-async function readTaskLabelIds(
-    db: TaskReader,
-    serverId: string,
-    taskIds: string[]
-): Promise<Map<string, string[]>> {
-    if (taskIds.length === 0) {
-        return new Map();
-    }
-    const rows = await db
-        .select({
-            labelId: taskLabelAssignmentsTable.labelId,
-            taskId: taskLabelAssignmentsTable.taskId,
-        })
-        .from(taskLabelAssignmentsTable)
-        .where(
-            and(
-                eq(taskLabelAssignmentsTable.serverId, serverId),
-                inArray(taskLabelAssignmentsTable.taskId, taskIds)
-            )
-        )
-        .orderBy(asc(taskLabelAssignmentsTable.labelId));
-    const byTask = new Map<string, string[]>();
-    for (const row of rows) {
-        byTask.set(row.taskId, [...(byTask.get(row.taskId) ?? []), row.labelId]);
-    }
-    return byTask;
+function toTask(task: typeof tasksTable.$inferSelect) {
+    return {
+        archivedAt: task.archivedAt?.toISOString() ?? null,
+        chatId: task.chatId,
+        createdAt: task.createdAt.toISOString(),
+        createdBy: actorFromColumns(task.createdByUserId, task.createdByAgentId),
+        description: task.description,
+        id: task.id,
+        origin:
+            task.originChatId && task.originMessageId
+                ? { chatId: task.originChatId, messageId: task.originMessageId }
+                : null,
+        projectId: task.projectId,
+        serverId: task.serverId,
+        shortId: task.shortId,
+        title: task.title,
+        updatedAt: task.updatedAt.toISOString(),
+        version: task.version,
+    };
 }

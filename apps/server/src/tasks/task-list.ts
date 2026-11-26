@@ -1,13 +1,7 @@
-import {
-    parseTaskKey,
-    type Task,
-    type TaskDetail,
-    type TaskGetInput,
-    type TaskListInput,
-} from '@haus/api';
-import { and, eq, inArray, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { isTaskShortId, type Task, type TaskDetail, type TaskGetInput, type TaskListInput } from '@haus/api';
+import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatsTable, taskKeysTable, tasksTable } from '../postgres/schema.ts';
+import { chatsTable, tasksTable } from '../postgres/schema.ts';
 import { actorVisibleChats } from './actor-visible-chats.ts';
 import { requireTaskActor, type TaskActor } from './task-actor.ts';
 import { readTaskDescriptionReferences } from './task-description-references.ts';
@@ -18,24 +12,26 @@ import { readTasks } from './task-read.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
+/** `task.list`: active Tasks, or archived ones, optionally of one Project. */
 export async function listTasks(
     db: Reader,
     actor: TaskActor,
-    input: TaskListInput
+    input: TaskListInput & { createdBy?: TaskActor }
 ): Promise<Task[]> {
     await requireTaskActor(db, input.serverId, actor);
     return await readTasks(db, {
         serverId: input.serverId,
         viewer: actor,
         where: and(
-            assigneeFilter(input.assignee),
-            input.states ? inArray(tasksTable.state, [...input.states]) : undefined,
-            input.keyId === undefined ? undefined : eq(tasksTable.keyId, input.keyId)
+            input.archived ? isNotNull(tasksTable.archivedAt) : isNull(tasksTable.archivedAt),
+            input.projectId === undefined ? undefined : eq(tasksTable.projectId, input.projectId),
+            input.createdBy === undefined ? undefined : createdByFilter(input.createdBy)
         ),
     });
 }
 
-export async function listOpenTasks(
+/** `task.listActive`: every active Task the actor can see, for the sidebar. */
+export async function listActiveTasks(
     db: Reader,
     actor: TaskActor,
     input: { serverId: string }
@@ -45,7 +41,7 @@ export async function listOpenTasks(
         serverId: input.serverId,
         viewer: actor,
         where: and(
-            eq(tasksTable.state, 'open'),
+            isNull(tasksTable.archivedAt),
             isNotNull(tasksTable.chatId),
             isNull(chatsTable.deletedAt),
             actorVisibleChats(actor)
@@ -53,7 +49,7 @@ export async function listOpenTasks(
     });
 }
 
-/** `task.get`: one Task by id or key, with its Mentioned in and Reminders. */
+/** `task.get`: one Task by id or short id, with its Mentioned in and Reminders. */
 export async function getTask(
     db: Reader,
     actor: TaskActor,
@@ -74,18 +70,10 @@ export async function getTask(
     };
 }
 
-/** Resolves a Task by id or by its current key (`SEC-12`), as `viewer` may see it. */
+/** Resolves a Task by id or by its short id, as `viewer` may see it. */
 export async function findTask(db: Reader, input: TaskGetInput, viewer?: TaskActor): Promise<Task> {
-    let where: SQL | undefined;
-    if ('taskId' in input) {
-        where = eq(tasksTable.id, input.taskId);
-    } else {
-        const parsed = parseTaskKey(input.key);
-        if (!parsed) {
-            throw new TaskNotFoundError(`No task has the key ${input.key}.`);
-        }
-        where = and(eq(taskKeysTable.key, parsed.boardKey), eq(tasksTable.number, parsed.number));
-    }
+    const where =
+        'taskId' in input ? eq(tasksTable.id, input.taskId) : eq(tasksTable.shortId, input.shortId);
     const [task] = await readTasks(db, {
         serverId: input.serverId,
         where,
@@ -93,20 +81,31 @@ export async function findTask(db: Reader, input: TaskGetInput, viewer?: TaskAct
     });
     if (!task) {
         throw new TaskNotFoundError(
-            'key' in input ? `No task has the key ${input.key}.` : undefined
+            'shortId' in input ? `No task has the short id ${input.shortId}.` : undefined
         );
     }
     return task;
 }
 
-function assigneeFilter(assignee: TaskListInput['assignee']): SQL | undefined {
-    if (assignee === undefined) {
-        return;
+/** Resolves what an Agent typed: a short id, else a full Task id. */
+export async function findTaskByRef(db: Reader, input: { ref: string; serverId: string }) {
+    const task = await readTaskByRef(db, input);
+    if (!task) {
+        throw new TaskNotFoundError(`No task is ${input.ref}.`);
     }
-    if (assignee === 'none') {
-        return and(isNull(tasksTable.assigneeUserId), isNull(tasksTable.assigneeAgentId));
-    }
-    return 'userId' in assignee
-        ? eq(tasksTable.assigneeUserId, assignee.userId)
-        : eq(tasksTable.assigneeAgentId, assignee.agentId);
+    return task;
+}
+
+export async function readTaskByRef(db: Reader, input: { ref: string; serverId: string }) {
+    const [task] = await readTasks(db, {
+        serverId: input.serverId,
+        where: eq(isTaskShortId(input.ref) ? tasksTable.shortId : tasksTable.id, input.ref),
+    });
+    return task ?? null;
+}
+
+function createdByFilter(actor: TaskActor) {
+    return actor.kind === 'agent'
+        ? eq(tasksTable.createdByAgentId, actor.agentId)
+        : eq(tasksTable.createdByUserId, actor.userId);
 }

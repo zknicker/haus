@@ -94,7 +94,7 @@ export async function seedDevelopmentServer(
             serverId,
         });
         await tx.insert(channelParticipantsTable).values({ chatId: channelId, serverId, userId });
-        const { taskKeyId: generalKeyId } = await insertProject(tx, {
+        await insertProject(tx, {
             chat: {
                 id: demoChannelId,
                 lastActivityAt: now,
@@ -254,7 +254,6 @@ export async function seedDevelopmentServer(
             agents: { blippyId, tinyId },
             channels: { allId: channelId, demoId: demoChannelId },
             computerId,
-            keyId: generalKeyId,
             messages: {
                 auditTaskMessageId,
                 planMessageId,

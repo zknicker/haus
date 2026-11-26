@@ -56,7 +56,7 @@ export async function readWorkerReportAttentions(
             rows.flatMap((row) => (row.taskId ? [row.taskId] : []))
         ),
     });
-    const keyByTask = new Map(tasks.map((task) => [task.id, task.key]));
+    const shortIdByTask = new Map(tasks.map((task) => [task.id, task.shortId]));
     const reports = rows.flatMap((row) =>
         row.outcome?.kind === 'report' ? [row.outcome.report] : []
     );
@@ -87,7 +87,7 @@ export async function readWorkerReportAttentions(
                         const reading = key ? readings.get(pullRequestKey(key)) : undefined;
                         return reading ? [reading] : [];
                     }),
-                    taskKey: row.taskId ? keyByTask.get(row.taskId) : undefined,
+                    taskShortId: row.taskId ? shortIdByTask.get(row.taskId) : undefined,
                     title: row.title,
                     turnId: row.turnId,
                     turnNumber: row.turnNumber,

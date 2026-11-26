@@ -4,10 +4,8 @@ import type { HausDatabase } from '../postgres/connection.ts';
 /**
  * Removes requeued wakes whose reason went away while their run was active: a
  * Trigger fire of a removed Trigger, a claim assignment for a claim that no longer
- * exists (migration 0120 turned it into a Task), and a Task assignment that is not
- * the current one. An assignment is stale when the Task now belongs to someone
- * else, or when the same Agent holds a newer assignment of it: reassigned away and
- * back while the run was active, which already queued that newer row.
+ * exists (migration 0120 turned it into a Task), and any Task assignment: Tasks
+ * have no assignee (ADR 0062), so none is current.
  */
 export async function retireStaleRequeuedItems(db: HausDatabase, agentId: string): Promise<void> {
     await db.execute(sql`
@@ -38,29 +36,7 @@ export async function retireStaleRequeuedItems(db: HausDatabase, agentId: string
                         and claim.message_id = split_part(item.dedupe_key, ':', 2)
                   )
               )
-              or (
-                  item.source = 'task_assignment'
-                  and (
-                      not exists (
-                          select 1
-                          from tasks as task
-                          where task.server_id = item.server_id
-                            and task.id = split_part(item.dedupe_key, ':', 2)
-                            and task.assignee_agent_id = item.agent_id
-                      )
-                      or exists (
-                          select 1
-                          from agent_inbox as newer
-                          where newer.server_id = item.server_id
-                            and newer.agent_id = item.agent_id
-                            and newer.source = 'task_assignment'
-                            and split_part(newer.dedupe_key, ':', 2)
-                                = split_part(item.dedupe_key, ':', 2)
-                            and split_part(newer.dedupe_key, ':', 3)::int
-                                > split_part(item.dedupe_key, ':', 3)::int
-                      )
-                  )
-              )
+              or item.source = 'task_assignment'
           )
     `);
 }

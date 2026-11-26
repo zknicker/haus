@@ -115,7 +115,7 @@ async function readWorkerReportsNotice(
         fresh: fresh.length > 0,
         notice: {
             ids: named.slice(0, workerReportsPerRun).map((row) => row.dedupeKey),
-            taskKey: task.key,
+            taskShortId: task.shortId,
             total: ofTask.length,
         },
     };

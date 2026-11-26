@@ -33,7 +33,7 @@ export async function resolveStartProject(
         });
     }
     await requireChatWritable(db, { chatId: project.projectId, serverId: input.serverId });
-    return { projectId: project.projectId, taskKeyId: project.taskKeyId };
+    return { projectId: project.projectId };
 }
 
 export async function requireFilingProject(
@@ -42,7 +42,7 @@ export async function requireFilingProject(
 ) {
     const project = await readProject(db, input);
     await requireChatWritable(db, { chatId: project.projectId, serverId: input.serverId });
-    return { projectId: project.projectId, taskKeyId: project.taskKeyId };
+    return { projectId: project.projectId };
 }
 
 async function isAllChannel(db: Reader, chatId: string) {
@@ -69,7 +69,6 @@ async function readAgentHome(db: Reader, input: { agentId: string; serverId: str
 const projectColumns = {
     name: chatsTable.name,
     projectId: projectsTable.chatId,
-    taskKeyId: projectsTable.taskKeyId,
 };
 
 async function readProject(db: Reader, input: { projectId: string; serverId: string }) {
@@ -94,7 +93,7 @@ async function readProject(db: Reader, input: { projectId: string; serverId: str
     return requireNamed(project, 'That Project does not exist on this Server.');
 }
 
-async function readProjectByKey(db: Reader, input: { key: string; serverId: string }) {
+export async function readProjectByKey(db: Reader, input: { key: string; serverId: string }) {
     const [project] = await db
         .select(projectColumns)
         .from(projectsTable)

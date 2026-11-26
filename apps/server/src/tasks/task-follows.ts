@@ -70,23 +70,22 @@ export async function isTaskFollowed(
 export async function seedTaskFollowers(
     tx: Writer,
     input: {
-        assignee: TaskActor | null;
         chatId: string;
-        filerUserId?: string;
         origin: { chatId: string; messageId: string } | null;
         projectId: string;
         serverId: string;
+        starter: TaskActor;
     }
 ): Promise<void> {
     const origin = input.origin
         ? await readOrigin(tx, { ...input.origin, serverId: input.serverId })
         : null;
     const scope = { chatId: input.chatId, serverId: input.serverId };
+    const { starter } = input;
     const users = new Set([
         ...(origin?.authorUserId ? [origin.authorUserId] : []),
         ...(origin?.mentionedUserIds ?? []),
-        ...(input.filerUserId ? [input.filerUserId] : []),
-        ...(input.assignee?.kind === 'user' ? [input.assignee.userId] : []),
+        ...(starter.kind === 'user' ? [starter.userId] : []),
     ]);
     for (const userId of users) {
         const visible = await canSeeChannel(tx, {
@@ -105,7 +104,7 @@ export async function seedTaskFollowers(
     const agents = new Set([
         ...(origin?.authorAgentId ? [origin.authorAgentId] : []),
         ...originAgents,
-        ...(input.assignee?.kind === 'agent' ? [input.assignee.agentId] : []),
+        ...(starter.kind === 'agent' ? [starter.agentId] : []),
     ]);
     for (const agentId of agents) {
         await followTaskAsAgent(tx, { ...scope, agentId });

@@ -1,5 +1,4 @@
-import { formatTaskKey, GENERAL_TASK_KEY, type TaskActor } from '@haus/api';
-import { eq, sql } from 'drizzle-orm';
+import type { TaskActor } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -7,22 +6,18 @@ import {
     chatMessagesTable,
     chatsTable,
     taskFollowsTable,
-    taskKeysTable,
-    taskMessageLinksTable,
     tasksTable,
 } from '../postgres/schema.ts';
+import { randomShortId } from '../tasks/task-short-id.ts';
 import { seedDemoTaskWork } from './seed-demo-task-work.ts';
 
 type Tx = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 interface DemoTask {
-    assignee: TaskActor;
+    archived?: true;
     conversation?: readonly { author: TaskActor; content: string }[];
     createdBy: TaskActor;
-    messageId: string;
     origin: { chatId: string; messageId: string };
-    priority: 'high' | 'medium';
-    state: 'done' | 'open' | 'todo';
     title: string;
 }
 
@@ -30,7 +25,6 @@ export interface SeededDemoTask {
     chatId: string;
     id: string;
     messageCount: number;
-    number: number;
 }
 
 export async function seedServerDemoTasks(
@@ -39,7 +33,6 @@ export async function seedServerDemoTasks(
         agents: { blippyId: string; tinyId: string };
         channels: { allId: string; demoId: string };
         computerId: string;
-        keyId: string;
         messages: {
             auditTaskMessageId: string;
             planMessageId: string;
@@ -57,12 +50,10 @@ export async function seedServerDemoTasks(
     const owner = { kind: 'user', userId: input.userId } as const;
     const inAll = (messageId: string) => ({ chatId: channels.allId, messageId });
     const [ship] = await seedDemoTasks(tx, {
-        keyId: input.keyId,
         projectId: channels.demoId,
         serverId: input.serverId,
         tasks: [
             {
-                assignee: blippy,
                 conversation: [
                     { author: blippy, content: 'Taking this. Upload, crop, and save in one pass.' },
                     { author: owner, content: 'Keep the crop square for now.' },
@@ -72,61 +63,43 @@ export async function seedServerDemoTasks(
                     },
                 ],
                 createdBy: blippy,
-                messageId: messages.shipTaskMessageId,
                 origin: inAll(messages.shipTaskMessageId),
-                priority: 'high',
-                state: 'open',
                 title: 'Ship the avatar upload flow end to end',
             },
             {
-                assignee: tiny,
                 createdBy: tiny,
-                messageId: messages.auditTaskMessageId,
                 origin: inAll(messages.auditTaskMessageId),
-                priority: 'medium',
-                state: 'todo',
                 title: 'Audit the member directory for stale copy',
             },
             {
-                assignee: owner,
                 conversation: [
                     { author: tiny, content: '5 MB covers every phone photo I tried.' },
                     { author: owner, content: 'Let me check what the iPhone sends first.' },
                 ],
                 createdBy: tiny,
-                messageId: messages.sizeCapMessageId,
                 origin: inAll(messages.planMessageId),
-                priority: 'high',
-                state: 'todo',
                 title: 'Pick the upload size cap',
             },
             {
-                assignee: owner,
                 createdBy: blippy,
-                messageId: messages.polishMessageId,
                 origin: { chatId: channels.demoId, messageId: messages.polishMessageId },
-                priority: 'medium',
-                state: 'todo',
                 title: 'Sign off on the core flow polish list',
             },
             {
-                assignee: tiny,
+                archived: true,
                 conversation: [
                     { author: tiny, content: 'Drafted the welcome copy and posted it in #all.' },
                     { author: owner, content: 'Reads well. Ship it.' },
-                    { author: tiny, content: 'Shipped. Marking this done.' },
+                    { author: tiny, content: 'Shipped. Archiving this.' },
                 ],
                 createdBy: tiny,
-                messageId: messages.planMessageId,
                 origin: inAll(messages.planMessageId),
-                priority: 'medium',
-                state: 'done',
                 title: 'Write the onboarding welcome copy',
             },
         ],
     });
     if (!ship) {
-        throw new Error('The dev seed wrote no open Task to attach work to.');
+        throw new Error('The dev seed wrote no active Task to attach work to.');
     }
     await seedDemoTaskWork(tx, {
         agentId: agents.blippyId,
@@ -138,14 +111,13 @@ export async function seedServerDemoTasks(
 
 export async function seedDemoTasks(
     tx: Tx,
-    input: { keyId: string; projectId: string; serverId: string; tasks: readonly DemoTask[] }
+    input: { projectId: string; serverId: string; tasks: readonly DemoTask[] }
 ): Promise<SeededDemoTask[]> {
-    const { keyId, projectId, serverId } = input;
+    const { projectId, serverId } = input;
     const now = new Date();
-    const rows = input.tasks.map((task, index) => ({
+    const rows = input.tasks.map((task) => ({
         chatId: createOpaqueId('cht'),
         id: createOpaqueId('tsk'),
-        number: index + 1,
         task,
     }));
     await tx.insert(chatsTable).values(
@@ -160,32 +132,18 @@ export async function seedDemoTasks(
         }))
     );
     await tx.insert(tasksTable).values(
-        rows.map(({ chatId, id, number, task }) => ({
-            assigneeAgentId: agentIdOf(task.assignee),
-            assigneeUserId: userIdOf(task.assignee),
+        rows.map(({ chatId, id, task }) => ({
+            archivedAt: task.archived ? now : null,
             chatId,
-            completedAt: task.state === 'done' ? now : null,
             createdByAgentId: agentIdOf(task.createdBy),
             createdByUserId: userIdOf(task.createdBy),
             id,
-            keyId,
-            number,
             originChatId: task.origin.chatId,
             originMessageId: task.origin.messageId,
-            priority: task.priority,
             projectId,
             serverId,
-            state: task.state,
+            shortId: randomShortId(),
             title: task.title,
-        }))
-    );
-    await tx.insert(taskMessageLinksTable).values(
-        rows.map(({ id, number, task }) => ({
-            messageId: task.messageId,
-            ordinal: 0,
-            serverId,
-            taskId: id,
-            text: formatTaskKey(GENERAL_TASK_KEY, number),
         }))
     );
     const conversation = rows.flatMap(({ chatId, task }) =>
@@ -208,15 +166,10 @@ export async function seedDemoTasks(
         await tx.insert(chatMessagesTable).values(conversation);
     }
     await seedFollows(tx, serverId, rows);
-    await tx
-        .update(taskKeysTable)
-        .set({ nextNumber: sql`${taskKeysTable.nextNumber} + ${rows.length}` })
-        .where(eq(taskKeysTable.id, keyId));
-    return rows.map(({ chatId, id, number, task }) => ({
+    return rows.map(({ chatId, id, task }) => ({
         chatId,
         id,
         messageCount: task.conversation?.length ?? 0,
-        number,
     }));
 }
 
@@ -226,7 +179,7 @@ async function seedFollows(
     rows: readonly { chatId: string; task: DemoTask }[]
 ) {
     const followers = rows.flatMap(({ chatId, task }) =>
-        [task.assignee, ...(task.conversation ?? []).map((line) => line.author)].map((actor) => ({
+        [task.createdBy, ...(task.conversation ?? []).map((line) => line.author)].map((actor) => ({
             actor,
             chatId,
         }))
