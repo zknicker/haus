@@ -57,7 +57,6 @@ export function CapyHomePage({
                     <ComputerDiskNotices />
                     {state.kind === 'ready' ? (
                         <HomeComposer
-                            captains={state.captains}
                             initialProjectId={state.initialProjectId}
                             key={serverId}
                             projects={state.projects}

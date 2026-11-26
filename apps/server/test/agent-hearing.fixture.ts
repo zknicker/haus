@@ -55,7 +55,6 @@ export function agentHearingFixture() {
     async function startTask(name: string, title: string) {
         return await startTestTask(fixture.harness, fixture.owner, {
             channelId: project(name),
-            key: projects[name]?.key,
             serverId: fixture.serverId,
             title,
         });
@@ -64,7 +63,9 @@ export function agentHearingFixture() {
     async function unfollow(handle: string, task: TestTask) {
         const runner = await fixture.mintRunner(createOpaqueId('run'), agents[handle], task.chatId);
         return (
-            await fixture.post('/api/agent/tasks/unfollow', runner, { target: `task:${task.key}` })
+            await fixture.post('/api/agent/tasks/unfollow', runner, {
+                target: `task:${task.shortId}`,
+            })
         ).status;
     }
 

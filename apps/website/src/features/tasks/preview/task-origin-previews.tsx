@@ -11,7 +11,7 @@ import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import { useTranscriptRenderContextOptional } from '../../chats/chat-transcript-render-context.tsx';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { TaskStateDisc } from '../task-state-disc.tsx';
-import { taskStateLabels } from '../task-state.ts';
+import { taskStateLabels, taskStateOf } from '../task-state.ts';
 import { taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
 
 export function TaskOriginPreviews({
@@ -40,7 +40,9 @@ function TaskPreviewList({
             {previews.map((preview) => (
                 <TaskPreviewBlock
                     key={preview.taskId}
-                    onOpen={() => void openTask({ key: preview.key, taskId: preview.taskId })}
+                    onOpen={() =>
+                        void openTask({ shortId: preview.shortId, taskId: preview.taskId })
+                    }
                     preview={preview}
                 />
             ))}
@@ -62,10 +64,9 @@ function TaskPreviewBlock({ onOpen, preview }: { onOpen: () => void; preview: Ta
             />
             <div className="pointer-events-none relative flex min-w-0 items-center justify-between gap-2 text-xs">
                 <span className="flex min-w-0 items-center gap-1.5 text-sm">
-                    <span aria-label={taskStateLabels[preview.state]} role="img">
-                        <TaskStateDisc state={preview.state} />
+                    <span aria-label={taskStateLabels[taskStateOf(preview)]} role="img">
+                        <TaskStateDisc state={taskStateOf(preview)} />
                     </span>
-                    <span className="text-muted shrink-0 tabular-nums">{preview.key}</span>
                     <span className="truncate font-medium">{preview.title}</span>
                 </span>
                 <span className="text-muted group-hover/task:text-foreground flex shrink-0 items-center gap-1 text-xs font-semibold">

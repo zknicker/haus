@@ -165,7 +165,7 @@ export function workerRecordFixture() {
             place: 'cursor',
             repository: 'haus/haus',
             startingRef: 'main',
-            task: task.key,
+            task: task.shortId,
             title: 'Fix the flaky delivery test',
             ...overrides,
         };

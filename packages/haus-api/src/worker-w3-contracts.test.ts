@@ -38,7 +38,7 @@ test('a Worker record carries its runtime, model, branch, and WORKER.md revision
 });
 
 test('a start names one repo, lower-cased, and its place, runtime, and model are optional', () => {
-    const brief = { brief: 'Fix it.', nonce: 'n-1', task: 'SEC-12', title: 'Fix the flake' };
+    const brief = { brief: 'Fix it.', nonce: 'n-1', task: 'k3mq7xta', title: 'Fix the flake' };
     expect(agentWorkerStartInputSchema.safeParse(brief).success).toBe(false);
     expect(agentWorkerStartInputSchema.parse({ ...brief, repository: 'Haus/Haus' })).toEqual({
         ...brief,
@@ -78,7 +78,7 @@ test('places list each Computer with its access, switch, runtimes, repo folders,
             },
             { freeSlots: 10, kind: 'cursor', limit: 10, projectDefault: false, ready: false },
         ],
-        task: 'SEC-12',
+        task: 'k3mq7xta',
     };
     expect(workerPlacesResponseSchema.parse(response)).toEqual(response);
     expect(

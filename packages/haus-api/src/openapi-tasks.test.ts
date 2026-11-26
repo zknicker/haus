@@ -15,53 +15,54 @@ const validate = (schema: string, payload: unknown) =>
     );
 
 const task = {
-    assignee: { handle: 'zero', type: 'agent' },
-    completedAt: null,
+    archivedAt: null,
     createdAt: '2026-11-04T12:00:00.000Z',
     createdBy: { handle: 'zach', type: 'human' },
-    dueOn: null,
-    key: 'SEC-12',
-    labels: ['security'],
-    priority: 'high',
-    state: 'open',
+    shortId: 'k3mq7xta',
     title: 'Rotate the deploy key',
     updatedAt: '2026-11-04T12:00:00.000Z',
     version: 4,
 };
 
-test('Agent API task receipts carry keys and states, not board columns', () => {
+test('Agent API task receipts carry a short id and an archive time, not backlog fields', () => {
     expect(validate('AgentTaskSingleResponse', { task })).toBe(true);
-    expect(validate('AgentTaskSingleResponse', { task: { ...task, key: 'sec-12' } })).toBe(false);
-    expect(validate('AgentTaskSingleResponse', { task: { ...task, state: 'active' } })).toBe(false);
-    expect(validate('AgentTaskSingleResponse', { task: { ...task, column: 'Done' } })).toBe(false);
-    expect(validate('AgentTaskSingleResponse', { task: { ...task, assignee: null } })).toBe(true);
+    expect(validate('AgentTaskSingleResponse', { task: { ...task, shortId: 'SEC-12' } })).toBe(
+        false
+    );
+    expect(validate('AgentTaskSingleResponse', { task: { ...task, state: 'open' } })).toBe(false);
+    expect(validate('AgentTaskSingleResponse', { task: { ...task, priority: 'high' } })).toBe(
+        false
+    );
+    expect(
+        validate('AgentTaskSingleResponse', {
+            task: { ...task, archivedAt: '2026-11-05T12:00:00.000Z' },
+        })
+    ).toBe(true);
 });
 
-test('Agent API task requests address Tasks by key', () => {
-    expect(validate('AgentTaskAssignRequest', { assignee: null, key: 'SEC-12' })).toBe(true);
-    expect(validate('AgentTaskAssignRequest', { key: 'SEC-12' })).toBe(false);
-    expect(validate('AgentTaskUpdateRequest', { key: 'SEC-12' })).toBe(false);
-    expect(validate('AgentTaskUpdateRequest', { key: 'SEC-12', priority: 'low' })).toBe(true);
-    expect(document.components?.schemas).not.toHaveProperty('AgentTaskCreateRequest');
-    expect(document.components?.schemas).not.toHaveProperty('AgentBoard');
+test('Agent API task requests address Tasks by short id or id', () => {
+    expect(validate('AgentTaskArchiveRequest', { task: 'k3mq7xta' })).toBe(true);
+    expect(validate('AgentTaskArchiveRequest', { key: 'SEC-12' })).toBe(false);
+    expect(document.components?.schemas).not.toHaveProperty('AgentTaskAssignRequest');
+    expect(document.components?.schemas).not.toHaveProperty('AgentTaskUpdateRequest');
+    expect(document.components?.schemas).not.toHaveProperty('AgentTaskStateRequest');
 });
 
 test('REST messages may carry resolved task links', () => {
-    const link = { key: 'SEC-12', task_id: 'tsk_12', text: 'SEC-12' };
+    const link = { short_id: 'k3mq7xta', task_id: 'tsk_12', text: '[the key](task://tsk_12)' };
     expect(validate('MessageTaskLink', link)).toBe(true);
-    expect(validate('MessageTaskLink', { ...link, key: 'sec-12' })).toBe(false);
+    expect(validate('MessageTaskLink', { ...link, short_id: 'SEC-12' })).toBe(false);
     expect(validate('MessageTaskLink', { ...link, taskId: 'tsk_12' })).toBe(false);
 });
 
-test('Agent API starts Tasks from a Channel message and sets their state', () => {
+test('Agent API starts Tasks from a Channel message and archives them', () => {
     const start = { from: 'msg_origin', target: '#security', title: 'Rotate' };
     expect(validate('AgentTaskStartRequest', start)).toBe(true);
+    expect(validate('AgentTaskStartRequest', { ...start, state: 'open' })).toBe(false);
     expect(validate('AgentTaskStartRequest', { target: '#security', title: 'Rotate' })).toBe(false);
-    expect(validate('AgentTaskStartResponse', { target: 'task:SEC-12', task })).toBe(true);
-    expect(validate('AgentTaskStartResponse', { target: '#security', task })).toBe(false);
-    expect(validate('AgentTaskStateRequest', { key: 'SEC-12', state: 'done' })).toBe(true);
-    expect(validate('AgentTaskStateRequest', { key: 'SEC-12', state: 'active' })).toBe(false);
-    const pr = { key: 'SEC-12', url: 'https://github.com/zknicker/haus/pull/42' };
+    expect(validate('AgentTaskStartResponse', { target: 'task:k3mq7xta', task })).toBe(true);
+    expect(validate('AgentTaskStartResponse', { target: 'task:SEC-12', task })).toBe(false);
+    const pr = { task: 'k3mq7xta', url: 'https://github.com/zknicker/haus/pull/42' };
     expect(validate('AgentTaskAttachPullRequestRequest', pr)).toBe(true);
     expect(
         validate('AgentTaskAttachPullRequestRequest', { ...pr, url: 'https://example.com/pr/42' })

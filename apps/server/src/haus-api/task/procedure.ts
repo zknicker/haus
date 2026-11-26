@@ -2,13 +2,13 @@ import { TRPCError } from '@trpc/server';
 import { ChatArchivedError, ChatNotFoundError } from '../../chats/chat-access.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { memberTaskActor } from '../../tasks/task-actor.ts';
-import type { TaskWriteResult } from '../../tasks/task-assignment.ts';
 import {
     TaskConflictError,
     TaskInvariantError,
     TaskNotFoundError,
 } from '../../tasks/task-errors.ts';
 import { withVisibleOrigins } from '../../tasks/task-read.ts';
+import type { TaskWriteResult } from '../../tasks/task-write-result.ts';
 import type { HausUser } from '../../users/haus-user.ts';
 import type { HausContext } from '../context.ts';
 import { memberProcedure } from '../server/procedure.ts';
@@ -22,8 +22,8 @@ export const taskProcedure = memberProcedure.use(async ({ next }) => {
 });
 
 /**
- * After a Task write commits: publish its events and wake the Agents its
- * assignment change enqueued, then answer with the Task as the writer sees it.
+ * After a Task write commits: publish its events, stop closed Workers, and wake
+ * the Agents it enqueued, then answer with the Task as the writer sees it.
  * The response never waits on the wake.
  */
 export async function commitTaskWrite(

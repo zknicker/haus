@@ -124,7 +124,7 @@ test('Happening now lists a live Worker, opening its Task, only to people who re
         chatName: 'product',
         conversationChatId: fixture.channelId,
         location: { chatId: fixture.task.chatId, kind: 'task', taskId: fixture.task.id },
-        taskKey: fixture.task.key,
+        taskShortId: fixture.task.shortId,
     });
     expect(forOutsider).toBeUndefined();
     await expect(

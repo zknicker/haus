@@ -27,13 +27,13 @@ afterAll(async () => {
 });
 
 const emptyPreview = () => ({
+    archivedAt: null,
     chatId: task.chatId,
     followed: false,
-    key: task.key,
     messageCount: 0,
     originMessageId: task.originMessageId,
     recentMessages: [],
-    state: 'todo',
+    shortId: task.shortId,
     taskId: task.id,
     title: 'Quiet so far',
     unreadCount: 0,

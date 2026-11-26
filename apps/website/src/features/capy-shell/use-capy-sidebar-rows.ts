@@ -51,17 +51,17 @@ export function useOpenTaskRow(serverId: string, taskId: string) {
             const task = tasks.find((entry) => entry.id === taskId);
             return task
                 ? {
+                      archivedAt: task.archivedAt,
                       chatId: task.chatId,
                       id: task.id,
-                      key: task.key,
-                      state: task.state,
+                      shortId: task.shortId,
                       title: task.title,
                   }
                 : undefined;
         },
         [taskId]
     );
-    const task = hausTrpc.task.listOpen.useQuery(
+    const task = hausTrpc.task.listActive.useQuery(
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: selectTask }
     ).data;

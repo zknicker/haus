@@ -97,8 +97,8 @@ lock serializes allocation through commit and no reader can see N+1 before N.
 
 `message_claims.assignee_agent_id` is the only claim assignee; claims are Agent work and carry no
 human assignee. A claim is only the lock on its message, so it has no priority or labels: those
-live on `tasks`. `task_labels` is the Server's label catalog and `task_label_assignments` links it
-to Tasks. Members create catalog entries; Owners and Admins rename, recolor, or delete them.
+live on `issues`. `task_labels` is the Server's label catalog and `issue_label_assignments` links
+it to Issues. Members create catalog entries; Owners and Admins rename, recolor, or delete them.
 
 A Task ([specs/tasks.md](../../specs/tasks.md)) is a `tasks` row plus its own `chats` row of kind
 `task`; `tasks.chat_id` links them, one Chat per Task, and is null only for legacy history Tasks.
@@ -110,9 +110,11 @@ each Agent's home Project, the Haus project for a generalist, and the only Agent
 it decides what reaches the Agent ([specs/inbox.md](../../specs/inbox.md#hearing)). Agents have no
 channel membership; migration 0138 set each home from the last 30 days of messages and dropped
 `channel_agent_participants` and `agent_channel_mutes`.
-`tasks.state` is `todo`, `open`, `done`, or `canceled`. `task_keys` is the key ledger, each entry
-with its own `next_number`; `tasks.key_id` names a Task's entry and `projects.task_key_id` a
-Project's (one per channel, unique). Migration 0130 made every live or archived channel a Project,
+Migration 0161 slimmed Tasks: `tasks.short_id` (8 lowercase Crockford base32 characters, unique
+per Server) names a Task, `tasks.archived_at` is its only archive state, and state, priority, due
+date, labels, assignee, key and number are gone (they live on Issues). `task_keys` is the key
+ledger, each entry with its own `next_number`; `projects.task_key_id` names a Project's entry
+(one per channel, unique). Migration 0130 made every live or archived channel a Project,
 renamed `#all` to `haus`, and gave channels that shared a key new entries by the key rule
 ([specs/projects.md](../../specs/projects.md#migration-from-channels)). `task_pull_requests` attaches pull requests by repository and number, and
 `workers.task_id` attaches Workers. Followers ride `thread_follows` (people) and
@@ -130,7 +132,7 @@ every Agent in the Haus project.
 An Issue ([specs/issues.md](../../specs/issues.md)) is an `issues` row, added by migration 0159.
 `issues.key_id` and `number` take the Project's `task_keys` entry, unique per key, allocated by
 `allocateIssueNumber` (`apps/server/src/tasks/task-key-ledger.ts`) from the same `next_number` Task
-numbers use, so no code repeats. A Project's key is fixed once its entry's `next_number` passes 1.
+numbers once used, so no code repeats. A Project's key is fixed once its entry's `next_number` passes 1.
 The assignee and creator are each a person, a Captain (an `agents` row) or a Task, exactly one of
 three columns; `closed_at` is set exactly while the state is `done` or `canceled`; `parent_id` names
 an Issue in the same Project (`issues_parent_fk`). `issue_label_assignments` links the shared

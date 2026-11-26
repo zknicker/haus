@@ -15,7 +15,7 @@ import {
     agentWorkerSendReceiptResponseSchema,
     agentWorkerStopReceiptResponseSchema,
 } from '../worker-response-schema.ts';
-import { requiredValue, taskKeyArgument } from './agent-command-utils.ts';
+import { requiredValue, taskRefArgument } from './agent-command-utils.ts';
 import { type WorkerDeps, defaultDeps } from './agent-worker-deps.ts';
 import { INSPECT_COMMAND, runWorkerInspect } from './agent-worker-inspect.ts';
 import { PLACES_COMMAND } from './agent-worker-places.ts';
@@ -23,18 +23,18 @@ import { withRefusalStep } from './agent-worker-refusals.ts';
 
 export { runWorkerInspect };
 
-const START_RECIPE = `haus worker start --task SEC-12 --on computer:mini --repo haus/haus --ref main \\
+const START_RECIPE = `haus worker start --task k3mq7xta --on computer:mini --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" <<'HAUSMSG'
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
 HAUSMSG`;
 
 const TASK_REQUIRED_NEXT_ACTION =
-    'Start a Task for this work first (haus task start --target <#channel> --from <messageId> --title <text>), then start the Worker with --task <KEY-n>.';
+    'Start a Task for this work first (haus task start --target <#channel> --from <messageId> --title <text>), then start the Worker with --task <id>.';
 
 const START_COMMAND: SubCommand = {
     examples: [START_RECIPE],
     flags: [
-        { description: 'The Task this Worker is for', name: '--task', valueName: '<KEY-n>' },
+        { description: 'The Task this Worker is for', name: '--task', valueName: '<id>' },
         {
             description: "Where the Worker runs; omit for the Project's default",
             name: '--on',
@@ -67,7 +67,7 @@ const START_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runWorkerStart(args, defaultDeps()),
     summary: 'Start a Worker on a Task with the brief from stdin',
-    usage: 'haus worker start --task <KEY-n> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]',
+    usage: 'haus worker start --task <id> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]',
 };
 
 const SEND_COMMAND: SubCommand = {
@@ -189,7 +189,7 @@ function readTask(args: ParsedArgs) {
     if (!args.values['--task']?.trim()) {
         throw taskRequired('A Worker works for a Task, and this start named none.');
     }
-    return taskKeyArgument(args.values['--task'], '--task');
+    return taskRefArgument(args.values['--task'], '--task');
 }
 
 function taskRequired(message: string) {

@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils.ts';
 
 export const anyFilter = 'any';
 
-const filterNames = ['assignee', 'key', 'label', 'state'] as const;
+const filterNames = ['state'] as const;
 export type TasksFilterName = (typeof filterNames)[number];
 
 export function FilterSelect({

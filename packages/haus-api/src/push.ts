@@ -1,13 +1,12 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import { messageNotificationReasons } from './message-notification.ts';
-import { taskKeySchema } from './task-key.ts';
+import { taskShortIdSchema } from './task-short-id.ts';
 
 /**
  * iPhone push (APNs). A device registers its token for the signed-in human;
  * Server sends one alert per message that notifies that human under
- * `messageNotificationReason` (ADR 0038), and one per Task assigned to them
- * under `taskAssignmentNotifiedUserId` (ADR 0051). Registration is per human, not per
+ * `messageNotificationReason` (ADR 0038). Registration is per human, not per
  * Server: a device receives pushes from every Server the human belongs to.
  */
 export const pushEnvironments = ['sandbox', 'production'] as const;
@@ -76,7 +75,7 @@ export const pushNotificationConversationSchema = z.discriminatedUnion('kind', [
  * Notification Service extension turn the alert into a Communication
  * Notification from `sender` and `conversation`; the plain alert is the
  * fallback when it cannot. `taskId` and
- * `taskKey` are non-null exactly when the message is in a Task's own Chat
+ * `taskShortId` are non-null exactly when the message is in a Task's own Chat
  * (ADR 0053), which is then `chatId` under its origin Channel
  * `conversationChatId`, so a tap opens the Task. `reason` is
  * why the message notifies the human (`messageNotificationReason`); the
@@ -110,57 +109,13 @@ export const pushNotificationPayloadSchema = z
         sender: pushNotificationSenderSchema,
         serverId: idSchema,
         taskId: idSchema.nullable(),
-        taskKey: taskKeySchema.nullable(),
+        taskShortId: taskShortIdSchema.nullable(),
     })
     .strict()
-    .refine((payload) => (payload.taskId === null) === (payload.taskKey === null), {
-        message: 'A Task push names both its Task id and key.',
-        path: ['taskKey'],
+    .refine((payload) => (payload.taskId === null) === (payload.taskShortId === null), {
+        message: 'A Task push names both its Task id and short id.',
+        path: ['taskShortId'],
     });
-
-const pushTaskAlertApsSchema = z
-    .object({
-        alert: z
-            .object({
-                body: z.string().max(pushAlertBodyMaxLength),
-                title: z.string().min(1),
-            })
-            .strict(),
-        /** As on a message push: the human's unread Inbox rows, these items included. */
-        badge: z.number().int().nonnegative().optional(),
-        sound: z.literal('default'),
-        'thread-id': idSchema,
-    })
-    .strict();
-
-/**
- * The JSON body of one Task assignment push (ADR 0051): the assigner and key as
- * the title, the Task's title as the body, and the ids a tap routes by. It has
- * no sender or conversation, so it is a plain alert the Notification Service
- * extension never rewrites. `kind` tells it from a message push.
- */
-export const pushTaskAssignmentPayloadSchema = z
-    .object({
-        aps: pushTaskAlertApsSchema,
-        key: taskKeySchema,
-        kind: z.literal('task_assignment'),
-        serverId: idSchema,
-        taskId: idSchema,
-    })
-    .strict();
-
-/**
- * Several assignments for one person inside the read grace, as one push: it
- * names no Task, and a tap opens the Inbox, which holds a card per Task.
- */
-export const pushTaskAssignmentBurstPayloadSchema = z
-    .object({
-        aps: pushTaskAlertApsSchema,
-        count: z.number().int().min(2),
-        kind: z.literal('task_assignment_burst'),
-        serverId: idSchema,
-    })
-    .strict();
 
 export type PushRegisterDeviceInput = z.infer<typeof pushRegisterDeviceInputSchema>;
 export type PushUnregisterDeviceInput = z.infer<typeof pushUnregisterDeviceInputSchema>;
@@ -168,5 +123,3 @@ export type PushDeviceResult = z.infer<typeof pushDeviceResultSchema>;
 export type PushNotificationSender = z.infer<typeof pushNotificationSenderSchema>;
 export type PushNotificationConversation = z.infer<typeof pushNotificationConversationSchema>;
 export type PushNotificationPayload = z.infer<typeof pushNotificationPayloadSchema>;
-export type PushTaskAssignmentPayload = z.infer<typeof pushTaskAssignmentPayloadSchema>;
-export type PushTaskAssignmentBurstPayload = z.infer<typeof pushTaskAssignmentBurstPayloadSchema>;

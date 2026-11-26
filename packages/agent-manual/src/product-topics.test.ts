@@ -34,7 +34,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     );
     expect(topic?.body).not.toContain('one-line preview');
     expect(topic?.body).toContain(
-        "Work your reply will not finish goes in a Task: answer the request with the Task's key, and post progress, questions, and the result in the Task (`--target task:SEC-12`), which whoever asked follows."
+        'Work your reply will not finish goes in a Task: answer the request with a link to the Task, and post progress, questions, and the result in the Task (`--target task:k3mq7xta`), which whoever asked follows.'
     );
     expect(topic?.body).not.toContain('`#channel:<noteShortId>`');
     expect(topic?.body).not.toContain('Sidebars go in threads');
@@ -72,7 +72,7 @@ test('a Worker keeps review rounds and requester outcomes in its Task', () => {
 test('a Worker starts for a Task, and several can work one Task', () => {
     const body = getManualTopic('workers')?.body;
     expect(body).toContain('**It works for a Task.**');
-    expect(body).toContain('then the Worker with `--task SEC-12`');
+    expect(body).toContain('then the Worker with `--task k3mq7xta`');
     expect(body).toContain('A Task can hold several Workers');
     expect(body).not.toContain('--reply-to');
 });

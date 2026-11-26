@@ -148,7 +148,7 @@ export async function toAgentMessages(
             },
             sequence: row.sequence,
             task_links: (taskLinksByMessage.get(row.id) ?? []).map((link) => ({
-                key: link.key,
+                short_id: link.shortId,
                 task_id: link.taskId,
                 text: link.text,
             })),

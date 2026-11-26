@@ -18,6 +18,6 @@ strings used on Haus Tasks.
 | `ready-for-human` | `ready-for-human` | Requires human implementation |
 | `wontfix` | `wontfix` | Will not be actioned |
 
-When a skill mentions a role such as "apply the AFK-ready triage label," add the corresponding
-label from this table with `haus task update <key> --labels <names>` (the whole label set, as a
-comma list).
+Tasks carry no labels ([ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md));
+labels belong to Issues ([specs/issues.md](../../specs/issues.md)). Until `haus issue` ships, say
+the role in the Task instead, for example "Triage: ready-for-agent".

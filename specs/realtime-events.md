@@ -98,17 +98,14 @@ ids and the new version; React Query owns the reads.
 
 | Procedure | Payload schema (file) | Payload fields | Audience | App response |
 | --- | --- | --- | --- | --- |
-| `task.onCreated` | `taskCreatedEventSchema` (`task.ts`) | `serverId`, `chatId`, `taskId`, `version` | Every member | **Invalidate** `task.list`, `task.listOpen`; recover the origin Channel's loaded pages so the new preview shows |
+| `task.onCreated` | `taskCreatedEventSchema` (`task.ts`) | `serverId`, `chatId`, `taskId`, `version` | Every member | **Invalidate** `task.list`, `task.listActive`; recover the origin Channel's loaded pages so the new preview shows |
 | `project.onUpdated` | `projectUpdatedEventSchema` (`project.ts`) | `serverId`, `projectId` (the channel's Chat id); one per `project.create` and per `project.update` that changed a setting | Every member | No App consumer yet; the Project query J4 adds owns it. `chat.onLifecycle` still refreshes the chat list |
-| `task.onUpdated` | `taskUpdatedEventSchema` (`task.ts`) | `serverId`, `chatId`, `taskId`, `version`; also one per Task a new Message references, at the same version | Every member | Refresh the Task's reads; **invalidate** `task.list`, `task.listOpen` |
+| `task.onUpdated` | `taskUpdatedEventSchema` (`task.ts`) | `serverId`, `chatId`, `taskId`, `version`; also one per Task a new Message references, at the same version | Every member | Refresh the Task's reads; **invalidate** `task.list`, `task.listActive` |
 | `task.onFollowUpdated` | `taskFollowUpdatedEventSchema` (`task.ts`) | `serverId`, `taskId`, `chatId`, `followed` | The follower only | Refresh the Task's reads (its `followed` and unread) |
 | `issue.onCreated` | `issueCreatedEventSchema` (`issue.ts`) | `serverId`, `issueId`, `projectId`, `version` | Every member | No App consumer until ADR 0062 step 6, so outside the budget below |
 | `issue.onUpdated` | `issueUpdatedEventSchema` (`issue.ts`) | `serverId`, `issueId`, `projectId`, `version`; also one per parent whose sub-issues changed | Every member | No App consumer until step 6 |
 | `issue.onCommented` | `issueCommentedEventSchema` (`issue.ts`) | `serverId`, `issueId`, `commentId` | Every member | No App consumer until step 6 |
 | `issue.onSubscriptionUpdated` | `issueSubscriptionUpdatedEventSchema` (`issue.ts`) | `serverId`, `issueId`, `subscribed` | The subscriber only | No App consumer until step 6 |
-
-`task.assigned` (`taskAssignedEventSchema`, `task-notification.ts`) is a Server-internal topic with
-no client stream: iPhone push is its only subscriber.
 
 ### Server-level streams
 

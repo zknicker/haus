@@ -11,7 +11,6 @@ import {
     tasksTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
 import { testProject } from './agent-home.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
@@ -211,7 +210,7 @@ function contextOf(
 
 let parentSequence = 1_000_000;
 
-/** A Task started from a new #product Message, numbered `CTX-1` on its own Server. */
+/** A Task started from a new #product Message, `task:ctx00001` on its own Server. */
 async function addTask(seed: Seed, parentContent: string) {
     const parentMessageId = createOpaqueId('msg');
     parentSequence += 1;
@@ -233,18 +232,16 @@ async function addTask(seed: Seed, parentContent: string) {
         parentChatKind: 'channel',
         serverId: seed.serverId,
     });
-    const keyId = await insertTaskKeyEntry(connection.db, { key: 'CTX', serverId: seed.serverId });
     await connection.db.insert(tasksTable).values({
         chatId,
         createdByUserId: seed.userId,
         id: createOpaqueId('tsk'),
-        keyId,
-        number: 1,
+        shortId: 'ctx00001',
         originChatId: seed.channelId,
         originMessageId: parentMessageId,
         projectId: seed.channelId,
         serverId: seed.serverId,
         title: 'Context',
     });
-    return { chatId, parentMessageId, target: 'task:CTX-1' };
+    return { chatId, parentMessageId, target: 'task:ctx00001' };
 }

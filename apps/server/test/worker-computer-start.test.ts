@@ -66,7 +66,7 @@ test("a start on a Computer by name runs its first ready runtime in a worktree o
     expect(sent?.frame).toMatchObject({
         attempt: 1,
         checkout: {
-            branch: `haus/${worker.id}/${board.task.key.toLowerCase()}`,
+            branch: `haus/${worker.id}/${board.task.shortId}`,
             checkoutPath: '/Users/zach/haus',
             repository: 'haus/haus',
             startingRef: 'main',

@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
-import { taskKeySchema } from './task-key.ts';
+import { taskShortIdSchema } from './task-short-id.ts';
 import { taskTitleSchema } from './task.ts';
 
 /** How much of a waking message a trigger quotes: enough for any one-line title. */
@@ -36,7 +36,7 @@ export type AgentTurnTriggerPreview = z.infer<typeof agentTurnTriggerPreviewSche
  *   the run alone.
  * - `subagent`: background work the Agent started finished or stopped; no Chat.
  * - `task`: a Task assigned to the Agent (`task_assignment`); no Chat. Tasks are
- *   visible to every member, so it carries the Task's key and title for the row title.
+ *   visible to every member, so it carries the Task's short id and title for the row title.
  *   Assignments coalesce into one run: this is the oldest, and `more` counts the others.
  * - `private`: the turn has a recorded trigger in a Chat the reader cannot see.
  */
@@ -66,7 +66,7 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('subagent') }).strict(),
     z
         .object({
-            key: taskKeySchema,
+            shortId: taskShortIdSchema,
             kind: z.literal('task'),
             more: z.number().int().positive().optional(),
             taskId: idSchema,

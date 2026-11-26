@@ -21,7 +21,7 @@ const taskRow = {
     latestAt: '2026-09-25T11:00:00.000Z',
     latestSenderHandle: 'alice',
     mentions: 1,
-    target: 'task:SEC-12',
+    target: 'task:k3mq7xta',
     unread: 1,
 };
 
@@ -50,8 +50,8 @@ test('a page with more renders open commands, the More trailer, and exactly one 
             '',
             'dm:@richard · 3 unread · latest @richard 12m ago',
             '  open: haus message read --target "dm:@richard" --after 1200',
-            'task:SEC-12 · 1 unread · mentions you · latest @alice 1h ago',
-            '  open: haus message read --target "task:SEC-12" --after 1180',
+            'task:k3mq7xta · 1 unread · mentions you · latest @alice 1h ago',
+            '  open: haus message read --target "task:k3mq7xta" --after 1180',
             '',
             'More: haus inbox check --before MTE5MA',
             'Next: open the first conversation above: haus message read --target "dm:@richard" --after 1200',
@@ -70,7 +70,7 @@ test('a singular count, repeat mentions, and old activity read naturally', () =>
     expect(output.split('\n').slice(0, 3)).toEqual([
         'Inbox: 1 unread conversation (1 DM, 0 with mentions). Newest activity first.',
         '',
-        'task:SEC-12 · 1 unread · mentions you 3x · latest @alice 4d ago',
+        'task:k3mq7xta · 1 unread · mentions you 3x · latest @alice 4d ago',
     ]);
 });
 

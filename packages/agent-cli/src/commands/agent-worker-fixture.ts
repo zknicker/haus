@@ -44,7 +44,7 @@ export function args(overrides: Record<string, string> = {}): ParsedArgs {
             '--on': 'cursor',
             '--ref': 'main',
             '--repo': 'haus/haus',
-            '--task': 'SEC-12',
+            '--task': 'k3mq7xta',
             '--title': 'Fix the flaky delivery test',
             ...overrides,
         },

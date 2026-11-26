@@ -98,10 +98,10 @@ export async function listActiveWorker(
             rows.flatMap((row) => (row.worker.taskId ? [row.worker.taskId] : []))
         ),
     });
-    const keyByTask = new Map(tasks.map((task) => [task.id, task.key]));
+    const shortIdByTask = new Map(tasks.map((task) => [task.id, task.shortId]));
     return rows.flatMap(({ agentName, place, taskChatId, worker }) => {
-        const taskKey = worker.taskId ? keyByTask.get(worker.taskId) : undefined;
-        if (!(worker.taskId && taskKey) || (place.kind !== 'channel' && place.kind !== 'dm')) {
+        const taskShortId = worker.taskId ? shortIdByTask.get(worker.taskId) : undefined;
+        if (!(worker.taskId && taskShortId) || (place.kind !== 'channel' && place.kind !== 'dm')) {
             return [];
         }
         const peer =
@@ -117,7 +117,7 @@ export async function listActiveWorker(
                 conversationChatId: place.id,
                 location: { chatId: taskChatId, kind: 'task', taskId: worker.taskId },
                 taskId: worker.taskId,
-                taskKey,
+                taskShortId,
                 worker: toWorker(worker, details.get(worker.id)),
             } satisfies ActiveWorker,
         ];

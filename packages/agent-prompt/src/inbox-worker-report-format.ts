@@ -9,10 +9,10 @@ import {
 import { indentContinuationLines } from './inbox-header-format.ts';
 
 export function formatWorkerReport(attention: WorkerReportAttention) {
-    const { outcome, taskKey, workerId } = attention;
+    const { outcome, taskShortId, workerId } = attention;
     const label = outcome.kind === 'report' ? outcome.report.outcome : outcome.kind;
     return [
-        `[worker report · ${taskKey} · ${label} · Worker on ${formatWorkerPlace(attention.place)} (${workerId}) · turn ${attention.turnNumber}]`,
+        `[worker report · ${taskShortId} · ${label} · Worker on ${formatWorkerPlace(attention.place)} (${workerId}) · turn ${attention.turnNumber}]`,
         ...outcomeLines(attention),
         ...pullRequestLines(attention),
         ...(attention.citedFiles.length > 0
@@ -25,7 +25,7 @@ export function formatWorkerReport(attention: WorkerReportAttention) {
 }
 
 export function formatWorkerReportsNotice(notice: WorkerReportsNotice) {
-    return `${notice.total} Worker ${notice.total === 1 ? 'report' : 'reports'} in ${notice.taskKey}`;
+    return `${notice.total} Worker ${notice.total === 1 ? 'report' : 'reports'} in ${notice.taskShortId}`;
 }
 
 function outcomeLines(attention: WorkerReportAttention) {
@@ -95,15 +95,15 @@ function formatReading(reading: PullRequestReading) {
 }
 
 function closingLine(attention: WorkerReportAttention) {
-    const { outcome, taskKey, workerId } = attention;
+    const { outcome, taskShortId, workerId } = attention;
     const followUp = `haus worker send --worker ${workerId}`;
     if (outcome.kind === 'stopped') {
-        return `Nothing was posted in ${taskKey}.`;
+        return `Nothing was posted in ${taskShortId}.`;
     }
     if (outcome.kind === 'failed') {
-        return `Nothing was posted in ${taskKey}, so tell the Task what matters. Send a follow-up with ${followUp}, or start a new Worker.`;
+        return `Nothing was posted in ${taskShortId}, so tell the Task what matters. Send a follow-up with ${followUp}, or start a new Worker.`;
     }
-    const posted = `The report is already posted in ${taskKey}. Post only what it does not say.`;
+    const posted = `The report is already posted in ${taskShortId}. Post only what it does not say.`;
     switch (outcome.report.outcome) {
         case 'needs-you':
             return `${posted} Answer the Worker with ${followUp}, or start a narrower Worker.`;

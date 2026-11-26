@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
-import { taskKeySchema } from './task-key.ts';
+import { taskShortIdSchema } from './task-short-id.ts';
 import { workerOutcomeSchema } from './worker-outcome.ts';
 import { workerPlaceSchema } from './worker-place.ts';
 import { pullRequestReadingSchema } from './worker-pull-request.ts';
@@ -32,7 +32,7 @@ export const workerReportAttentionSchema = z
             .nullable(),
         place: workerPlaceSchema,
         pullRequests: z.array(pullRequestReadingSchema).max(50),
-        taskKey: taskKeySchema,
+        taskShortId: taskShortIdSchema,
         title: workerTitleSchema,
         turnId: idSchema,
         turnNumber: z.number().int().positive(),
@@ -45,7 +45,7 @@ export type WorkerReportAttention = z.infer<typeof workerReportAttentionSchema>;
 export const workerReportsNoticeSchema = z
     .object({
         ids: z.array(idSchema).min(1).max(workerReportsPerRun),
-        taskKey: taskKeySchema,
+        taskShortId: taskShortIdSchema,
         total: z.number().int().positive(),
     })
     .strict()

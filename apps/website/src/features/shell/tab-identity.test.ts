@@ -110,15 +110,16 @@ test('a shared artifact tab shows its file title once the record loads', () => {
     expect(resolveTabIdentity(workspace, records).label).toBe('Workspace');
 });
 
-test('a Task tab reads its key from the address alone', () => {
-    const task = parseTabPage(app('/s/acme/tasks/SEC-12'));
-    expect(task).toEqual({ kind: 'task', taskKey: 'SEC-12' });
+test('a Task tab reads its short id from the address alone', () => {
+    const task = parseTabPage(app('/s/acme/tasks/k3mq7xta'));
+    expect(task).toEqual({ kind: 'task', shortId: 'k3mq7xta' });
+    expect(parseTabPage(app('/s/acme/tasks/SEC-12'))).not.toMatchObject({ kind: 'task' });
     expect(resolveTabIdentity(task, records)).toEqual({
-        label: 'SEC-12',
+        label: 'k3mq7xta',
         mark: { glyph: 'task', kind: 'glyph' },
         place: null,
     });
-    // An address no key parses reads as the section it redirects to.
+    // An address that names no short id reads as the section it redirects to.
     expect(parseTabPage(app('/s/acme/tasks/SEC'))).toEqual({
         kind: 'section',
         section: 'tasks',

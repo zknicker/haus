@@ -175,7 +175,7 @@ export async function sendChatMessage(
             messageId,
             serverId: input.serverId,
         });
-        const placeEvents = await applyPostFollows(
+        await applyPostFollows(
             tx,
             {
                 chatId: writeChatId,
@@ -233,7 +233,6 @@ export async function sendChatMessage(
         return {
             events: [
                 created,
-                ...placeEvents,
                 ...(await prepareMessageLinkEvents(tx, { ...linked, serverId: input.serverId })),
             ],
             receipt: {

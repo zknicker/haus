@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { findTaskByChatId, reopenTaskOnPost, taskTargetForChat } from '../src/tasks/task-chat.ts';
+import { findTaskByChatId, taskTargetForChat } from '../src/tasks/task-chat.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { startTestTask } from './task-place-fixture.ts';
@@ -11,8 +11,8 @@ let connection: HausConnection;
 let harness: HausServerHarness;
 let owner: HausClient;
 let serverId: string;
-let first: { chatId: string; id: string; key: string };
-let second: { chatId: string; id: string; key: string };
+let first: { chatId: string; id: string; shortId: string };
+let second: { chatId: string; id: string; shortId: string };
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
@@ -49,10 +49,10 @@ afterAll(async () => {
 
 test('one origin Message carries several Tasks, each with its own Chat', async () => {
     expect(await findTaskByChatId(connection.db, { chatId: first.chatId, serverId })).toEqual({
+        archivedAt: null,
         chatId: first.chatId,
-        key: first.key,
         serverId,
-        state: 'todo',
+        shortId: first.shortId,
         taskId: first.id,
         version: 1,
     });
@@ -62,9 +62,9 @@ test('one origin Message carries several Tasks, each with its own Chat', async (
     expect(await findTaskByChatId(connection.db, { chatId: channelId, serverId })).toBeNull();
 });
 
-test('a Task Chat sends to task: and its key; other Chats have no Task target', async () => {
+test('a Task Chat sends to task: and its short id; other Chats have no Task target', async () => {
     expect(await taskTargetForChat(connection.db, { chatId: first.chatId, serverId })).toBe(
-        `task:${first.key}`
+        `task:${first.shortId}`
     );
     expect(await taskTargetForChat(connection.db, { chatId: channelId, serverId })).toBeNull();
 });
@@ -86,40 +86,26 @@ test('a task Chat hangs off a Channel, and its Task names that Channel as its Pr
     ).rejects.toThrow(/tasks_chat_key/u);
 });
 
-test('posting in a done or canceled Task reopens it once', async () => {
-    await harness.sql`update tasks set state = 'done', completed_at = now() where id = ${first.id}`;
-    const reopened = await connection.db.transaction(
-        async (tx) => await reopenTaskOnPost(tx, { chatId: first.chatId, serverId })
-    );
-    expect(reopened).toMatchObject({ state: 'open', taskId: first.id, version: 2 });
-    expect(
-        await connection.db.transaction(
-            async (tx) => await reopenTaskOnPost(tx, { chatId: first.chatId, serverId })
-        )
-    ).toBeNull();
-    expect(
-        await connection.db.transaction(
-            async (tx) => await reopenTaskOnPost(tx, { chatId: channelId, serverId })
-        )
-    ).toBeNull();
-
-    await harness.sql`update tasks set state = 'canceled', completed_at = now() where id = ${second.id}`;
-    expect(
-        await connection.db.transaction(
-            async (tx) => await reopenTaskOnPost(tx, { chatId: second.chatId, serverId })
-        )
-    ).toMatchObject({ state: 'open', taskId: second.id });
+test('short ids are unique per Server and keep their shape', async () => {
+    const run = async (query: PromiseLike<unknown>) => await query;
+    await expect(
+        run(harness.sql`update tasks set short_id = ${first.shortId} where id = ${second.id}`)
+    ).rejects.toThrow(/tasks_short_id_key/u);
+    await expect(
+        run(harness.sql`update tasks set short_id = 'SEC-12ab' where id = ${second.id}`)
+    ).rejects.toThrow(/tasks_short_id_shape/u);
 });
 
 test('task.get reads the Task Chat and its origin', async () => {
     const detail = await owner.trpc.task.get.query({ serverId, taskId: second.id });
     expect(detail).toMatchObject({
+        archivedAt: null,
         attachedWork: [],
         chatId: second.chatId,
         followed: false,
         origin: { chatId: channelId, messageId: expect.any(String) },
         pullRequests: [],
-        state: 'open',
+        shortId: second.shortId,
         unreadCount: 0,
     });
 });

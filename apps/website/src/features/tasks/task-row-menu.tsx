@@ -7,11 +7,11 @@ import { TaskMenuSections } from './task-menu-sections.tsx';
 export function TaskRowMenu({ task }: { task: Task }) {
     return (
         <Dropdown>
-            <Button aria-label={`${task.key} actions`} isIconOnly size="sm" variant="ghost">
+            <Button aria-label={`${task.title} actions`} isIconOnly size="sm" variant="ghost">
                 <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
             </Button>
             <Dropdown.Popover placement="bottom end">
-                <Dropdown.Menu aria-label={`${task.key} actions`}>
+                <Dropdown.Menu aria-label={`${task.title} actions`}>
                     <TaskMenuSections task={task} />
                 </Dropdown.Menu>
             </Dropdown.Popover>

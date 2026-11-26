@@ -38,9 +38,9 @@ const rows = walkRows({
             {
                 chatId: 'task-chat',
                 createdAt: '2026-11-19T10:00:00Z',
+                archivedAt: null,
                 id: 't1',
-                key: 'ENG-1',
-                state: 'open',
+                shortId: 'eng00001',
             } as never,
         ],
         unreadPreviews: previews,
@@ -55,14 +55,14 @@ test('the walk reads the sidebar top to bottom: Captains, Projects, open Tasks, 
         { href: '/s/dev/dm/orbit', unread: false },
         { href: '/s/dev/chats/eng', unread: false },
         { href: '/s/dev/chats/sec', unread: true },
-        { href: '/s/dev/tasks/ENG-1', unread: true },
+        { href: '/s/dev/tasks/eng00001', unread: true },
         { href: '/s/dev/chats/dm-ada', unread: true },
     ]);
 });
 
 test('Alt+Down goes to the next unread row below the open one, wrapping at the end', () => {
     expect(nextUnreadHref(rows, '/s/dev/chats/eng', 'next')).toBe('/s/dev/chats/sec');
-    expect(nextUnreadHref(rows, '/s/dev/chats/sec', 'next')).toBe('/s/dev/tasks/ENG-1');
+    expect(nextUnreadHref(rows, '/s/dev/chats/sec', 'next')).toBe('/s/dev/tasks/eng00001');
     expect(nextUnreadHref(rows, '/s/dev/chats/dm-ada', 'next')).toBe('/s/dev/chats/dm-forge');
     expect(nextUnreadHref(rows, '/s/dev', 'next')).toBe('/s/dev/chats/dm-forge');
 });

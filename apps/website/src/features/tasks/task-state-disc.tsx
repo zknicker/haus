@@ -1,5 +1,4 @@
-import type { TaskState } from '@haus/api';
-import { taskStateDiscs } from './task-state.ts';
+import { type TaskState, taskStateDiscs } from './task-state.ts';
 import { TaskStatusDisc } from './task-status-disc.tsx';
 
 export function TaskStateDisc({ className, state }: { className?: string; state: TaskState }) {

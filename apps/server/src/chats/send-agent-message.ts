@@ -210,7 +210,7 @@ export async function sendAgentMessage(
         if (!writtenChat) {
             throw new Error('The Agent message Chat disappeared mid-send.');
         }
-        const placeEvents = await applyPostFollows(
+        await applyPostFollows(
             tx,
             { ...writtenChat, chatId: input.chatId, serverId: input.serverId },
             {
@@ -263,7 +263,6 @@ export async function sendAgentMessage(
             activities,
             events: [
                 event,
-                ...placeEvents,
                 ...(await prepareMessageLinkEvents(tx, { ...linked, serverId: input.serverId })),
             ],
             message: toAgentCliMessage(message, {

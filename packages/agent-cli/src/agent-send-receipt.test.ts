@@ -81,10 +81,10 @@ test('a top-level receipt names who sees it and suggests no other place', () => 
 });
 
 test('a Task receipt names the Task and its followers', () => {
-    expect(sendPlacement('task:SEC-12', sent(), {})).toBe(
-        "Posted in task:SEC-12; the Task's followers see it as unread, and anyone you @mentioned is notified."
+    expect(sendPlacement('task:k3mq7xta', sent(), {})).toBe(
+        "Posted in task:k3mq7xta; the Task's followers see it as unread, and anyone you @mentioned is notified."
     );
-    expect(sendPlacement('task:SEC-12', sent(), { done: true })).toEndWith(
+    expect(sendPlacement('task:k3mq7xta', sent(), { done: true })).toEndWith(
         'This closes your reply in this Task.'
     );
 });

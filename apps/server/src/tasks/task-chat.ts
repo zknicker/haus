@@ -1,16 +1,15 @@
-import { formatTaskKey, formatTaskTarget, type TaskState } from '@haus/api';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { formatTaskTarget } from '@haus/api';
+import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { taskKeysTable, tasksTable } from '../postgres/schema.ts';
+import { tasksTable } from '../postgres/schema.ts';
 
 type TaskChatReader = Pick<HausDatabase, 'select'>;
-type TaskChatWriter = Pick<HausDatabase, 'select' | 'update'>;
 
 export interface TaskChatRow {
+    archivedAt: Date | null;
     chatId: string;
-    key: string;
     serverId: string;
-    state: TaskState;
+    shortId: string;
     taskId: string;
     version: number;
 }
@@ -21,35 +20,20 @@ export async function findTaskByChatId(
 ): Promise<TaskChatRow | null> {
     const [row] = await db
         .select({
+            archivedAt: tasksTable.archivedAt,
             chatId: tasksTable.chatId,
-            ledgerKey: taskKeysTable.key,
-            number: tasksTable.number,
             serverId: tasksTable.serverId,
-            state: tasksTable.state,
+            shortId: tasksTable.shortId,
             taskId: tasksTable.id,
             version: tasksTable.version,
         })
         .from(tasksTable)
-        .innerJoin(
-            taskKeysTable,
-            and(
-                eq(taskKeysTable.serverId, tasksTable.serverId),
-                eq(taskKeysTable.id, tasksTable.keyId)
-            )
-        )
         .where(and(eq(tasksTable.serverId, input.serverId), eq(tasksTable.chatId, input.chatId)))
         .limit(1);
     if (!row?.chatId) {
         return null;
     }
-    return {
-        chatId: row.chatId,
-        key: formatTaskKey(row.ledgerKey, row.number),
-        serverId: row.serverId,
-        state: row.state,
-        taskId: row.taskId,
-        version: row.version,
-    };
+    return { ...row, chatId: row.chatId };
 }
 
 export async function taskTargetForChat(
@@ -57,31 +41,5 @@ export async function taskTargetForChat(
     input: { chatId: string; serverId: string }
 ): Promise<string | null> {
     const task = await findTaskByChatId(db, input);
-    return task ? formatTaskTarget(task.key) : null;
-}
-
-export async function reopenTaskOnPost(
-    tx: TaskChatWriter,
-    input: { chatId: string; serverId: string }
-): Promise<TaskChatRow | null> {
-    const [reopened] = await tx
-        .update(tasksTable)
-        .set({
-            completedAt: null,
-            state: 'open',
-            updatedAt: sql`now()`,
-            version: sql`${tasksTable.version} + 1`,
-        })
-        .where(
-            and(
-                eq(tasksTable.serverId, input.serverId),
-                eq(tasksTable.chatId, input.chatId),
-                inArray(tasksTable.state, ['done', 'canceled'])
-            )
-        )
-        .returning({ taskId: tasksTable.id });
-    if (!reopened) {
-        return null;
-    }
-    return await findTaskByChatId(tx, input);
+    return task ? formatTaskTarget(task.shortId) : null;
 }

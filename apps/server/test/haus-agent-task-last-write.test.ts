@@ -88,16 +88,15 @@ test('concurrent implicit writes to one Task all land', async () => {
         target: '#product',
         title: 'Contended',
     });
-    const { key } = started.body.task as { key: string };
+    const { shortId } = started.body.task as { shortId: string };
 
     const writes = await Promise.all([
-        call('/api/agent/tasks/update', { key, title: 'One' }),
-        call('/api/agent/tasks/update', { key, priority: 'high' }),
-        call('/api/agent/tasks/state', { key, state: 'todo' }),
-        call('/api/agent/tasks/assign', { assignee: '@peer', key }),
-        call('/api/agent/tasks/update', { dueOn: '2026-12-01', key }),
+        call('/api/agent/tasks/archive', { task: shortId }),
+        call('/api/agent/tasks/archive', { task: shortId }),
+        call('/api/agent/tasks/archive', { task: shortId }),
     ]);
-    expect(writes.map((write) => write.status)).toEqual([200, 200, 200, 200, 200]);
-    const stale = await call('/api/agent/tasks/update', { expectedVersion: 1, key, title: 'Lost' });
+    expect(writes.map((write) => write.status)).toEqual([200, 200, 200]);
+    expect(writes.every((write) => write.body.task.archivedAt !== null)).toBe(true);
+    const stale = await call('/api/agent/tasks/archive', { expectedVersion: 1, task: shortId });
     expect(stale).toMatchObject({ body: { code: 'TASK_CONFLICT' }, status: 409 });
 });

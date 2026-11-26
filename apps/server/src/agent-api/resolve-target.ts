@@ -9,9 +9,9 @@ export async function resolveAgentTarget(
     runner: ResolvedRunner,
     target: string
 ): Promise<string> {
-    const taskKey = parseTaskTarget(target);
-    if (taskKey) {
-        return await requireTaskTarget(db, runner, taskKey);
+    const taskShortId = parseTaskTarget(target);
+    if (taskShortId) {
+        return await requireTaskTarget(db, runner, taskShortId);
     }
     if (target.startsWith('#')) {
         const [channelName, messageShortId, ...extra] = target.slice(1).split(':');
@@ -75,8 +75,8 @@ export async function resolveAgentTarget(
     throw new AgentTargetError();
 }
 
-async function requireTaskTarget(db: HausDatabase, runner: ResolvedRunner, taskKey: string) {
-    const task = await resolveTaskTargetChat(db, runner, taskKey);
+async function requireTaskTarget(db: HausDatabase, runner: ResolvedRunner, taskShortId: string) {
+    const task = await resolveTaskTargetChat(db, runner, taskShortId);
     if (!task) {
         throw new AgentTargetError();
     }

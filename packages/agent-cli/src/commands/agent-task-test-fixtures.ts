@@ -4,14 +4,10 @@ import type { ParsedArgs } from '../parse.ts';
 import type { TaskDeps, TaskRow } from './agent-task-view.ts';
 
 export const task: TaskRow = {
-    assignee: { handle: 'kit', type: 'agent' },
+    archivedAt: null,
     createdAt: '2026-11-04T09:00:00.000Z',
-    createdBy: { handle: 'zero', type: 'human' },
-    dueOn: null,
-    key: 'SEC-12',
-    labels: [],
-    priority: 'high',
-    state: 'open',
+    createdBy: { handle: 'kit', type: 'agent' },
+    shortId: 'k3mq7xta',
     title: 'Rotate the signing key',
     updatedAt: '2026-11-04T10:00:00.000Z',
     version: 3,

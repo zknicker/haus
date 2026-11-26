@@ -33,8 +33,6 @@ export async function allocateIssueNumber(
     return ledger.next;
 }
 
-export { allocateIssueNumber as allocateTaskNumber };
-
 export async function keyHasNumbered(
     db: Pick<HausDatabase, 'select'>,
     input: { keyId: string; serverId: string }

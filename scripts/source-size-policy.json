@@ -42,7 +42,7 @@
         "apps/server/src/agent-delivery/delivery.ts": 798,
         "apps/server/src/agent-delivery/store.ts": 725,
         "apps/server/src/computers/login-service.ts": 321,
-        "apps/server/src/development/seed-server.ts": 331,
+        "apps/server/src/development/seed-server.ts": 330,
         "apps/server/src/haus-server-activation.ts": 310,
         "apps/server/src/reminders/scheduler.ts": 340,
         "apps/server/src/server-mcp/icons.test.ts": 315,

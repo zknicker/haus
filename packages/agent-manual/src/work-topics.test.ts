@@ -28,35 +28,32 @@ test('a Task starts from the asking message in a channel or DM, in a Project; a 
     expect(body).toContain('post one message and start five Tasks from it');
 });
 
-test('work reports in the Task, pull requests and Workers attach to it, and it ends by state', () => {
+test('work reports in the Task, pull requests and Workers attach to it, and it ends archived', () => {
     const body = getManualTopic('tasks')?.body ?? '';
-    expect(body).toContain('`haus message send --target task:SEC-12`');
-    expect(body).toContain('`haus task attach-pr SEC-12 <url>`');
+    expect(body).toContain('`haus message send --target task:k3mq7xta`');
+    expect(body).toContain('`haus task attach-pr k3mq7xta <url>`');
     expect(body).toContain('A merged pull request never ends the Task.');
-    expect(body).toContain('`haus task state SEC-12 done`');
-    expect(body).toContain('keep the Task open with a one-time reminder until the check passes');
+    expect(body).toContain('`haus task archive k3mq7xta`');
+    expect(body).toContain('keep the Task active with a one-time reminder until the check passes');
     expect(body).toContain('`TASK_RECURRING_REMINDER`');
-    expect(body).toContain('`haus reminder schedule --target task:SEC-12');
+    expect(body).toContain('`haus reminder schedule --target task:k3mq7xta');
     expect(body).not.toContain('post a line in the Task and anchor the reminder on it');
-    expect(body).toContain('Closing a Task cancels its pending reminders');
-    expect(getManualTopic('reminder')?.body).toContain('pass `--target task:SEC-12` instead');
+    expect(body).toContain('Archiving a Task cancels its pending reminders');
+    expect(getManualTopic('reminder')?.body).toContain('pass `--target task:k3mq7xta` instead');
     expect(body).toContain(
-        '**Waiting on a person.** @mention them in the Task with one question and take other work; the Task stays `open`, so it stays in their sidebar.'
+        '**Waiting on a person.** @mention them in the Task with one question and take other work; the Task stays active, so it stays in their sidebar.'
     );
-    expect(body).not.toContain('`haus task state SEC-12 todo`');
+    for (const removed of ['haus task state', 'haus task assign', 'haus task update']) {
+        expect(body).not.toContain(removed);
+    }
 });
 
-test('the result stays in the Task, and only Tasks others assign are paced one at a time', () => {
+test('the result stays in the Task, and a bare code names an Issue', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain(
-        'People see the Task under the message that started it, with its state and latest line, so do not repeat the result in the channel'
+        'People see the Task under the message that started it, with its latest line, so do not repeat the result in the channel'
     );
-    expect(body).toContain(
-        'Work Tasks others assign you one at a time: pick by priority, then age, set that one `open`'
-    );
-    expect(body).toContain(
-        'Tasks you started yourself, such as several from one findings message, can run side by side.'
-    );
+    expect(body).toContain('A bare code like `GEN-12` names an Issue, never a Task.');
 });
 
 test('no Manual topic teaches boards, columns, pickup-note threads, or work threads', () => {
@@ -80,7 +77,7 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
 test('a Worker starts on a Task at --on or the Project default, and reports there', () => {
     const body = getManualTopic('workers')?.body ?? '';
     expect(body).toContain(
-        '`haus worker start --task <KEY-n> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]`'
+        '`haus worker start --task <id> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]`'
     );
     expect(body).toContain(
         "Without `--on` a start runs on the Task's Project default, and a Project with none refuses it (a person sets one at Settings → Projects → (the project) → Workers → Default place)."
@@ -103,7 +100,7 @@ test('a Worker starts on a Task at --on or the Project default, and reports ther
 test('haus worker places lists Computers and cloud agents, and --on names one', () => {
     const body = getManualTopic('workers')?.body ?? '';
     expect(body).toContain(
-        "`haus worker places --task SEC-12` lists where a Worker can run: each Computer with its **Run Workers here** setting, runtimes, repo folders, and free slots, then `cursor` and `claude`, with the Project's default marked."
+        "`haus worker places --task k3mq7xta` lists where a Worker can run: each Computer with its **Run Workers here** setting, runtimes, repo folders, and free slots, then `cursor` and `claude`, with the Project's default marked."
     );
     expect(body).toContain(
         '(`computer:mini` or `mini`, or the `computer:<id>` that `places` prints'
@@ -119,7 +116,7 @@ test('a Worker on a Computer uses its own worktree and logins, reports with haus
         "runs Claude Code or Codex on that machine with the machine's own logins, in a git worktree of that Computer's folder for the repo on its own branch, and records its report with `haus worker report`."
     );
     expect(body).toContain(
-        '`agents/<handle>/reports/<KEY-n>/`, `renders/<KEY-n>/`, or `handoffs/<KEY-n>/`'
+        '`agents/<handle>/reports/<shortId>/`, `renders/<shortId>/`, or `handoffs/<shortId>/`'
     );
     expect(body).not.toContain('no flag carries one');
 });

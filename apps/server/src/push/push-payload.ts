@@ -54,7 +54,7 @@ export function buildPushPayload(
         },
         serverId: input.serverId,
         taskId: row.taskId,
-        taskKey: row.taskKey,
+        taskShortId: row.taskShortId,
     };
 }
 

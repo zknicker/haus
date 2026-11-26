@@ -1,24 +1,14 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
-import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../src/postgres/schema.ts';
-import { assignTask } from '../src/tasks/task-assign.ts';
-import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
-import {
-    addPeerAgent,
-    assignNewTask,
-    insertTaskPlace,
-    seedTaskBoard,
-    type TaskBoard,
-    taskInboxRows,
-} from './task-delivery-fixture.ts';
+import { assignNewTask, seedTaskBoard, taskInboxRows } from './task-delivery-fixture.ts';
 
-/** When a `task_assignment` item leaves the queue undelivered (ADR 0051 decision 5). */
+/** When a requeued item leaves the queue undelivered (ADR 0051 decision 5, ADR 0062). */
 let cluster: TestDatabase;
 let connection: HausConnection;
 
@@ -33,101 +23,24 @@ afterAll(async () => {
 });
 
 const seedBoard = () => seedTaskBoard(connection.db);
-const inboxRows = (seed: Seed) => taskInboxRows(connection.db, seed);
-const assignNew = (delivery: AgentDelivery, board: TaskBoard, title: string) =>
-    assignNewTask(connection.db, delivery, board, title);
 
-test('reassigning or unassigning before delivery retires the queued item', async () => {
-    const board = await seedBoard();
-    const { seed } = board;
-    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
-    const actor = { kind: 'user', userId: seed.userId } as const;
-    const peerId = await addPeerAgent(connection.db, seed);
-
-    const handedOff = await assignNew(delivery, board, 'Handed off');
-    const dropped = await assignNew(delivery, board, 'Dropped');
-    const kept = await assignNew(delivery, board, 'Kept');
-    await assignTask(connection.db, actor, delivery, {
-        assignee: { agentId: peerId, kind: 'agent' },
-        expectedVersion: 2,
-        serverId: seed.serverId,
-        taskId: handedOff.task.id,
-    });
-    await assignTask(connection.db, actor, delivery, {
-        assignee: null,
-        expectedVersion: 2,
-        serverId: seed.serverId,
-        taskId: dropped.task.id,
-    });
-    expect((await inboxRows(seed)).map((row) => row.dedupeKey)).toEqual([
-        `task-assign:${kept.task.id}:2`,
-    ]);
-
-    const start = await wake();
-    expect(start?.taskAssignments?.map((task) => task.title)).toEqual(['Kept']);
-    expect(runner.starts()).toHaveLength(1);
-});
-
-test('a failed run forgets an assignment the Agent has a newer one for, so the Task comes once', async () => {
+test('a failed run forgets its Task assignment: a Task has no assignee to hand it back to', async () => {
     const board = await seedBoard();
     const { seed } = board;
     const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
-    const actor = { kind: 'user', userId: seed.userId } as const;
-    const peerId = await addPeerAgent(connection.db, seed);
-    const { task } = await assignNew(delivery, board, 'There and back');
+    await assignNewTask(connection.db, delivery, board, 'Queued before Tasks lost assignees');
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    const runId = runner.starts()[0]?.runId ?? '';
-    const scope = { serverId: seed.serverId, taskId: task.id };
-
-    await assignTask(connection.db, actor, delivery, {
-        ...scope,
-        assignee: { agentId: peerId, kind: 'agent' },
-        expectedVersion: 2,
-    });
-    await assignTask(connection.db, actor, delivery, {
-        ...scope,
-        assignee: { agentId: seed.agentId, kind: 'agent' },
-        expectedVersion: 3,
-    });
-    expect((await inboxRows(seed)).map((row) => row.dedupeKey).sort()).toEqual([
-        `task-assign:${task.id}:2`,
-        `task-assign:${task.id}:4`,
+    expect((await taskInboxRows(connection.db, seed)).map((row) => row.state)).toEqual([
+        'accepted',
     ]);
 
     await delivery.onTurnSettled(seed.computerId, {
-        ...settledTurn(seed, runId),
+        ...settledTurn(seed, runner.starts()[0]?.runId ?? ''),
         status: 'failed',
     });
-    expect((await inboxRows(seed)).map((row) => row.dedupeKey)).toEqual([
-        `task-assign:${task.id}:4`,
-    ]);
-});
-
-test('a failed run keeps its assignment when the Task only changed state meanwhile', async () => {
-    const board = await seedBoard();
-    const { seed } = board;
-    const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
-    const { task } = await assignNew(delivery, board, 'Moved, still mine');
-    transport.online.add(seed.computerId);
-    runner.attach(seed.agentId);
-    await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    const runId = runner.starts()[0]?.runId ?? '';
-
-    await setTaskState(connection.db, { kind: 'user', userId: seed.userId }, delivery, {
-        expectedVersion: 2,
-        serverId: seed.serverId,
-        state: 'open',
-        taskId: task.id,
-    });
-    await delivery.onTurnSettled(seed.computerId, {
-        ...settledTurn(seed, runId),
-        status: 'failed',
-    });
-    expect(await inboxRows(seed)).toEqual([
-        { dedupeKey: `task-assign:${task.id}:2`, mentioned: true, state: 'queued' },
-    ]);
+    expect(await taskInboxRows(connection.db, seed)).toEqual([]);
 });
 
 test('a failed run forgets a claim assignment whose claim is gone, and keeps a live one', async () => {
@@ -184,46 +97,4 @@ test('a failed run forgets a claim assignment whose claim is gone, and keeps a l
     expect(await claimAssignments(live)).toEqual([
         { dedupeKey: `claim-assign:${messageId}:1`, state: 'queued' },
     ]);
-});
-
-test('self-assignment enqueues nothing, and a failed run forgets a Task reassigned meanwhile', async () => {
-    const board = await seedBoard();
-    const { seed } = board;
-    const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
-    const actor = { kind: 'user', userId: seed.userId } as const;
-
-    const ownId = await insertTaskPlace(connection.db, board, 'My own');
-    const own = await assignTask(
-        connection.db,
-        { agentId: seed.agentId, kind: 'agent' },
-        delivery,
-        {
-            assignee: { agentId: seed.agentId, kind: 'agent' },
-            expectedVersion: 1,
-            serverId: seed.serverId,
-            taskId: ownId,
-        }
-    );
-    expect(own.wakes).toEqual([]);
-    expect(await inboxRows(seed)).toEqual([]);
-
-    const task = await assignNew(delivery, board, 'Reassigned mid-run');
-    transport.online.add(seed.computerId);
-    runner.attach(seed.agentId);
-    await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    const runId = runner.starts()[0]?.runId ?? '';
-    await assignTask(connection.db, actor, delivery, {
-        assignee: null,
-        expectedVersion: 2,
-        serverId: seed.serverId,
-        taskId: task.task.id,
-    });
-    // The run already holds it, so reassigning leaves the row with that run.
-    expect((await inboxRows(seed)).map((row) => row.state)).toEqual(['accepted']);
-
-    await delivery.onTurnSettled(seed.computerId, {
-        ...settledTurn(seed, runId),
-        status: 'failed',
-    });
-    expect(await inboxRows(seed)).toEqual([]);
 });

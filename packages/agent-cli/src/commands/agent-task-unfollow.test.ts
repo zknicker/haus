@@ -10,21 +10,21 @@ test('task unfollow posts the Task target and says what still reaches the Agent'
     const client: AgentApiRequester = {
         request: async <T>(route: string, schema: z.ZodType<T>, input?: AgentApiRequest) => {
             calls.push({ input, route });
-            return schema.parse({ target: 'task:SEC-12', unfollowed: true }) as T;
+            return schema.parse({ target: 'task:k3mq7xta', unfollowed: true }) as T;
         },
     };
     const output: string[] = [];
 
-    await runTaskUnfollow(args('SEC-12'), { client, write: (text) => output.push(text) });
+    await runTaskUnfollow(args('k3mq7xta'), { client, write: (text) => output.push(text) });
 
     expect(calls).toEqual([
         {
-            input: { body: { target: 'task:SEC-12' }, method: 'POST' },
+            input: { body: { target: 'task:k3mq7xta' }, method: 'POST' },
             route: '/api/agent/tasks/unfollow',
         },
     ]);
     expect(output.join('')).toBe(
-        'Unfollowed task:SEC-12. Its ordinary messages no longer wake you; direct @mentions still do.\nPosting in the Task follows it again.\n'
+        'Unfollowed task:k3mq7xta. Its ordinary messages no longer wake you; direct @mentions still do.\nPosting in the Task follows it again.\n'
     );
 });
 

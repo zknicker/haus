@@ -61,7 +61,7 @@ test('ten assignments to an idle Agent wake it once, with one typed attention', 
     expect(start?.taskAssignments?.[0]).toEqual({
         assignedBy: seed.humanHandle,
         assignedByAgent: false,
-        id: `task-assign:${results[0]?.task.id}:2`,
+        id: `task-assign:${results[0]?.task.id}:1`,
         key: 'GEN-1',
         priority: 'high',
         taskId: results[0]?.task.id ?? '',
@@ -81,7 +81,7 @@ test('ten assignments to an idle Agent wake it once, with one typed attention', 
     expect(trigger).toMatchObject({
         chatId: null,
         source: 'task_assignment',
-        workId: `task-assign:${results[0]?.task.id}:2`,
+        workId: `task-assign:${results[0]?.task.id}:1`,
     });
     const [named] = await resolveAgentTurnTriggers(connection.db, seed.serverId, [
         {
@@ -93,9 +93,9 @@ test('ten assignments to an idle Agent wake it once, with one typed attention', 
         },
     ]);
     expect(agentTurnTriggerSchema.parse(named)).toEqual({
-        key: 'GEN-1',
         kind: 'task',
         more: 9,
+        shortId: expect.stringMatching(/^[0-9a-hjkmnp-tv-z]{8}$/u),
         taskId: results[0]?.task.id ?? '',
         title: 'Task 1',
     });
@@ -132,7 +132,7 @@ test('a busy Agent gets a content-free count, then the concrete Tasks on its nex
         inbox: [],
         runId,
         taskAssignments: {
-            ids: [`task-assign:${first.task.id}:2`, `task-assign:${second.task.id}:2`],
+            ids: [`task-assign:${first.task.id}:1`, `task-assign:${second.task.id}:1`],
             total: 2,
         },
         totalPending: 0,

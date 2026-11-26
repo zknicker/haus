@@ -23,7 +23,6 @@ import {
     projectUpdatedEventSchema,
     reminderUpdatedEventSchema,
     serverUpdatedEventSchema,
-    taskAssignedEventSchema,
     taskCreatedEventSchema,
     taskFollowUpdatedEventSchema,
     taskLabelUpdatedEventSchema,
@@ -89,7 +88,6 @@ export const projectUpdatedTopic = createTopic('project.updated', projectUpdated
 export const taskCreatedTopic = createTopic('task.created', taskCreatedEventSchema);
 export const taskUpdatedTopic = createTopic('task.updated', taskUpdatedEventSchema);
 /** Server-internal: iPhone push listens; no client stream carries it. */
-export const taskAssignedTopic = createTopic('task.assigned', taskAssignedEventSchema);
 export const taskFollowUpdatedTopic = createTopic(
     'task.follow.updated',
     taskFollowUpdatedEventSchema

@@ -94,9 +94,9 @@ function toPreviewTask(chatId: string, task: Task | undefined): ChatUnreadPrevie
         throw new Error(`Task Chat ${chatId} has no Task.`);
     }
     return {
-        key: task.key,
+        archivedAt: task.archivedAt,
         projectId: task.projectId,
-        state: task.state,
+        shortId: task.shortId,
         taskId: task.id,
         title: task.title,
     };

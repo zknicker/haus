@@ -21,37 +21,40 @@ afterAll(() => {
     workEvents?.stop();
 });
 
-test('the Agent Task list filters by state, repeated or comma-separated, and by key', async () => {
-    const closed = await startTestTask(fixture.harness, fixture.owner, {
+test('the Agent Task list shows active or archived Tasks, mine or all, and one Project', async () => {
+    const archived = await startTestTask(fixture.harness, fixture.owner, {
         channelId: fixture.channelId,
         serverId: fixture.serverId,
         title: 'Already shipped',
     });
-    await fixture.harness
-        .sql`update tasks set state = 'done', completed_at = now() where id = ${closed.id}`;
-    await fixture.harness.sql`update tasks set state = 'open' where id = ${fixture.task.id}`;
+    await fixture.harness.sql`update tasks set archived_at = now() where id = ${archived.id}`;
     const runner = await fixture.mintRunner('run_task_list_state');
-    const keys = async (query: string) => {
+    const shortIds = async (query: string) => {
         const response = await fetch(new URL(`/api/agent/tasks?${query}`, fixture.harness.url), {
             headers: { authorization: `Bearer ${runner.token}` },
         });
         expect(response.status).toBe(200);
-        const body = (await response.json()) as { tasks: { key: string }[] };
-        return body.tasks.map((task) => task.key).sort();
+        const body = (await response.json()) as { tasks: { shortId: string }[] };
+        return body.tasks.map((task) => task.shortId);
     };
-    const ledger = fixture.task.key.split('-')[0] ?? '';
+    const [project] = (await fixture.harness.sql`
+        select task_keys.key from projects
+        join task_keys on task_keys.id = projects.task_key_id
+        where projects.chat_id = ${fixture.task.projectId}
+    `) as { key: string }[];
 
-    expect(await keys('state=done')).toEqual([closed.key]);
-    expect(await keys('state=done&state=open')).toEqual([fixture.task.key, closed.key].sort());
-    expect(await keys(`state=open,done&key=${ledger}`)).toEqual(
-        [fixture.task.key, closed.key].sort()
+    expect(await shortIds('all=true')).toContain(fixture.task.shortId);
+    expect(await shortIds('all=true')).not.toContain(archived.shortId);
+    expect(await shortIds('all=true&archived=true')).toContain(archived.shortId);
+    expect(await shortIds('all=true&archived=true')).not.toContain(fixture.task.shortId);
+    expect(await shortIds('archived=true')).toEqual([]);
+    expect(await shortIds(`all=true&project=${project?.key}`)).toContain(fixture.task.shortId);
+
+    const unknown = await fetch(
+        new URL('/api/agent/tasks?all=true&project=ZZZ', fixture.harness.url),
+        { headers: { authorization: `Bearer ${runner.token}` } }
     );
-    expect(await keys('category=done')).not.toContain(closed.key);
-
-    const unknown = await fetch(new URL('/api/agent/tasks?key=ZZZ', fixture.harness.url), {
-        headers: { authorization: `Bearer ${runner.token}` },
-    });
-    expect(unknown.status).toBe(404);
+    expect(unknown.status).toBe(400);
 });
 
 test('a reminder set on a Task shows on it, naming the Agent that set it', async () => {
@@ -59,12 +62,12 @@ test('a reminder set on a Task shows on it, naming the Agent that set it', async
     await agentPost(runner, '/api/agent/messages/send', {
         content: 'Watching the flaky test.',
         nonce: 'surfaces-reminder-post',
-        target: `task:${fixture.task.key}`,
+        target: `task:${fixture.task.shortId}`,
     });
     const scheduled = await agentPost(runner, '/api/agent/reminders/schedule', {
         commandId: 'surfaces-reminder',
         fireAt: new Date(Date.now() + 3_600_000).toISOString(),
-        target: `task:${fixture.task.key}`,
+        target: `task:${fixture.task.shortId}`,
         title: 'Check back on the flaky test',
     });
     expect(scheduled.status).toBe(200);
@@ -84,7 +87,7 @@ test('a reminder set on a Task shows on it, naming the Agent that set it', async
 
 test('starting a Worker on a Task names the Task in its event and its Happening now row', async () => {
     const runner = await fixture.mintRunner('run_surfaces_launch');
-    await fixture.readTarget(runner, `task:${fixture.task.key}`);
+    await fixture.readTarget(runner, `task:${fixture.task.shortId}`);
     const started = await fixture.postStart(
         runner,
         fixture.startBody({ nonce: 'surfaces-launch' })
@@ -100,14 +103,14 @@ test('starting a Worker on a Task names the Task in its event and its Happening 
     });
     expect(rows.find((row) => row.worker.id === workerId)).toMatchObject({
         taskId: fixture.task.id,
-        taskKey: fixture.task.key,
+        taskShortId: fixture.task.shortId,
     });
 });
 
 test('attaching a pull request to a Task announces the Task', async () => {
     const runner = await fixture.mintRunner('run_surfaces_attach_pr');
     const attached = await agentPost(runner, '/api/agent/tasks/attach-pr', {
-        key: fixture.task.key,
+        task: fixture.task.shortId,
         url: 'https://github.com/haus/haus/pull/42',
     });
     expect(attached.status).toBe(200);

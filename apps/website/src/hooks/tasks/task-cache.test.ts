@@ -8,13 +8,9 @@ import { writeTaskResult } from './task-cache.ts';
 const serverId = 'srv_1';
 const now = '2026-11-04T12:00:00.000Z';
 
-const allList = getQueryKey(
-    hausTrpc.task.list,
-    { serverId, states: ['todo', 'open', 'done', 'canceled'] },
-    'query'
-);
-const openList = getQueryKey(hausTrpc.task.listOpen, { serverId }, 'query');
-const detailByKey = getQueryKey(hausTrpc.task.get, { key: 'SEC-12', serverId }, 'query');
+const allList = getQueryKey(hausTrpc.task.list, { serverId }, 'query');
+const openList = getQueryKey(hausTrpc.task.listActive, { serverId }, 'query');
+const detailByKey = getQueryKey(hausTrpc.task.get, { serverId, shortId: 'k3mq7xta' }, 'query');
 
 describe('writeTaskResult', () => {
     test('writes the ack into lists and keeps the detail fields a list does not carry', () => {
@@ -58,7 +54,7 @@ describe('writeTaskResult', () => {
 
 function seed() {
     const queryClient = new QueryClient();
-    const tasks = [task('tsk_12'), task('tsk_13', { key: 'SEC-13', number: 13 })];
+    const tasks = [task('tsk_12'), task('tsk_13', { shortId: 'k3mq7xtb' })];
     queryClient.setQueryData(allList, tasks);
     queryClient.setQueryData(openList, tasks);
     const detail: TaskDetail = {
@@ -78,23 +74,16 @@ function seed() {
 
 function task(id: string, overrides: Partial<Task> = {}): Task {
     return {
-        assignee: null,
+        archivedAt: null,
         chatId: 'cht_task',
-        completedAt: null,
         createdAt: now,
         createdBy: { kind: 'user', userId: 'usr_1' },
         description: '',
-        dueOn: null,
         id,
-        key: 'SEC-12',
-        keyId: 'tkk_sec',
-        labelIds: [],
-        number: 12,
         origin: { chatId: 'cht_ops', messageId: 'msg_origin' },
-        priority: 'none',
         projectId: 'cht_ops',
         serverId,
-        state: 'open',
+        shortId: 'k3mq7xta',
         title: 'Task',
         updatedAt: now,
         version: 2,

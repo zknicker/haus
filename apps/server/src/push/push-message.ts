@@ -15,7 +15,7 @@ export interface PushMessage extends StoredChatMessageAuthorRow {
     dmMemberUserIds: string[];
     messageId: string;
     taskId: string | null;
-    taskKey: string | null;
+    taskShortId: string | null;
 }
 
 /**
@@ -48,15 +48,12 @@ export async function readPushMessage(
             )::text[] as "dmMemberUserIds",
             message.id as "messageId",
             task.id as "taskId",
-            case when task.id is null then null
-                else task_key.key || '-' || task.number end as "taskKey"
+            task.short_id as "taskShortId"
         from chat_messages message
         join chats chat on chat.server_id = message.server_id and chat.id = message.chat_id
         left join chats parent
             on parent.server_id = chat.server_id and parent.id = chat.parent_chat_id
         left join tasks task on task.server_id = chat.server_id and task.chat_id = chat.id
-        left join task_keys task_key
-            on task_key.server_id = task.server_id and task_key.id = task.key_id
         left join agents agent
             on agent.server_id = message.server_id and agent.id = message.author_agent_id
         left join users author on author.id = message.author_user_id

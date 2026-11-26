@@ -1,7 +1,7 @@
 import type { WorkerRefusalCode } from '@haus/api';
 import { AgentCliError } from '../agent-error.ts';
 
-const placesStep = 'Run haus worker places --task <KEY-n> to see where Workers can run';
+const placesStep = 'Run haus worker places --task <id> to see where Workers can run';
 
 const nextActions: Partial<Record<WorkerRefusalCode, string>> = {
     WORKER_MODEL_UNAVAILABLE:

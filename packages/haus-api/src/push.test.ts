@@ -21,7 +21,7 @@ const payload = {
     },
     serverId: 'srv_main',
     taskId: null,
-    taskKey: null,
+    taskShortId: null,
 };
 
 describe('iPhone push payload contract', () => {

@@ -22,7 +22,7 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
             provider: 'cursor',
             state: 'working',
             statusText: 'Working · 7m',
-            task: { id: 'tsk_12', key: 'SEC-12' },
+            task: { id: 'tsk_12', shortId: 'k3mq7xta' },
             title: 'Fix the failing migration',
         },
     ]);
@@ -38,12 +38,12 @@ test('a Worker on a Computer reads with no provider, so its key prints the termi
     expect(row?.provider).toBeNull();
 });
 
-test('a Worker carries its Task, and its subline leads with the key', () => {
+test('a Worker carries its Task, and its subline leads with the short id', () => {
     const [onTask] = toHappeningNowWork([activeWork()], humans, agents, now);
 
-    expect(onTask?.task).toEqual({ id: 'tsk_12', key: 'SEC-12' });
+    expect(onTask?.task).toEqual({ id: 'tsk_12', shortId: 'k3mq7xta' });
     expect(onTask && happeningNowWorkSubline(onTask)).toBe(
-        'Working · 7m · SEC-12 · #product · Blippy'
+        'Working · 7m · k3mq7xta · #product · Blippy'
     );
 });
 
@@ -113,7 +113,7 @@ function activeWork(overrides: Partial<ActiveWorker> = {}): ActiveWorker {
         conversationChatId: 'chat_product',
         location: { chatId: 'chat_task', kind: 'task', taskId: 'tsk_12' },
         taskId: 'tsk_12',
-        taskKey: 'SEC-12',
+        taskShortId: 'k3mq7xta',
         worker: workRecord(),
         ...overrides,
     };

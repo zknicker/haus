@@ -7,12 +7,7 @@ export const removeMemberProcedure = serverMemberProcedure
     .input(removeServerMemberInputSchema)
     .output(removedServerMemberSchema)
     .mutation(async ({ ctx, input }) => {
-        const departure = await removeServerMember(
-            ctx.hausDb,
-            ctx.agentDelivery,
-            ctx.member,
-            input
-        );
+        const departure = await removeServerMember(ctx.hausDb, ctx.member, input);
 
         announceDeparture(departure);
         return { serverId: departure.serverId, userId: departure.userId };

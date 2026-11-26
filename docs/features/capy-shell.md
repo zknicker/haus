@@ -30,11 +30,12 @@ Inbox page in J4; there is no flag.
   - A Project row is its mark, its name and an unread dot. The + opens New project. Projects
     reorder by drag or from the keyboard (Space picks a row up, the arrows move it, Space drops),
     through the old sidebar's `SortableChannelList` and its stored order.
-  - A Task row is one line: the state disc, the key, the title and an unread dot. When
-    an unread message in it @mentions you, the key turns accent with a small accent dot and the
-    row reads and tooltips "Waiting on you". Waiting Tasks sort first.
+  - A Task row is one line: the state disc, the title and an unread dot. When an unread
+    message in it @mentions you, a small accent dot leads the title and the row reads and
+    tooltips "Waiting on you". Waiting Tasks sort first.
   - Right-clicking a Task row opens it, opens it in a new tab on desktop, and offers the Tasks
-    page's State, Assignee and Copy reference sections (`features/tasks/task-menu-sections.tsx`).
+    page's State (active or archived) and Copy reference sections
+    (`features/tasks/task-menu-sections.tsx`).
   - Every row keeps the unread dot's slot whether or not it is unread, so names truncate at one
     edge down the whole sidebar.
   - People lists person-to-person DMs and appears only when you have any.
@@ -52,11 +53,11 @@ Inbox page in J4; there is no flag.
   breadcrumb's "Haus" opens Home, a new desktop window starts on Home, a desktop tab on Home reads
   "Home" with a home glyph, and Cmd+K offers Home in place of Chat and Inbox. Every row carries its own
   unread state, so ADR 0038's unread-only rule still holds.
-- **Home.** The Server's default route renders Home: a Project chip and a Captain chip, left-aligned
+- **Home.** The Server's default route renders Home: a Project chip, left-aligned
   above a compact stock `PromptInput` (size `sm`, a `max-w-xl` measure) placed a little above the
-  middle, as in Capy. The placeholder is "Ask <Captain> anything", and the bottom row holds only
+  middle, as in Capy. The placeholder is "Start a Task", and the bottom row holds only
   Send: `task.create` carries no files, so there is no attachment action, and there is no model
-  picker or mic. The Captain defaults to the Project's first Captain. Behind the composer sits the
+  picker or mic. A Task has no assignee, so there is no Captain chip. Behind the composer sits the
   theme's Home background, a built-in pattern or an uploaded image picked in Settings >
   Appearance > Background (see [Appearance](appearance.md#home-backgrounds)); the content area
   is a positioned, isolated layer above it. A Device's low-disk warning, which the Inbox carried,
@@ -86,14 +87,13 @@ projects its own entry through `features/capy-shell/sidebar-model.ts` from a nar
 | --- | --- |
 | Captains, their working state, DM unread | Live (`agent.list`, `chat.list`) |
 | Projects and their unread counts | Live (channels in `chat.list`) |
-| Open Tasks | Live (`task.listOpen`) |
+| Active Tasks | Live (`task.listActive`) |
 | "Waiting on you" | Live: an unread @mention of you in the Task (`chat.unreadPreviews`) |
 | People | Live (person DMs in `chat.list`, names from `member.list`) |
 
 ## Home's send path
 
-Sending creates a Task with J2's `task.create`: in the chosen Project, assigned to the chosen
-Captain. The first line of the ask is the title (cut to 200 characters) and the rest is the
+Sending creates a Task with `task.create` in the chosen Project; it wakes nobody. The first line of the ask is the title (cut to 200 characters) and the rest is the
 description (`planHomeTask` in `features/capy-shell/home-send.ts`). `useHomeSend` creates the
 Task and then opens its page. While the create is in flight the composer shows its submitted
 state, and a failed create keeps the text and shows the error under the composer.

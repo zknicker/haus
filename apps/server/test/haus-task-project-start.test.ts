@@ -15,7 +15,7 @@ interface StartReceipt {
     message?: string;
     nextAction?: string;
     target?: string;
-    task?: { key: string };
+    task?: { shortId: string };
 }
 
 async function startTask(body: Record<string, unknown>) {
@@ -78,23 +78,26 @@ test('a DM origin starts a Task in the Agent’s home Project, shown only to tha
         target: 'dm:@ada',
         title: 'Look into the deploy',
     });
-    expect(started).toMatchObject({ body: { target: 'task:PROD-1' }, status: 200 });
+    expect(started.status).toBe(200);
+    const shortId = started.body.task?.shortId ?? '';
+    expect(started.body.target).toBe(`task:${shortId}`);
 
-    const seen = await owner.trpc.task.get.query({ key: 'PROD-1', serverId });
+    const seen = await owner.trpc.task.get.query({ serverId, shortId });
     expect(seen).toMatchObject({
         origin: { chatId: dm.message.chatId, messageId: dm.message.id },
         projectId: fixture.channelId,
     });
     expect(await taskChatParent(seen.chatId ?? '')).toBe(fixture.channelId);
-    expect((await bea.trpc.task.get.query({ key: 'PROD-1', serverId })).origin).toBeNull();
+    expect((await bea.trpc.task.get.query({ serverId, shortId })).origin).toBeNull();
     expect(
-        (await bea.trpc.task.listOpen.query({ serverId })).find((task) => task.key === 'PROD-1')
-            ?.origin
+        (await bea.trpc.task.listActive.query({ serverId })).find(
+            (task) => task.shortId === shortId
+        )?.origin
     ).toBeNull();
 
     const page = await owner.trpc.chat.messages.query({ chatId: dm.message.chatId, serverId });
-    expect(page.tasks.map((task) => [task.key, task.originMessageId])).toEqual([
-        ['PROD-1', dm.message.id],
+    expect(page.tasks.map((task) => [task.shortId, task.originMessageId])).toEqual([
+        [shortId, dm.message.id],
     ]);
 });
 
@@ -106,17 +109,19 @@ test('an #all origin starts a Task in the Agent’s home Project, and #all previ
         target: allTarget,
         title: 'Refresh the changelog',
     });
-    expect(started).toMatchObject({ body: { target: 'task:PROD-2' }, status: 200 });
+    expect(started.status).toBe(200);
+    const shortId = started.body.task?.shortId ?? '';
+    expect(started.body.target).toBe(`task:${shortId}`);
 
-    const seen = await fixture.owner.trpc.task.get.query({ key: 'PROD-2', serverId });
+    const seen = await fixture.owner.trpc.task.get.query({ serverId, shortId });
     expect(seen).toMatchObject({
         origin: { chatId: allId, messageId: origin.message.id },
         projectId: fixture.channelId,
     });
     expect(await taskChatParent(seen.chatId ?? '')).toBe(fixture.channelId);
     const page = await fixture.owner.trpc.chat.messages.query({ chatId: allId, serverId });
-    expect(page.tasks.map((task) => [task.key, task.originMessageId])).toEqual([
-        ['PROD-2', origin.message.id],
+    expect(page.tasks.map((task) => [task.shortId, task.originMessageId])).toEqual([
+        [shortId, origin.message.id],
     ]);
 });
 
@@ -134,9 +139,11 @@ test('--project files a channel origin in another Project; the origin channel pr
         target: '#product',
         title: 'Restore the ops dashboard',
     });
-    expect(started).toMatchObject({ body: { target: 'task:OPS-1' }, status: 200 });
+    expect(started.status).toBe(200);
+    const shortId = started.body.task?.shortId ?? '';
+    expect(started.body.target).toBe(`task:${shortId}`);
 
-    const task = await fixture.owner.trpc.task.get.query({ key: 'OPS-1', serverId });
+    const task = await fixture.owner.trpc.task.get.query({ serverId, shortId });
     expect(task).toMatchObject({
         origin: { chatId: fixture.channelId, messageId: origin.message.id },
         projectId: opsId,
@@ -144,9 +151,9 @@ test('--project files a channel origin in another Project; the origin channel pr
     expect(await taskChatParent(task.chatId ?? '')).toBe(opsId);
     const previewKeys = async (chatId: string) =>
         (await fixture.owner.trpc.chat.messages.query({ chatId, serverId })).tasks.map(
-            (preview) => preview.key
+            (preview) => preview.shortId
         );
-    expect(await previewKeys(fixture.channelId)).toEqual(['OPS-1']);
+    expect(await previewKeys(fixture.channelId)).toEqual([shortId]);
     expect(await previewKeys(opsId)).toEqual([]);
 });
 
@@ -182,8 +189,8 @@ test('an Agent starts only in its home Project; elsewhere it is TASK_PROJECT_NOT
         title: 'Rotate the product credentials',
     });
     expect(home.status).toBe(200);
-    const key = home.body.task?.key ?? '';
-    expect((await fixture.owner.trpc.task.get.query({ key, serverId })).projectId).toBe(
+    const shortId = home.body.task?.shortId ?? '';
+    expect((await fixture.owner.trpc.task.get.query({ serverId, shortId })).projectId).toBe(
         fixture.channelId
     );
 });

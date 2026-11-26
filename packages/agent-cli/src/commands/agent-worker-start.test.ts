@@ -28,13 +28,13 @@ test('starts one Worker on a Task with the stdin brief and posts nothing', async
         place: 'cursor',
         repository: 'haus/haus',
         startingRef: 'main',
-        task: 'SEC-12',
+        task: 'k3mq7xta',
         title: 'Fix the flaky delivery test',
     });
     expect(output.join('')).toBe(
         [
-            `Worker ${work.id} started on cursor for SEC-12: Fix the flaky delivery test (haus/haus@main).`,
-            'Its report posts in SEC-12 and reaches you as an inbox item when the turn ends; a launch that fails reaches you the same way.',
+            `Worker ${work.id} started on cursor for k3mq7xta: Fix the flaky delivery test (haus/haus@main).`,
+            'Its report posts in k3mq7xta and reaches you as an inbox item when the turn ends; a launch that fails reaches you the same way.',
             `Follow up with haus worker send --worker ${work.id}; stop it with haus worker stop --worker ${work.id}.`,
             '',
         ].join('\n')
@@ -51,7 +51,7 @@ test('a queued start says it waits for a free slot on its place', async () => {
         },
     });
     expect(output.join('')).toStartWith(
-        `Worker ${work.id} queued on cursor for SEC-12: Fix the flaky delivery test (haus/haus@main). It starts when cursor has a free slot.\n`
+        `Worker ${work.id} queued on cursor for k3mq7xta: Fix the flaky delivery test (haus/haus@main). It starts when cursor has a free slot.\n`
     );
 });
 
@@ -90,14 +90,14 @@ test('a Server WORKER_TASK_REQUIRED refusal gains the start-a-Task step', async 
     ).rejects.toMatchObject({
         code: 'WORKER_TASK_REQUIRED',
         message: 'A Worker needs a Task.',
-        options: { nextAction: expect.stringContaining('--task <KEY-n>') },
+        options: { nextAction: expect.stringContaining('--task <id>') },
     });
 });
 
 test('--task accepts the Task target form too', async () => {
     const seen: AgentApiRequest[] = [];
-    await runWorkerStart(args({ '--task': 'task:SEC-12' }), deps(seen));
-    expect(seen[0]?.body).toMatchObject({ task: 'SEC-12' });
+    await runWorkerStart(args({ '--task': 'task:k3mq7xta' }), deps(seen));
+    expect(seen[0]?.body).toMatchObject({ task: 'k3mq7xta' });
 });
 
 test('a held start shows the newer messages and says nothing was recorded', async () => {

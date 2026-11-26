@@ -63,21 +63,3 @@ export function actorFromColumns(userId: string | null, agentId: string | null):
     }
     throw new Error('A Task actor row names neither a person nor an Agent.');
 }
-
-/** A nullable stored user/agent pair: the assignee. */
-export function optionalActorFromColumns(
-    userId: string | null,
-    agentId: string | null
-): TaskActor | null {
-    return userId === null && agentId === null ? null : actorFromColumns(userId, agentId);
-}
-
-export function sameTaskActor(left: TaskActor | null, right: TaskActor | null): boolean {
-    if (left === null || right === null) {
-        return left === right;
-    }
-    if (left.kind === 'user') {
-        return right.kind === 'user' && right.userId === left.userId;
-    }
-    return right.kind === 'agent' && right.agentId === left.agentId;
-}

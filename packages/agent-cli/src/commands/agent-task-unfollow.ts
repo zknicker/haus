@@ -3,18 +3,22 @@ import * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
-import { taskKeyArgument } from './agent-command-utils.ts';
+import { taskShortIdArgument } from './agent-command-utils.ts';
 
 export const TASK_UNFOLLOW_SUBCOMMAND: SubCommand = {
-    examples: ['haus task unfollow --target task:SEC-12'],
+    examples: ['haus task unfollow --target task:k3mq7xta'],
     flags: [
-        { description: 'The Task to stop following', name: '--target', valueName: '<task:KEY-n>' },
+        {
+            description: 'The Task to stop following',
+            name: '--target',
+            valueName: '<task:shortId>',
+        },
     ],
     name: 'unfollow',
     positionals: [],
     run: (args) => runTaskUnfollow(args, defaultDeps()),
     summary: 'Stop following a Task',
-    usage: 'haus task unfollow --target <task:KEY-n>',
+    usage: 'haus task unfollow --target <task:shortId>',
 };
 
 interface TaskUnfollowDeps {
@@ -28,7 +32,7 @@ const unfollowResponseSchema = z.looseObject({
 });
 
 export async function runTaskUnfollow(args: ParsedArgs, deps: TaskUnfollowDeps): Promise<number> {
-    const target = formatTaskTarget(taskKeyArgument(args.values['--target'], '--target'));
+    const target = formatTaskTarget(taskShortIdArgument(args.values['--target'], '--target'));
     const response = await deps.client.request(
         '/api/agent/tasks/unfollow',
         unfollowResponseSchema,

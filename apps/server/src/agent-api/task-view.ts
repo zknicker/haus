@@ -1,13 +1,7 @@
 import type { HausApiSchema, Task, TaskActor, TaskDetail } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    remindersTable,
-    serverMembershipsTable,
-    taskLabelAssignmentsTable,
-    taskLabelsTable,
-} from '../postgres/schema.ts';
+import { agentsTable, remindersTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { targetForChat } from './message-view.ts';
 
 type AgentTaskRow = HausApiSchema<'AgentTaskRow'>;
@@ -18,26 +12,16 @@ export async function toAgentTaskRows(
     serverId: string,
     tasks: readonly Task[]
 ): Promise<AgentTaskRow[]> {
-    const actors = tasks.flatMap((task) => [
-        task.createdBy,
-        ...(task.assignee ? [task.assignee] : []),
-    ]);
-    const handles = await readActorHandles(db, serverId, actors);
-    const labels = await readTaskLabelNames(
+    const handles = await readActorHandles(
         db,
         serverId,
-        tasks.map((task) => task.id)
+        tasks.map((task) => task.createdBy)
     );
     return tasks.map((task) => ({
-        assignee: task.assignee ? actorRow(task.assignee, handles) : null,
-        completedAt: task.completedAt,
+        archivedAt: task.archivedAt,
         createdAt: task.createdAt,
         createdBy: actorRow(task.createdBy, handles),
-        dueOn: task.dueOn,
-        key: task.key,
-        labels: labels.get(task.id) ?? [],
-        priority: task.priority,
-        state: task.state,
+        shortId: task.shortId,
         title: task.title,
         updatedAt: task.updatedAt,
         version: task.version,
@@ -123,32 +107,4 @@ async function readActorHandles(db: Reader, serverId: string, actors: readonly T
     return new Map<string, string | null>(
         [...agents, ...humans].map((row) => [row.id, row.handle])
     );
-}
-
-async function readTaskLabelNames(db: Reader, serverId: string, taskIds: string[]) {
-    if (taskIds.length === 0) {
-        return new Map<string, string[]>();
-    }
-    const rows = await db
-        .select({ name: taskLabelsTable.name, taskId: taskLabelAssignmentsTable.taskId })
-        .from(taskLabelAssignmentsTable)
-        .innerJoin(
-            taskLabelsTable,
-            and(
-                eq(taskLabelsTable.serverId, taskLabelAssignmentsTable.serverId),
-                eq(taskLabelsTable.id, taskLabelAssignmentsTable.labelId)
-            )
-        )
-        .where(
-            and(
-                eq(taskLabelAssignmentsTable.serverId, serverId),
-                inArray(taskLabelAssignmentsTable.taskId, taskIds)
-            )
-        )
-        .orderBy(taskLabelsTable.name);
-    const byTask = new Map<string, string[]>();
-    for (const row of rows) {
-        byTask.set(row.taskId, [...(byTask.get(row.taskId) ?? []), row.name]);
-    }
-    return byTask;
 }

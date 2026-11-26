@@ -1,4 +1,4 @@
-import { type Agent, type Chat, parseTaskKey } from '@haus/api';
+import { type Agent, type Chat, isTaskShortId } from '@haus/api';
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { parseArtifactPageKey } from '../../routes/app/desktop-page-paths.ts';
@@ -41,14 +41,14 @@ export type TabPage =
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
     | { kind: 'settings'; page: string }
-    | { kind: 'task'; taskKey: string }
+    | { kind: 'task'; shortId: string }
     | { kind: 'worker'; workerId: string };
 
 /**
  * Parses a tab location. App paths are `/s/<slug>/<section>/<id>…`; desktop
  * Attachments and artifact pages are `files/<chatId>` and
  * `artifacts/<key>?title=…`; a shared library file is
- * `artifacts/<artifactId>`, titled from its record. A Task is `tasks/<KEY>`.
+ * `artifacts/<artifactId>`, titled from its record. A Task is `tasks/<shortId>`.
  */
 export function parseTabPage(location: TabLocation): TabPage {
     if (location.kind === 'browser') {
@@ -146,7 +146,7 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
                 place: null,
             };
         case 'task':
-            return { label: page.taskKey, mark: { kind: 'glyph', glyph: 'task' }, place: null };
+            return { label: page.shortId, mark: { kind: 'glyph', glyph: 'task' }, place: null };
         case 'worker':
             return {
                 label: records.workerTitle ?? '',
@@ -253,9 +253,9 @@ function artifactPage(key: string, search: URLSearchParams): TabPage {
     };
 }
 
-/** Null for `/tasks` itself, and for an address no Task key can parse. */
-function tasksPage(taskKey: string, rest: string): TabPage | null {
-    return taskKey && !rest && parseTaskKey(taskKey) ? { kind: 'task', taskKey } : null;
+/** Null for `/tasks` itself, and for an address that names no Task short id. */
+function tasksPage(shortId: string, rest: string): TabPage | null {
+    return shortId && !rest && isTaskShortId(shortId) ? { kind: 'task', shortId } : null;
 }
 
 function sectionPage(pathname: string, slug: string): TabPage {

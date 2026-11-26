@@ -1,4 +1,4 @@
-import { type ChatSearchResult, formatTaskKey } from '@haus/api';
+import type { ChatSearchResult } from '@haus/api';
 import { and, eq, gte, isNull, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
@@ -11,7 +11,6 @@ import {
     chatMessagesTable,
     chatsTable,
     serverMembershipsTable,
-    taskKeysTable,
     tasksTable,
     usersTable,
 } from '../postgres/schema.ts';
@@ -72,8 +71,7 @@ export async function searchChatMessages(
             sequence: chatMessagesTable.sequence,
             serverId: chatMessagesTable.serverId,
             sessionGeneration: chatMessagesTable.sessionGeneration,
-            taskBoardKey: taskKeysTable.key,
-            taskNumber: tasksTable.number,
+            taskShortId: tasksTable.shortId,
             authorAgentAvatarId: agentsTable.avatarId,
             authorAgentDescription: agentsTable.description,
             authorAgentDisplayName: agentsTable.displayName,
@@ -105,7 +103,6 @@ export async function searchChatMessages(
                 eq(tasksTable.chatId, chatMessagesTable.chatId)
             )
         )
-        .leftJoin(taskKeysTable, eq(taskKeysTable.id, tasksTable.keyId))
         .leftJoin(
             agentsTable,
             and(
@@ -175,9 +172,6 @@ export async function searchChatMessages(
         }),
         chatArchivedAt:
             (message.parentChatArchivedAt ?? message.chatArchivedAt)?.toISOString() ?? null,
-        taskKey:
-            message.taskBoardKey !== null && message.taskNumber !== null
-                ? formatTaskKey(message.taskBoardKey, message.taskNumber)
-                : null,
+        taskShortId: message.taskShortId,
     }));
 }

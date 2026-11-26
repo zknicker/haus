@@ -108,7 +108,7 @@ test('a draft turning ready after settlement wakes the Agent in the Task, once',
                     url: 'https://github.com/acme/api/pull/1423',
                 },
             },
-            target: `task:${task.key}`,
+            target: `task:${task.shortId}`,
         },
     ]);
 
@@ -131,7 +131,7 @@ test('checks finishing wake once per head, even when the reading repeats', async
 test('attach-pr links a pull request to the Task and seeds its reading', async () => {
     const runner = await mintRunner();
     const response = await fetch(new URL('/api/agent/tasks/attach-pr', harness.url), {
-        body: JSON.stringify({ key: task.key, url: 'https://github.com/acme/api/pull/77' }),
+        body: JSON.stringify({ task: task.shortId, url: 'https://github.com/acme/api/pull/77' }),
         headers: { authorization: `Bearer ${runner}`, 'content-type': 'application/json' },
         method: 'POST',
     });
@@ -142,7 +142,7 @@ test('attach-pr links a pull request to the Task and seeds its reading', async (
             repository: 'acme/api',
             url: 'https://github.com/acme/api/pull/77',
         },
-        task: { key: task.key },
+        task: { shortId: task.shortId },
     });
     expect(await harness.sql`select task_id from task_pull_requests where number = 77`).toEqual([
         { task_id: task.id },
@@ -168,13 +168,16 @@ test('attaching an unread pull request seeds its reading with one GitHub read', 
     ]);
 });
 
-test('a pull request on a Task with no cloud work wakes its assignee Agent, with no Run', async () => {
+test('a pull request on an active Task with no cloud work wakes the Agent that started it', async () => {
     const bare = await startTestTask(harness, world.owner, {
         channelId: world.channelId,
         serverId: world.serverId,
         title: 'Review the vendor patch',
     });
-    await harness.sql`update tasks set assignee_agent_id = ${world.agentId} where id = ${bare.id}`;
+    await harness.sql`
+        update tasks set created_by_agent_id = ${world.agentId}, created_by_user_id = null
+        where id = ${bare.id}
+    `;
     pull.draft = true;
     pull.checks = 'pending';
     await attachPullRequestToTask(
@@ -202,7 +205,7 @@ test('a pull request on a Task with no cloud work wakes its assignee Agent, with
         },
         senderType: 'system',
         sequence: 0,
-        target: `task:${bare.key}`,
+        target: `task:${bare.shortId}`,
     });
     expect(item?.worker).toBeUndefined();
 

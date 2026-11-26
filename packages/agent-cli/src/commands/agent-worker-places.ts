@@ -6,7 +6,7 @@ import {
 import * as z from 'zod';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
-import { taskKeyArgument } from './agent-command-utils.ts';
+import { taskRefArgument } from './agent-command-utils.ts';
 import { defaultDeps, type WorkerDeps } from './agent-worker-deps.ts';
 
 const [computerEntry, cursorEntry, claudeEntry] = workerPlaceEntrySchema.options;
@@ -30,12 +30,12 @@ type PlacesResponse = z.infer<typeof placesResponseSchema>;
 type PlaceEntry = PlacesResponse['places'][number];
 
 export const PLACES_COMMAND: SubCommand = {
-    examples: ['haus worker places --task SEC-12'],
+    examples: ['haus worker places --task k3mq7xta'],
     flags: [
         {
             description: 'Mark the Task’s Project default',
             name: '--task',
-            valueName: '<KEY-n>',
+            valueName: '<id>',
         },
     ],
     name: 'places',
@@ -46,12 +46,12 @@ export const PLACES_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runWorkerPlaces(args, defaultDeps()),
     summary: 'List where Workers can run, with readiness, runtimes, repo folders, and free slots',
-    usage: 'haus worker places [--task <KEY-n>]',
+    usage: 'haus worker places [--task <id>]',
 };
 
 export async function runWorkerPlaces(args: ParsedArgs, deps: WorkerDeps) {
     const raw = args.values['--task']?.trim();
-    const task = raw ? taskKeyArgument(raw, '--task') : undefined;
+    const task = raw ? taskRefArgument(raw, '--task') : undefined;
     const response = await deps.client.request('/api/agent/workers/places', placesResponseSchema, {
         query: { task },
     });
@@ -61,7 +61,7 @@ export async function runWorkerPlaces(args: ParsedArgs, deps: WorkerDeps) {
 
 export function renderWorkerPlaces(response: PlacesResponse) {
     const heading = response.task ? `Places for ${response.task}:` : 'Places:';
-    const start = `haus worker start --task ${response.task ?? '<KEY-n>'} --on <place> --title <text>`;
+    const start = `haus worker start --task ${response.task ?? '<id>'} --on <place> --title <text>`;
     return `${[heading, ...response.places.map(placeLine), '', `Start one with ${start}.`].join('\n')}\n`;
 }
 

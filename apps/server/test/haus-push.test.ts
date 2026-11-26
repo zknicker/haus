@@ -66,7 +66,7 @@ test('a DM message pushes its other member with the routing payload', async () =
                 sender: { avatarUrl: null, id: fixture.peerUserId, kind: 'human', name: 'Bo' },
                 serverId,
                 taskId: null,
-                taskKey: null,
+                taskShortId: null,
             },
         },
     ]);

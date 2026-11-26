@@ -6,7 +6,7 @@ import type { ParsedArgs } from '../parse.ts';
 import { runReminderSchedule, runReminderUpdate } from './agent-reminder.ts';
 
 const reminder = {
-    anchorTarget: 'task:SEC-12',
+    anchorTarget: 'task:k3mq7xta',
     description: null,
     fireAt: '2026-11-17T19:35:00.000Z',
     id: 'rem_task',
@@ -25,11 +25,11 @@ test('a reminder on a Task sends its task: target and no message id (ADR 0053)',
     });
 
     await runReminderSchedule(
-        args({ '--delay-seconds': '600', '--target': 'task:SEC-12', '--title': 'Deploy Check' }),
+        args({ '--delay-seconds': '600', '--target': 'task:k3mq7xta', '--title': 'Deploy Check' }),
         { client, write: () => undefined }
     );
 
-    expect(requests[0]?.body).toMatchObject({ target: 'task:SEC-12', title: 'Deploy Check' });
+    expect(requests[0]?.body).toMatchObject({ target: 'task:k3mq7xta', title: 'Deploy Check' });
     expect(requests[0]?.body).not.toHaveProperty('messageId');
 });
 
@@ -41,17 +41,17 @@ test('a bare Task key reads as its task: target', async () => {
     });
 
     await runReminderSchedule(
-        args({ '--delay-seconds': '600', '--target': 'SEC-12', '--title': 'Deploy Check' }),
+        args({ '--delay-seconds': '600', '--target': 'k3mq7xta', '--title': 'Deploy Check' }),
         { client, write: () => undefined }
     );
 
-    expect(requests[0]?.body).toMatchObject({ target: 'task:SEC-12' });
+    expect(requests[0]?.body).toMatchObject({ target: 'task:k3mq7xta' });
 });
 
 test.each([
-    [{ '--message-id': 'deadbeef', '--target': 'task:SEC-12' }, 'not both'],
-    [{}, 'or --target task:KEY-n for a Task'],
-    [{ '--target': '#general' }, '--target needs a Task key like SEC-12'],
+    [{ '--message-id': 'deadbeef', '--target': 'task:k3mq7xta' }, 'not both'],
+    [{}, 'or --target task:<shortId> for a Task'],
+    [{ '--target': '#general' }, '--target needs a Task short id like k3mq7xta'],
 ])('refuses an anchor that is not exactly one message or Task: %p', async (anchor, message) => {
     const routes: string[] = [];
     const client = requester((route) => {
@@ -74,7 +74,7 @@ test('a recurring reminder on a Task is refused before any request, pointing at 
         return { reminder };
     });
     const error = await runReminderSchedule(
-        args({ '--repeat': 'every:1h', '--target': 'task:SEC-12', '--title': 'Watch' }),
+        args({ '--repeat': 'every:1h', '--target': 'task:k3mq7xta', '--title': 'Watch' }),
         { client, write: () => undefined }
     ).catch((cause: unknown) => cause);
 

@@ -32,40 +32,19 @@ test('a Server holding real Tasks purges completely', async () => {
     );
     await fixture.addAgent(serverId, agentId, 'purge-agent');
     await owner.trpc.project.create.mutate({ key: 'SEC', name: 'security', serverId });
-    const label = await owner.trpc.taskLabel.create.mutate({ name: 'Purge', serverId });
     const task = await startTestTask(harness, owner, {
         channelId,
-        key: 'SEC',
         serverId,
         title: 'Everything points here',
     });
-    await owner.trpc.task.update.mutate({
-        expectedVersion: 1,
-        patch: { labelIds: [label.label?.id ?? ''] },
-        serverId,
-        taskId: task.id,
-    });
-    await owner.trpc.task.assign.mutate({
-        assignee: { kind: 'user', userId: peerUserId },
-        expectedVersion: 2,
-        serverId,
-        taskId: task.id,
-    });
-    const held = await startTestTask(harness, owner, {
-        channelId,
-        key: 'SEC',
-        serverId,
-        title: 'Held by an Agent',
-    });
-    await owner.trpc.task.assign.mutate({
-        assignee: { agentId, kind: 'agent' },
-        expectedVersion: 1,
-        serverId,
-        taskId: held.id,
-    });
+    await harness.sql`
+        insert into task_follows (server_id, task_chat_id, task_chat_kind, user_id, followed)
+        values (${serverId}, ${task.chatId}, 'task', ${peerUserId}, true)
+    `;
+    await startTestTask(harness, owner, { channelId, serverId, title: 'A second one' });
     await owner.trpc.chat.send.mutate({
         chatId: channelId,
-        content: `Tracking ${task.key}.`,
+        content: `Tracking [it](task://${task.id}).`,
         nonce: 'task-purge-link',
         serverId,
     });
@@ -78,8 +57,6 @@ test('a Server holding real Tasks purges completely', async () => {
                 (select count(*)::int from tasks where server_id = ${serverId}) as tasks,
                 (select count(*)::int from chats where server_id = ${serverId} and kind = 'task')
                     as task_chats,
-                (select count(*)::int from task_label_assignments where server_id = ${serverId})
-                    as labels,
                 (select count(*)::int from task_message_links where server_id = ${serverId})
                     as message_links,
                 (select count(*)::int from task_follows where server_id = ${serverId})
@@ -89,7 +66,6 @@ test('a Server holding real Tasks purges completely', async () => {
         {
             follows: 1,
             keys: 2,
-            labels: 1,
             message_links: 1,
             projects: 2,
             task_chats: 2,
@@ -111,7 +87,6 @@ test('a Server holding real Tasks purges completely', async () => {
         {
             follows: 0,
             keys: 0,
-            labels: 0,
             message_links: 0,
             projects: 0,
             task_chats: 0,

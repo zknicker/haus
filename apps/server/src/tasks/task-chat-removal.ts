@@ -4,7 +4,6 @@ import { tasksTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { closeDeletedTaskWorkers } from '../workers/close-deleted-task-workers.ts';
 import type { WorkerFrame } from '../workers/worker-effects.ts';
-import { retireTaskAssignments } from './task-agent-delivery.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
 
 type Tx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
@@ -19,11 +18,7 @@ export async function deleteTasksOfRemovedChats(
         return nothingDeleted;
     }
     const tasks = await tx
-        .select({
-            assigneeAgentId: tasksTable.assigneeAgentId,
-            id: tasksTable.id,
-            version: tasksTable.version,
-        })
+        .select({ id: tasksTable.id, version: tasksTable.version })
         .from(tasksTable)
         .where(
             and(
@@ -39,15 +34,6 @@ export async function deleteTasksOfRemovedChats(
     }
     const taskIds = tasks.map(({ id }) => id);
     const workerFrames = await closeDeletedTaskWorkers(tx, { serverId: input.serverId, taskIds });
-    for (const task of tasks) {
-        if (task.assigneeAgentId) {
-            await retireTaskAssignments(tx, {
-                agentId: task.assigneeAgentId,
-                serverId: input.serverId,
-                taskId: task.id,
-            });
-        }
-    }
     await tx
         .delete(tasksTable)
         .where(and(eq(tasksTable.serverId, input.serverId), inArray(tasksTable.id, taskIds)));

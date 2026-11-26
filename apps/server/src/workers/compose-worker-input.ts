@@ -25,17 +25,17 @@ export async function composeWorkerInput(
         isHausProject: boolean;
         place: 'cloud' | 'computer';
         serverId: string;
-        taskKey: string;
+        projectKey: string;
+        taskShortId: string;
     }
 ) {
-    const projectKey = input.taskKey.split('-')[0] ?? input.taskKey;
     const firstTurn = input.inputs[0]?.kind === 'brief';
     const read = (path: string) => readDriveFile(tx, storage, input.serverId, path);
     const workerMd = await read(`agents/${input.agentHandle}/WORKER.md`);
     const rules = firstTurn
         ? [
               await read('haus/AGENTS.md'),
-              input.isHausProject ? null : await read(`projects/${projectKey}/AGENTS.md`),
+              input.isHausProject ? null : await read(`projects/${input.projectKey}/AGENTS.md`),
               workerMd,
           ]
         : [workerMd && workerMd.revisionId !== input.delivered ? workerMd : null];
@@ -51,7 +51,7 @@ export async function composeWorkerInput(
         workerInstructions({
             agentHandle: input.agentHandle,
             place: input.place,
-            taskKey: input.taskKey,
+            taskShortId: input.taskShortId,
         }),
         ...inlined.map(inlineFile),
         ...sections,

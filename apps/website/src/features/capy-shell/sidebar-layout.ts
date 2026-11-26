@@ -3,7 +3,7 @@ import { taskUnread } from './sidebar-model.ts';
 
 export interface OpenTaskSlot {
     chatId: string | null;
-    key: string;
+    shortId: string;
     taskId: string;
 }
 
@@ -102,12 +102,13 @@ export function openTaskSlots(tasks: readonly Task[], waiting: readonly string[]
 
 export function sortedOpenTaskSlots(tasks: readonly Task[]) {
     return tasks
-        .filter((task) => task.state === 'open')
+        .filter((task) => task.archivedAt === null)
         .sort(
             (a, b) =>
-                Date.parse(b.createdAt) - Date.parse(a.createdAt) || a.key.localeCompare(b.key)
+                Date.parse(b.createdAt) - Date.parse(a.createdAt) ||
+                a.shortId.localeCompare(b.shortId)
         )
-        .map((task) => ({ chatId: task.chatId, key: task.key, taskId: task.id }));
+        .map((task) => ({ chatId: task.chatId, shortId: task.shortId, taskId: task.id }));
 }
 
 export function waitingFirst(slots: readonly OpenTaskSlot[], waiting: readonly string[]) {

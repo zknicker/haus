@@ -28,7 +28,7 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-test('closing a Task stops a working Worker, delivers its outcome once it settles, then closes it', async () => {
+test('archiving a Task stops a working Worker, delivers its outcome once it settles, then closes it', async () => {
     const board = await seedWorkerBoard(connection.db);
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const { worker } = (await startOn(connection.db, board)).receipt;
@@ -80,10 +80,10 @@ test('closing a Task stops a working Worker, delivers its outcome once it settle
     expect(await reportItems(board.seed.agentId)).toEqual([`worker-report:${working}`]);
     expect(await readClosing(worker.id)).toEqual({ closed: true, closing: true });
     expect(queued.receipt.turnId).not.toBe(working);
-    expect((await readTaskState(connection.db, board.task.id))?.state).toBe('done');
+    expect((await readTaskState(connection.db, board.task.id))?.archivedAt).not.toBeNull();
 });
 
-test('closing a Task with an offline carrier settles its Worker stopped and delivers that outcome', async () => {
+test('archiving a Task with an offline carrier settles its Worker stopped and delivers that outcome', async () => {
     const board = await seedWorkerBoard(connection.db);
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const { worker } = (await startOn(connection.db, board)).receipt;
@@ -105,7 +105,7 @@ test('closing a Task with an offline carrier settles its Worker stopped and deli
     expect(await readClosing(worker.id)).toEqual({ closed: true, closing: true });
 });
 
-test('closing a Task leaves an idle Worker closed without a second report', async () => {
+test('archiving a Task leaves an idle Worker closed without a second report', async () => {
     const board = await seedWorkerBoard(connection.db);
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const { worker } = (await startOn(connection.db, board)).receipt;

@@ -4,7 +4,7 @@ import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
 /**
- * References through the send paths: an Agent writes a bare key (ADR 0051), its
+ * References through the send paths: an Agent writes a task:// link, its
  * message carries `taskLinks` to the App and `task_links` to Agents, and the Task
  * hears about it so an open one refreshes Mentioned in.
  */
@@ -26,6 +26,10 @@ async function createTask(title: string) {
     return { ...task, version: 1 };
 }
 
+function link(task: { id: string }) {
+    return `[the work](task://${task.id})`;
+}
+
 async function agentCall(path: string, body?: unknown) {
     const response = await fetch(new URL(path, fixture.harness.url), {
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -35,14 +39,14 @@ async function agentCall(path: string, body?: unknown) {
     return (await response.json()) as Record<string, any>;
 }
 
-test('an Agent send resolves a bare key, projects it both ways, and updates the Task', async () => {
+test('an Agent send resolves a task link, projects it both ways, and updates the Task', async () => {
     const { channelId, owner, serverId } = fixture;
     const task = await createTask('Referenced by an Agent');
     const realtime = captureAllTopics();
     realtime.clear();
 
     const sent = await agentCall('/api/agent/messages/send', {
-        content: `Starting ${task.key}, then \`${task.key}\` stays code.`,
+        content: `Starting ${link(task)}, then \`${link(task)}\` stays code.`,
         nonce: 'task_send_links_agent',
         target: '#product',
     });
@@ -64,10 +68,14 @@ test('an Agent send resolves a bare key, projects it both ways, and updates the 
 
     const page = await owner.trpc.chat.messages.query({ chatId: channelId, limit: 5, serverId });
     const message = page.messages.find((candidate) => candidate.id === sent.message.id);
-    expect(message?.taskLinks).toEqual([{ key: task.key, taskId: task.id, text: task.key }]);
+    expect(message?.taskLinks).toEqual([
+        { shortId: task.shortId, taskId: task.id, text: link(task) },
+    ]);
 
     const read = await agentCall(`/api/agent/messages/${sent.message.id}`);
-    expect(read.message.task_links).toEqual([{ key: task.key, task_id: task.id, text: task.key }]);
+    expect(read.message.task_links).toEqual([
+        { short_id: task.shortId, task_id: task.id, text: link(task) },
+    ]);
 
     const detail = await owner.trpc.task.get.query({ serverId, taskId: task.id });
     expect(detail.mentions.map((mention) => mention.messageId)).toEqual([sent.message.id]);
@@ -83,7 +91,7 @@ test('an Agent-created claim records the Tasks its title references', async () =
     const created = await agentCall('/api/agent/claims/create', {
         nonce: 'task_send_links_claim',
         target: '#product',
-        titles: [`Follow up on ${task.key}`],
+        titles: [`Follow up on ${link(task)}`],
     });
     expect(created.claims).toHaveLength(1);
 
@@ -101,7 +109,7 @@ test('a human send announces each referenced Task once, however often it is name
     realtime.clear();
     await owner.trpc.chat.send.mutate({
         chatId: channelId,
-        content: `${task.key} and again ${task.key}.`,
+        content: `${link(task)} and again ${link(task)}.`,
         nonce: 'task-send-links-human',
         serverId,
     });

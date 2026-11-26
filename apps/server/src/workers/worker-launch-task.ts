@@ -1,27 +1,28 @@
-import { isClosedTaskState } from '@haus/api';
-import { resolveTaskTargetChat } from '../agent-api/resolve-task-target.ts';
-import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { readTask } from '../tasks/task-read.ts';
+import { readTaskByRef } from '../tasks/task-list.ts';
 import { WorkerTaskClosedError, WorkerTaskRequiredError } from './errors.ts';
 
 export async function requireOpenWorkerTask(
     db: Pick<HausDatabase, 'select'>,
-    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
-    taskKey: string | undefined
+    runner: { serverId: string },
+    taskRef: string | undefined
 ) {
-    if (!taskKey) {
+    if (!taskRef) {
         throw new WorkerTaskRequiredError();
     }
-    const reached = await resolveTaskTargetChat(db, runner, taskKey);
-    if (!reached) {
+    const task = await readTaskByRef(db, { ref: taskRef, serverId: runner.serverId });
+    if (!task?.chatId) {
         throw new WorkerTaskRequiredError(
-            `Task ${taskKey} does not exist or has no conversation yet. Start the Worker on a Task with a conversation.`
+            `Task ${taskRef} does not exist or has no conversation yet. Start the Worker on a Task with a conversation.`
         );
     }
-    const task = await readTask(db, runner.serverId, reached.taskId);
-    if (isClosedTaskState(task.state)) {
-        throw new WorkerTaskClosedError(task.key);
+    if (task.archivedAt !== null) {
+        throw new WorkerTaskClosedError(task.shortId);
     }
-    return { chatId: reached.chatId, key: task.key, projectId: task.projectId, taskId: task.id };
+    return {
+        chatId: task.chatId,
+        projectId: task.projectId,
+        shortId: task.shortId,
+        taskId: task.id,
+    };
 }

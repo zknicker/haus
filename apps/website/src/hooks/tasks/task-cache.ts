@@ -5,7 +5,7 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
  * The cached Task reads a mutation writes through. `task.get` is addressed by
- * id or by key and an event names only the id, so a read is matched by the
+ * id or by short id and an event names only the id, so a read is matched by the
  * record it holds, never by its input.
  */
 
@@ -61,7 +61,7 @@ function listQueries(queryClient: QueryClient, serverId: string) {
     const cache = queryClient.getQueryCache();
     return [
         ...cache.findAll({ queryKey: getQueryKey(hausTrpc.task.list, { serverId }) }),
-        ...cache.findAll({ queryKey: getQueryKey(hausTrpc.task.listOpen, { serverId }) }),
+        ...cache.findAll({ queryKey: getQueryKey(hausTrpc.task.listActive, { serverId }) }),
     ];
 }
 

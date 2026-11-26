@@ -41,8 +41,8 @@ export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }
 
-export function taskRoute(slug: string, key: string) {
-    return `${tasksRoute(slug)}/${encodeURIComponent(key)}`;
+export function taskRoute(slug: string, shortId: string) {
+    return `${tasksRoute(slug)}/${encodeURIComponent(shortId)}`;
 }
 
 export function workerRoute(slug: string, workerId: string) {

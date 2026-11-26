@@ -41,7 +41,7 @@ describe('buildPushPayload', () => {
             },
             serverId: 'srv_main',
             taskId: null,
-            taskKey: null,
+            taskShortId: null,
         });
         expect(pushNotificationPayloadSchema.parse(payload)).toEqual(payload as never);
     });
@@ -56,7 +56,7 @@ describe('buildPushPayload', () => {
                 conversationKind: 'channel',
                 conversationName: 'product',
                 taskId: 'tsk_12',
-                taskKey: 'SEC-12',
+                taskShortId: 'k3mq7xta',
             }),
             input
         );
@@ -64,12 +64,12 @@ describe('buildPushPayload', () => {
             chatId: 'cht_task',
             conversationChatId: 'cht_product',
             taskId: 'tsk_12',
-            taskKey: 'SEC-12',
+            taskShortId: 'k3mq7xta',
         });
         expect(pushNotificationPayloadSchema.parse(payload)).toEqual(payload as never);
-        expect(pushNotificationPayloadSchema.safeParse({ ...payload, taskKey: null }).success).toBe(
-            false
-        );
+        expect(
+            pushNotificationPayloadSchema.safeParse({ ...payload, taskShortId: null }).success
+        ).toBe(false);
         expect(
             pushNotificationPayloadSchema.safeParse({ ...payload, anchorMessageId: 'msg_origin' })
                 .success
@@ -188,7 +188,7 @@ function row(overrides: Partial<PushMessage>): PushMessage {
         dmMemberUserIds: ['usr_ada'],
         messageId: 'msg_1',
         taskId: null,
-        taskKey: null,
+        taskShortId: null,
         ...overrides,
     };
 }

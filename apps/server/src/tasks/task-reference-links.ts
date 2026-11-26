@@ -1,12 +1,7 @@
-import { formatTaskKey, type TaskLink } from '@haus/api';
+import type { TaskLink } from '@haus/api';
 import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    taskKeysTable,
-    taskMessageLinksTable,
-    taskReminderLinksTable,
-    tasksTable,
-} from '../postgres/schema.ts';
+import { taskMessageLinksTable, taskReminderLinksTable, tasksTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
 import { readTaskReferenceCandidates } from './task-reference-scan.ts';
@@ -25,16 +20,15 @@ const maxLinkTextChars = 500;
 
 /**
  * Resolves the Task references in written content against one Server: a
- * `task://` id must name a Task on the Server, and a bare key must match a
- * ledger key and number there. Unresolved candidates are dropped and stay plain
- * text; content is never rewritten. Every Task is visible to every member and
- * Agent, so no further access check applies.
+ * `task://` link names a Task on the Server by id or short id. Unresolved candidates are
+ * dropped and stay plain text; content is never rewritten. Every Task is
+ * visible to every member and Agent, so no further access check applies.
  */
 export async function resolveTaskReferences(
     db: Reader,
     input: { content: string; serverId: string }
 ): Promise<TaskMessageLink[]> {
-    const links = await resolveKeyedTaskReferences(db, input);
+    const links = await resolveTaskLinkRows(db, input);
     return links.map(({ ordinal, taskId, text }) => ({ ordinal, taskId, text }));
 }
 
@@ -46,59 +40,36 @@ export async function resolveTaskLinks(
     db: Reader,
     input: { content: string; serverId: string }
 ): Promise<TaskLink[]> {
-    const links = await resolveKeyedTaskReferences(db, input);
-    return links.map(({ key, taskId, text }) => ({ key, taskId, text }));
+    const links = await resolveTaskLinkRows(db, input);
+    return links.map(({ shortId, taskId, text }) => ({ shortId, taskId, text }));
 }
 
-async function resolveKeyedTaskReferences(
-    db: Reader,
-    input: { content: string; serverId: string }
-): Promise<(TaskMessageLink & { key: string })[]> {
+async function resolveTaskLinkRows(db: Reader, input: { content: string; serverId: string }) {
     const candidates = readTaskReferenceCandidates(input.content)
         .filter((candidate) => candidate.text.length <= maxLinkTextChars)
         .slice(0, maxCandidates);
     if (candidates.length === 0) {
         return [];
     }
-    const ids = candidates.flatMap((candidate) =>
-        candidate.kind === 'id' ? [candidate.taskId] : []
-    );
-    const keys = candidates.flatMap((candidate) => (candidate.kind === 'key' ? [candidate] : []));
+    const refs = candidates.map((candidate) => candidate.taskId);
     const rows = await db
-        .select({ boardKey: taskKeysTable.key, id: tasksTable.id, number: tasksTable.number })
+        .select({ id: tasksTable.id, shortId: tasksTable.shortId })
         .from(tasksTable)
-        .innerJoin(
-            taskKeysTable,
-            and(
-                eq(taskKeysTable.serverId, tasksTable.serverId),
-                eq(taskKeysTable.id, tasksTable.keyId)
-            )
-        )
         .where(
             and(
                 eq(tasksTable.serverId, input.serverId),
-                or(
-                    ids.length > 0 ? inArray(tasksTable.id, ids) : undefined,
-                    ...keys.map((key) =>
-                        and(eq(taskKeysTable.key, key.boardKey), eq(tasksTable.number, key.number))
-                    )
-                )
+                or(inArray(tasksTable.id, refs), inArray(tasksTable.shortId, refs))
             )
         );
-    const keyById = new Map(rows.map((row) => [row.id, formatTaskKey(row.boardKey, row.number)]));
-    const idByKey = new Map([...keyById].map(([id, key]) => [key, id]));
-    const links: (TaskMessageLink & { key: string })[] = [];
-    for (const candidate of candidates) {
-        const taskId =
-            candidate.kind === 'id'
-                ? candidate.taskId
-                : idByKey.get(formatTaskKey(candidate.boardKey, candidate.number));
-        const key = taskId ? keyById.get(taskId) : undefined;
-        if (taskId && key) {
-            links.push({ key, ordinal: links.length, taskId, text: candidate.text });
-        }
-    }
-    return links;
+    const byRef = new Map(
+        rows.flatMap((row) => [[row.id, row] as const, [row.shortId, row] as const])
+    );
+    return candidates
+        .flatMap((candidate) => {
+            const task = byRef.get(candidate.taskId);
+            return task ? [{ shortId: task.shortId, taskId: task.id, text: candidate.text }] : [];
+        })
+        .map((link, ordinal) => ({ ...link, ordinal }));
 }
 
 /** Inserts one Message's Task links inside the transaction that inserts the Message. */
@@ -158,9 +129,8 @@ export async function readMessageTaskLinks(
     }
     const rows = await db
         .select({
-            boardKey: taskKeysTable.key,
             messageId: taskMessageLinksTable.messageId,
-            number: tasksTable.number,
+            shortId: tasksTable.shortId,
             taskId: taskMessageLinksTable.taskId,
             text: taskMessageLinksTable.text,
         })
@@ -172,13 +142,6 @@ export async function readMessageTaskLinks(
                 eq(tasksTable.id, taskMessageLinksTable.taskId)
             )
         )
-        .innerJoin(
-            taskKeysTable,
-            and(
-                eq(taskKeysTable.serverId, tasksTable.serverId),
-                eq(taskKeysTable.id, tasksTable.keyId)
-            )
-        )
         .where(
             and(
                 eq(taskMessageLinksTable.serverId, serverId),
@@ -188,11 +151,7 @@ export async function readMessageTaskLinks(
         .orderBy(asc(taskMessageLinksTable.messageId), asc(taskMessageLinksTable.ordinal));
     const byMessage = new Map<string, TaskLink[]>();
     for (const row of rows) {
-        const link = {
-            key: formatTaskKey(row.boardKey, row.number),
-            taskId: row.taskId,
-            text: row.text,
-        };
+        const link = { shortId: row.shortId, taskId: row.taskId, text: row.text };
         byMessage.set(row.messageId, [...(byMessage.get(row.messageId) ?? []), link]);
     }
     return byMessage;

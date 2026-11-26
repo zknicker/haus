@@ -89,7 +89,7 @@ test('a Reminder anchored in a DM stays out of the Task for anyone who cannot re
     const { orbitAgentId, owner, peer, scoutAgentId, serverId } = fixture;
     const task = await createTask('Shared Task');
     const dm = await owner.trpc.chat.ensureAgentDm.mutate({ agentId: orbitAgentId, serverId });
-    const reminder = await schedule(orbitAgentId, dm.id, `Private note on ${task.key}`);
+    const reminder = await schedule(orbitAgentId, dm.id, `Private note on [it](task://${task.id})`);
 
     const input = { serverId, taskId: task.id };
     const owners = await owner.trpc.task.get.query(input);
@@ -107,7 +107,7 @@ test('a Reminder in a Channel reaches its members, and leaves with a deleted Cha
     const task = await createTask('Channel Task');
     const name = 'reminder-links-channel';
     const channelId = await createChannel(name);
-    const reminder = await schedule(orbitAgentId, channelId, `Check ${task.key}`);
+    const reminder = await schedule(orbitAgentId, channelId, `Check [it](task://${task.id})`);
     const input = { serverId, taskId: task.id };
     const read = await peer.trpc.task.get.query(input);
     expect(read.reminders.map((row) => row.reminderId)).toEqual([reminder.id]);
@@ -137,7 +137,7 @@ test('scheduling, editing, snoozing, and canceling announce every Task they touc
     let reminder: Awaited<ReturnType<typeof schedule>> | undefined;
     expect(
         await announced(async () => {
-            reminder = await schedule(orbitAgentId, channelId, `Check ${first.key}`);
+            reminder = await schedule(orbitAgentId, channelId, `Check [it](task://${first.id})`);
         })
     ).toEqual([version.first]);
     if (!reminder) {
@@ -150,7 +150,7 @@ test('scheduling, editing, snoozing, and canceling announce every Task they touc
             await updateReminder(
                 db,
                 orbitAgentId,
-                { ...command(reminder as never), description: `Check ${second.key}` },
+                { ...command(reminder as never), description: `Check [it](task://${second.id})` },
                 clock
             )
         ).reminder;
@@ -183,13 +183,13 @@ test('an operator cancel, a fire, and a retention sweep announce the Task too', 
     const expected = [{ taskId: task.id, version: task.version }];
     const channelId = await createChannel('reminder-links-settle');
 
-    const canceled = await schedule(orbitAgentId, channelId, `Cancel ${task.key}`);
+    const canceled = await schedule(orbitAgentId, channelId, `Cancel [it](task://${task.id})`);
     const operator = await findUserById(db, ownerUserId);
     expect(
         await announced(() => cancelOperatorReminder(db, operator, command(canceled), clock))
     ).toEqual(expected);
 
-    const fired = await schedule(orbitAgentId, channelId, `Fire ${task.key}`);
+    const fired = await schedule(orbitAgentId, channelId, `Fire [it](task://${task.id})`);
     const fireClock = { now: () => new Date(Date.now() + 2 * 3_600_000) };
     // Earlier tests' Reminders are due at this clock too.
     expect(await announced(() => tickReminders(db, fireClock))).toContainEqual(expected[0]);
@@ -206,7 +206,7 @@ test('deleting an Agent cancels its Reminders and announces their Tasks', async 
     const { createChannel, owner, scoutAgentId, serverId } = fixture;
     const task = await createTask('Orphaned');
     const channelId = await createChannel('reminder-links-agent');
-    await schedule(scoutAgentId, channelId, `Check ${task.key}`);
+    await schedule(scoutAgentId, channelId, `Check [it](task://${task.id})`);
 
     expect(
         await announced(() =>

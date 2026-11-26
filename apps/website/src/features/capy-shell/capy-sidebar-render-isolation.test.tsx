@@ -44,19 +44,18 @@ const blippyDm = chat('cht_dm_blippy', {
 const projectA = () => chat('cht_a', { participantAgentIds: ['agt_blippy'] });
 const projectB = () => chat('cht_b', { participantAgentIds: ['agt_tiny'] });
 const openTask = {
-    assignee: { agentId: 'agt_tiny', kind: 'agent' },
+    archivedAt: null,
     chatId: 'cht_task',
     createdAt: '2026-11-18T10:00:00.000Z',
     id: 'tsk_1',
-    key: 'ENG-1',
-    state: 'open',
+    shortId: 'k3mq7xta',
     title: 'Composer fonts',
 } as Task;
 
 async function mountCapySidebar() {
     const harness = createTranscriptHarness();
     harness.setChats([projectA(), projectB(), blippyDm]);
-    harness.utils.task.listOpen.setData({ serverId }, [openTask]);
+    harness.utils.task.listActive.setData({ serverId }, [openTask]);
     harness.utils.chat.unreadPreviews.setData({ serverId }, { previews: [] });
     const view = await harness.mount(
         <CommandMenuProvider>
@@ -171,7 +170,7 @@ test('an @mention of you in a Task renders that Task’s row and moves it first'
     await harness.unmount();
 });
 
-test('the Waiting on you key is not a tab stop of its own', async () => {
+test('the Waiting on you mark is not a tab stop of its own', async () => {
     const harness = await mountCapySidebar();
     await harness.change(() => {
         harness.utils.chat.unreadPreviews.setData({ serverId }, {

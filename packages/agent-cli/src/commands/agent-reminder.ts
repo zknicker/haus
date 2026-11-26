@@ -49,7 +49,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
             'haus reminder schedule --title "CI Check" --description "check if CI finished and update the claim" --delay-seconds 1800 --message-id 1a2b3c4d',
-            'haus reminder schedule --title "Deploy Check" --description "confirm the backfill finished, then set the Task done" --delay-seconds 3600 --target task:SEC-12',
+            'haus reminder schedule --title "Deploy Check" --description "confirm the backfill finished, then archive the Task" --delay-seconds 3600 --target task:k3mq7xta',
             'haus reminder schedule --title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments" --repeat weekly:mon@09:00 --timezone America/New_York --message-id 1a2b3c4d',
             "haus reminder schedule --title 'Nightly Export Watch' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
             "haus reminder schedule --title 'Disk Watchdog' --repeat every:15m --message-id 1a2b3c4d --script 'check-disk.sh' --wake-on-change --fail-after 3",
@@ -72,7 +72,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         ],
         name: 'schedule',
         notes: [
-            'On a Task (--target task:KEY-n) a reminder is one-time only and wakes you on that Task; recurring reminders belong on a Channel.',
+            'On a Task (--target task:<shortId>) a reminder is one-time only and wakes you on that Task; recurring reminders belong on a Channel.',
         ],
         positionals: [],
         run: (args) => runReminderSchedule(args, defaultDeps()),

@@ -1,6 +1,6 @@
-import { and, eq, inArray, isNotNull, notExists } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, notExists } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { workersTable, taskPullRequestsTable, tasksTable } from '../postgres/schema.ts';
+import { taskPullRequestsTable, tasksTable, workersTable } from '../postgres/schema.ts';
 
 export interface UnworkedTaskWake {
     agentId: string;
@@ -12,7 +12,7 @@ export async function readUnworkedTaskWakes(
     pull: { number: number; repository: string; serverId: string }
 ): Promise<UnworkedTaskWake[]> {
     const rows = await db
-        .select({ agentId: tasksTable.assigneeAgentId, chatId: tasksTable.chatId })
+        .select({ agentId: tasksTable.createdByAgentId, chatId: tasksTable.chatId })
         .from(taskPullRequestsTable)
         .innerJoin(
             tasksTable,
@@ -26,9 +26,8 @@ export async function readUnworkedTaskWakes(
                 eq(taskPullRequestsTable.serverId, pull.serverId),
                 eq(taskPullRequestsTable.repository, pull.repository),
                 eq(taskPullRequestsTable.number, pull.number),
-                isNotNull(tasksTable.assigneeAgentId),
+                isNull(tasksTable.archivedAt),
                 isNotNull(tasksTable.chatId),
-                inArray(tasksTable.state, ['todo', 'open']),
                 notExists(
                     db
                         .select({ id: workersTable.id })
@@ -41,7 +40,9 @@ export async function readUnworkedTaskWakes(
                         )
                 )
             )
-        );
+        )
+        .orderBy(asc(taskPullRequestsTable.createdAt), asc(taskPullRequestsTable.taskId))
+        .limit(1);
     return rows.flatMap((row) =>
         row.agentId && row.chatId ? [{ agentId: row.agentId, chatId: row.chatId }] : []
     );

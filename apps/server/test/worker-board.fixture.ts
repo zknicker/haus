@@ -4,8 +4,8 @@ import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { computersTable, tasksTable, workerTurnsTable } from '../src/postgres/schema.ts';
+import { archiveTask } from '../src/tasks/task-archive.ts';
 import { readTask } from '../src/tasks/task-read.ts';
-import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { applyWorkerObservation } from '../src/workers/apply-worker-observation.ts';
 import { startWorker } from '../src/workers/start-worker.ts';
 import { insertTaskPlace, seedTaskBoard } from './task-delivery-fixture.ts';
@@ -50,7 +50,7 @@ export async function addTask(
     if (!task.chatId) {
         throw new Error('The seeded Task has no Chat.');
     }
-    return { chatId: task.chatId, id: task.id, key: task.key };
+    return { chatId: task.chatId, id: task.id, shortId: task.shortId };
 }
 
 export async function setReadyPlaces(
@@ -85,7 +85,7 @@ export function startInput(board: WorkerBoard, overrides: Partial<AgentWorkerSta
         place: 'cursor',
         repository: 'haus/haus',
         startingRef: 'main',
-        task: board.task.key,
+        task: board.task.shortId,
         title: 'Fix the flaky delivery test',
         ...overrides,
     } satisfies AgentWorkerStartInput;
@@ -130,7 +130,7 @@ export async function readTurns(db: HausDatabase, workerId: string) {
 
 export async function readTaskState(db: HausDatabase, taskId: string) {
     const [task] = await db
-        .select({ state: tasksTable.state, version: tasksTable.version })
+        .select({ archivedAt: tasksTable.archivedAt, version: tasksTable.version })
         .from(tasksTable)
         .where(eq(tasksTable.id, taskId));
     return task;
@@ -138,10 +138,9 @@ export async function readTaskState(db: HausDatabase, taskId: string) {
 
 export async function closeTask(db: HausDatabase, board: WorkerBoard, delivery: AgentDelivery) {
     const current = await readTaskState(db, board.task.id);
-    return await setTaskState(db, { kind: 'user', userId: board.seed.userId }, delivery, {
+    return await archiveTask(db, { kind: 'user', userId: board.seed.userId }, delivery, {
         expectedVersion: current?.version ?? 1,
         serverId: board.seed.serverId,
-        state: 'done',
         taskId: board.task.id,
     });
 }

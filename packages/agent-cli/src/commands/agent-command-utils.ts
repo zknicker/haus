@@ -1,4 +1,4 @@
-import { formatTaskTarget, TASK_TARGET_PATTERN } from '@haus/api';
+import { isTaskShortId, TASK_TARGET_PATTERN } from '@haus/api';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 
@@ -35,7 +35,7 @@ export function assertAgentTarget(target: string): void {
     const dm = /^dm:@[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
     if (!(channel.test(target) || dm.test(target) || TASK_TARGET_PATTERN.test(target))) {
         throw new AgentCliError('INVALID_TARGET', `Invalid target "${target}".`, {
-            nextAction: 'Use #channel, dm:@peer, or task:KEY-n.',
+            nextAction: 'Use #channel, dm:@peer, or task:<shortId>.',
         });
     }
 }
@@ -55,15 +55,26 @@ export function refuseRemovedThreadTarget(target: string): void {
     );
 }
 
-export function taskKeyArgument(value: string | undefined, flag: string): string {
-    const raw = value?.trim() ?? '';
-    const key = raw.startsWith('task:') ? raw.slice('task:'.length) : raw;
-    if (!TASK_TARGET_PATTERN.test(formatTaskTarget(key))) {
-        throw new AgentCliError('INVALID_ARG', `${flag} needs a Task key like SEC-12.`, {
-            nextAction: 'Use the key haus task start or haus task list printed.',
+/** A Task's short id, bare or as its `task:` target. */
+export function taskShortIdArgument(value: string | undefined, flag: string): string {
+    const ref = stripTaskPrefix(value);
+    if (!isTaskShortId(ref)) {
+        throw new AgentCliError('INVALID_ARG', `${flag} needs a Task short id like k3mq7xta.`, {
+            nextAction: 'Use the short id haus task start or haus task list printed.',
         });
     }
-    return key;
+    return ref;
+}
+
+/** A Task's short id, or its full `tsk_` id. */
+export function taskRefArgument(value: string | undefined, flag: string): string {
+    const ref = stripTaskPrefix(value);
+    return ref.startsWith('tsk_') ? ref : taskShortIdArgument(ref, flag);
+}
+
+function stripTaskPrefix(value: string | undefined) {
+    const raw = value?.trim() ?? '';
+    return raw.startsWith('task:') ? raw.slice('task:'.length) : raw;
 }
 
 export function valuesFor(args: ParsedArgs, flag: string): string[] {

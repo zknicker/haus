@@ -25,7 +25,7 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'dm/:agentId', Component: serverRouteComponent('ImplicitAgentDmRoute') },
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
         { path: 'tasks', Component: serverRouteComponent('TasksPageRoute') },
-        { path: 'tasks/:taskKey', Component: serverRouteComponent('TaskPageRoute') },
+        { path: 'tasks/:shortId', Component: serverRouteComponent('TaskPageRoute') },
         { path: 'workers/:workerId', Component: serverRouteComponent('WorkerPageRoute') },
         { path: 'activity', Component: serverRouteComponent('ActivityPage') },
         // One route for Drive and its files, so an area's workspace stays mounted between them.

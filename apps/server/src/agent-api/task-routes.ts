@@ -1,13 +1,8 @@
 import {
     type AgentTaskListQuery,
-    agentTaskAssignInputSchema,
     agentTaskListQuerySchema,
     agentTaskShowQuerySchema,
-    agentTaskUpdateInputSchema,
     type Task,
-    type TaskListAssigneeFilter,
-    taskPriorities,
-    unfinishedTaskStates,
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -16,26 +11,17 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
-import { assignTask } from '../tasks/task-assign.ts';
-import type { TaskWriteResult } from '../tasks/task-assignment.ts';
-import { TaskNotFoundError } from '../tasks/task-errors.ts';
-import { listTaskKeys } from '../tasks/task-keys.ts';
-import { findTask, getTask, listTasks } from '../tasks/task-list.ts';
-import { updateTask } from '../tasks/task-update.ts';
+import { findTaskByRef, getTask, listTasks } from '../tasks/task-list.ts';
+import { readProjectByKey } from '../tasks/task-project.ts';
+import type { TaskWriteResult } from '../tasks/task-write-result.ts';
 import { registerAgentTaskPlaceRoutes } from './task-place-routes.ts';
-import { agentActor, resolveTaskAssignee, resolveTaskLabels } from './task-refs.ts';
-import { agentTaskRead, agentTaskWrite, withImplicitVersion } from './task-route-shell.ts';
+import { agentActor } from './task-refs.ts';
+import { agentTaskRead } from './task-route-shell.ts';
 import { toAgentTaskRefs, toAgentTaskRows } from './task-view.ts';
 
 const listLimit = 50;
-/** Most urgent first; `taskPriorities` lists `none` first for the App's picker. */
-const priorityRank = new Map(
-    [...taskPriorities.filter((priority) => priority !== 'none'), 'none'].map(
-        (priority, rank) => [priority, rank] as const
-    )
-);
 
-/** The Tasks surface behind `haus task`: every route addresses a Task by its key. */
+/** The Tasks surface behind `haus task`: every route addresses a Task by short id or id. */
 export function registerAgentTaskRoutes(
     app: FastifyInstance,
     options: {
@@ -69,11 +55,10 @@ export function registerAgentTaskRoutes(
         app,
         db,
         { path: '/api/agent/tasks/show', query: agentTaskShowQuerySchema },
-        async (runner, { key }) => {
-            const detail = await getTask(db, agentActor(runner), {
-                key,
-                serverId: runner.serverId,
-            });
+        async (runner, { task: ref }) => {
+            const { serverId } = runner;
+            const found = await findTaskByRef(db, { ref, serverId });
+            const detail = await getTask(db, agentActor(runner), { serverId, taskId: found.id });
             return {
                 description: detail.description,
                 ...(await toAgentTaskRefs(db, detail)),
@@ -81,114 +66,31 @@ export function registerAgentTaskRoutes(
             };
         }
     );
-
-    agentTaskWrite(
-        app,
-        db,
-        { body: agentTaskUpdateInputSchema, path: '/api/agent/tasks/update' },
-        async (runner, input) => {
-            const { serverId } = runner;
-            const task = await findTask(db, { key: input.key, serverId });
-            const { description, dueOn, labels, priority, title } = input;
-            const patch = {
-                ...(description === undefined ? {} : { description }),
-                ...(dueOn === undefined ? {} : { dueOn }),
-                ...(labels ? { labelIds: await resolveTaskLabels(db, serverId, labels) } : {}),
-                ...(priority === undefined ? {} : { priority }),
-                ...(title === undefined ? {} : { title }),
-            };
-            const result = await withImplicitVersion(
-                input.expectedVersion,
-                taskVersion(input.key, serverId),
-                (expectedVersion) =>
-                    updateTask(db, agentActor(runner), {
-                        expectedVersion,
-                        patch,
-                        serverId,
-                        taskId: task.id,
-                    })
-            );
-            return { task: await commit(runner, result) };
-        }
-    );
-
-    agentTaskWrite(
-        app,
-        db,
-        { body: agentTaskAssignInputSchema, path: '/api/agent/tasks/assign' },
-        async (runner, input) => {
-            const { serverId } = runner;
-            const task = await findTask(db, { key: input.key, serverId });
-            const assignee = input.assignee
-                ? await resolveTaskAssignee(db, runner, input.assignee)
-                : null;
-            const result = await withImplicitVersion(
-                input.expectedVersion,
-                taskVersion(input.key, serverId),
-                (expectedVersion) =>
-                    assignTask(db, agentActor(runner), agentDelivery, {
-                        assignee,
-                        expectedVersion,
-                        serverId,
-                        taskId: task.id,
-                    })
-            );
-            return { task: await commit(runner, result) };
-        }
-    );
-
-    /** Reads a Task's version as of now, for a write that named none. */
-    function taskVersion(key: string, serverId: string) {
-        return async () => (await findTask(db, { key, serverId })).version;
-    }
 }
 
-/** Matching Tasks by priority then age, the order an Agent works them, limited to one page. */
+/** Matching Tasks, newest first, limited to one page. */
 async function listAgentTasks(db: HausDatabase, runner: ResolvedRunner, query: AgentTaskListQuery) {
-    const assignee = await assigneeFilter(db, runner, query.assignee);
+    const { serverId } = runner;
+    const project = query.project
+        ? await readProjectByKey(db, { key: query.project, serverId })
+        : null;
     const tasks = await listTasks(db, agentActor(runner), {
-        ...(assignee ? { assignee } : {}),
-        ...(query.key ? { keyId: await requireTaskKeyId(db, runner, query.key) } : {}),
-        states: query.state ?? [...unfinishedTaskStates],
-        serverId: runner.serverId,
+        ...(query.archived ? { archived: true } : {}),
+        ...(query.all ? {} : { createdBy: agentActor(runner) }),
+        ...(project ? { projectId: project.projectId } : {}),
+        serverId,
     });
-    const page = [...tasks].sort(byPriority).slice(0, listLimit);
+    const page = [...tasks].reverse().slice(0, listLimit);
     return {
         omitted: tasks.length - page.length,
-        tasks: await toAgentTaskRows(db, runner.serverId, page),
+        tasks: await toAgentTaskRows(db, serverId, page),
     };
-}
-
-async function requireTaskKeyId(db: HausDatabase, runner: ResolvedRunner, key: string) {
-    const entries = await listTaskKeys(db, agentActor(runner), { serverId: runner.serverId });
-    const entry = entries.find((candidate) => candidate.key === key);
-    if (!entry) {
-        throw new TaskNotFoundError(`No Task key ${key} exists on this Server.`);
-    }
-    return entry.id;
-}
-
-async function assigneeFilter(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    value: string | undefined
-): Promise<TaskListAssigneeFilter | undefined> {
-    if (value === undefined || value === 'none') {
-        return value;
-    }
-    const assignee = await resolveTaskAssignee(db, runner, value);
-    return assignee.kind === 'agent' ? { agentId: assignee.agentId } : { userId: assignee.userId };
-}
-
-/** `readTasks` lists oldest first, and the sort is stable, so equal priorities keep that age. */
-function byPriority(left: Task, right: Task): number {
-    return (priorityRank.get(left.priority) ?? 0) - (priorityRank.get(right.priority) ?? 0);
 }
 
 async function taskRow(db: HausDatabase, runner: ResolvedRunner, task: Task) {
     const [row] = await toAgentTaskRows(db, runner.serverId, [task]);
     if (!row) {
-        throw new Error(`Task ${task.key} did not shape into a row.`);
+        throw new Error(`Task ${task.shortId} did not shape into a row.`);
     }
     return row;
 }

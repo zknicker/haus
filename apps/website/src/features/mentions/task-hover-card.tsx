@@ -1,10 +1,8 @@
-import type { Task } from '@haus/api';
+import { isTaskShortId, type Task } from '@haus/api';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
-import { formatDueOn } from '../tasks/task-facts.tsx';
-import { taskPriorityLabels } from '../tasks/task-presentation.ts';
 import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
-import { taskStateLabels } from '../tasks/task-state.ts';
+import { taskStateLabels, taskStateOf } from '../tasks/task-state.ts';
 import { type TaskPerson, useTaskActor } from '../tasks/use-task-people.ts';
 import {
     ReferencePreviewHeader,
@@ -25,66 +23,51 @@ export function TaskHoverCardContent({
     serverId: string;
     taskId: string;
 }) {
-    const read = useTask(serverId, { taskId });
+    const read = useTask(serverId, isTaskShortId(taskId) ? { shortId: taskId } : { taskId });
     const task = read.data ?? null;
-    const assignee = useTaskActor(serverId, task?.assignee ?? null);
+    const starter = useTaskActor(serverId, task?.createdBy ?? null);
 
     return (
         <TaskHoverCardView
-            assignee={assignee}
             displayLabel={displayLabel}
             isUnavailable={Boolean(read.error)}
+            starter={starter}
             task={task}
         />
     );
 }
 
 export function TaskHoverCardView({
-    assignee,
     displayLabel,
     isUnavailable,
+    starter,
     task,
 }: {
-    assignee: null | Pick<TaskPerson, 'avatarUrl' | 'label'>;
     displayLabel: string;
     isUnavailable: boolean;
-    task: null | Pick<Task, 'dueOn' | 'key' | 'priority' | 'state' | 'title'>;
+    starter: null | Pick<TaskPerson, 'avatarUrl' | 'label'>;
+    task: null | Pick<Task, 'archivedAt' | 'shortId' | 'title'>;
 }) {
-    const facts = [assignee?.label, ...(task ? taskFacts(task) : [])].filter(Boolean);
-
+    const state = task ? taskStateOf(task) : null;
     return (
         <ReferencePreviewHeader
             mark={
-                task ? (
-                    <TaskStateDisc state={task.state} />
+                state ? (
+                    <TaskStateDisc state={state} />
                 ) : (
                     <ReferencePreviewMark appearance={{ icon: 'task' }} />
                 )
             }
-            meta={task ? taskStateLabels[task.state] : null}
-            title={task?.key ?? displayLabel}
+            meta={state ? taskStateLabels[state] : null}
+            title={task?.title ?? displayLabel}
         >
             {isUnavailable ? <ReferencePreviewText>Task unavailable</ReferencePreviewText> : null}
-            {task ? (
-                <ReferencePreviewText className="font-semibold" tone="foreground">
-                    {task.title}
-                </ReferencePreviewText>
-            ) : null}
-            {facts.length > 0 ? (
+            {starter ? (
                 <div className="text-muted flex min-w-0 items-center gap-1.5 text-xs">
-                    {assignee ? (
-                        <EntityAvatar name={assignee.label} size={16} src={assignee.avatarUrl} />
-                    ) : null}
-                    <span className="min-w-0 truncate">{facts.join(' · ')}</span>
+                    <EntityAvatar name={starter.label} size={16} src={starter.avatarUrl} />
+                    <span className="min-w-0 truncate">Started by {starter.label}</span>
                 </div>
             ) : null}
         </ReferencePreviewHeader>
     );
-}
-
-function taskFacts({ dueOn, priority }: Pick<Task, 'dueOn' | 'priority'>): string[] {
-    return [
-        ...(priority === 'none' ? [] : [taskPriorityLabels[priority]]),
-        ...(dueOn ? [`Due ${formatDueOn(dueOn)}`] : []),
-    ];
 }
