@@ -29,6 +29,7 @@ test('a repo-checkout invocation makes the worktree, and a file read inside it c
         handler.receive({
             agentId: 'agt_alpha',
             invocationId,
+            notAfter: '2999-01-01T00:00:00.000Z',
             operation,
             runId: 'run-1',
             timeoutMs: 30_000,

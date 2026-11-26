@@ -174,6 +174,7 @@ async function invokeOf(server: ServerStandIn) {
     return invokeCommandSchema.parse({
         agentId: request.agentId,
         invocationId: 'inv_1',
+        notAfter: '2999-01-01T00:00:00.000Z',
         operation: request.operation,
         runId: request.runId,
         timeoutMs: request.timeoutMs,
@@ -185,6 +186,7 @@ function invoke(operation: InvocationOperation, timeoutMs: number) {
     return {
         agentId: 'agt_1',
         invocationId: 'inv_1',
+        notAfter: '2999-01-01T00:00:00.000Z',
         operation,
         runId: 'run_1',
         timeoutMs,

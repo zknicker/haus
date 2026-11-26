@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import {
     agentFenceCommandSchema,
     agentPathSegment,
+    type InvokeCancelCommand,
     type InvokeCommand,
     invocationOutcomeNotices,
     invokeCancelCommandSchema,
@@ -20,6 +21,7 @@ interface ActiveInvocation {
     accepted: Promise<AcceptedRecord | null>;
     agentId: string;
     controller: AbortController;
+    started: boolean;
 }
 
 export async function createInvocationHandler(input: InvocationHandlerInput) {
@@ -56,17 +58,22 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
             track(answerFromLedger(knownAgentId, id));
             return;
         }
-        const controller = new AbortController();
         const accepted = accept(command);
-        active.set(id, { accepted, agentId: command.agentId, controller });
+        const entry = {
+            accepted,
+            agentId: command.agentId,
+            controller: new AbortController(),
+            started: false,
+        };
+        active.set(id, entry);
         track(
             queue.run(command.agentId, async () => {
                 const record = await accepted;
                 if (record) {
                     await holdDriveFolder(
                         join(input.agentsRoot, agentPathSegment(command.agentId)),
-                        controller.signal,
-                        () => run(command, record, controller)
+                        entry.controller.signal,
+                        () => run(command, record, entry)
                     );
                 }
             })
@@ -94,28 +101,34 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
         return record;
     }
 
-    async function run(
-        command: InvokeCommand,
-        record: AcceptedRecord,
-        controller: AbortController
-    ) {
+    async function run(command: InvokeCommand, record: AcceptedRecord, entry: ActiveInvocation) {
         const id = command.invocationId;
+        const { controller } = entry;
         await offline.released(controller.signal);
-        const result = controller.signal.aborted
-            ? cancelledBeforeStart(id)
-            : await executeInvocation(command, {
+        const expired = Date.now() >= Date.parse(command.notAfter);
+        entry.started = !(controller.signal.aborted || expired);
+        const result = entry.started
+            ? await executeInvocation(command, {
                   agentsRoot: input.agentsRoot,
                   controller,
                   logPath: ledger.logPath(command.agentId, id),
                   payloads: input.payloadsFor(id),
                   runners: input.runners,
-              });
+              })
+            : cancelledBeforeStart(id);
         try {
             await ledger.write(finishedRecord(record, result, new Date().toISOString()));
         } finally {
             active.delete(id);
         }
         input.send(result);
+    }
+
+    function cancel(command: InvokeCancelCommand) {
+        const entry = active.get(command.invocationId);
+        if (entry && !(command.dropIfNotStarted && entry.started)) {
+            entry.controller.abort('cancel');
+        }
     }
 
     function fence(agentId: string) {
@@ -188,9 +201,7 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
                     withParsed(invokeCommandSchema, frame, invoke);
                     return true;
                 case 'invoke-cancel':
-                    withParsed(invokeCancelCommandSchema, frame, ({ invocationId }) =>
-                        active.get(invocationId)?.controller.abort('cancel')
-                    );
+                    withParsed(invokeCancelCommandSchema, frame, cancel);
                     return true;
                 case 'agent-fence':
                     withParsed(agentFenceCommandSchema, frame, ({ agentId }) =>

@@ -190,6 +190,7 @@ function invoke(invocationId: string, command: string, timeoutMs = 30_000) {
     return {
         agentId: 'agent-1',
         invocationId,
+        notAfter: '2999-01-01T00:00:00.000Z',
         operation: { command, kind: 'bash' },
         runId: 'run-1',
         timeoutMs,
