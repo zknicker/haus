@@ -17,13 +17,13 @@ import {
 } from './attachment-daemon-process.ts';
 import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { type AttachmentHeartbeat, startAttachmentHeartbeat } from './attachment-heartbeat.ts';
-import { AttachmentCredentialUnavailableError } from './attachment-keychain.ts';
 import {
     recordManagementCommandForAttachments,
     sendSystemEventReport,
 } from './attachment-management-reports.ts';
 import {
     archiveUnlinkedAttachment,
+    needsNewAttachment,
     clearTerminalUnlinked,
     isTerminalUnlinked,
     markTerminalUnlinked,
@@ -456,16 +456,12 @@ async function main(args: string[]) {
             console.log(stdoutRenderer.ok(`Haus Computer resumed /${slug}.`));
             return;
         } catch (error) {
-            if (!(isComputerMachineUnlinked(error) || isMissingCredential(error))) {
+            if (!needsNewAttachment(error)) {
                 throw error;
             }
         }
     }
     await setupServer(slug, current);
-}
-
-function isMissingCredential(error: unknown) {
-    return error instanceof AttachmentCredentialUnavailableError && error.problem === 'missing';
 }
 
 /**

@@ -77,7 +77,13 @@ export function createAttachmentStore(
         return (await listAttachments()).find((record) => record.slug === slug) ?? null;
     }
 
-    return { findAttachment, listAttachments, readAttachment, readAttachmentRecord, writeAttachment };
+    return {
+        findAttachment,
+        listAttachments,
+        readAttachment,
+        readAttachmentRecord,
+        writeAttachment,
+    };
 }
 
 export async function writePrivateJson(destination: string, value: unknown) {

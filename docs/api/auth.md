@@ -100,8 +100,15 @@ connections.
 
 ## Other credentials
 
-Server stores Computer, runner, MCP, and hosted OAuth secrets. Computer stores
-attachment credentials and local proxy tokens in private files. Operators
+Server stores Computer, runner, MCP, and hosted OAuth secrets. The signed macOS
+Computer keeps each attachment credential, and the credential of a setup in
+progress, in a login Keychain item (service `haus.computer.attachment`) that
+only the `haus-computer` binary reads without a prompt; `attachment.json` holds
+only the non-secret fields, and the daemon pid marker records the `computerId`,
+never the credential or its hash. Development builds, tests, and Linux keep the
+credential in the mode-`0600` attachment file. A locked or missing Keychain item
+leaves the attachment daemon waiting, and `haus-computer status` says so.
+Computer stores local proxy tokens in private files. Operators
 authenticate through each execution runtime's native flow; provider
 credentials never reach Haus Server or App.
 

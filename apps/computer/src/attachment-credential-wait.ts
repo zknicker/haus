@@ -36,15 +36,14 @@ export async function readAttachmentWhenAvailable<T>(
     }
 }
 
-export async function readAttachmentCredentialWait(
-    dataRoot: string,
-    serverId: string
-): Promise<AttachmentCredentialProblem | null> {
+export async function readAttachmentCredentialWait(dataRoot: string, serverId: string) {
     try {
         const { problem } = JSON.parse(await readFile(waitPath(dataRoot, serverId), 'utf8')) as {
             problem?: unknown;
         };
-        return problem === 'locked' || problem === 'missing' ? problem : null;
+        const known: AttachmentCredentialProblem | null =
+            problem === 'locked' || problem === 'missing' ? problem : null;
+        return known;
     } catch {
         return null;
     }
