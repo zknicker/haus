@@ -581,9 +581,11 @@ pull requests with readings, and the Issue edits the Task made in that turn
 
 `process_exit` (step 4): one background process ended ([tasks.md](tasks.md#long-work-and-the-desktop)).
 Recipient: the session that started it, a Task or a Captain. Identity
-`process-exit:<processId>`. It carries the exit code, the output's last 4,000 characters, and the
-output cursor. Spends the automation chain and waits at the ceiling. A process killed by archive
-or by its own session queues nothing.
+`process-exit:<processId>`, so a resent exit is a no-op. It is a chatless attention, like a Drive
+conflict, and leads its own concrete run (`AgentStartCommand.processExit`). It carries the process
+id, the Computer's name, the exit code (null when the Computer restarted under it), the output's
+last 4,000 characters, the output cursor, and when it started and ended. Spends the automation
+chain and waits at the ceiling. A process killed by archive or by its own session queues nothing.
 
 | Contract | Guard |
 | --- | --- |

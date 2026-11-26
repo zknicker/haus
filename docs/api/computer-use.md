@@ -71,8 +71,10 @@ The invocation router answers a refused `desktop` invocation itself, records the
 per-Captain list retired (2026-11-23). A Computer's screen preflight reports
 `locked`, `no-session`, or `switched-out` in the `refusal` field of `invoke-result`; the Server
 records it the same way. The outcome is `failed`, or `offline` for an offline Device, and the text
-is the spec's [refusal shape](../../specs/computer-use.md#refusals). Only `desktop` invocations
-get those causes; other kinds are refused only `not-found`, `no-access`, or `offline`.
+is the spec's [refusal shape](../../specs/computer-use.md#refusals). A `desktop` call while another
+session holds that Computer's desktop lease is refused `desktop-busy` the same way, naming the
+holder ([Tasks](../../specs/tasks.md#long-work-and-the-desktop)). Only `desktop` invocations get
+those causes; other kinds are refused only `not-found`, `no-access`, or `offline`.
 
 ## Worker starts
 
