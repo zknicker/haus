@@ -4,6 +4,7 @@ read_when:
   - changing database schema, persistence ownership, or durable product records
   - deciding whether state belongs in Server, Computer, or App
   - changing the Task tables, the key ledger, Task follows, or the 0124–0128 Task and Thread migrations
+  - changing the Issue tables, their comments, activity, links, or subscriptions
 ---
 
 # Data model
@@ -16,7 +17,7 @@ the migration command.
 
 | Store | Owner | Contents |
 | --- | --- | --- |
-| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, Tasks and their key ledger, follows, and attached pull requests, Claims, task labels, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, image generations (`image_generations`), their Message links (`image_generation_links`) and per-provider keys (`image_generation_keys`), GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
+| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, Tasks and their key ledger, follows, and attached pull requests, Issues with their comments, activity, links, and subscriptions, Claims, task labels, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, image generations (`image_generations`), their Message links (`image_generation_links`) and per-provider keys (`image_generation_keys`), GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
 | Computer data root | Haus Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Haus App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
@@ -125,6 +126,19 @@ done and canceled ones as read-only history, and dropped boards, columns, and th
 0128 removes the Thread schema. 0130 moved the origin from the Task Chat onto the Task, gave every
 Task its Project (its Task Chat's channel, else the Project holding its key, else Haus), and homed
 every Agent in the Haus project.
+
+An Issue ([specs/issues.md](../../specs/issues.md)) is an `issues` row, added by migration 0159.
+`issues.key_id` and `number` take the Project's `task_keys` entry, unique per key, allocated by
+`allocateIssueNumber` (`apps/server/src/tasks/task-key-ledger.ts`) from the same `next_number` Task
+numbers use, so no code repeats. A Project's key is fixed once its entry's `next_number` passes 1.
+The assignee and creator are each a person, a Captain (an `agents` row) or a Task, exactly one of
+three columns; `closed_at` is set exactly while the state is `done` or `canceled`; `parent_id` names
+an Issue in the same Project (`issues_parent_fk`). `issue_label_assignments` links the shared
+`task_labels` catalog, `issue_task_links` the linked Tasks, `issue_subscriptions` the subscribed
+people, `issue_comments` the comments (replies one level deep through `parent_comment_id`), and
+`issue_events` the append-only activity, one row per change with its `change` as JSON. Their
+cross-links to agents, memberships, Tasks and the ledger are deferred so a Server purge cascades
+through them.
 
 `workers` is the Worker record ([Workers](../../specs/workers.md#record)), renamed from
 `cloud_agent_work` by migration 0135. It carries the delegating Agent, its Task (`task_id`, null
