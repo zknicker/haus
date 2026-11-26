@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium, webkit } from '@playwright/test';
 
 const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const websiteRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -15,6 +15,17 @@ if (existsSync(chromium.executablePath())) {
         'Install Playwright Chromium',
         process.execPath,
         ['x', 'playwright', 'install', 'chromium'],
+        { cwd: websiteRoot }
+    );
+}
+
+if (existsSync(webkit.executablePath())) {
+    console.log('[haus-e2e] Playwright WebKit already installed.');
+} else {
+    await runStep(
+        'Install Playwright WebKit',
+        process.execPath,
+        ['x', 'playwright', 'install', 'webkit'],
         { cwd: websiteRoot }
     );
 }
