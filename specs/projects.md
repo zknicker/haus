@@ -1,8 +1,9 @@
 ---
-summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one Task key, its home Agents, its `AGENTS.md`, and the default place for its Workers; it has no repos, which belong to the Server (ADR 0060). Every Agent has exactly one Project. Covers the data shape, settings and who edits them, `#all`, Agent placement, and the one-time migration from channels.
+summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one key, which prefixes its Issue codes under ADR 0062 (its Tasks take none), its home Agents (Captains), its `AGENTS.md`, its Issue board, and the default Machine for its Tasks (the default place for Workers until step 7); it has no repos, which belong to the Server (ADR 0060). Every Agent has exactly one Project. Covers the data shape, settings and who edits them, `#all`, Agent placement, and the one-time migration from channels.
 read_when:
   - creating, configuring, archiving, or listing Projects or their channels
-  - changing a Project's key, its Agents, its `AGENTS.md`, or its default Worker place
+  - changing a Project's key, its Agents, its `AGENTS.md`, its default Machine for Tasks, or its default Worker place
+  - changing which Project an Issue or a Task belongs to, or how a Project's key numbers its Issues
   - deciding whether a Project should list repos (it does not: ADR 0060)
   - changing an Agent's Project
   - changing what an Agent may read, post in, or start Tasks in across Projects
@@ -16,6 +17,12 @@ read_when:
 and the settings its work runs with. Tasks are [tasks.md](tasks.md). What reaches an Agent is
 [inbox.md](inbox.md#hearing). Drive areas are [artifact-drive.md](artifact-drive.md#areas).
 Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md).
+
+[ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md) amends this spec:
+a Project owns its [Issues](issues.md), which take its key (step 2); its Tasks are agent sessions
+that take no number; its home Captains stop hearing its Tasks ambiently (step 3); and the default
+place for Workers becomes the [default Machine](#default-machine) for its Tasks (step 5). Where a
+section below says Task key or Task numbers, read Issue codes from step 2.
 
 ## A Project is its channel
 
@@ -88,10 +95,11 @@ dialogs. There is no Overview pane.
 
 ### Key
 
-- A Project has exactly one key, which prefixes the numbers of Tasks filed in it
-  ([tasks.md](tasks.md#keys)). No two Projects share a key.
-- The key is editable until the first Task is filed under it. From then on it is fixed, because
-  Tasks, bare-key references, and commit trailers carry it. Changing it moves the Project's Drive
+- A Project has exactly one key, which prefixes the numbers of Tasks filed in it. From step 2 of
+  ADR 0062 it prefixes its Issue codes instead, from the same ledger, renamed `project_keys`
+  ([issues.md](issues.md#codes)). No two Projects share a key.
+- The key is editable until the first Task or Issue is numbered under it. From then on it is
+  fixed, because codes, bare-code references, and commit trailers carry it. Changing it moves the Project's Drive
   folder to `projects/<new key>/` in the same transaction.
 - A key matches `^[A-Z][A-Z0-9]{1,4}$` and is unique on the Server. A key in use by another
   Project, or held by Tasks of another Project, is `TASK_KEY_TAKEN`.
@@ -144,7 +152,21 @@ A Project has no repos
   Device page or `haus-computer repo add`. [Workers](workers.md#layout) owns how Workers use them,
   and [docs/api/projects.md](../docs/api/projects.md#repos-and-repo-folders) the API.
 
+### Default Machine
+
+New in step 5 of ADR 0062, replacing the default place for Workers in step 7.
+
+- `default_task_computer_id` is the Computer a Task started in this Project runs on when its
+  starter names none ([tasks.md](tasks.md#machine-and-model)). Null means the starter picks one,
+  and the Home composer and `haus task start` say so.
+- A crew Task uses its Captain's crew Machine first, then this default.
+- Removing the Computer clears every Project default that names it in the same transaction.
+- `project.setDefaultMachine { serverId, projectId, computerId | null }` sets it from Settings →
+  Projects → the Project, publishing `project.updated`. There is no cloud value.
+
 ### Default place for Workers
+
+Superseded by the [default Machine](#default-machine); deleted in step 7.
 
 - `default_worker_place` is where a Worker of this Project's Tasks runs unless the Agent names a
   place. Null means the Agent must name one, and the Worker CLI says so.
@@ -188,7 +210,10 @@ Agent of its own, and every Agent is refused `TASK_PROJECT_NOT_HOME` outside its
 - An Agent starts Tasks only in its Project. Elsewhere the Server refuses with
   `TASK_PROJECT_NOT_HOME`, whose next action is to @mention that Project's Agent in that Project's
   channel. A Task started from a DM or from `#all`, which is no Project, goes to the starting
-  Agent's home Project unless `--project` names it.
+  Agent's home Project unless `--project` names it. Under ADR 0062 only Captains start Tasks, as
+  crew, and only in their home Project; a person starts a Task in any Project.
+- Under ADR 0062 an Agent may file an Issue in any Project. A Captain hands work to another
+  Project by filing an unassigned Backlog Issue there, or by @mentioning that Project's Captain.
 - Agent channel membership is deleted: the `channel_agent_participants` table, its single write
   seam `joinChannelAgents`, and `haus channel join`, `leave`, and `add`. Channel mutes are deleted
   with them ([inbox.md](inbox.md#hearing)). `haus channel info` and `haus channel members` stay and
@@ -201,7 +226,8 @@ Agent of its own, and every Agent is refused `TASK_PROJECT_NOT_HOME` outside its
   deleting the Project moves any retired Agent homed there to the Haus project.
 - Otherwise archiving and deleting a Project are the channel's archive and delete
   ([chats.md](chats.md#config-and-observation)). Deleting a Project deletes its Tasks with the
-  channel and its `projects` row. It deletes no repos, because repos belong to the Server. Its
+  channel and its `projects` row, and under ADR 0062 its Issues too; a deleted Project's active
+  Tasks are archived first, so their sessions retire. It deletes no repos, because repos belong to the Server. Its
   key's ledger entry stays, so its numbers are
   never reused. Cloud work attached to those Tasks stays and loses its Task.
 

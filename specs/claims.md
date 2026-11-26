@@ -1,3 +1,11 @@
+---
+summary: Chat-first claims — the hidden, Agent-only lock on a Message (renamed from tasks by ADR 0051), with Server-owned lifecycle metadata, per-Chat numbers, Agent-only assignees, status transitions, events, and surfaces. A claim is not an Issue: Issue claiming is compare-and-swap on the assignee (ADR 0062).
+read_when:
+  - changing claims, claim numbers, claim status, claim assignees, or `haus claim`
+  - deciding whether work needs a claim, an Issue, or a Task
+  - changing where a claim may live (Channels, DMs, the Captain chat)
+---
+
 # Claims
 
 Chat-first claims implement D8 from `specs/raft-alignment/README.md`, where they were called tasks;
@@ -12,6 +20,17 @@ Claims are Agent work ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-menti
 Agent holds a claim; humans assign to Agents and change status, but never claim or hold one, and the
 App no longer creates or promotes one (ADR 0051 decision 9). An Agent that needs a person @mentions
 them in an inline reply where the request arrived.
+
+[ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md) leaves claims
+unchanged and draws two lines:
+
+- **A claim is not Issue claiming.** Taking an Issue is `haus issue update --expect-assignee`, a
+  compare-and-swap on the Issue's one assignee ([issues.md](issues.md#claiming)). The word
+  *claim* stays the message lock's.
+- **Where a claim lives.** Once the Captain chat replaces Captain DMs (step 5), a claim may live in
+  a Channel or the Captain chat, where only its Captain may hold it, as a DM claim is limited to
+  its seated Agent today. A Task chat holds no
+  claims: its agent is its only worker.
 
 ## Hosted model
 
@@ -37,7 +56,8 @@ their own finished work `done`, using `in_review` only for a requested sign-off 
 decision; claims left open when a run settles remain
 `in_progress` and become tracked, including completed, failed, interrupted, and stopped runs.
 
-A claim has no priority or labels; those belong to Tasks ([tasks.md](tasks.md)). Composite
+A claim has no priority or labels; those belong to Issues ([issues.md](issues.md)) from step 2 of
+ADR 0062, and to Tasks until then. Composite
 foreign keys keep claim, message, Chat, and assignee in one Server tenant. `chat_messages.claim` and
 claim-list reads project the same row.
 

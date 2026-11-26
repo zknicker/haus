@@ -8,6 +8,8 @@ read_when:
   - changing mid-turn notices, drain batching, or chain limits
   - changing how the Server infers which fire caused an Agent's message
   - changing Agent status surfaces derived from inbox delivery, including chat engagement (typing)
+  - changing crew reports, `issue_assignment`, `issue_event`, `process_exit`, or what a Captain hears from Tasks (ADR 0062)
+  - changing how the Captain chat or `haus task send` reaches an agent, or what an Issue reference wakes
 ---
 
 # Agent Inbox
@@ -45,7 +47,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `onboarding` | Retired. Cove's one-shot bootstrap instruction from the removed Server onboarding flow ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md)); nothing writes one, migration 0138 settled every unsettled row `seen`, and seen rows stay as history | Its own bootstrap identity | None |
 | `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits (a sub-agent wake still leads, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
-| `task_assignment` | A Task assigned to this Agent ([tasks.md](tasks.md)); no Chat | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
+| `task_assignment` | A Task assigned to this Agent; no Chat. Replaced by [`issue_assignment`](#issue-items) in step 2 of ADR 0062 | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
 | `drive_conflict` | One Drive push that kept both versions of a file, kept an edit over a delete, or refused a file ([artifact-drive.md](artifact-drive.md#pushes)). It lists every such file of the push. A Worker's push goes to its Agent. No Chat | `drive-conflict:<pushId>`, where the push id is the pushing run's id, so one per push | Concrete. Queued when the push closes. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain, and at the ceiling it waits for the chain to reset instead of being refused. Retired as `seen` when its run settles |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
@@ -91,12 +93,37 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 | Where the message is | It reaches the Agent when |
 | --- | --- |
 | Its Project's channel | Always, as ordinary delivery |
-| A Task of its Project | Always |
+| A Task of its Project | Always (until step 3; then as a Task of another Project) |
 | Another Project's channel, top level | It @mentions the Agent |
 | Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
 | A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
-| A DM with the Agent | Always |
+| A DM with the Agent | Always (until step 5 deletes Captain DMs) |
+| Its own Captain chat | Always, addressed (step 5) |
 | `#all`, the team room | Always, as in its home, for every active Agent |
+
+**ADR 0062 changes** ([ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md)):
+
+- **No ambient Task hearing (step 3).** A Project's hearers no longer hear its Tasks. A Captain
+  hears a Task chat only when a message @mentions it, when it follows the Task, or through its own
+  crew's [reports](#crew-reports). The "Task of its Project" row then reads like "a Task of
+  another Project". `hearersOf` (`agent-delivery/hearing.ts:26`) stops applying to `task` chats,
+  and the Task branch of the recipient planner
+  (`agent-delivery/message-recipients.ts:60-73`) keeps only mentions and follows.
+- **Task agents hear their own chat only (step 5).** Every message in a Task's chat reaches its
+  Task agent, addressed, as a DM reaches its Agent. A Task agent is never a hearer anywhere else
+  and is never @mentionable ([tasks.md](tasks.md#captains-and-the-captain-chat)).
+- **The Captain chat (step 5)** reaches its Captain always, addressed (`addressedReason:
+  'captain_chat'`, replacing `'dm'` at `message-recipients.ts:164`), so it drains on a cold start
+  as a DM does today. No other agent hears it unless @mentioned. It never joins a Project's
+  hearing, so two Captains in one Project never read each other's chats.
+- **Delivery modes (step 5).** A message to a Task carries `steer`, `interrupt` or `queue`
+  ([tasks.md](tasks.md#talking-to-a-task)). `steer` is today's busy notice at a safe boundary.
+  `interrupt` stops the live turn and offers the item first on the next run. `queue` keeps the
+  item out of busy notices and offers it when the live turn settles.
+- **Mentions by number.** A bare Issue code (`GEN-12`) or an `issue://` link records a reference
+  and wakes nobody. A `task://` link records a reference and wakes nobody. A Task is woken by
+  posting in its chat or by `haus task send`, which spends the automation chain like any
+  agent-authored message.
 
 - `#all` is no Agent's home and no Project, but every active Agent on the Server hears it the way
   it hears its home: its top-level messages, and its inline replies before anyone has
@@ -462,6 +489,10 @@ targets, the Project, and follows on the Agent profile; humans steer attention b
 
 ## Worker items
 
+Superseded by [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md):
+`worker_report` becomes [`crew_report`](#crew-reports) in step 3, and `worker_stall` goes with
+the cloud places in step 7. This section stays as history until then.
+
 [Workers](workers.md) reach their Agent through three item kinds. They replace the
 `cloud_agent_work` kind, its row in the item table, and the Cloud Agent bullets under delivery
 planning. W2 deletes those and migrates queued rows by their `cloud_agent_notice`.
@@ -508,3 +539,52 @@ matters. A needs-you report with no person says the ask is for the Agent.
 | Each kind is queued once per identity, lands in its Task, and retires at settlement | `apps/server/test/worker-inbox-delivery.test.ts` (W2) |
 | Reports of one Task coalesce into one run, and a busy Agent gets a count then the reports | `apps/server/test/worker-inbox-delivery.test.ts` (W2) |
 | A pull request change wakes once per head commit, and only Agents of settled Workers or the assignee | `apps/server/test/pull-request-wake.test.ts` (W2) |
+
+## ADR 0062 items
+
+[ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md) adds four kinds.
+Each follows the one lifecycle above, is concrete, never appears in a notice body, the digest or
+`haus inbox check`, and retires as `seen` when its run settles.
+
+### Issue items
+
+| Kind (`source`) | What it is | Identity | Lane |
+| --- | --- | --- | --- |
+| `issue_assignment` | An Issue assigned to this agent, or moved out of Backlog while assigned to it ([issues.md](issues.md#assignee-and-wakes)); replaces `task_assignment` in step 2 | `issue-assign:<issueId>:<version>` | Coalesces: every queued assignment rides one run, up to 50, by priority then age. A busy agent gets a count. Retired by reassigning or unassigning before a run takes it |
+| `issue_event` | A comment, a state change, or a closed last sub-issue on an Issue whose derived agent this is | `issue-event:<issueId>:<timelineEventId>` | Coalesces per agent, up to 50 |
+
+Both spend the automation chain when an agent caused them, and wait at the ceiling instead of
+being refused. A change made by a Captain's own crew Task rides that Task's crew report and queues
+no separate item for the Captain.
+
+### Crew reports
+
+`crew_report` (step 3) replaces `worker_report`. Recipient: the crew Task's Captain. Identity
+`crew-report:<taskId>:<runId>`, so one per Task turn. Its typed attention carries the Task's short
+id and title, the linked Issue codes, the outcome (`done`, `needs-you`, `failed`, or `unreported`
+when a Captain-directed turn ended with no report), the report text and ask, the person named, its
+pull requests with readings, and the Issue edits the Task made in that turn
+([tasks.md](tasks.md#crew-reports)).
+
+- **Batched across the whole crew.** Every queued `crew_report` for one Captain rides one run, up
+  to 50 and within a 24,000-character text budget; the rest wait for the next run. This replaces
+  `worker_report`'s per-Task batching.
+- A busy Captain gets `N crew reports` in its notice, and the reports on its next run.
+- A report posts in the Task as the Task's own message, so the Captain never pulls the chat to
+  read it. The formatter's guidance rides the item, not the standing prompt.
+- Spends the automation chain and waits at the ceiling, as `drive_conflict` does.
+
+### Process exits
+
+`process_exit` (step 4): one background process ended ([tasks.md](tasks.md#long-work-and-the-desktop)).
+Recipient: the session that started it, a Task or a Captain. Identity
+`process-exit:<processId>`. It carries the exit code, the output's last 4,000 characters, and the
+output cursor. Spends the automation chain and waits at the ceiling. A process killed by archive
+or by its own session queues nothing.
+
+| Contract | Guard |
+| --- | --- |
+| Crew reports from several Tasks of one Captain ride one run, up to 50 | `apps/server/test/crew-report-delivery.test.ts` |
+| A Project's Captain does not hear an unaddressed message in a Task of its Project | `apps/server/test/agent-hearing.test.ts` |
+| The Captain chat reaches its Captain on a cold start and no other Captain | `apps/server/test/captain-chat.test.ts` |
+| A background process exit wakes its idle session once | `apps/server/test/process-exit-delivery.test.ts` |

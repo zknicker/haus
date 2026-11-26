@@ -1,5 +1,5 @@
 ---
-summary: State machine for Cloud Agent Runs — one transition table in `@haus/api`, Work as a projection of its newest Run, cancel intent on the Run, stalls as a typed Run condition, typed inbox notices, and failure boundaries that stop a notice from blocking an Agent.
+summary: Superseded by ADR 0062 (Workers and the cloud hand-off are deleted in step 7); kept as history. State machine for Cloud Agent Runs — one transition table in `@haus/api`, Work as a projection of its newest Run, cancel intent on the Run, stalls as a typed Run condition, typed inbox notices, and failure boundaries that stop a notice from blocking an Agent.
 read_when:
   - implementing any slice of the Cloud Agent Run state machine
   - changing how a Run or Work status is written, or adding a Run status or observation field
@@ -9,6 +9,10 @@ read_when:
 ---
 
 # Cloud Agent Run Lifecycle
+
+> **Superseded by [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md).**
+> A Task's activity status replaces Run and Worker status ([tasks.md](tasks.md#activity-status)).
+> This spec describes the shipped code until step 7 deletes it.
 
 Status: implemented on `claude/run-lifecycle-slice-1`, 2026-11-06, not yet released. A human whose
 message is set aside hears about it from the Agent; there is no App surface for it yet.
