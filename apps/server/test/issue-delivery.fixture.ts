@@ -70,6 +70,36 @@ export async function insertTaskPlace(
     return taskId;
 }
 
+export async function insertCrewTask(db: HausDatabase, { seed }: TaskBoard, title: string) {
+    const shortId = randomShortId();
+    const agentId = createOpaqueId('agt');
+    const chatId = createOpaqueId('cht');
+    const taskId = createOpaqueId('tsk');
+    await db.insert(agentsTable).values({
+        computerId: seed.computerId,
+        createdByAgentId: seed.agentId,
+        desiredModelId: 'fake-model',
+        desiredRuntimeId: 'fake',
+        displayName: title,
+        handle: `task-${shortId}`,
+        homeTimezone: 'UTC',
+        id: agentId,
+        kind: 'task',
+        serverId: seed.serverId,
+    });
+    await db.execute(sql`
+        insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind)
+        values (${chatId}, ${seed.serverId}, 'task', ${seed.channelId}, 'channel')
+    `);
+    await db.execute(sql`
+        insert into tasks (id, server_id, short_id, title, chat_id, created_by_agent_id,
+            project_id, agent_id, captain_id, computer_id, model)
+        values (${taskId}, ${seed.serverId}, ${shortId}, ${title}, ${chatId}, ${seed.agentId},
+            ${seed.channelId}, ${agentId}, ${seed.agentId}, ${seed.computerId}, 'fake-model')
+    `);
+    return { agentId, chatId, taskId };
+}
+
 export async function addPeerAgent(db: HausDatabase, seed: Seed) {
     const peerId = createOpaqueId('agt');
     await db.insert(agentsTable).values({

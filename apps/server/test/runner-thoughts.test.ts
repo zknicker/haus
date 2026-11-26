@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { AgentLifecycleEvent, AgentThoughtEvent, AgentThoughtFrame } from '@haus/api';
 import { onAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import {
@@ -19,7 +20,7 @@ let owner: HausClient;
 let runner: RunnerClient;
 let serverId: string;
 let agentId: string;
-let dmChatId: string;
+let captainChatId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness({ runnerToken: testRunnerToken });
@@ -61,7 +62,7 @@ beforeAll(async () => {
             serverId,
         })
     ).agent.id;
-    dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    captainChatId = (await openCaptainChat(owner, { agentId, serverId })).id;
 });
 
 afterAll(async () => {
@@ -72,7 +73,7 @@ afterAll(async () => {
 
 test('a runner thought for its engaged run reaches readers of that Chat', async () => {
     await owner.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Can you check the deploy?',
         nonce: 'runner_thought_ask',
         serverId,
@@ -91,7 +92,7 @@ test('a runner thought for its engaged run reaches readers of that Chat', async 
     const heard = Promise.withResolvers<AgentThoughtEvent>();
     const listening = Promise.withResolvers<void>();
     const subscription = owner.trpc.chat.onThought.subscribe(
-        { chatId: dmChatId, serverId },
+        { chatId: captainChatId, serverId },
         {
             onData: (event) => heard.resolve(event),
             onError: (error) => heard.reject(error),
@@ -113,7 +114,7 @@ test('a runner thought for its engaged run reaches readers of that Chat', async 
     expect(await heard.promise).toEqual({
         agentId,
         at,
-        chatId: dmChatId,
+        chatId: captainChatId,
         runId,
         serverId,
         text: 'Checking the deploy log',

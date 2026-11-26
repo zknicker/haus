@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { AttachmentAssociationError } from '../../attachments/message-attachments.ts';
-import { RetiredAgentDmSendError } from '../../chats/active-dm-peer.ts';
+import { RetiredCaptainChatSendError } from '../../chats/captain-chat.ts';
 import {
     ChannelLifecycleConflictError,
     ChannelLifecycleDeniedError,
@@ -52,7 +52,7 @@ export const chatProcedure = memberProcedure.use(async ({ next, type }) => {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 
-    if (cause instanceof RetiredAgentDmSendError) {
+    if (cause instanceof RetiredCaptainChatSendError) {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 

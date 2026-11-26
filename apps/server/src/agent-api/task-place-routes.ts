@@ -55,6 +55,9 @@ export function registerAgentTaskPlaceRoutes(
                     ...(input.machine === undefined ? {} : { machine: input.machine }),
                     ...(input.model === undefined ? {} : { model: input.model }),
                     origin,
+                    ...(input.repo === undefined
+                        ? {}
+                        : { repo: { name: input.repo, ref: input.ref ?? null } }),
                     ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
                     runId: runner.runId,
                     serverId: runner.serverId,

@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, not, type SQL } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, tasksTable } from '../postgres/schema.ts';
 import { actorVisibleChats } from './actor-visible-chats.ts';
-import { taskActivitySql } from './task-activity.ts';
+import { taskActivitySql, taskNeedsYouSql } from './task-activity.ts';
 import { actorFromColumns, type TaskActor } from './task-actor.ts';
 import { TaskNotFoundError } from './task-errors.ts';
 
@@ -19,7 +19,7 @@ export async function readTasks(
     input: { serverId: string; viewer?: TaskActor; where?: SQL }
 ): Promise<Task[]> {
     const rows = await db
-        .select({ activity: taskActivitySql, task: tasksTable })
+        .select({ activity: taskActivitySql, needsYou: taskNeedsYouSql, task: tasksTable })
         .from(tasksTable)
         .leftJoin(
             chatsTable,
@@ -27,7 +27,7 @@ export async function readTasks(
         )
         .where(and(eq(tasksTable.serverId, input.serverId), input.where))
         .orderBy(asc(tasksTable.createdAt), asc(tasksTable.id));
-    const tasks = rows.map(({ activity, task }) => toTask(task, activity));
+    const tasks = rows.map(({ activity, needsYou, task }) => toTask(task, activity, needsYou));
     return input.viewer ? await withVisibleOrigins(db, input.viewer, tasks) : tasks;
 }
 
@@ -85,7 +85,7 @@ export async function withVisibleOrigins(
     );
 }
 
-function toTask(task: typeof tasksTable.$inferSelect, activity: TaskActivity) {
+function toTask(task: typeof tasksTable.$inferSelect, activity: TaskActivity, needsYou: boolean) {
     return {
         activity,
         agentId: task.agentId,
@@ -98,7 +98,7 @@ function toTask(task: typeof tasksTable.$inferSelect, activity: TaskActivity) {
         description: task.description,
         id: task.id,
         model: task.model,
-        needsYou: false,
+        needsYou,
         origin:
             task.originChatId && task.originMessageId
                 ? { chatId: task.originChatId, messageId: task.originMessageId }

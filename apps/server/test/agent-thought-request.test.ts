@@ -37,7 +37,13 @@ test('phrases a thought against the engaged human message, scrubbed', async () =
 
 test('uses the newest engaged message across Chats, and drops a Chat once answered', async () => {
     const { delivery, runner, seed, wakeMessage } = await wakeOn(connection.db);
-    const dm = await post(connection.db, seed, delivery, seed.dmChatId, 'Also, is staging up?');
+    const dm = await post(
+        connection.db,
+        seed,
+        delivery,
+        seed.captainChatId,
+        'Also, is staging up?'
+    );
     await attestAgentEvents(connection.db, runner as never, [wakeMessage, dm], {
         composed: true,
     });
@@ -46,7 +52,7 @@ test('uses the newest engaged message across Chats, and drops a Chat once answer
     ]);
 
     // The run's `--done` in the DM ends that engagement; the channel request remains.
-    await agentPost(connection.db, seed, seed.dmChatId, seed.agentId, {
+    await agentPost(connection.db, seed, seed.captainChatId, seed.agentId, {
         completesReply: true,
         runId: runner.runId,
     });

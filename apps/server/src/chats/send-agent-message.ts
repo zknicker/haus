@@ -1,6 +1,12 @@
-import type { AgentActivityEvent, AgentSendReceipt, HausAgentMessage } from '@haus/api';
+import type {
+    AgentActivityEvent,
+    AgentSendReceipt,
+    HausAgentMessage,
+    TaskDeliveryMode,
+} from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { enqueueMessageRecipients } from '../agent-delivery/enqueue-recipients.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { advanceAgentChatReadsSeen } from '../agent-reads/agent-chat-reads.ts';
 import {
@@ -45,6 +51,8 @@ export interface SendAgentMessageInput {
     /** `--done`: this message completes the run's reply in the Chat (ADR 0035). */
     completesReply: boolean;
     content: string;
+    /** How the message reaches a Task's own agent (`haus task send`); `steer` by default. */
+    delivery?: TaskDeliveryMode;
     nonce: string;
     /** Optional direct parent of an inline reply; the Server derives its root. */
     replyToMessageId?: string;
@@ -57,6 +65,8 @@ export interface SendAgentMessageInput {
 export interface SendAgentMessageResult {
     activities: AgentActivityEvent[];
     events: PreparedRealtimeEvent[];
+    /** Task agents whose live turn this send interrupts (`delivery: 'interrupt'`). */
+    interrupts: Array<{ agentId: string; serverId: string }>;
     message: HausAgentMessage;
     receipt: AgentSendReceipt;
     wakes: Array<{ agentId: string; serverId: string }>;
@@ -227,20 +237,16 @@ export async function sendAgentMessage(
             messageId: message.id,
             serverId: input.serverId,
         });
-        for (const recipient of recipients) {
-            await agentDelivery.enqueue(tx, {
-                addressedReason: recipient.addressedReason,
-                agentId: recipient.agentId,
-                chatId: input.chatId,
-                content,
-                dedupeKey: message.id,
-                mentioned: recipient.mentioned,
-                sequence: message.sequence,
-                serverId: input.serverId,
-                source: `agent:${agent.handle}`,
-                taskFollowReactivated: recipient.taskFollowReactivated,
-            });
-        }
+        const interrupts = await enqueueMessageRecipients(tx, agentDelivery, {
+            chatId: input.chatId,
+            content,
+            delivery: input.delivery ?? 'steer',
+            messageId: message.id,
+            recipients,
+            sequence: message.sequence,
+            serverId: input.serverId,
+            source: `agent:${agent.handle}`,
+        });
 
         const event = await prepareMessageCreatedEvent(
             tx,
@@ -265,6 +271,7 @@ export async function sendAgentMessage(
                 event,
                 ...(await prepareMessageLinkEvents(tx, { ...linked, serverId: input.serverId })),
             ],
+            interrupts,
             message: toAgentCliMessage(message, {
                 ...agent,
                 agentId: input.agentId,

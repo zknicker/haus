@@ -62,6 +62,9 @@ function readConversation(row: PushMessage): PushNotificationConversation | null
     if (row.conversationKind === 'dm') {
         return { kind: 'dm', name: null };
     }
+    if (row.conversationKind === 'captain') {
+        return row.conversationName ? { kind: 'captain', name: row.conversationName } : null;
+    }
     return row.conversationName ? { kind: 'channel', name: row.conversationName } : null;
 }
 

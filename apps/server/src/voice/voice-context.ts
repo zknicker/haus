@@ -22,8 +22,8 @@ export async function readVoiceTarget(
     host: VoiceLoopHost
 ) {
     const chat = await requireChatWriteAccess(db, member, scope);
-    if (chat.kind !== 'dm' || !chat.dmAgentId) {
-        throw new Error('Calls are available in an Agent direct message.');
+    if (chat.kind !== 'captain' || !chat.captainAgentId) {
+        throw new Error('Calls are available in a Captain chat.');
     }
     const [target] = await db
         .select({
@@ -56,13 +56,13 @@ export async function readVoiceTarget(
         .where(
             and(
                 eq(agentsTable.serverId, scope.serverId),
-                eq(agentsTable.id, chat.dmAgentId),
+                eq(agentsTable.id, chat.captainAgentId),
                 isNull(agentsTable.retiredAt)
             )
         )
         .limit(1);
     if (!target) {
-        throw new Error('The Agent is not in this direct message.');
+        throw new Error('This Captain is retired.');
     }
     const refusal = voiceCallRefusal(target, host);
     if (refusal) {

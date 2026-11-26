@@ -11,7 +11,7 @@ import { TaskInvariantError } from './task-errors.ts';
 import { requireStartOrigin } from './task-origin.ts';
 import { requireFilingProject } from './task-project.ts';
 import { chooseTaskSession } from './task-session-choice.ts';
-import { insertStartedTask, queueTaskTurn, readStartedByRequest } from './task-start-record.ts';
+import { insertStartedTask, readStartedByRequest } from './task-start-record.ts';
 import { startedResult } from './task-start.ts';
 import { autoTaskTitle } from './task-title.ts';
 import type { TaskWriteResult } from './task-write-result.ts';
@@ -63,23 +63,17 @@ export async function startPersonTask(
                 attachmentIds: [],
                 chatId: record.chatId,
                 content: input.prompt,
+                delivery: 'steer',
                 nonce: `task-prompt:${record.taskId}`,
                 serverId,
             },
             deps.agentDelivery
         );
-        await queueTaskTurn(tx, deps.agentDelivery, {
-            agentId: record.agentId,
-            chatId: record.chatId,
-            message: prompt.receipt.message,
-            serverId,
-            source: 'human',
-        });
         const started = await startedResult(tx, serverId, record.taskId);
         const result: TaskWriteResult = {
             ...started,
             events: [...started.events, ...prompt.events],
-            wakes: [{ agentId: record.agentId, serverId }, ...prompt.wakes],
+            wakes: prompt.wakes,
         };
         return result;
     });

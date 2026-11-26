@@ -13,6 +13,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { testAgentHome } from './agent-home.ts';
+import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { RecordingRunner } from './recording-runner.ts';
 
@@ -56,11 +57,11 @@ test('a live dispatch carries the conversation style and emoji on the start fram
     runner.attach(seed.agentId);
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'Draft the notes.',
-        dedupeKey: 'msg-live',
+        dedupeKey: `msg_live_${seed.serverId}`,
         serverId: seed.serverId,
     });
 
@@ -72,11 +73,11 @@ test('a reconnect replay rebuilds the same conversation style from durable state
     const transport = new FakeTransport();
     const runner = new RecordingRunner();
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'Draft the notes.',
-        dedupeKey: 'msg-replay',
+        dedupeKey: `msg_replay_${seed.serverId}`,
         serverId: seed.serverId,
     });
 
@@ -95,11 +96,11 @@ test('an Agent without a conversation style starts with no style and a null emoj
     runner.attach(seed.agentId);
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'Draft the notes.',
-        dedupeKey: 'msg-none',
+        dedupeKey: `msg_none_${seed.serverId}`,
         serverId: seed.serverId,
     });
 
@@ -165,11 +166,9 @@ async function seedAgent(agentConversationStyle: string | null, signatureEmoji: 
         signatureEmoji,
     });
     await db.insert(chatsTable).values({
-        dmAgentId: agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
+        captainAgentId: agentId,
         id: chatId,
-        kind: 'dm',
+        kind: 'captain',
         serverId,
     });
     return { agentId, chatId, computerId, serverId };

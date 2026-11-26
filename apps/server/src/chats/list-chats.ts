@@ -24,14 +24,21 @@ export async function listChats(
         .select({
             archivedAt: chatsTable.archivedAt,
             archivedByUserId: chatsTable.archivedByUserId,
-            // `chats_shape` keeps appearance channel-only, so DM rows read null.
+            captainMember: sql<{ subscribed: boolean } | null>`(
+                select json_build_object('subscribed', captain_member.subscribed)
+                from captain_chat_members captain_member
+                where captain_member.server_id = "chats"."server_id"
+                    and captain_member.chat_id = "chats"."id"
+                    and captain_member.user_id = ${member.id}
+            )`,
+            // `chats_shape` keeps appearance channel-only, so DM and Captain rows read null.
             color: chatsTable.color,
             createdAt: chatsTable.createdAt,
             description: chatsTable.description,
             icon: chatsTable.icon,
             id: chatsTable.id,
             isAll: chatsTable.isAll,
-            kind: sql<'channel' | 'dm'>`${chatsTable.kind}`,
+            kind: sql<'captain' | 'channel' | 'dm'>`${chatsTable.kind}`,
             lastActivityAt: chatsTable.lastActivityAt,
             lastMessage: {
                 authorAgentDisplayName: lastMessage.authorAgentDisplayName,
@@ -45,8 +52,9 @@ export async function listChats(
             name: chatsTable.name,
             participantAgentIds: sql<string[]>`
                 case
-                    when ${chatsTable.kind} = 'dm'
-                        then array_remove(array[${chatsTable.dmAgentId}], null)::text[]
+                    when ${chatsTable.kind} = 'dm' then array[]::text[]
+                    when ${chatsTable.kind} = 'captain'
+                        then array[${chatsTable.captainAgentId}]::text[]
                     else array(
                         select home.id
                         from agents home
@@ -64,6 +72,13 @@ export async function listChats(
                             ${chatsTable.dmMemberOneUserId},
                             ${chatsTable.dmMemberTwoUserId}
                         ], null)::text[]
+                    when ${chatsTable.kind} = 'captain' then array(
+                        select captain_member.user_id
+                        from captain_chat_members captain_member
+                        where captain_member.server_id = "chats"."server_id"
+                            and captain_member.chat_id = "chats"."id"
+                        order by captain_member.user_id
+                    )
                     else array(
                         select participant.user_id
                         from channel_participants participant
@@ -75,20 +90,20 @@ export async function listChats(
             `,
             peerAgentDisplayName: sql<string | null>`
                 case
-                    when ${chatsTable.kind} = 'dm' then ${agentsTable.displayName}
+                    when ${chatsTable.kind} = 'captain' then ${agentsTable.displayName}
                     else null
                 end
             `,
             peerAgentId: sql<string | null>`
                 case
-                    when ${chatsTable.kind} = 'dm' then ${chatsTable.dmAgentId}
+                    when ${chatsTable.kind} = 'captain' then ${chatsTable.captainAgentId}
                     else null
                 end
             `,
             peerAgentRetired: sql<boolean>`${agentsTable.retiredAt} is not null`,
             peerUserId: sql<string | null>`
                 case
-                    when ${chatsTable.kind} = 'dm' and ${chatsTable.dmAgentId} is null
+                    when ${chatsTable.kind} = 'dm'
                         then case
                             when ${chatsTable.dmMemberOneUserId} = ${member.id}
                                 then ${chatsTable.dmMemberTwoUserId}
@@ -105,15 +120,19 @@ export async function listChats(
             agentsTable,
             and(
                 eq(agentsTable.serverId, chatsTable.serverId),
-                eq(agentsTable.id, chatsTable.dmAgentId)
+                eq(agentsTable.id, chatsTable.captainAgentId)
             )
         )
         .leftJoinLateral(lastMessage, sql`true`)
         .where(and(eq(chatsTable.serverId, serverId), listedChats(member.id, archive)))
         .orderBy(sql`${chatsTable.lastActivityAt} desc nulls last`, chatsTable.createdAt);
 
-    return rows.map(({ lastMessage: lastMessageRow, ...chat }) => ({
+    return rows.map(({ captainMember, lastMessage: lastMessageRow, ...chat }) => ({
         ...chat,
+        captainChat:
+            chat.kind === 'captain'
+                ? { member: captainMember !== null, subscribed: captainMember?.subscribed ?? false }
+                : null,
         archivedAt: chat.archivedAt?.toISOString() ?? null,
         createdAt: chat.createdAt.toISOString(),
         lastActivityAt: chat.lastActivityAt?.toISOString() ?? null,

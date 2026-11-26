@@ -139,7 +139,7 @@ test('a busy Agent gets no notice, then the item as its next run', async () => {
     const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
-    const dmId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    const dmId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     const busyRunId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: busyRunId });
 

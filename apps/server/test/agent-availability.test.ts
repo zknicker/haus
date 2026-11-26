@@ -15,7 +15,7 @@ const base: ConfiguredAgentRow = {
     desiredReasoningEffort: 'medium',
     desiredRuntimeId: 'codex',
     displayName: 'Cove',
-    dmChatId: null,
+    captainChatId: null,
     effectiveBackgroundSubagents: 0,
     effectiveMissing: [],
     effectiveModelId: 'gpt-5.6-sol',

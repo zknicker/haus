@@ -146,6 +146,7 @@ export function registerAgentApiRoutes(
         catalog: options.modelCatalog,
         computers: options.computers,
         db: options.db,
+        githubApp: options.githubApp,
         postCommitWork: options.postCommitWork,
         sessions: options.taskSessions,
     });

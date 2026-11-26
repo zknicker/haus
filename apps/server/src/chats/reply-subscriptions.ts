@@ -1,13 +1,8 @@
 import { parseAgentReferenceTarget, parseHausRichReferences } from '@haus/api';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { listHearingCandidates } from '../agent-delivery/hearing.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentMessageFollowsTable,
-    agentsTable,
-    chatMessagesTable,
-    chatsTable,
-} from '../postgres/schema.ts';
+import { agentMessageFollowsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 
 export async function ensureInlineReplyParticipants(
     db: HausDatabase,
@@ -40,17 +35,18 @@ export async function ensureInlineReplyParticipants(
     }
     const rootMessageId = message.replyRootMessageId ?? input.messageId;
     const [chat] = await db
-        .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
+        .select({ kind: chatsTable.kind })
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
         .limit(1);
-    if (!chat || (chat.kind !== 'channel' && chat.kind !== 'dm')) {
+    if (!chat || (chat.kind !== 'channel' && chat.kind !== 'dm' && chat.kind !== 'captain')) {
         return null;
     }
-    const eligible = await listEligibleAgents(db, {
-        chatId: input.chatId,
-        serverId: input.serverId,
-    });
+    // Chain follows decide delivery only in channels; a Captain chat always reaches its Captain.
+    if (chat.kind !== 'channel') {
+        return rootMessageId;
+    }
+    const eligible = await listHearingCandidates(db, input.serverId);
     if (eligible.length === 0) {
         return rootMessageId;
     }
@@ -85,7 +81,7 @@ export async function ensureInlineReplyParticipants(
             .values({
                 agentId,
                 chatId: input.chatId,
-                chatKind: chat.kind,
+                chatKind: 'channel',
                 rootMessageId,
                 serverId: input.serverId,
             })
@@ -105,7 +101,7 @@ export async function ensureInlineReplyParticipants(
             .values({
                 agentId,
                 chatId: input.chatId,
-                chatKind: chat.kind,
+                chatKind: 'channel',
                 rootMessageId,
                 serverId: input.serverId,
             })
@@ -151,7 +147,7 @@ export async function followInlineReplyForMessage(
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
         .limit(1);
-    if (!chat || (chat.kind !== 'channel' && chat.kind !== 'dm')) {
+    if (chat?.kind !== 'channel') {
         return false;
     }
     await ensureInlineReplyParticipants(db, {
@@ -183,40 +179,6 @@ export async function followInlineReplyForMessage(
             ],
         });
     return message.replyToMessageId !== null;
-}
-
-export async function listEligibleAgents(
-    db: Pick<HausDatabase, 'select'>,
-    input: { chatId: string; serverId: string }
-): Promise<Array<{ handle: string; id: string }>> {
-    const [chat] = await db
-        .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
-        .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
-        .limit(1);
-    if (!chat) {
-        return [];
-    }
-    if (chat.kind === 'dm') {
-        if (!chat.dmAgentId) {
-            return [];
-        }
-        return await db
-            .select({ handle: agentsTable.handle, id: agentsTable.id })
-            .from(agentsTable)
-            .where(
-                and(
-                    eq(agentsTable.serverId, input.serverId),
-                    eq(agentsTable.id, chat.dmAgentId),
-                    isNull(agentsTable.retiredAt)
-                )
-            )
-            .limit(1);
-    }
-    if (chat.kind !== 'channel') {
-        return [];
-    }
-    return await listHearingCandidates(db, input.serverId);
 }
 
 export function mentionedAgentIds(

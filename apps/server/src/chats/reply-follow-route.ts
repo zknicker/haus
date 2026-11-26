@@ -22,8 +22,8 @@ export async function setAgentInlineReplyFollow(
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, chatId)))
             .limit(1);
-        if (!chat || (chat.kind !== 'channel' && chat.kind !== 'dm')) {
-            throw new AgentTargetError('Inline reply follows require a Channel or DM target.');
+        if (chat?.kind !== 'channel') {
+            throw new AgentTargetError('Inline reply follows require a Channel target.');
         }
         const messages = await tx
             .select({

@@ -187,8 +187,8 @@ test('the drain budget reserves a package even though it may be omitted', async 
     for (let index = 0; index < 2; index += 1) {
         dms.push(
             await deliverHuman(connection.db, delivery, seed, {
-                addressedReason: 'dm',
-                chatId: seed.dmChatId,
+                addressedReason: 'captain_chat',
+                chatId: seed.captainChatId,
                 content: 'd'.repeat(10_000),
             })
         );

@@ -6,6 +6,7 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';
+import { handCaptainsToServerOwner } from '../server-agents/captain-owner.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
     findCurrentMembership,
@@ -91,6 +92,7 @@ export async function removeServerMember(
                 )
             );
 
+        await handCaptainsToServerOwner(tx, { serverId: server.id, userId: target.userId });
         const departedChatIds = await clearPersonalWork(tx, server.id, target.userId);
 
         return { departedChatIds, serverId: server.id, userId: target.userId };

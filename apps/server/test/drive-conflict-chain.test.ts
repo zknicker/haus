@@ -53,14 +53,14 @@ test('at the ceiling the item waits queued until a person speaks, then runs firs
     expect(runner.starts()).toEqual([]);
     expect((await conflictRows(seed.agentId)).map((row) => row.state)).toEqual(['queued']);
 
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     const [conflictRun] = runner.starts();
     expect(conflictRun?.driveConflict?.pushId).toBe('run_push_ceiling');
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, conflictRun?.runId ?? ''));
     expect(await turnsOf(seed)).toBe(1);
 
     const humanRun = runner.starts().at(-1);
-    expect(humanRun?.chatId).toBe(seed.dmChatId);
+    expect(humanRun?.chatId).toBe(seed.captainChatId);
     await delivery.onTurnSettled(seed.computerId, {
         ...settledTurn(seed, humanRun?.runId ?? ''),
         outputProduced: true,

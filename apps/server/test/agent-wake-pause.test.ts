@@ -139,14 +139,14 @@ async function pausedAgent() {
 }
 
 function work(
-    seed: { agentId: string; dmChatId: string; serverId: string },
+    seed: { agentId: string; captainChatId: string; serverId: string },
     content: string,
     source: string
 ) {
     const dedupeKey = `wake-${content.replaceAll(' ', '-')}`;
     return {
         agentId: seed.agentId,
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         content,
         dedupeKey,
         serverId: seed.serverId,

@@ -55,8 +55,12 @@ async function readAgentAnchorAccess(db: Pick<HausDatabase, 'select'>, input: Ag
     if (!anchor) {
         return { kind: 'missing' as const };
     }
-    // Projects are open, so only a deleted Chat or another Agent's DM is out of reach.
-    if (anchor.deletedAt || (anchor.chatKind === 'dm' && anchor.dmAgentId !== input.agentId)) {
+    // Projects are open, so only a deleted Chat, a person's DM, or another Captain's chat is out of reach.
+    if (
+        anchor.deletedAt ||
+        anchor.chatKind === 'dm' ||
+        (anchor.chatKind === 'captain' && anchor.captainAgentId !== input.agentId)
+    ) {
         return { kind: 'denied' as const };
     }
     return { kind: 'ok' as const, anchor };
@@ -70,7 +74,7 @@ async function readMessageAnchor(
         .select({
             chatKind: chatsTable.kind,
             deletedAt: chatsTable.deletedAt,
-            dmAgentId: chatsTable.dmAgentId,
+            captainAgentId: chatsTable.captainAgentId,
             messageId: chatMessagesTable.id,
         })
         .from(chatsTable)
@@ -107,7 +111,7 @@ async function readChatAnchor(
         .select({
             chatKind: chatsTable.kind,
             deletedAt: chatsTable.deletedAt,
-            dmAgentId: chatsTable.dmAgentId,
+            captainAgentId: chatsTable.captainAgentId,
             messageId: chatsTable.id,
         })
         .from(chatsTable)

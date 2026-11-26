@@ -106,7 +106,7 @@ test('does not promote a Task message into human work', async () => {
             messageId: posted.message.id,
             serverId: server.id,
         })
-    ).rejects.toThrow(/human or Agent messages in a Channel or DM/i);
+    ).rejects.toThrow(/human or Agent messages in a Channel, DM or Captain chat/i);
 });
 
 test('creates a claim-message atomically and replays the same nonce idempotently', async () => {

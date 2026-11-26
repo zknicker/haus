@@ -4,7 +4,12 @@ import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { sendChatMessage } from '../src/chats/send-message.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentsTable, channelParticipantsTable, usersTable } from '../src/postgres/schema.ts';
+import {
+    agentsTable,
+    channelParticipantsTable,
+    chatsTable,
+    usersTable,
+} from '../src/postgres/schema.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import {
     type BackgroundClaim,
@@ -64,9 +69,16 @@ test(
 );
 
 test(
-    'an Agent DM send materializes its DM without wedging its transaction',
+    'a send to a Captain lands in its Captain chat without wedging its transaction',
     async () => {
         const claim = await seedChannelParticipants();
+        const captainChatId = createOpaqueId('cht');
+        await connection.db.insert(chatsTable).values({
+            captainAgentId: claim.agentId,
+            id: captainChatId,
+            kind: 'captain',
+            serverId: claim.serverId,
+        });
 
         const result = await sendChatMessage(
             serializedTransactions(connection.db),
@@ -74,17 +86,17 @@ test(
             {
                 agentId: claim.agentId,
                 attachmentIds: [],
-                content: 'opening a DM',
+                content: 'opening the Captain chat',
+                delivery: 'steer',
                 nonce: createOpaqueId('non'),
                 serverId: claim.serverId,
-                targetKind: 'agent-dm',
+                targetKind: 'captain',
             },
             delivery()
         );
 
-        // The DM was created inside the send and the message landed in it.
         expect(result.receipt.idempotent).toBe(false);
-        expect(result.receipt.message.chatId).not.toBe(claim.chatId);
+        expect(result.receipt.message.chatId).toBe(captainChatId);
         expect(result.wakes).toEqual([{ agentId: claim.agentId, serverId: claim.serverId }]);
     },
     settleTimeoutMs

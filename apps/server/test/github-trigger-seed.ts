@@ -82,6 +82,7 @@ export async function seedGithubTriggerWorld(
         agentId,
         anchorMessageId: sent.message.id,
         channelId,
+        computerId,
         connectionId,
         installationRowId,
         owner,

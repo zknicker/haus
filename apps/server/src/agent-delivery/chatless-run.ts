@@ -2,6 +2,7 @@ import {
     type AgentCommand,
     type AgentStartCommand,
     type chatlessInboxSources,
+    crewReportAttentionSchema,
     issuePriorities,
 } from '@haus/api';
 import { decodeProcessExit } from '../agent-invocations/process-exits.ts';
@@ -32,7 +33,7 @@ type ChatlessRow = Pick<store.InboxItemRow, 'content' | 'createdAt' | 'dedupeKey
 
 /**
  * Starts the run a queued sub-agent wake, Drive conflict, process exit, or batch of Issue
- * items leads. Each
+ * items or crew reports leads. Each
  * is concrete work with no Chat, so its run carries its attention alone: no inbox
  * items, no Chat lifecycle event. Busy notices, settlement, failure, and Stop treat
  * it like any concrete run, and it resumes the main session.
@@ -97,7 +98,7 @@ export async function planChatlessRun(
 
 /**
  * The chatless run's start frame, identical on first dispatch and every resend.
- * `rows` is the run's whole attention: several only for a batch of Issue items.
+ * `rows` is the run's whole attention: several only for a batch of Issue items or crew reports.
  */
 export function chatlessStartFrame(
     state: Pick<
@@ -130,7 +131,12 @@ export function chatlessStartFrame(
 
 type ChatlessAttention = Pick<
     AgentStartCommand,
-    'driveConflict' | 'issueAssignments' | 'issueEvents' | 'processExit' | 'subagentWake'
+    | 'crewReports'
+    | 'driveConflict'
+    | 'issueAssignments'
+    | 'issueEvents'
+    | 'processExit'
+    | 'subagentWake'
 >;
 
 type ChatlessSource = (typeof chatlessInboxSources)[number];
@@ -139,6 +145,9 @@ const chatlessAttentions: Record<
     ChatlessSource,
     (rows: readonly [ChatlessRow, ...ChatlessRow[]]) => ChatlessAttention
 > = {
+    crew_report: (rows) => ({
+        crewReports: rows.map((row) => crewReportAttentionSchema.parse(JSON.parse(row.content))),
+    }),
     drive_conflict: ([row]) => ({ driveConflict: decodeDriveConflict(row.content) }),
     process_exit: ([row]) => ({ processExit: decodeProcessExit(row.content) }),
     // The runtime's own report is already in the conversation; the wake carries no body.

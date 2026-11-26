@@ -23,9 +23,9 @@ export async function listClaimAssignees(
         chatId: claim.chatId,
         serverId: input.serverId,
     });
-    // Only an Agent holds a claim (ADR 0037); a DM offers its Agent, a Project every Agent.
+    // Only an Agent holds a claim (ADR 0037); a Captain chat offers its Captain, a Project every Agent.
     return await listAssignableAgents(db, {
-        dmAgentId: chat.dmAgentId,
+        captainAgentId: chat.captainAgentId,
         kind: chat.kind,
         serverId: input.serverId,
     });
@@ -33,7 +33,7 @@ export async function listClaimAssignees(
 
 async function listAssignableAgents(
     db: HausDatabase,
-    input: { dmAgentId: null | string; kind: string; serverId: string }
+    input: { captainAgentId: null | string; kind: string; serverId: string }
 ): Promise<ClaimAssignee[]> {
     const selection = {
         agentId: agentsTable.id,
@@ -48,12 +48,12 @@ async function listAssignableAgents(
         eq(agentsTable.kind, 'captain')
     );
     const rows =
-        input.kind === 'dm'
-            ? input.dmAgentId
+        input.kind === 'captain'
+            ? input.captainAgentId
                 ? await db
                       .select(selection)
                       .from(agentsTable)
-                      .where(and(active, eq(agentsTable.id, input.dmAgentId)))
+                      .where(and(active, eq(agentsTable.id, input.captainAgentId)))
                 : []
             : await db
                   .select(selection)

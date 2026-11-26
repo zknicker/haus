@@ -44,11 +44,11 @@ test('a consumed notice ack logs one line with what it marked', async () => {
         transport.online.add(seed.computerId);
         runner.attach(seed.agentId);
         const delivery = new AgentDelivery(connection.db, transport, runtime, runner);
-        await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+        await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
         const runId = runner.starts()[0]?.runId ?? '';
         await delivery.onAck({ agentId: seed.agentId, runId });
         const busyMessage = await deliverHuman(connection.db, delivery, seed, {
-            chatId: seed.dmChatId,
+            chatId: seed.captainChatId,
         });
         logs.length = 0;
 
@@ -91,11 +91,11 @@ test('a consumed notice ack records one received_message activity for the run', 
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     const busyMessage = await deliverHuman(connection.db, delivery, seed, {
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
     });
     const published: AgentActivityEvent[] = [];
     const abort = new AbortController();

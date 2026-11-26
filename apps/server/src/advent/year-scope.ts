@@ -26,14 +26,14 @@ export function inYear(scope: AdventScope, column: SQL): SQL {
 
 /**
  * `chat` (an alias of `chats`) is a live Chat the member can read: any channel,
- * or a DM they are a side of.
+ * any Captain chat, or a DM they are a side of.
  */
 export function readableChat(scope: AdventScope, alias: string): SQL {
     const chat = sql.raw(alias);
     return sql`(
         ${chat}.deleted_at is null
         and (
-            ${chat}.kind = 'channel'
+            ${chat}.kind in ('channel', 'captain')
             or (${chat}.kind = 'dm' and ${dmSide(scope, chat)})
         )
     )`;
@@ -101,11 +101,13 @@ export function memberAgents(scope: AdventScope): SQL {
               agent.created_by_user_id = ${scope.userId}
               or exists (
                   select 1
-                  from chats dm
-                  where dm.server_id = agent.server_id
-                    and dm.kind = 'dm'
-                    and dm.dm_member_one_user_id = ${scope.userId}
-                    and dm.dm_agent_id = agent.id
+                  from captain_chat_members member
+                  join chats captain_chat
+                    on captain_chat.server_id = member.server_id
+                    and captain_chat.id = member.chat_id
+                  where member.server_id = agent.server_id
+                    and member.user_id = ${scope.userId}
+                    and captain_chat.captain_agent_id = agent.id
               )
           )
     `;

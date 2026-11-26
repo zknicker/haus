@@ -6,18 +6,17 @@ export type ChatListArchive = 'active' | 'all' | 'archived';
 
 export function listedChats(userId: string, archive: ChatListArchive): SQL {
     return sql`(
-        ${chatsTable.kind} in ('channel', 'dm')
+        ${chatsTable.kind} in ('channel', 'dm', 'captain')
         and ${chatsTable.deletedAt} is null
         ${archiveFilter(archive)}
         and (
-            ${chatsTable.kind} <> 'dm'
-            or ${chatsTable.dmAgentId} is null
+            ${chatsTable.kind} <> 'captain'
             or not exists (
                 select 1
-                from agents peer_agent
-                where peer_agent.server_id = ${chatsTable.serverId}
-                    and peer_agent.id = ${chatsTable.dmAgentId}
-                    and peer_agent.retired_at is not null
+                from agents captain
+                where captain.server_id = ${chatsTable.serverId}
+                    and captain.id = ${chatsTable.captainAgentId}
+                    and captain.retired_at is not null
             )
         )
         and ${visibleChats(userId)}
@@ -43,6 +42,7 @@ function unreadMessages(userId: string): SQL {
         from chat_messages message
         where message.server_id = ${chatsTable.serverId}
             and message.chat_id = ${chatsTable.id}
+            and ${captainChatSubscribed(userId)}
             and (message.author_user_id is null or message.author_user_id <> ${userId})
             and message.sequence > coalesce(
                 (
@@ -55,6 +55,21 @@ function unreadMessages(userId: string): SQL {
                 0
             )
     `;
+}
+
+/** A Captain chat is unread only for its subscribed members (ADR 0062). */
+function captainChatSubscribed(userId: string): SQL {
+    return sql`(
+        ${chatsTable.kind} <> 'captain'
+        or exists (
+            select 1
+            from captain_chat_members captain_member
+            where captain_member.server_id = ${chatsTable.serverId}
+                and captain_member.chat_id = ${chatsTable.id}
+                and captain_member.user_id = ${userId}
+                and captain_member.subscribed
+        )
+    )`;
 }
 
 function archiveFilter(archive: ChatListArchive): SQL {

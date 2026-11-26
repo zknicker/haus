@@ -31,16 +31,17 @@ afterAll(async () => {
 
 test('a DM its member reads within the grace period pushes nobody', async () => {
     const { owner, ownerUserId, peer, serverId } = fixture;
-    const dmChatId = (await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId }))
-        .id;
+    const captainChatId = (
+        await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId })
+    ).id;
     const sent = await peer.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Seen this on your desktop?',
         nonce: 'grace-dm-read',
         serverId,
     });
     await owner.trpc.chat.markRead.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         sequence: sent.message.sequence,
         serverId,
     });
@@ -49,11 +50,12 @@ test('a DM its member reads within the grace period pushes nobody', async () => 
 
 test('a DM left unread pushes after the grace period with the unread badge', async () => {
     const { owner, ownerUserId, peer, serverId } = fixture;
-    const dmChatId = (await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId }))
-        .id;
+    const captainChatId = (
+        await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId })
+    ).id;
     const startedAt = Date.now();
     const sent = await peer.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Still there?',
         nonce: 'grace-dm-unread',
         serverId,

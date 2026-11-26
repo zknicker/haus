@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -41,7 +42,7 @@ beforeAll(async () => {
         serverId: server.id,
     });
     agentId = created.agent.id;
-    chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId: server.id })).id;
+    chatId = (await openCaptainChat(owner, { agentId, serverId: server.id })).id;
 });
 
 afterAll(async () => {

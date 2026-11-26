@@ -2,6 +2,8 @@ import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api'
 import { and, eq } from 'drizzle-orm';
 import { enqueueAgentGreeting } from '../agent-delivery/greeting.ts';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
+import { createCaptainChat } from '../chats/captain-chat.ts';
+import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import { archiveRetiredAgentFolder } from '../drive/agent-folder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
@@ -22,6 +24,7 @@ import { AgentConfigDeniedError } from './agent-config-errors.ts';
 import { resolveAssignedComputer } from './agent-inventory.ts';
 import { type AgentModelCatalog, assertModelAvailable } from './agent-model-catalog.ts';
 import { toAgent } from './agent-shape.ts';
+import { resolveCaptainOwner } from './captain-owner.ts';
 
 /**
  * Who is creating an Agent. The App path carries a signed-in human and is
@@ -35,7 +38,7 @@ export interface CreatedAgentFromApp extends AgentCreated {
     events: PreparedRealtimeEvent[];
 }
 
-/** Creates one Agent; its per-human DMs remain implicit until first use. */
+/** Creates one Captain with its one shared Captain chat (ADR 0062). */
 export async function createAgent(
     db: HausDatabase,
     member: HausUser | null,
@@ -66,6 +69,7 @@ export async function createAgent(
         return {
             agent: created.agent,
             events: [
+                ...captainChatCreatedEvents(input.serverId, created.agent.captainChatId),
                 ...homeChangeEvents(input.serverId, [created.homeProjectId]),
                 ...created.driveEvents,
             ],
@@ -106,6 +110,10 @@ export async function createAgentInTransaction(
 
     const agentId = createOpaqueId('agt');
     const { homeProjectId } = input;
+    const ownerUserId = await resolveCaptainOwner(db, {
+        creator: creator.kind === 'human' ? { userId: creator.user.id } : creator,
+        serverId: input.serverId,
+    });
     try {
         await db.insert(agentsTable).values({
             avatarId,
@@ -124,6 +132,7 @@ export async function createAgentInTransaction(
             homeProjectId,
             homeTimezone: 'UTC',
             id: agentId,
+            ownerUserId,
             serverId: input.serverId,
             signatureEmoji: input.signatureEmoji ?? null,
         });
@@ -142,6 +151,11 @@ export async function createAgentInTransaction(
     });
 
     await openAgentHomeReads(db, { agentId, projectId: homeProjectId, serverId: input.serverId });
+    const captainChatId = await createCaptainChat(db, {
+        agentId,
+        ownerUserId,
+        serverId: input.serverId,
+    });
     // The new Agent introduces itself once in `#all`, as soon as it can run,
     // rather than waiting for its first delivery. The caller dispatches after commit.
     await enqueueAgentGreeting(db, {
@@ -177,7 +191,9 @@ export async function createAgentInTransaction(
             desiredReasoningEffort: input.reasoningEffort,
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,
-            dmChatId: null,
+            captainChatId,
+            crewComputerId: null,
+            crewModel: null,
             effectiveBackgroundSubagents: 0,
             effectiveHausAgentAppliedAt: null,
             effectiveHausAgentStatus: null,
@@ -189,10 +205,16 @@ export async function createAgentInTransaction(
             effectiveRuntimeId: null,
             handle: input.handle,
             id: agentId,
+            ownerUserId,
             serverId: input.serverId,
             stopped: false,
         }),
     };
+}
+
+/** The new Captain chat, announced so every member's chat list gains it. */
+export function captainChatCreatedEvents(serverId: string, chatId: string | null) {
+    return chatId ? [prepareLifecycleEvent({ chatId, serverId }, 'created')] : [];
 }
 
 /** Authorizes the App's Agent-creation boundary and names the human creator. */

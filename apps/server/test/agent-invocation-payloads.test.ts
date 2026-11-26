@@ -8,6 +8,7 @@ import {
     invocationRequest,
     startInvocationHarness,
 } from './agent-invocations.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import {
     connectRunner,
     frameOfType,
@@ -32,7 +33,7 @@ beforeAll(async () => {
     await runner.next(frameOfType('runner-hello-accepted'));
     computer = await connectComputer(setup.harness, setup.computerCredential);
     chatId = (
-        await setup.owner.trpc.chat.ensureAgentDm.mutate({
+        await openCaptainChat(setup.owner, {
             agentId: setup.agentId,
             serverId: setup.serverId,
         })
@@ -137,7 +138,7 @@ test('a payload never reads or attaches through the general attachment routes, e
             attachmentIds: [payload.attachmentId],
             content: 'Here it is.',
             nonce: 'payload_attach',
-            target: 'dm:@ada',
+            target: 'captain:@orbit',
         }),
         headers: { authorization: `Bearer ${runCredential}`, 'content-type': 'application/json' },
         method: 'POST',

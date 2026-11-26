@@ -18,12 +18,12 @@ export async function listMentionOptions(
     db: HausDatabase,
     member: HausUser | null,
     input:
-        | { agentId: string; agentIds: string[]; serverId: string; targetKind: 'agent-dm' }
+        | { agentId: string; agentIds: string[]; serverId: string; targetKind: 'captain' }
         | { agentIds: string[]; chatId: string; serverId: string }
 ): Promise<{ options: MentionOption[] }> {
     const { participantAgentIds, skillAgentIds: defaultSkillAgentIds } =
         'agentId' in input
-            ? await listImplicitDmAgentIds(db, member, input)
+            ? await listCaptainAgentIds(db, member, input)
             : await listChatMentionAgentIds(db, member, input);
     const participantSet = new Set(participantAgentIds);
     const skillAgentIds =
@@ -119,7 +119,7 @@ export async function listMentionOptions(
     };
 }
 
-async function listImplicitDmAgentIds(
+async function listCaptainAgentIds(
     db: HausDatabase,
     member: HausUser | null,
     input: { agentId: string; serverId: string }
@@ -148,7 +148,10 @@ async function listChatMentionAgentIds(
 ) {
     const chat = await requireChatAccess(db, member, input);
     if (chat.kind === 'dm') {
-        const ids = chat.dmAgentId ? [chat.dmAgentId] : [];
+        return { participantAgentIds: [], skillAgentIds: [] };
+    }
+    if (chat.kind === 'captain') {
+        const ids = chat.captainAgentId ? [chat.captainAgentId] : [];
         return { participantAgentIds: ids, skillAgentIds: ids };
     }
     const projectId = chat.kind === 'task' ? chat.parentChatId : chat.id;

@@ -8,6 +8,7 @@ import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.t
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
+import { settleCrewTurn } from '../tasks/crew-turn-settlement.ts';
 import { settleAgentChain } from './chain-budget.ts';
 import { advanceSeenForRun } from './cursors.ts';
 import { rotateDeferredConfiguration } from './deferred-configuration.ts';
@@ -78,7 +79,18 @@ export async function recoverSessionResume(
     return { activity, chatId: state.activeRunChatId, claimEvents, config };
 }
 
-export async function settleRun(tx: HausDatabase, { serverId, state, summary }: SettlingRun) {
+export async function settleRun(tx: HausDatabase, run: SettlingRun) {
+    const settled = await settleRunRecords(tx, run);
+    const crewReport = await settleCrewTurn(tx, {
+        agentId: run.summary.agentId,
+        runId: run.summary.runId,
+        serverId: run.serverId,
+        status: run.summary.status,
+    });
+    return { ...settled, crewReport };
+}
+
+async function settleRunRecords(tx: HausDatabase, { serverId, state, summary }: SettlingRun) {
     const runScope = {
         agentId: summary.agentId,
         runId: summary.runId,

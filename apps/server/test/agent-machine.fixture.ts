@@ -1,4 +1,5 @@
 import { digest, type FrameClient, type InvocationHarness } from './agent-invocations.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import type { RunnerClient, RunnerFrame } from './runner.fixture.ts';
 
 export async function closeFlush(setup: InvocationHarness, credential: string, flushId: string) {
@@ -30,7 +31,7 @@ export async function seedScriptFire(
     input: { dispatchedTo?: string; key: string }
 ) {
     const { agentId, harness, owner, serverId } = setup;
-    const chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    const chatId = (await openCaptainChat(owner, { agentId, serverId })).id;
     await owner.trpc.chat.send.mutate({
         chatId,
         content: `Anchor ${input.key}`,

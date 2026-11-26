@@ -93,18 +93,18 @@ test('keeps every Agent to its own triggers', async () => {
 test('refuses an anchor the Agent cannot reach or write', async () => {
     const room = { agentIds: [doomedAgentId], name: 'private-room', serverId };
     const privateChannel = await createTestProject(owner, room);
-    const otherDm = await owner.trpc.chat.send.mutate({
+    const otherCaptainChat = await owner.trpc.chat.send.mutate({
         agentId: doomedAgentId,
         content: 'Not for Sage',
-        nonce: 'trigger_api_private_dm',
+        nonce: 'trigger_api_other_captain_chat',
         serverId,
-        targetKind: 'agent-dm',
+        targetKind: 'captain',
     });
     const refused = await agentRequest(sageToken, 'POST', '/api/agent/triggers', {
-        messageId: otherDm.message.id,
+        messageId: otherCaptainChat.message.id,
         title: 'Reaching too far',
     });
-    expect(refused.status).toBe(404);
+    expect(refused).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 409 });
 
     const unreachable = await owner.trpc.chat.send.mutate({
         chatId: privateChannel.id,
@@ -271,7 +271,7 @@ test('shows an Agent-created trigger and arms or disables it from the App', asyn
     await expect(fire(triggerId, created.body.secret)).resolves.toBe(202);
 });
 
-test('anchors a human-created trigger on the creator DM and writes no receipt', async () => {
+test('anchors a human-created trigger on the Captain chat and writes no receipt', async () => {
     const created = await owner.trpc.trigger.create.mutate({
         agentId: sageAgentId,
         instruction: 'Summarize the payload here.',
@@ -295,13 +295,11 @@ test('anchors a human-created trigger on the creator DM and writes no receipt', 
         url: created.url,
     });
 
-    // A human has no asking message, so the anchor is the DM itself. Creating a
-    // trigger writes nothing to the transcript.
     const [dm] = (await harness.sql`
         select c.id from chats c
         where c.server_id = ${serverId}
-          and c.dm_agent_id = ${sageAgentId}
-          and c.dm_member_one_user_id = ${ownerUserId}
+          and c.kind = 'captain'
+          and c.captain_agent_id = ${sageAgentId}
     `) as { id: string }[];
     expect(created.trigger.anchorMessageId).toBeNull();
     expect(created.trigger.anchorChatId).toBe(dm.id);
@@ -310,7 +308,6 @@ test('anchors a human-created trigger on the creator DM and writes no receipt', 
     `) as { id: string }[];
     expect(dmMessages).toEqual([]);
 
-    // Fires wake the Agent in that DM and write no transcript row of their own.
     await expect(fire(created.trigger.id, created.secret, '{"ok":true}')).resolves.toBe(202);
     const [fired] = (await harness.sql`
         select work.chat_id, work.content from agent_inbox work

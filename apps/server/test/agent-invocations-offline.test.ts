@@ -7,6 +7,7 @@ import {
     invocationRequest,
     startInvocationHarness,
 } from './agent-invocations.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import {
     connectRunner,
     frameOfType,
@@ -74,7 +75,7 @@ test('an Agent with no Computer answers offline and records no machine', async (
 
 test('a turn whose machine is offline completes with only haus calls', async () => {
     const chatId = (
-        await setup.owner.trpc.chat.ensureAgentDm.mutate({
+        await openCaptainChat(setup.owner, {
             agentId: setup.agentId,
             serverId: setup.serverId,
         })
@@ -94,7 +95,7 @@ test('a turn whose machine is offline completes with only haus calls', async () 
         body: JSON.stringify({
             content: 'Machine is offline.',
             nonce: 'offline_reply',
-            target: 'dm:@ada',
+            target: 'captain:@orbit',
         }),
         headers: {
             authorization: `Bearer ${String(start.runCredential)}`,

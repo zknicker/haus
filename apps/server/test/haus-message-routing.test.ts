@@ -2,6 +2,7 @@ import { beforeAll, expect, test } from 'bun:test';
 import type { MessageRouter, RoutingDecision, RoutingState } from '../src/message-routing/jev.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { ensureCaptainsProject } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';
 
 const calls: RoutingState[] = [];
@@ -108,7 +109,7 @@ test('DMs, mentions, inline replies and unauthorized sends skip the audience que
         nonce: 'routing_reply',
         replyToMessageId: root.message.id,
     });
-    const dm = await fixture.owner.trpc.chat.ensureAgentDm.mutate({
+    const dm = await openCaptainChat(fixture.owner, {
         agentId: fixture.orbitAgentId,
         serverId: fixture.serverId,
     });
@@ -197,7 +198,7 @@ test('debug reads identify deterministic bypasses and never invent historical de
         model: null,
         elapsedMs: null,
     });
-    const dm = await fixture.owner.trpc.chat.ensureAgentDm.mutate({
+    const dm = await openCaptainChat(fixture.owner, {
         agentId: fixture.orbitAgentId,
         serverId: fixture.serverId,
     });

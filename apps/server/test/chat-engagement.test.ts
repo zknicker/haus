@@ -113,7 +113,7 @@ test('a mid-turn pull starts engagement in the Chat it read', async () => {
         connection.db,
         seed,
         delivery,
-        seed.dmChatId,
+        seed.captainChatId,
         'Quick question for you.'
     );
 
@@ -124,13 +124,13 @@ test('a mid-turn pull starts engagement in the Chat it read', async () => {
 
     expect(eventsFor(runner.runId)).toEqual([
         { chatId: seed.channelId, type: 'started' },
-        { chatId: seed.dmChatId, type: 'started' },
+        { chatId: seed.captainChatId, type: 'started' },
     ]);
 });
 
-async function engagedChats(seed: { channelId: string; dmChatId: string; serverId: string }) {
+async function engagedChats(seed: { channelId: string; captainChatId: string; serverId: string }) {
     const engaged: string[] = [];
-    for (const chatId of [seed.channelId, seed.dmChatId]) {
+    for (const chatId of [seed.channelId, seed.captainChatId]) {
         const rows = await readChatEngagements(connection.db, { chatId, serverId: seed.serverId });
         engaged.push(...rows.map((row) => row.chatId));
     }
@@ -145,7 +145,7 @@ async function engageChannelAndDm() {
         connection.db,
         woken.seed,
         woken.delivery,
-        woken.seed.dmChatId,
+        woken.seed.captainChatId,
         'Quick question for you.'
     );
     await compose(woken.runner, [question]);
@@ -159,7 +159,7 @@ test('an interim send without --done keeps the Chat engaged', async () => {
     await drained();
 
     expect(eventsFor(runner.runId).filter((event) => event.type === 'ended')).toEqual([]);
-    expect(await engagedChats(seed)).toEqual([seed.channelId, seed.dmChatId]);
+    expect(await engagedChats(seed)).toEqual([seed.channelId, seed.captainChatId]);
 });
 
 test('a --done send ends only its own Chat, at once, and a later read restarts it', async () => {
@@ -175,10 +175,10 @@ test('a --done send ends only its own Chat, at once, and a later read restarts i
 
     expect(eventsFor(runner.runId)).toEqual([
         { chatId: seed.channelId, type: 'started' },
-        { chatId: seed.dmChatId, type: 'started' },
+        { chatId: seed.captainChatId, type: 'started' },
         { chatId: seed.channelId, reason: 'sent', type: 'ended' },
     ]);
-    expect(await engagedChats(seed)).toEqual([seed.dmChatId]);
+    expect(await engagedChats(seed)).toEqual([seed.captainChatId]);
 
     const followUp = await post(
         connection.db,
@@ -193,7 +193,7 @@ test('a --done send ends only its own Chat, at once, and a later read restarts i
 
 test('settlement ends the Chats a --done send left, including ones with interim posts', async () => {
     const { delivery, runner, seed } = await engageChannelAndDm();
-    await agentPost(connection.db, seed, seed.dmChatId, seed.agentId, { runId: runner.runId });
+    await agentPost(connection.db, seed, seed.captainChatId, seed.agentId, { runId: runner.runId });
     await agentPost(connection.db, seed, seed.channelId, seed.agentId, {
         completesReply: true,
         runId: runner.runId,
@@ -205,7 +205,7 @@ test('settlement ends the Chats a --done send left, including ones with interim 
 
     expect(eventsFor(runner.runId).filter((event) => event.type === 'ended')).toEqual([
         { chatId: seed.channelId, reason: 'sent', type: 'ended' },
-        { chatId: seed.dmChatId, reason: 'settled', type: 'ended' },
+        { chatId: seed.captainChatId, reason: 'settled', type: 'ended' },
     ]);
     expect(await engagedChats(seed)).toEqual([]);
 });
@@ -273,7 +273,7 @@ test('Agent-authored messages and messages older than the last send never engage
         homeProjectId: await testAgentHome(connection.db, seed.serverId),
         serverId: seed.serverId,
     });
-    const peer = await agentPost(connection.db, seed, seed.dmChatId, peerAgentId);
+    const peer = await agentPost(connection.db, seed, seed.captainChatId, peerAgentId);
     await compose(runner, [peer]);
     expect(eventsFor(runner.runId)).toEqual([]);
 });

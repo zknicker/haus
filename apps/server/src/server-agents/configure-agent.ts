@@ -159,7 +159,7 @@ export async function configureAgent(
             };
         }
 
-        const agentDm = alias(chatsTable, 'agent_dm');
+        const captainChat = alias(chatsTable, 'captain_chat');
         const [row] = await tx
             .select({
                 activeRunId: agentDeliveryTable.activeRunId,
@@ -175,7 +175,10 @@ export async function configureAgent(
                 desiredReasoningEffort: agentsTable.desiredReasoningEffort,
                 desiredRuntimeId: agentsTable.desiredRuntimeId,
                 displayName: agentsTable.displayName,
-                dmChatId: agentDm.id,
+                captainChatId: captainChat.id,
+                crewComputerId: agentsTable.crewComputerId,
+                crewModel: agentsTable.crewModel,
+                ownerUserId: agentsTable.ownerUserId,
                 effectiveBackgroundSubagents: agentsTable.effectiveBackgroundSubagents,
                 effectiveHausAgentAppliedAt: agentsTable.effectiveHausAgentAppliedAt,
                 effectiveHausAgentStatus: agentsTable.effectiveHausAgentStatus,
@@ -193,12 +196,11 @@ export async function configureAgent(
             })
             .from(agentsTable)
             .leftJoin(
-                agentDm,
+                captainChat,
                 and(
-                    eq(agentDm.serverId, agentsTable.serverId),
-                    eq(agentDm.dmAgentId, agentsTable.id),
-                    eq(agentDm.dmMemberOneUserId, member.id),
-                    eq(agentDm.kind, 'dm')
+                    eq(captainChat.serverId, agentsTable.serverId),
+                    eq(captainChat.captainAgentId, agentsTable.id),
+                    eq(captainChat.kind, 'captain')
                 )
             )
             .leftJoin(agentDeliveryTable, eq(agentDeliveryTable.agentId, agentsTable.id))

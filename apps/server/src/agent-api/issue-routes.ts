@@ -76,7 +76,7 @@ export function registerAgentIssueRoutes(
         async (runner, { code }) =>
             toAgentIssueShow(
                 db,
-                await getIssueDetail(db, agentIssueActor(runner), {
+                await getIssueDetail(db, await agentIssueActor(db, runner), {
                     code,
                     serverId: runner.serverId,
                 })
@@ -91,7 +91,7 @@ export function registerAgentIssueRoutes(
             const { serverId } = runner;
             const projectId = await requireAgentHomeProject(db, runner);
             const patch = await resolvePatch(db, runner, input);
-            const result = await createIssue(db, agentIssueActor(runner), {
+            const result = await createIssue(db, await agentIssueActor(db, runner), {
                 ...patch,
                 projectId,
                 serverId,
@@ -110,13 +110,14 @@ export function registerAgentIssueRoutes(
             const issue = await findIssueByCode(db, serverId, input.code);
             const patch = await resolvePatch(db, runner, input);
             const expectAssignee = await resolveExpected(db, runner, input.expectAssignee);
+            const actor = await agentIssueActor(db, runner);
             const result = await withImplicitIssueVersion(
                 input.expectedVersion,
                 issueVersion(serverId, input.code),
                 (expectedVersion) =>
                     updateIssue(
                         db,
-                        agentIssueActor(runner),
+                        actor,
                         {
                             ...(expectAssignee === undefined ? {} : { expectAssignee }),
                             expectedVersion,
@@ -138,7 +139,7 @@ export function registerAgentIssueRoutes(
         async (runner, input) => {
             const { serverId } = runner;
             const issue = await findIssueByCode(db, serverId, input.code);
-            const actor = agentIssueActor(runner);
+            const actor = await agentIssueActor(db, runner);
             const result = await addIssueComment(
                 db,
                 actor,
@@ -168,13 +169,14 @@ export function registerAgentIssueRoutes(
                 const { serverId } = runner;
                 const issue = await findIssueByCode(db, serverId, input.code);
                 const taskId = await taskIdOfRef(db, serverId, input.taskId);
+                const actor = await agentIssueActor(db, runner);
                 const result = await withImplicitIssueVersion(
                     undefined,
                     issueVersion(serverId, input.code),
                     (expectedVersion) =>
                         write(
                             db,
-                            agentIssueActor(runner),
+                            actor,
                             {
                                 expectedVersion,
                                 issueId: issue.id,
@@ -208,7 +210,7 @@ async function listAgentIssues(
         query.assignee === undefined || query.assignee === 'none'
             ? query.assignee
             : await resolveIssueActorRef(db, runner, query.assignee);
-    const issues = await listIssues(db, agentIssueActor(runner), {
+    const issues = await listIssues(db, await agentIssueActor(db, runner), {
         ...(assignee ? { assignee } : {}),
         ...(query.parent
             ? { parentId: (await findIssueByCode(db, serverId, query.parent)).id }

@@ -33,6 +33,7 @@ export function visibleChats(userId: string): SQL {
                 and participant.chat_id = ${chatsTable.id}
                 and participant.user_id = ${userId}
         )
+        or ${chatsTable.kind} = 'captain'
         or (
             ${chatsTable.kind} = 'task'
             and exists (

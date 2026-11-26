@@ -34,9 +34,16 @@ export async function queueIssueWakes(
     const queued: IssueAgentWake[] = [];
     const by = await actorLabel(tx, serverId, input.actor);
     const byAgent = input.actor?.kind === 'captain' || input.actor?.kind === 'task';
+    const crewCaptainId =
+        input.actor?.kind === 'task' ? await taskCaptain(tx, serverId, input.actor.taskId) : null;
     for (const wake of input.wakes) {
         const agentId = await recipientAgent(tx, serverId, wake.recipient);
-        if (!agentId || (input.actor?.kind === 'captain' && input.actor.agentId === agentId)) {
+        if (
+            !agentId ||
+            agentId === crewCaptainId ||
+            (input.actor?.kind === 'captain' && input.actor.agentId === agentId) ||
+            (input.actor?.kind === 'task' && (await isTaskAgent(tx, input.actor.taskId, agentId)))
+        ) {
             continue;
         }
         const issue = await readIssue(tx, serverId, wake.issueId);
@@ -116,7 +123,7 @@ async function recipientAgent(tx: IssueTx, serverId: string, recipient: IssueWak
         return (await activeAgent(tx, serverId, recipient.agentId)) ? recipient.agentId : null;
     }
     const [task] = await tx
-        .select({ agentId: tasksTable.createdByAgentId })
+        .select({ agentId: tasksTable.agentId })
         .from(tasksTable)
         .where(
             and(
@@ -127,6 +134,24 @@ async function recipientAgent(tx: IssueTx, serverId: string, recipient: IssueWak
         )
         .limit(1);
     return task?.agentId && (await activeAgent(tx, serverId, task.agentId)) ? task.agentId : null;
+}
+
+async function taskCaptain(tx: IssueTx, serverId: string, taskId: string) {
+    const [task] = await tx
+        .select({ captainId: tasksTable.captainId })
+        .from(tasksTable)
+        .where(and(eq(tasksTable.serverId, serverId), eq(tasksTable.id, taskId)))
+        .limit(1);
+    return task?.captainId ?? null;
+}
+
+async function isTaskAgent(tx: IssueTx, taskId: string, agentId: string) {
+    const [task] = await tx
+        .select({ id: tasksTable.id })
+        .from(tasksTable)
+        .where(and(eq(tasksTable.id, taskId), eq(tasksTable.agentId, agentId)))
+        .limit(1);
+    return task !== undefined;
 }
 
 async function activeAgent(tx: IssueTx, serverId: string, agentId: string) {

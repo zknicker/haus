@@ -108,7 +108,7 @@ export async function requireAgentChatAccess(
     chatId: string
 ): Promise<void> {
     const [chat] = await db
-        .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
+        .select({ kind: chatsTable.kind })
         .from(chatsTable)
         .where(
             and(
@@ -118,7 +118,7 @@ export async function requireAgentChatAccess(
             )
         )
         .limit(1);
-    if (!chat || (chat.kind === 'dm' && chat.dmAgentId !== runner.agentId)) {
+    if (!chat || chat.kind === 'dm') {
         throw new AgentTargetError();
     }
 }

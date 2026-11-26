@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { collectStream } from './realtime-stream.ts';
@@ -17,7 +18,7 @@ let owner: HausClient;
 let runner: RunnerClient;
 let serverId: string;
 let agentId: string;
-let dmChatId: string;
+let captainChatId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness({ runnerToken: testRunnerToken });
@@ -56,7 +57,7 @@ beforeAll(async () => {
             serverId,
         })
     ).agent.id;
-    dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    captainChatId = (await openCaptainChat(owner, { agentId, serverId })).id;
 });
 
 afterAll(async () => {
@@ -70,7 +71,7 @@ test('a runner run shows the Agent as working from dispatch through ack, then se
     runner = connectRunner(harness, testRunnerToken);
     await runner.next(frameOfType('runner-hello-accepted'));
     await owner.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Can you check the deploy?',
         nonce: 'runner_working_first',
         serverId,

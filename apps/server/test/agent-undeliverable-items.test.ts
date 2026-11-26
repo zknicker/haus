@@ -73,7 +73,9 @@ test('a bad item beside a human message delivers the message and tells the Agent
     const seed = await seedAgent(connection.db);
     const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await queueUnrenderable(seed, 'msg_broken');
-    const messageId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    const messageId = await deliverHuman(connection.db, delivery, seed, {
+        chatId: seed.captainChatId,
+    });
 
     const noteFrame = await wake();
     await finishTurn(delivery, seed, noteFrame);
@@ -111,8 +113,10 @@ test('a lone bad item wakes the Agent with its note', async () => {
 test('a rejected start sets the named item aside and resends the rest with no pause', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
-    const first = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    const second = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    const first = await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
+    const second = await deliverHuman(connection.db, delivery, seed, {
+        chatId: seed.captainChatId,
+    });
     const frame = await wake();
     expect(frame?.inbox.map((item) => item.id)).toContain(first);
 
@@ -156,7 +160,7 @@ test('a rejected start sets the named item aside and resends the rest with no pa
 test('a Computer attaching clears a start-rejected pause on its Agents only', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery } = offlineDelivery(connection.db, seed);
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     const now = new Date();
     const held = {
         consecutiveFailures: 1,

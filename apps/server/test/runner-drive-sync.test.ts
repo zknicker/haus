@@ -5,6 +5,7 @@ import {
     type InvocationHarness,
     startInvocationHarness,
 } from './agent-invocations.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import {
     connectRunner,
     frameOfType,
@@ -32,9 +33,7 @@ afterAll(async () => {
 
 test('a runner run pulls the Agent drive folder on its machine when it starts and pushes it when it settles', async () => {
     const { owner, serverId } = setup;
-    const chatId = (
-        await owner.trpc.chat.ensureAgentDm.mutate({ agentId: setup.agentId, serverId })
-    ).id;
+    const chatId = (await openCaptainChat(owner, { agentId: setup.agentId, serverId })).id;
     await owner.trpc.chat.send.mutate({
         chatId,
         content: 'What is in your notes?',
@@ -74,9 +73,7 @@ test('after a full reset the next runner start carries the new generation and it
     const { owner, serverId } = setup;
     await owner.trpc.agent.reset.mutate({ agentId: setup.agentId, kind: 'full', serverId });
     const reset = await runner.next(frameOfType('agent-reset'));
-    const chatId = (
-        await owner.trpc.chat.ensureAgentDm.mutate({ agentId: setup.agentId, serverId })
-    ).id;
+    const chatId = (await openCaptainChat(owner, { agentId: setup.agentId, serverId })).id;
     await owner.trpc.chat.send.mutate({
         chatId,
         content: 'Start fresh.',

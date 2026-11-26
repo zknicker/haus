@@ -6,6 +6,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
+    channelParticipantsTable,
     chatsTable,
     computersTable,
     serverMembershipsTable,
@@ -17,6 +18,7 @@ import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.t
 import { ServerAccessDeniedError } from '../src/servers/server-access.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import { testAgentHome } from './agent-home.ts';
+import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { RecordingRunner } from './recording-runner.ts';
 
@@ -97,9 +99,9 @@ test('gates triggers by Chat visibility and refuses non-members', async () => {
     transport.online.add(seed.computerId);
     runner.attach(seed.ada);
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.ada,
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         content: 'summarize the week',
         dedupeKey: 'msg_servertrigger01',
         serverId: seed.serverId,
@@ -174,7 +176,7 @@ async function seedServer() {
     const userId = createOpaqueId('usr');
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
-    const dmChatId = createOpaqueId('cht');
+    const captainChatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
@@ -209,15 +211,15 @@ async function seedServer() {
     };
     const ada = await agent('Ada');
     const bo = await agent('Bo');
+    // A channel only its participants read, so a non-participant sees the trigger as private.
     await db.insert(chatsTable).values({
-        dmAgentId: ada,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
-        id: dmChatId,
-        kind: 'dm',
+        id: captainChatId,
+        kind: 'channel',
+        name: `room-${randomBytes(4).toString('hex')}`,
         serverId,
     });
-    return { ada, bo, computerId, dmChatId, owner: { id: userId } as HausUser, serverId };
+    await db.insert(channelParticipantsTable).values({ chatId: captainChatId, serverId, userId });
+    return { ada, bo, computerId, captainChatId, owner: { id: userId } as HausUser, serverId };
 }
 
 /** A member of `serverId`, or of no Server when it is null. */

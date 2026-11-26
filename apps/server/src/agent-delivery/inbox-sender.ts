@@ -18,7 +18,7 @@ export function inboxSender(input: {
         return { senderHandle: 'haus', senderType: 'system' };
     }
     if (input.source === 'human') {
-        const senderHandle = input.message?.sender.handle ?? humanHandleFromDmTarget(input.target);
+        const senderHandle = input.message?.sender.handle;
         if (!senderHandle) {
             throw new Error('A human delivery sender does not have an active Server handle.');
         }
@@ -35,11 +35,4 @@ export function inboxSender(input: {
         senderHandle,
         senderType: input.source === 'trigger' ? 'trigger' : agentHandle ? 'agent' : 'system',
     };
-}
-
-function humanHandleFromDmTarget(target: string): string | null {
-    if (!target.startsWith('dm:@')) {
-        return null;
-    }
-    return target.slice('dm:@'.length).split(':')[0] || null;
 }

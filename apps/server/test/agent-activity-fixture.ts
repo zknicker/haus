@@ -12,6 +12,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { testAgentHome } from './agent-home.ts';
+import { deliverHumanMessage } from './human-message.fixture.ts';
 import { RecordingRunner } from './recording-runner.ts';
 
 export function activityFrame(
@@ -114,11 +115,9 @@ export async function seedActivity(db: HausDatabase): Promise<Seed> {
         serverId,
     });
     await db.insert(chatsTable).values({
-        dmAgentId: agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
+        captainAgentId: agentId,
         id: chatId,
-        kind: 'dm',
+        kind: 'captain',
         serverId,
     });
     return { agentId, chatId, computerId, serverId };
@@ -130,7 +129,7 @@ export async function startRun(db: HausDatabase, seed: Seed) {
     const runner = new RecordingRunner();
     runner.attach(seed.agentId);
     const delivery = new AgentDelivery(db, transport, undefined, runner);
-    await delivery.deliver({
+    await deliverHumanMessage(db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'activity work',

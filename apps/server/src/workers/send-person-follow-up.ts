@@ -47,6 +47,7 @@ export async function sendPersonFollowUp(
             attachmentIds: [],
             chatId: taskChatId,
             content: input.text,
+            delivery: 'steer',
             nonce: input.nonce,
             serverId: input.serverId,
         },

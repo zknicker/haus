@@ -24,7 +24,7 @@ test('replay finds a send by (serverId, chatId, nonce), never the same nonce in 
     const db = connection.db;
     const seed = await seedReader(db);
     const inChannel = await postMessage(db, seed, { chatId: seed.channelId });
-    const inDm = await postMessage(db, seed, { agentId: seed.agentId, chatId: seed.dmChatId });
+    const inDm = await postMessage(db, seed, { agentId: seed.agentId, chatId: seed.captainChatId });
     await db
         .update(chatMessagesTable)
         .set({ nonce: 'nonce_shared' })
@@ -40,7 +40,7 @@ test('replay finds a send by (serverId, chatId, nonce), never the same nonce in 
     const agentInput = {
         agentId: seed.agentId,
         attachmentIds: [],
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         nonce: 'nonce_shared',
         serverId: seed.serverId,
     } as unknown as Parameters<typeof readExistingAgentMessage>[1];

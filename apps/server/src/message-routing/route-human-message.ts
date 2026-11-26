@@ -48,7 +48,7 @@ export async function prepareMessageRouting(
         serverId: input.serverId,
     });
     if (chat.kind !== 'channel') {
-        return bypass(chat.kind === 'dm' ? 'direct-message' : 'task');
+        return bypass(chat.kind === 'task' ? 'task' : 'direct-message');
     }
     if (await readExistingChatMessage(db, input.serverId, input.chatId, input.nonce)) {
         return bypass('disabled'); // The transaction returns the original receipt and audit.

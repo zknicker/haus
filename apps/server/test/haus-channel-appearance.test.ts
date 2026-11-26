@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -154,8 +155,11 @@ test('an appearance-only change emits one lifecycle update and one Project updat
     await expect(publishedSince(beforeRepaint, serverId)).resolves.toEqual([]);
 });
 
-test('DM chats report no channel appearance', async () => {
-    await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId });
+test('Captain chats report no channel appearance', async () => {
+    await openCaptainChat(owner, { agentId, serverId });
     const chats = await owner.trpc.chat.list.query({ serverId });
-    expect(chats.find((chat) => chat.kind === 'dm')).toMatchObject({ color: null, icon: null });
+    expect(chats.find((chat) => chat.kind === 'captain')).toMatchObject({
+        color: null,
+        icon: null,
+    });
 });

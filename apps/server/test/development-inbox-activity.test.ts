@@ -35,7 +35,7 @@ test('Unread reads the demo Chats with their last line', async () => {
     const chats = await owner.trpc.chat.list.query({ serverId });
     const all = chats.find((chat) => chat.isAll);
     const product = chats.find((chat) => chat.name === 'product');
-    const dms = chats.filter((chat) => chat.kind === 'dm');
+    const dms = chats.filter((chat) => chat.kind === 'captain');
 
     expect(all?.lastMessage).toMatchObject({
         authorDisplayName: 'Blippy',

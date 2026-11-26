@@ -123,7 +123,7 @@ test('a busy Captain gets a content-free count, then the Issues on its next turn
     const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 

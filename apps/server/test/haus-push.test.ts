@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { pushNotificationPayloadSchema } from '@haus/api';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import type { HausClient } from './haus-client.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { deviceToken, FakePushSender } from './push-fake-sender.ts';
@@ -36,10 +37,11 @@ afterAll(async () => {
 
 test('a DM message pushes its other member with the routing payload', async () => {
     const { ownerUserId, peer, serverId } = fixture;
-    const dmChatId = (await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId }))
-        .id;
+    const captainChatId = (
+        await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId })
+    ).id;
     const sent = await peer.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: `Got a minute, [@Ada](user://${ownerUserId})?\n\nIt is about the launch.`,
         nonce: 'push-dm',
         serverId,
@@ -56,11 +58,11 @@ test('a DM message pushes its other member with the routing payload', async () =
                     badge: await unreadChatCount(fixture.owner, [serverId]),
                     'mutable-content': 1,
                     sound: 'default',
-                    'thread-id': dmChatId,
+                    'thread-id': captainChatId,
                 },
-                chatId: dmChatId,
+                chatId: captainChatId,
                 conversation: { kind: 'dm', name: null },
-                conversationChatId: dmChatId,
+                conversationChatId: captainChatId,
                 messageId: sent.message.id,
                 reason: 'dm',
                 sender: { avatarUrl: null, id: fixture.peerUserId, kind: 'human', name: 'Bo' },
@@ -149,10 +151,11 @@ test('an inline reply pushes the author of the message it answers, never the roo
 
 test('every DM message pushes, whether or not the human read or answered the last one', async () => {
     const { owner, ownerUserId, peer, serverId } = fixture;
-    const dmChatId = (await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId }))
-        .id;
+    const captainChatId = (
+        await peer.trpc.chat.ensureDm.mutate({ peerUserId: ownerUserId, serverId })
+    ).id;
     const first = await peer.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'First nudge.',
         nonce: 'push-dm-every-1',
         serverId,
@@ -163,12 +166,12 @@ test('every DM message pushes, whether or not the human read or answered the las
 
     // Reading the DM clears it from the badge but never stops the next push.
     await owner.trpc.chat.markRead.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         sequence: first.message.sequence,
         serverId,
     });
     const second = await peer.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Second nudge.',
         nonce: 'push-dm-every-2',
         serverId,
@@ -190,14 +193,17 @@ test('a Channel message that names nobody pushes nobody', async () => {
     expect(await sender.sentFor(sent.message.id, 0)).toEqual([]);
 });
 
-test('an Agent DM pushes its human, and APNs calling a token gone deletes it', async () => {
+test('a Captain chat pushes its subscribed owner, and APNs calling a token gone deletes it', async () => {
     const { harness, mintRunner, orbitAgentId, owner, sendAgentMessage, serverId } = fixture;
-    const dmChatId = (
-        await owner.trpc.chat.ensureAgentDm.mutate({ agentId: orbitAgentId, serverId })
-    ).id;
+    const captainChatId = (await openCaptainChat(owner, { agentId: orbitAgentId, serverId })).id;
     sender.outcomes.set(adaToken, { kind: 'device-gone', reason: 'Unregistered' });
-    const orbit = await mintRunner(orbitAgentId, 'run_push_dm', dmChatId);
-    const sent = await sendAgentMessage(orbit, 'dm:@ada', 'push-agent-dm', 'Should I run it?');
+    const orbit = await mintRunner(orbitAgentId, 'run_push_dm', captainChatId);
+    const sent = await sendAgentMessage(
+        orbit,
+        'captain:@orbit',
+        'push-agent-dm',
+        'Should I run it?'
+    );
 
     const pushes = await sender.sentFor(sent.messageId, 1);
     expect(pushes.map((push) => push.payload.aps.alert)).toEqual([

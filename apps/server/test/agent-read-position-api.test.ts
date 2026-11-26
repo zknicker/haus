@@ -1,12 +1,13 @@
 import { beforeAll, expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 
 const fixture = agentCreationFixture();
-let dmChatId: string;
+let captainChatId: string;
 
 beforeAll(async () => {
-    dmChatId = (
-        await fixture.owner.trpc.chat.ensureAgentDm.mutate({
+    captainChatId = (
+        await openCaptainChat(fixture.owner, {
             agentId: fixture.orbitAgentId,
             serverId: fixture.serverId,
         })
@@ -14,13 +15,13 @@ beforeAll(async () => {
 });
 
 test("an Agent's own send reads through its message, which message read --unread starts after", async () => {
-    const runner = await fixture.mintRunner('run_read_position_own', undefined, dmChatId);
-    const { sequence } = await agentSend(runner, 'dm:@ada', 'read_position_own');
-    expect(await readPosition(dmChatId)).toBe(sequence);
+    const runner = await fixture.mintRunner('run_read_position_own', undefined, captainChatId);
+    const { sequence } = await agentSend(runner, 'captain:@orbit', 'read_position_own');
+    expect(await readPosition(captainChatId)).toBe(sequence);
 
     const anchored = await agentGet(runner, '/api/agent/history', {
         after: '1',
-        target: 'dm:@ada',
+        target: 'captain:@orbit',
         unread: 'true',
     });
     expect(anchored).toMatchObject({
@@ -31,7 +32,7 @@ test("an Agent's own send reads through its message, which message read --unread
         status: 400,
     });
     const unread = await agentGet(runner, '/api/agent/history', {
-        target: 'dm:@ada',
+        target: 'captain:@orbit',
         unread: 'true',
     });
     expect(unread).toMatchObject({
@@ -45,19 +46,19 @@ test("an Agent's own send reads through its message, which message read --unread
     });
 });
 
-test('an Agent send into a DM leaves the human message it never saw unread', async () => {
-    const human = await humanSend(dmChatId, 'Did you see the incident report?', 'dm_unseen_1');
-    const runner = await fixture.mintRunner('run_read_position_dm', undefined, dmChatId);
-    const sent = await agentSend(runner, 'dm:@ada', 'read_position_dm');
+test('an Agent send into its Captain chat leaves the human message it never saw unread', async () => {
+    const human = await humanSend(captainChatId, 'Did you see the incident report?', 'dm_unseen_1');
+    const runner = await fixture.mintRunner('run_read_position_dm', undefined, captainChatId);
+    const sent = await agentSend(runner, 'captain:@orbit', 'read_position_dm');
 
-    expect(await readPosition(dmChatId)).toBe(human.sequence - 1);
+    expect(await readPosition(captainChatId)).toBe(human.sequence - 1);
     const inbox = await agentGet(runner, '/api/agent/inbox/conversations', {});
     expect(inbox.body.items).toEqual([
-        expect.objectContaining({ chatId: dmChatId, target: 'dm:@ada', unread: 1 }),
+        expect.objectContaining({ chatId: captainChatId, target: 'captain:@orbit', unread: 1 }),
     ]);
 
     const unread = await agentGet(runner, '/api/agent/history', {
-        target: 'dm:@ada',
+        target: 'captain:@orbit',
         unread: 'true',
     });
     expect(unread.body.messages?.map((message) => message.id)).toEqual([human.id, sent.id]);
@@ -67,7 +68,7 @@ test('an Agent send into a DM leaves the human message it never saw unread', asy
         read_through_seq: sent.sequence,
         unread_after_seq: human.sequence - 1,
     });
-    expect(await readPosition(dmChatId)).toBe(sent.sequence);
+    expect(await readPosition(captainChatId)).toBe(sent.sequence);
 });
 
 test('claim create leaves an unseen channel message unread, and a plain read reports the pre-read position', async () => {

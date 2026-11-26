@@ -65,12 +65,12 @@ async function agentReadsChat(
     input: { agentId: string; chatId: string; serverId: string }
 ): Promise<boolean> {
     const [chat] = await db
-        .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
+        .select({ captainAgentId: chatsTable.captainAgentId, kind: chatsTable.kind })
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
         .limit(1);
     if (!chat) {
         return false;
     }
-    return chat.kind !== 'dm' || chat.dmAgentId === input.agentId;
+    return chat.kind === 'captain' ? chat.captainAgentId === input.agentId : chat.kind !== 'dm';
 }

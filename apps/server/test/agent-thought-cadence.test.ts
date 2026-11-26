@@ -114,7 +114,7 @@ test('a steered message drops the held line of the request it supersedes', async
         connection.db,
         run.seed,
         run.delivery,
-        run.seed.dmChatId,
+        run.seed.captainChatId,
         'Also, is staging up?'
     );
     await attestAgentEvents(connection.db, run.runner as never, [steered], { composed: true });

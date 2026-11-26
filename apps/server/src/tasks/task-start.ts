@@ -4,22 +4,17 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { sendAgentMessage } from '../chats/send-agent-message.ts';
 import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable } from '../postgres/schema.ts';
+import { agentsTable, reposTable } from '../postgres/schema.ts';
 import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { requireTaskActor } from './task-actor.ts';
-import { TaskInvariantError } from './task-errors.ts';
+import { TaskInvariantError, TaskRefusalError } from './task-errors.ts';
 import { prepareTaskCreatedEvent } from './task-events.ts';
 import { requireStartOrigin } from './task-origin.ts';
 import { readTask } from './task-read.ts';
 import { chooseTaskSession } from './task-session-choice.ts';
 import { assignStartIssue, readStartIssue } from './task-start-issue.ts';
-import {
-    insertStartedTask,
-    queueTaskTurn,
-    readStartedByRequest,
-    unfollowAsCaptain,
-} from './task-start-record.ts';
+import { insertStartedTask, readStartedByRequest, unfollowAsCaptain } from './task-start-record.ts';
 import { autoTaskTitle } from './task-title.ts';
 import type { TaskWriteResult } from './task-write-result.ts';
 
@@ -33,6 +28,7 @@ export interface StartCrewTaskInput {
     machine?: string;
     model?: string;
     origin: { chatId: string; messageId: string } | null;
+    repo?: { name: string; ref: string | null };
     requestId?: string;
     runId: string;
     serverId: string;
@@ -85,10 +81,12 @@ export async function startCrewTask(
                 'You don’t have Agent access to that Machine, so no Task started. Its attacher can give you access in Settings → Devices.'
             );
         }
+        const repo = input.repo ? await requireServerRepo(tx, serverId, input.repo) : null;
         const record = await insertStartedTask(tx, {
             captainId: captain.id,
             origin,
             projectId: captain.homeProjectId,
+            repo,
             requestId: input.requestId ?? null,
             serverId,
             session,
@@ -112,17 +110,6 @@ export async function startCrewTask(
             deps.agentDelivery
         );
         await unfollowAsCaptain(tx, { captainId: captain.id, chatId: record.chatId, serverId });
-        await queueTaskTurn(tx, deps.agentDelivery, {
-            agentId: record.agentId,
-            chatId: record.chatId,
-            message: {
-                content: brief.message.content,
-                id: brief.receipt.messageId,
-                sequence: brief.receipt.sequence,
-            },
-            serverId,
-            source: `agent:${captain.handle}`,
-        });
         const issueEvents = issue
             ? await assignStartIssue(tx, issue, { captainId: captain.id, taskId: record.taskId })
             : [];
@@ -130,7 +117,7 @@ export async function startCrewTask(
         const result: TaskWriteResult = {
             ...started,
             events: [...started.events, ...brief.events, ...issueEvents],
-            wakes: [{ agentId: record.agentId, serverId }, ...brief.wakes],
+            wakes: brief.wakes,
         };
         return { kind: 'started', result } as const;
     });
@@ -158,10 +145,31 @@ async function requireCaptain(tx: Tx, input: { captainId: string; serverId: stri
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.captainId)))
         .limit(1);
     if (captain?.kind !== 'captain') {
-        throw new TaskInvariantError('Tasks never start Tasks. Ask your Captain to start one.');
+        throw new TaskRefusalError(
+            'TASK_START_NOT_CAPTAIN',
+            'Tasks never start Tasks. Ask your Captain to start one.'
+        );
     }
     if (!captain.homeProjectId) {
         throw new TaskInvariantError('You have no home Project to start a Task in.');
     }
     return { ...captain, homeProjectId: captain.homeProjectId };
+}
+
+async function requireServerRepo(
+    tx: Tx,
+    serverId: string,
+    repo: { name: string; ref: string | null }
+) {
+    const [known] = await tx
+        .select({ repository: reposTable.repository })
+        .from(reposTable)
+        .where(and(eq(reposTable.serverId, serverId), eq(reposTable.repository, repo.name)))
+        .limit(1);
+    if (!known) {
+        throw new TaskInvariantError(
+            `${repo.name} is not one of this Server's repos, so no Task started. haus repo list names them.`
+        );
+    }
+    return repo;
 }

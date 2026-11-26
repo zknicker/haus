@@ -1,62 +1,53 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
-import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
+import { and, eq } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { serverMembershipsTable } from '../postgres/schema.ts';
-import {
-    AgentTargetError,
-    MessageTargetRefusedError,
-    resolveAgentTarget,
-} from './resolve-target.ts';
+import { agentsTable, chatsTable, tasksTable } from '../postgres/schema.ts';
+import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
 
 /**
- * Send-only resolver: beyond the strict targets an Agent may already read, a
- * send may open the DM with a human it has not written to yet. A DM is between
- * a human and an Agent, so `dm:@<agent-handle>` resolves to nothing here.
+ * Send-only resolver (ADR 0062): an agent reads any Captain or Task chat, but sends with
+ * `message send` only into its own. Other agents reach a Task with `haus task send`, and a Task
+ * agent posts nowhere but its own chat.
  */
 export async function resolveAgentSendTarget(
     db: HausDatabase,
     runner: ResolvedRunner,
     target: string
 ): Promise<string> {
-    try {
-        return await resolveAgentTarget(db, runner, target);
-    } catch (cause) {
-        if (!(cause instanceof AgentTargetError) || cause instanceof MessageTargetRefusedError) {
-            throw cause;
-        }
+    const chatId = await resolveAgentTarget(db, runner, target);
+    const [chat] = await db
+        .select({
+            captainAgentId: chatsTable.captainAgentId,
+            kind: chatsTable.kind,
+            taskAgentId: tasksTable.agentId,
+        })
+        .from(chatsTable)
+        .leftJoin(
+            tasksTable,
+            and(eq(tasksTable.serverId, chatsTable.serverId), eq(tasksTable.chatId, chatsTable.id))
+        )
+        .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, chatId)))
+        .limit(1);
+    const [sender] = await db
+        .select({ kind: agentsTable.kind })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
+        .limit(1);
+    if (!(chat && sender)) {
+        throw new AgentTargetError();
     }
-
-    const directHumanHandle = parseDirectHumanHandle(target);
-    if (directHumanHandle) {
-        const [human] = await db
-            .select({ userId: serverMembershipsTable.userId })
-            .from(serverMembershipsTable)
-            .where(
-                and(
-                    eq(serverMembershipsTable.serverId, runner.serverId),
-                    sql`lower(${serverMembershipsTable.handle}) = lower(${directHumanHandle})`,
-                    isNull(serverMembershipsTable.revokedAt)
-                )
-            )
-            .limit(2);
-        if (human) {
-            return (
-                await ensureAgentDmRecord(db, {
-                    agentId: runner.agentId,
-                    serverId: runner.serverId,
-                    userId: human.userId,
-                })
-            ).id;
-        }
+    if (chat.kind === 'captain' && chat.captainAgentId !== runner.agentId) {
+        throw new AgentTargetError(
+            'Only that Captain posts in its chat. Reach it with an @mention in a Project chat.'
+        );
     }
-    throw new AgentTargetError();
-}
-
-function parseDirectHumanHandle(target: string) {
-    if (!target.startsWith('dm:@')) {
-        return null;
+    if (chat.kind === 'task' && chat.taskAgentId !== runner.agentId) {
+        throw new AgentTargetError(
+            `Only that Task posts in its own chat. Message it with haus task send <id>.`
+        );
     }
-    const value = target.slice('dm:@'.length);
-    return value && !value.includes(':') ? value : null;
+    if (sender.kind === 'task' && chat.kind !== 'task') {
+        throw new AgentTargetError('A Task posts only in its own chat.');
+    }
+    return chatId;
 }

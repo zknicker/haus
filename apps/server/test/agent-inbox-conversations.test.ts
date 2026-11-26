@@ -52,25 +52,25 @@ test('each conversation that reaches the Agent with someone else unread is one r
     });
     await postMessage(db, seed, { chatId: seed.channelId, agentId: seed.agentId });
     await postMessage(db, seed, { chatId: task.chatId, agentId: peerId });
-    await postMessage(db, seed, { chatId: seed.dmChatId });
-    await postMessage(db, seed, { chatId: seed.dmChatId, agentId: seed.agentId });
+    await postMessage(db, seed, { chatId: seed.captainChatId });
+    await postMessage(db, seed, { chatId: seed.captainChatId, agentId: seed.agentId });
 
     const inbox = await listAgentInboxConversations(db, readerRunner(seed), unreadView);
 
     expect(agentInboxConversationsResponseSchema.parse(inbox)).toEqual(inbox);
     expect(inbox.items.map(({ kind, target, unread }) => ({ kind, target, unread }))).toEqual([
-        { kind: 'dm', target: `dm:@${seed.humanHandle}`, unread: 1 },
+        { kind: 'captain', target: `captain:@${seed.agentHandle}`, unread: 1 },
         { kind: 'task', target: task.target, unread: 1 },
         // The Agent's own message is not unread.
         { kind: 'channel', target: '#product', unread: 1 },
     ]);
     expect(inbox.items[0]).toMatchObject({
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         lastReadSequence: 0,
         latestSenderHandle: expect.stringMatching(/^ada-/u),
         mentions: 0,
     });
-    expect(inbox.totals).toEqual({ conversations: 3, dms: 1, mentions: 0 });
+    expect(inbox.totals).toEqual({ conversations: 3, mentions: 0 });
     expect(inbox).toMatchObject({ hasMore: false, nextBefore: null, view: 'unread' });
 });
 
@@ -91,7 +91,7 @@ test('read positions, unfollowed Tasks elsewhere, and unheard channels stay out 
     const inbox = await listAgentInboxConversations(db, readerRunner(seed), unreadView);
 
     expect(inbox.items).toEqual([]);
-    expect(inbox.totals).toEqual({ conversations: 0, dms: 0, mentions: 0 });
+    expect(inbox.totals).toEqual({ conversations: 0, mentions: 0 });
 });
 
 test('a home Task does not list without a follow', async () => {
@@ -127,7 +127,7 @@ test('a channel outside the home counts only what reached the Agent', async () =
     expect(inbox.items).toEqual([
         expect.objectContaining({ mentions: 1, target: '#elsewhere', unread: 1 }),
     ]);
-    expect(inbox.totals).toEqual({ conversations: 1, dms: 0, mentions: 1 });
+    expect(inbox.totals).toEqual({ conversations: 1, mentions: 1 });
     // The unheard backlog is never counted, not merely hidden.
     const rows = (await db.execute(conversationsSql(readerRunner(seed)))) as Array<{
         outside: boolean;
@@ -140,9 +140,12 @@ test('the mentions view keeps only mentioned rows while totals cover every row',
     const db = connection.db;
     const seed = await seedReader(db);
     await postMessage(db, seed, { chatId: seed.channelId, mentioned: true });
-    const mentionedPast = await postMessage(db, seed, { chatId: seed.dmChatId, mentioned: true });
-    await setReadPosition(db, seed, seed.dmChatId, mentionedPast.sequence);
-    await postMessage(db, seed, { chatId: seed.dmChatId });
+    const mentionedPast = await postMessage(db, seed, {
+        chatId: seed.captainChatId,
+        mentioned: true,
+    });
+    await setReadPosition(db, seed, seed.captainChatId, mentionedPast.sequence);
+    await postMessage(db, seed, { chatId: seed.captainChatId });
 
     const inbox = await listAgentInboxConversations(db, readerRunner(seed), {
         ...unreadView,
@@ -151,7 +154,7 @@ test('the mentions view keeps only mentioned rows while totals cover every row',
 
     // A mention at or below the read position no longer counts.
     expect(inbox.items).toEqual([expect.objectContaining({ mentions: 1, target: '#product' })]);
-    expect(inbox.totals).toEqual({ conversations: 2, dms: 1, mentions: 1 });
+    expect(inbox.totals).toEqual({ conversations: 2, mentions: 1 });
     expect(inbox.view).toBe('mentions');
 });
 

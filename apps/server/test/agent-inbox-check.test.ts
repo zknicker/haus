@@ -26,7 +26,7 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
     const seed = await seedAgent(connection.db);
     // Offline Computer: every enqueue plans nothing, so the rows stay queued.
     const delivery = new AgentDelivery(connection.db, new FakeTransport());
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     const claimMessageId = await deliverMention(delivery, seed);
     await connection.db.insert(messageClaimsTable).values({
         chatId: seed.channelId,
@@ -53,7 +53,6 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
     expect(inbox.rows.find((row) => row.target === '#product')).toEqual({
         chatId: seed.channelId,
         workerResult: false,
-        dm: false,
         // The fire after it has no Chat message; the first pending message does.
         firstSequence: await sequenceOf(claimMessageId),
         firstShortId: claimMessageId.slice(4, 12),
@@ -64,8 +63,7 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
         target: '#product',
         claimNumber: null,
     });
-    expect(inbox.rows.find((row) => row.target.startsWith('dm:'))).toMatchObject({
-        dm: true,
+    expect(inbox.rows.find((row) => row.target.startsWith('captain:'))).toMatchObject({
         latestSender: seed.humanHandle,
         mentioned: false,
         pendingCount: 1,

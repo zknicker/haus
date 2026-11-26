@@ -37,8 +37,8 @@ export async function resolveClaimAssignee(
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, chatId)))
         .limit(1);
-    if (chat?.kind === 'dm' && agent.id !== runner.agentId) {
-        throw new AgentClaimError('A claim in a DM can be assigned only to its Agent.');
+    if (chat?.kind === 'captain' && agent.id !== runner.agentId) {
+        throw new AgentClaimError('A claim in a Captain chat can be assigned only to its Captain.');
     }
     return agent.id;
 }

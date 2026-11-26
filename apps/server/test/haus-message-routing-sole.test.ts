@@ -1,6 +1,7 @@
 import { beforeAll, expect, test } from 'bun:test';
 import type { MessageRouter, RoutingDecision, RoutingState } from '../src/message-routing/jev.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 
 const calls: RoutingState[] = [];
 let judge: (state: RoutingState) => Promise<RoutingDecision> = async () => {
@@ -60,7 +61,7 @@ test('mentions, inline replies and DMs keep their own deterministic reasons', as
     const reply = await send('And the export.', { replyToMessageId: mention.message.id });
     expect((await audit(reply.message.id))?.bypassReason).toBe('reply');
     expect((await inbox(reply.message.id))[0]?.addressedReason).not.toBe('sole');
-    const dm = await fixture.owner.trpc.chat.ensureAgentDm.mutate({
+    const dm = await openCaptainChat(fixture.owner, {
         agentId: fixture.orbitAgentId,
         serverId: fixture.serverId,
     });
@@ -70,7 +71,7 @@ test('mentions, inline replies and DMs keep their own deterministic reasons', as
         content: 'Research pricing.',
         nonce: 'sole_dm',
     });
-    expect((await inbox(direct.message.id))[0]?.addressedReason).toBe('dm');
+    expect((await inbox(direct.message.id))[0]?.addressedReason).toBe('captain_chat');
     expect(calls).toHaveLength(0);
 });
 
