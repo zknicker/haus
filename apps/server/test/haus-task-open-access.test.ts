@@ -71,9 +71,7 @@ test('an Agent outside #ops reads a filed Task there, posts in it, and archives 
     });
     expect(sent).toMatchObject({ body: { state: 'sent' }, status: 200 });
     const reply = await humanSend(task.chatId ?? '', 'The old key expires Friday.');
-    expect(await inboxAgentsFor(reply.message.id)).toEqual(
-        [opsAgentId, fixture.peerAgentId].toSorted()
-    );
+    expect(await inboxAgentsFor(reply.message.id)).toEqual([fixture.peerAgentId]);
 
     expect(await historyContents(peer, target)).toEqual({
         contents: ['Picking this up now.', 'The old key expires Friday.'],

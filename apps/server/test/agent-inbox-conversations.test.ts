@@ -94,7 +94,7 @@ test('read positions, unfollowed Tasks elsewhere, and unheard channels stay out 
     expect(inbox.totals).toEqual({ conversations: 0, dms: 0, mentions: 0 });
 });
 
-test('a home Task lists without a follow', async () => {
+test('a home Task does not list without a follow', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
     const peerId = await addPeerAgent(db, seed);
@@ -108,9 +108,7 @@ test('a home Task lists without a follow', async () => {
 
     const inbox = await listAgentInboxConversations(db, readerRunner(seed), unreadView);
 
-    expect(inbox.items.map(({ target, unread }) => ({ target, unread }))).toEqual([
-        { target: task.target, unread: 1 },
-    ]);
+    expect(inbox.items).toEqual([]);
 });
 
 test('a channel outside the home counts only what reached the Agent', async () => {

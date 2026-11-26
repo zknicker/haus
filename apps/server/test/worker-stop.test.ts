@@ -11,7 +11,7 @@ import {
 } from '../src/workers/worker-operations.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
-import { addPeerAgent } from './task-delivery-fixture.ts';
+import { addPeerAgent } from './issue-delivery-fixture.ts';
 import {
     observe,
     readTurns,

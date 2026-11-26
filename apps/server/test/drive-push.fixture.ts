@@ -5,9 +5,11 @@ import {
     drivePushCloseResultSchema,
     drivePushOutcomeSchema,
 } from '@haus/api';
+import { sql } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { recordRunTrigger } from '../src/server-agents/record-agent-turn.ts';
-import { taskAssignmentKey } from '../src/tasks/task-assignment-envelope.ts';
+import { randomShortId } from '../src/tasks/task-short-id.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 
@@ -36,18 +38,28 @@ export function drivePushFixture(
 
     async function dispatch(runId: string, options: { agentId?: string; taskId?: string } = {}) {
         const agentId = options.agentId ?? fixture.orbitAgentId;
+        const chatId = options.taskId ? await taskChat(options.taskId) : fixture.channelId;
         await recordRunTrigger(
             connection.db,
             { agentId, runId, serverId: fixture.serverId },
-            options.taskId
-                ? {
-                      chatId: null,
-                      dedupeKey: taskAssignmentKey(options.taskId, 1),
-                      source: 'task_assignment',
-                  }
-                : { chatId: fixture.channelId, dedupeKey: `wake_${runId}`, source: 'chat' }
+            { chatId, dedupeKey: `wake_${runId}`, source: 'chat' }
         );
         return await fixture.mintRunner(runId, agentId, fixture.channelId, false);
+    }
+
+    async function taskChat(taskId: string) {
+        const chatId = createOpaqueId('cht');
+        await connection.db.execute(sql`
+            insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind)
+            values (${chatId}, ${fixture.serverId}, 'task', ${fixture.channelId}, 'channel')
+        `);
+        await connection.db.execute(sql`
+            insert into tasks (id, server_id, short_id, title, chat_id, created_by_agent_id,
+                project_id)
+            values (${taskId}, ${fixture.serverId}, ${randomShortId()}, ${taskId}, ${chatId},
+                ${fixture.orbitAgentId}, ${fixture.channelId})
+        `);
+        return chatId;
     }
 
     async function put(
