@@ -1,7 +1,7 @@
 import type { AgentTaskRefusalCode } from '@haus/api';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable, chatMessagesTable, chatsTable, tasksTable } from '../postgres/schema.ts';
 import { TaskInvariantError } from '../tasks/task-errors.ts';
 
 export class TaskRecurringReminderError extends Error {
@@ -36,6 +36,37 @@ export async function readTaskReminderAnchor(
         );
     }
     return { anchorChatId: input.chatId, anchorMessageId: newest.id };
+}
+
+/**
+ * A reminder anchored in a Task's chat belongs to the Task's agent, whoever set it, so its fire
+ * wakes the Task and not its Captain (specs/tasks.md#reminders-on-a-task). A Task agent sets
+ * reminders only in its own chat, so anywhere else it has no owner (null).
+ */
+export async function readReminderOwner(
+    db: Pick<HausDatabase, 'select'>,
+    input: { agentId: string; anchorChatId: string; serverId: string }
+) {
+    const [anchorTask] = await db
+        .select({ agentId: tasksTable.agentId })
+        .from(tasksTable)
+        .where(
+            and(
+                eq(tasksTable.serverId, input.serverId),
+                eq(tasksTable.chatId, input.anchorChatId),
+                isNotNull(tasksTable.agentId)
+            )
+        )
+        .limit(1);
+    if (anchorTask?.agentId) {
+        return anchorTask.agentId;
+    }
+    const [setter] = await db
+        .select({ kind: agentsTable.kind })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
+        .limit(1);
+    return setter?.kind === 'task' ? null : input.agentId;
 }
 
 export async function refuseRecurringTaskReminder(

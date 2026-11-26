@@ -11,6 +11,7 @@ import {
     updateReminder,
 } from '../reminders/reminders.ts';
 import {
+    readReminderOwner,
     readTaskReminderAnchor,
     refuseRecurringTaskReminder,
 } from '../reminders/task-reminders.ts';
@@ -48,10 +49,20 @@ export async function scheduleAgentReminder(
         repeat: input.repeat,
         serverId: runner.serverId,
     });
+    const owner = await readReminderOwner(db, {
+        agentId: runner.agentId,
+        anchorChatId: anchor.anchorChatId,
+        serverId: runner.serverId,
+    });
+    if (!owner) {
+        throw new AgentTargetError(
+            'A Task sets reminders only in its own chat. Use --target task:<your short id>.'
+        );
+    }
     const fireAt = input.fireAt === undefined ? undefined : new Date(input.fireAt);
     const result = await scheduleReminder(
         db,
-        runner.agentId,
+        owner,
         {
             ...anchor,
             commandId: input.commandId,
