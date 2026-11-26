@@ -29,7 +29,7 @@ export function SkillList({
     skillSources: ImportableSkill[];
 }) {
     return (
-        <ItemCardGroup variant="transparent">
+        <ItemCardGroup className="item-card-group--profile" variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>
                     Skills

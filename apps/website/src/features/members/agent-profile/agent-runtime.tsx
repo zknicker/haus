@@ -1,10 +1,16 @@
 import { type Agent, agentReasoningEffortLabels } from '@haus/api';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button, Chip, Separator } from '@heroui/react';
+import { ItemCard } from '@heroui-pro/react';
+import { Button, Separator } from '@heroui/react';
 import * as React from 'react';
 import { useAgentRuntime } from '../../../hooks/members/use-agent-runtime.ts';
 import { useModelConnections } from '../../../hooks/servers/use-model-connections.ts';
+import {
+    SettingsStatusChip,
+    SettingsStatusTitle,
+} from '../../settings/layout/settings-row-title.tsx';
+import { SettingsFact } from '../../settings/layout/settings-text.tsx';
 import { AgentModelConnectionRow } from './agent-model-connection-row.tsx';
+import { ProfileListSection } from './profile-list-section.tsx';
 import { RuntimeDialog } from './runtime-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-model.ts';
 
@@ -29,44 +35,50 @@ export function AgentRuntime({
 
     return (
         <>
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Model</ItemCardGroup.Title>
-                    {canEdit ? (
+            <ProfileListSection
+                action={
+                    canEdit ? (
                         <Button onPress={() => setOpen(true)} size="sm" variant="secondary">
                             Edit
                         </Button>
-                    ) : null}
-                </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
-                    <ExecutionRow
-                        color={execution.model ? 'accent' : 'warning'}
-                        label="Model"
-                        value={
-                            execution.model
-                                ? execution.modelLabel
-                                : `${execution.modelLabel} · not installed`
-                        }
-                    />
-                    <Separator />
-                    <AgentModelConnectionRow agent={agent} canEdit={canEdit} />
-                    <ExecutionRow
-                        color="default"
-                        label="Reasoning effort"
-                        value={agentReasoningEffortLabels[agent.desiredReasoningEffort]}
-                    />
-                    {agent.status === 'applied' ? null : (
-                        <>
-                            <Separator />
-                            <ExecutionRow
-                                color={agent.status === 'degraded' ? 'danger' : 'warning'}
-                                label="Status"
-                                value={runtimeConfigStatusLabel(agent, computerHealth)}
-                            />
-                        </>
-                    )}
-                </ItemCardGroup>
-            </ItemCardGroup>
+                    ) : null
+                }
+                title="Model"
+            >
+                <ExecutionRow
+                    label="Model"
+                    problem={execution.model ? undefined : 'Not installed'}
+                    value={execution.modelLabel}
+                />
+                <Separator />
+                <AgentModelConnectionRow agent={agent} canEdit={canEdit} />
+                <ExecutionRow
+                    label="Reasoning effort"
+                    value={agentReasoningEffortLabels[agent.desiredReasoningEffort]}
+                />
+                {agent.status === 'applied' ? null : (
+                    <>
+                        <Separator />
+                        <ItemCard>
+                            <ItemCard.Content>
+                                <SettingsStatusTitle
+                                    status={
+                                        <SettingsStatusChip
+                                            color={
+                                                agent.status === 'degraded' ? 'danger' : 'warning'
+                                            }
+                                        >
+                                            {runtimeConfigStatusLabel(agent, computerHealth)}
+                                        </SettingsStatusChip>
+                                    }
+                                >
+                                    Status
+                                </SettingsStatusTitle>
+                            </ItemCard.Content>
+                        </ItemCard>
+                    </>
+                )}
+            </ProfileListSection>
             <RuntimeDialog
                 agent={agent}
                 connections={modelConnections?.connections ?? []}
@@ -85,28 +97,34 @@ export function AgentRuntime({
 }
 
 /**
- * One resolved execution fact. These were a wrapping row of labelled chips,
- * which read as a summary strip rather than as the settings rows they are —
- * a named thing on the left, its current value on the right.
+ * One resolved execution fact: a named thing on the left, its current value
+ * on the right. A healthy value is a plain fact; only a problem earns a chip,
+ * beside the title (Settings copy rule 4).
  */
 function ExecutionRow({
-    color,
     label,
+    problem,
     value,
 }: {
-    color: React.ComponentProps<typeof Chip>['color'];
     label: string;
+    problem?: string;
     value: string;
 }) {
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>{label}</ItemCard.Title>
+                {problem ? (
+                    <SettingsStatusTitle
+                        status={<SettingsStatusChip color="warning">{problem}</SettingsStatusChip>}
+                    >
+                        {label}
+                    </SettingsStatusTitle>
+                ) : (
+                    <ItemCard.Title>{label}</ItemCard.Title>
+                )}
             </ItemCard.Content>
             <ItemCard.Action>
-                <Chip color={color} size="sm" variant="soft">
-                    <Chip.Label>{value}</Chip.Label>
-                </Chip>
+                <SettingsFact>{value}</SettingsFact>
             </ItemCard.Action>
         </ItemCard>
     );

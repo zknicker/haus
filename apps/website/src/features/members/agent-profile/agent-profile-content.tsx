@@ -1,12 +1,10 @@
 import type { Agent } from '@haus/api';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
-import { AgentUsageTile } from '../../usage/agent-usage-tile.tsx';
-import { AgentChats } from './agent-chats.tsx';
 import { AgentActivity, AgentAutomations, AgentWorkspace } from './agent-content.tsx';
 import { AgentDrive } from './agent-drive.tsx';
-import { AgentHomeProject } from './agent-home-project.tsx';
+import { AgentNeedsYou } from './agent-needs-you.tsx';
 import { AgentProfileCard } from './agent-profile-card.tsx';
-import { AgentRecentActivity } from './agent-recent-activity.tsx';
+import { AgentRecent } from './agent-recent.tsx';
 import type { AgentSection } from './agent-sections.ts';
 import {
     AgentConnectionsSection,
@@ -14,7 +12,7 @@ import {
     AgentRuntimeSection,
     AgentSkillsSection,
 } from './agent-setup-sections.tsx';
-import { AgentStalledClaims } from './agent-stalled-claims.tsx';
+import { AgentWorkingOn } from './agent-working-on.tsx';
 
 export { AgentWorkspace };
 
@@ -29,16 +27,14 @@ export function AgentHubContent({
 }) {
     return (
         <>
-            <AgentStalledClaims agent={agent} server={server} />
-            <AgentHomeProject agent={agent} />
-            <AgentChats agent={agent} server={server} />
-            <AgentDrive agent={agent} server={server} />
-            <AgentRecentActivity
+            <AgentNeedsYou agent={agent} server={server} />
+            <AgentWorkingOn agent={agent} server={server} />
+            <AgentRecent
                 agent={agent}
                 onSeeAll={() => onSectionChange('activity')}
                 server={server}
             />
-            <AgentUsageTile agent={agent} server={server} />
+            <AgentDrive agent={agent} server={server} />
         </>
     );
 }

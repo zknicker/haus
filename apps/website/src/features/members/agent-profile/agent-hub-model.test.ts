@@ -5,7 +5,19 @@ import {
     formatAutomationsFact,
     formatNameList,
     grantedAgentConnections,
+    isUnsetFact,
 } from './agent-hub-model.ts';
+
+test('a fact that names nothing reads as unset', () => {
+    expect(isUnsetFact(formatNameList([]))).toBe(true);
+    expect(
+        isUnsetFact(
+            formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 0, total: 0, workers: 0 })
+        )
+    ).toBe(true);
+    expect(isUnsetFact(formatNameList(['Atlas']))).toBe(false);
+    expect(isUnsetFact(undefined)).toBe(false);
+});
 
 test('the Automations count is what is still standing, not what has run', () => {
     const counts = countAgentAutomations(

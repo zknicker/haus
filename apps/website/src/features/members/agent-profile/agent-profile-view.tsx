@@ -69,7 +69,7 @@ export function AgentProfileView({
             {section === 'home' ? (
                 <>
                     <AgentHubBand agent={agent} />
-                    <PageColumn>
+                    <PageColumn className="gap-0 px-4 pt-4 @[52rem]:px-6 @[52rem]:pt-6">
                         <AgentHub
                             agent={agent}
                             onDeleted={onDeleted}
@@ -122,6 +122,8 @@ function AgentSectionContent({
 /**
  * Sections are document columns, except Activity: its log is a full-bleed
  * list whose rows run edge to edge under a band pinned to this scroll region.
+ * The setup sections are settings lists, so they take `settings-frame`: one
+ * row height and compact fields, as every Settings page has.
  */
 function SectionColumn({
     children,
@@ -133,7 +135,7 @@ function SectionColumn({
     return section === 'activity' ? (
         <div className="min-w-0 pb-16">{children}</div>
     ) : (
-        <PageColumn>{children}</PageColumn>
+        <PageColumn className="settings-frame">{children}</PageColumn>
     );
 }
 

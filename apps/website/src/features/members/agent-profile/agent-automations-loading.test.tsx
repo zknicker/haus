@@ -5,9 +5,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { testAgent } from '../agent-fixtures.ts';
-import { AgentChats } from './agent-chats.tsx';
 import { AgentAutomations } from './agent-content.tsx';
-import { AgentRecentActivity } from './agent-recent-activity.tsx';
+import { AgentRecent } from './agent-recent.tsx';
 
 test('pending profile lists keep headings and actions without premature empty states', () => {
     const queryClient = new QueryClient();
@@ -19,12 +18,7 @@ test('pending profile lists keep headings and actions without premature empty st
             <hausTrpc.Provider client={client} queryClient={queryClient}>
                 <MemoryRouter>
                     <AgentAutomations agent={testAgent()} server={server} />
-                    <AgentChats agent={testAgent()} server={server} />
-                    <AgentRecentActivity
-                        agent={testAgent()}
-                        onSeeAll={() => undefined}
-                        server={server}
-                    />
+                    <AgentRecent agent={testAgent()} onSeeAll={() => undefined} server={server} />
                 </MemoryRouter>
             </hausTrpc.Provider>
         </QueryClientProvider>
@@ -37,11 +31,9 @@ test('pending profile lists keep headings and actions without premature empty st
     expect(markup).toContain('aria-label="View reminder history"');
     expect(markup).not.toContain('Nothing scheduled');
     expect(markup).not.toContain('No triggers yet');
-    expect(markup).toContain('Chats</h');
-    expect(markup).toContain('Recent activity</h');
-    expect(markup).not.toContain('No chats yet');
+    expect(markup).not.toContain('Recent</h');
     expect(markup).not.toContain('No activity yet');
-    expect(markup.match(/aria-busy="true"/gu)).toHaveLength(5);
+    expect(markup.match(/aria-busy="true"/gu)).toHaveLength(3);
 });
 
 const server: ServerDetail = {

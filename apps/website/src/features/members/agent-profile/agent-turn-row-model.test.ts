@@ -8,6 +8,7 @@ import {
     groupTurnRowsByDay,
     resolveTurnRowTitle,
     turnChatActionLabel,
+    turnTriggerPlace,
 } from './agent-turn-row-model.ts';
 
 type SettledTurn = Extract<AgentActivityTurn, { kind: 'settled' }>;
@@ -34,6 +35,14 @@ test('a message turn is titled by its first line, with a DM labeled "DM", never 
     expect(resolveTurnRowTitle({ ...trigger, chatId: 'cht_product' }, chats)).toMatchObject({
         place: '#product',
     });
+});
+
+test('a turn names its Chat even when its trigger quotes no message', () => {
+    expect(turnTriggerPlace({ ...dmMessage, chatId: 'cht_product' }, chats)).toBe('#product');
+    expect(turnTriggerPlace(dmMessage, chats)).toBe('DM');
+    expect(turnTriggerPlace({ ...dmMessage, chatId: 'cht_gone' }, chats)).toBeNull();
+    expect(turnTriggerPlace({ kind: 'private' }, chats)).toBeNull();
+    expect(turnTriggerPlace(null, chats)).toBeNull();
 });
 
 test('a message turn title is plain text, never escaped Markdown', () => {

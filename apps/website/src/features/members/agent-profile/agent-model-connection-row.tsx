@@ -1,6 +1,6 @@
 import type { Agent, ModelConnection } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
-import { Description, Label, ListBox, Select, Separator } from '@heroui/react';
+import { buttonVariants, Description, Label, ListBox, Select, Separator } from '@heroui/react';
 import { Link, useParams } from 'react-router-dom';
 import { useAgentModelConnection } from '../../../hooks/members/use-agent-model-connection.ts';
 import { useModelConnections } from '../../../hooks/servers/use-model-connections.ts';
@@ -55,21 +55,15 @@ export function AgentConnectionControl({
     );
 
     if (choice.kind === 'none') {
-        return (
-            <SettingsFact>
-                No {choice.providerName} connection
-                {slug ? (
-                    <>
-                        {' · '}
-                        <Link
-                            className="text-accent underline"
-                            to={serverSettingsSectionRoute(slug, 'models')}
-                        >
-                            Settings → Models
-                        </Link>
-                    </>
-                ) : null}
-            </SettingsFact>
+        return slug ? (
+            <Link
+                className={buttonVariants({ size: 'sm', variant: 'secondary' })}
+                to={serverSettingsSectionRoute(slug, 'models')}
+            >
+                Connect {choice.providerName}
+            </Link>
+        ) : (
+            <SettingsFact>No {choice.providerName} connection</SettingsFact>
         );
     }
 
@@ -83,7 +77,7 @@ export function AgentConnectionControl({
     return (
         <Select
             aria-label={`${agent.displayName}'s ${choice.providerName} connection`}
-            className="w-48"
+            className="w-56"
             isDisabled={assignment.isPending}
             onChange={(key) => {
                 if (key !== choice.selectedKey) {

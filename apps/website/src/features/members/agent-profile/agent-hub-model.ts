@@ -44,7 +44,7 @@ export function formatAutomationsFact(counts: AgentAutomationCounts): string {
             ? `${counts.armedTriggers} ${pluralize(counts.armedTriggers, 'trigger')}`
             : null,
     ].filter((part): part is string => part !== null);
-    return parts.length > 0 ? parts.join(' · ') : 'Nothing scheduled';
+    return parts.length > 0 ? parts.join(' · ') : nothingScheduled;
 }
 
 /**
@@ -82,12 +82,20 @@ export function agentSkillNames(
  */
 export function formatNameList(names: readonly string[], visible = 2): string {
     if (names.length === 0) {
-        return 'None';
+        return noNames;
     }
     const shown = names.slice(0, visible).join(', ');
     const rest = names.length - visible;
     return rest > 0 ? `${shown} +${rest}` : shown;
 }
+
+/** A fact that says nothing is set, which the card reads muted. */
+export function isUnsetFact(fact: string | undefined) {
+    return fact === noNames || fact === nothingScheduled;
+}
+
+const noNames = 'None';
+const nothingScheduled = 'Nothing scheduled';
 
 function pluralize(count: number, singular: string): string {
     return count === 1 ? singular : `${singular}s`;

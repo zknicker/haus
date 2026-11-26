@@ -1,7 +1,8 @@
 import type { Agent } from '@haus/api';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ItemCard } from '@heroui-pro/react';
 import { Switch } from '@heroui/react';
 import { useAgentConnectionAdmin } from '../../../hooks/members/use-agent-connection-admin.ts';
+import { ProfileListSection } from './profile-list-section.tsx';
 
 /**
  * The Permissions page: what this Agent may manage for other Agents, one row
@@ -24,14 +25,9 @@ export function AgentPermissions({
     }
     // Its heading repeats the page's trail, as every sibling section's does.
     return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Permissions</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
-                <ManageConnectionsRow agent={agent} serverId={serverId} />
-            </ItemCardGroup>
-        </ItemCardGroup>
+        <ProfileListSection title="Permissions">
+            <ManageConnectionsRow agent={agent} serverId={serverId} />
+        </ProfileListSection>
     );
 }
 

@@ -10,6 +10,7 @@ import { AgentPermissions } from './agent-permissions.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
 import { canOpenAgentSection } from './agent-sections.ts';
 import { AgentSkills } from './agent-skills.tsx';
+import { ProfileListSection } from './profile-list-section.tsx';
 
 /**
  * The configuration drill-downs. Each owns its query and keeps its heading
@@ -107,14 +108,7 @@ export function AgentPermissionsSection({ agent, server }: { agent: Agent; serve
 
 /** A section that keeps its heading while its list is loading or unavailable. */
 function SectionShell({ children, title }: { children: React.ReactNode; title: string }) {
-    return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>{title}</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">{children}</ItemCardGroup>
-        </ItemCardGroup>
-    );
+    return <ProfileListSection title={title}>{children}</ProfileListSection>;
 }
 
 function SectionError({ message }: { message: string }) {

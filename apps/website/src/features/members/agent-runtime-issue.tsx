@@ -1,5 +1,5 @@
 import type { Agent } from '@haus/api';
-import { Alert } from '@heroui/react';
+import { Alert, buttonVariants } from '@heroui/react';
 import { Link, useParams } from 'react-router-dom';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useModelConnections } from '../../hooks/servers/use-model-connections.ts';
@@ -53,19 +53,16 @@ export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRest
                 <Alert.Title>{runtimeIssueLabel(issue.runtimeId)}</Alert.Title>
                 <Alert.Description>
                     Sign in on {computerLabel(computer)} to let {agent.displayName} continue.
-                    {slug ? (
-                        <>
-                            {' '}
-                            <Link
-                                className="text-accent underline"
-                                to={serverComputerRoute(slug, computer.id)}
-                            >
-                                View device
-                            </Link>
-                        </>
-                    ) : null}
                 </Alert.Description>
             </Alert.Content>
+            {slug ? (
+                <Link
+                    className={buttonVariants({ size: 'sm', variant: 'outline' })}
+                    to={serverComputerRoute(slug, computer.id)}
+                >
+                    View device
+                </Link>
+            ) : null}
         </Alert>
     );
 }
@@ -78,27 +75,34 @@ function AgentConnectionAlert({
     slug: string | undefined;
 }) {
     const fix = connectionIssueFix[issue.kind];
+    // One scanline: the problem, then its fix as the alert's trailing action,
+    // the way the wake-pause alert carries Restart.
     return (
         <Alert status="warning">
             <Alert.Indicator />
             <Alert.Content>
                 <Alert.Title>{connectionIssueTitle(issue)}</Alert.Title>
-                <Alert.Description>
-                    {issue.kind === 'failed'
-                        ? `${issue.connection.label}: ${issue.connection.statusDetail ?? 'the provider refused it.'} `
-                        : null}
-                    {slug ? (
-                        <Link
-                            className="text-accent underline"
-                            to={serverSettingsSectionRoute(slug, 'models')}
-                        >
-                            {fix}
-                        </Link>
-                    ) : (
-                        `${fix}.`
-                    )}
-                </Alert.Description>
+                {issue.kind === 'failed' ? (
+                    <Alert.Description>
+                        {`${issue.connection.label}: ${issue.connection.statusDetail ?? 'the provider refused it.'}`}
+                    </Alert.Description>
+                ) : null}
+                {slug ? null : <Alert.Description>{`${fix}.`}</Alert.Description>}
             </Alert.Content>
+            {slug ? (
+                <Link
+                    className={buttonVariants({ size: 'sm', variant: 'outline' })}
+                    to={serverSettingsSectionRoute(slug, 'models')}
+                >
+                    {connectionIssueAction[issue.kind]}
+                </Link>
+            ) : null}
         </Alert>
     );
 }
+
+const connectionIssueAction: Record<AgentConnectionIssue['kind'], string> = {
+    disabled: 'Turn on',
+    failed: 'Reconnect',
+    missing: 'Connect',
+};

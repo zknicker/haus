@@ -4,10 +4,12 @@ import {
     ArrowReloadHorizontalIcon,
     Delete02Icon,
     MoreHorizontalIcon,
+    PencilEdit02Icon,
     RefreshIcon,
     ShieldUserIcon,
     SparklesIcon,
     StopCircleIcon,
+    UserIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -29,8 +31,12 @@ const menuIconSize = 16;
 
 interface AgentActionsValue {
     disabledKeys: ReadonlySet<AgentAction>;
-    /** Opens Permissions, which has no hub card; null where the host or role offers none. */
+    /** Opens the Edit Profile popover; null where the host or role offers none. */
+    editProfile: (() => void) | null;
+    /** Opens Permissions, which has no card row; null where the host or role offers none. */
     openPermissions: (() => void) | null;
+    /** Opens the Profile section's settled facts; null where the host offers none. */
+    openProfile: (() => void) | null;
     run: (action: AgentAction) => void;
 }
 
@@ -44,9 +50,12 @@ const AgentActionsContext = React.createContext<AgentActionsValue | null>(null);
  * no role gate, so its queries never start for a Member.
  */
 export function AgentActionsMenu({
+    triggerRef,
     variant = 'secondary',
     ...props
 }: AgentActionsProps & {
+    /** The menu button, for a popover a menu item opens in its place. */
+    triggerRef?: React.RefObject<HTMLButtonElement | null>;
     /** `ghost` in the shell band, beside the band's other icon-only actions. */
     variant?: 'ghost' | 'secondary';
 }) {
@@ -57,6 +66,7 @@ export function AgentActionsMenu({
                     <Button
                         aria-label={`${props.agent.displayName} — Captain actions`}
                         isIconOnly
+                        ref={triggerRef}
                         size="sm"
                         variant={variant}
                     >
@@ -77,9 +87,11 @@ export function AgentActionsMenu({
 interface AgentActionsProps {
     agent: Agent;
     onDeleted: () => void;
+    /** When given, the menu leads with Edit profile. */
+    onEditProfile?: () => void;
     /**
      * The hub's section navigation. When given, the menu leads with the
-     * sections that have no hub card (Permissions), for the roles that may open them.
+     * sections that have no card row (Profile, Permissions), for the roles that may open them.
      */
     onOpenSection?: (section: AgentSection) => void;
     server: ServerDetail;
@@ -96,6 +108,7 @@ export function AgentActions({
     agent,
     children,
     onDeleted,
+    onEditProfile,
     onOpenSection,
     server,
 }: AgentActionsProps & { children: React.ReactNode }) {
@@ -134,9 +147,18 @@ export function AgentActions({
         onOpenSection && canOpenAgentSection('permissions', server.role)
             ? () => onOpenSection('permissions')
             : null;
+    const openProfile = onOpenSection ? () => onOpenSection('profile') : null;
 
     return (
-        <AgentActionsContext.Provider value={{ disabledKeys, openPermissions, run }}>
+        <AgentActionsContext.Provider
+            value={{
+                disabledKeys,
+                editProfile: onEditProfile ?? null,
+                openPermissions,
+                openProfile,
+                run,
+            }}
+        >
             {children}
             <AlertDialog isOpen={fullResetOpen} onOpenChange={setFullResetOpen}>
                 <AlertDialog.Backdrop isDismissable>
@@ -207,19 +229,37 @@ export function AgentActionsSections() {
         isDisabled: actions.disabledKeys.has(action),
         onAction: () => actions.run(action),
     });
+    const leads = [
+        {
+            icon: PencilEdit02Icon,
+            id: 'edit-profile',
+            label: 'Edit profile',
+            onAction: actions.editProfile,
+        },
+        { icon: UserIcon, id: 'profile', label: 'Profile', onAction: actions.openProfile },
+        {
+            icon: ShieldUserIcon,
+            id: 'permissions',
+            label: 'Permissions',
+            onAction: actions.openPermissions,
+        },
+    ].flatMap((lead) => (lead.onAction ? [{ ...lead, onAction: lead.onAction }] : []));
     return (
         <>
-            {actions.openPermissions ? (
+            {leads.length > 0 ? (
                 <>
                     <Dropdown.Section>
-                        <Dropdown.Item
-                            id="permissions"
-                            onAction={actions.openPermissions}
-                            textValue="Permissions"
-                        >
-                            <Icon aria-hidden="true" icon={ShieldUserIcon} size={menuIconSize} />
-                            <Label>Permissions</Label>
-                        </Dropdown.Item>
+                        {leads.map((lead) => (
+                            <Dropdown.Item
+                                id={lead.id}
+                                key={lead.id}
+                                onAction={lead.onAction}
+                                textValue={lead.label}
+                            >
+                                <Icon aria-hidden="true" icon={lead.icon} size={menuIconSize} />
+                                <Label>{lead.label}</Label>
+                            </Dropdown.Item>
+                        ))}
                     </Dropdown.Section>
                     <Separator orientation="horizontal" />
                 </>

@@ -5,6 +5,7 @@ import * as React from 'react';
 import type { EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
 import { EntityAvatar, identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { cn } from '../../lib/utils.ts';
 import type { AvatarImage } from './resize-avatar-image.ts';
 import { readAvatarImage } from './resize-avatar-image.ts';
 
@@ -14,6 +15,13 @@ export interface AvatarPickerProps {
      * its description (a disabled menu item cannot host a tooltip).
      */
     generateUnavailableReason?: string;
+    /**
+     * Lets a mark sit on its column's edge at any numeric size: the hover wash
+     * takes the avatar's own box instead of a `p-1` ring around it, and the
+     * camera badge shows only while the mark is hovered or focused. For record
+     * headers whose mark aligns with the content below.
+     */
+    isFlush?: boolean;
     isDisabled?: boolean;
     /** Noun the button and tooltip act on, e.g. `profile photo`. */
     label: string;
@@ -38,6 +46,7 @@ export interface AvatarPickerProps {
  */
 export function AvatarPicker({
     generateUnavailableReason,
+    isFlush = false,
     isDisabled,
     label,
     name,
@@ -71,25 +80,38 @@ export function AvatarPicker({
     // radius must be re-derived too: outer radius = the avatar's identity
     // radius + the p-1 inset, or the hover wash rounds differently than the
     // avatar inside it.
-    const forcesBox = typeof size === 'number' && size > 48;
+    const forcesBox = typeof size === 'number' && (size > 48 || isFlush);
     const trigger = (
         <Button
             aria-label={action}
-            className={forcesBox ? 'h-auto w-auto p-1' : undefined}
+            className={
+                forcesBox ? (isFlush ? 'group h-auto w-auto p-0' : 'h-auto w-auto p-1') : undefined
+            }
             isDisabled={isDisabled}
             isIconOnly
             onPress={onGenerate ? undefined : () => inputRef.current?.click()}
             size="lg"
             style={
                 forcesBox
-                    ? { borderRadius: `calc(${identityMarkRadius(size)} + var(--spacing))` }
+                    ? {
+                          borderRadius: isFlush
+                              ? identityMarkRadius(size)
+                              : `calc(${identityMarkRadius(size)} + var(--spacing))`,
+                      }
                     : undefined
             }
             variant="ghost"
         >
             <span className="relative">
                 <EntityAvatar name={name} size={size} src={src} />
-                <span className="bg-surface-secondary text-muted ring-background absolute -right-1.5 -bottom-1.5 inline-flex size-6 items-center justify-center rounded-full ring-2">
+                <span
+                    className={cn(
+                        'bg-surface-secondary text-muted absolute -right-1.5 -bottom-1.5 inline-flex size-6 items-center justify-center rounded-full ring-2',
+                        isFlush
+                            ? 'ring-surface opacity-0 transition-opacity group-aria-expanded:opacity-100 group-data-[focus-visible=true]:opacity-100 group-data-[hovered=true]:opacity-100'
+                            : 'ring-background'
+                    )}
+                >
                     <Icon className="size-4" icon={Camera01Icon} strokeWidth={2} />
                 </span>
             </span>

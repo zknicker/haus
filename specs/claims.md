@@ -105,7 +105,7 @@ delivery and cursor catch-up after reconnect.
 
 - Hosted App: claims have no page. `claim.list` excludes background-tier claims by default and
   reports how many it hid (`includeBackground` widens it). The Agent profile lists `claimed` claims
-  whose run settled with the work open under **Stopped before finishing**. Opening a claim reveals
+  whose run settled with the work open under **Needs you**. Opening a claim reveals
   the canonical message in its Channel or DM, where the claim chip projects the number, status,
   and assignee. Status and assignment edits use the versioned claim mutations.
 - Managed CLI: `haus claim` (claim) and `haus claim list|create|release|assign|unassign|update` use

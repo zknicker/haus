@@ -62,26 +62,23 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await page.goto(`/s/agent-hq/agents/${agentId}/home`);
     await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
 
-    // The hub opens every section through a card, not titlebar tabs.
+    // The Captain card opens every setup section through a fact row, not titlebar tabs.
+    const setup = page.getByRole('grid', { name: 'Setup' });
     for (const section of [
         'Runs on',
-        'Profile',
+        'Model',
         'Automations',
         'Skills',
         'Connections',
         'Workspace',
     ]) {
-        await expect(
-            page
-                .getByLabel('Scrollable main content')
-                .getByRole('button', { name: new RegExp(`^${section}`, 'u') })
-        ).toBeVisible();
+        await expect(setup.getByRole('row', { name: section, exact: true })).toBeVisible();
     }
     await expect(page.getByRole('radio', { name: 'Overview' })).toHaveCount(0);
 
     // The one profile editor carries the private conversation style and signature emoji beside
     // the role line, and the description's 280-character budget blocks Save rather than truncating.
-    await page.getByRole('button', { name: 'Edit Profile', exact: true }).click();
+    await runAgentAction(page, 'Scout', 'Edit profile');
     const editor = page.getByRole('dialog', { name: 'Captain profile' });
     const description = editor.getByRole('textbox', { name: 'Description', exact: true });
     await description.fill('x'.repeat(281));
@@ -99,7 +96,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await editor.getByRole('button', { name: 'Save' }).click();
     await expect(editor).toBeHidden();
     await page.reload();
-    await page.getByRole('button', { name: 'Edit Profile', exact: true }).click();
+    await runAgentAction(page, 'Scout', 'Edit profile');
     const reopened = page.getByRole('dialog', { name: 'Captain profile' });
     await expect(
         reopened.getByRole('textbox', { name: 'Conversation style', exact: true })
@@ -125,7 +122,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(resetConfirmation).toBeHidden();
 
     // Execution configuration lives behind Runs on, which owns its Edit dialog.
-    await page.getByRole('button', { name: /^Runs on/u }).click();
+    await setup.getByRole('row', { name: 'Runs on', exact: true }).click();
     await expect(page).toHaveURL(/\/agents\/[^/]+\/runtime$/u);
     await expect(
         page
@@ -150,7 +147,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     // Deletion requires the exact Agent name. Cancel leaves this isolated
     // e2e Agent intact for the adjacent DM and contract assertions.
     await runAgentAction(page, 'Scout', 'Delete Captain');
-    const confirmation = page.getByRole('alertdialog');
+    const confirmation = page.getByRole('alertdialog', { name: 'Delete Captain' });
     await expect(confirmation).toContainText('permanently destroys');
     const deleteButton = confirmation.getByRole('button', { name: 'Delete Captain' });
     const nameField = confirmation.getByLabel(/Type Scout to confirm/iu);

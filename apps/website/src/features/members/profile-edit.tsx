@@ -17,6 +17,16 @@ export interface ProfileDraft {
 }
 
 /**
+ * Opens the editor from another control, such as a menu item, and anchors it
+ * to that control's trigger instead of drawing its own Edit Profile button.
+ */
+export interface ProfileEditAnchor {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    triggerRef: React.RefObject<HTMLElement | null>;
+}
+
+/**
  * One labeled Edit Profile action for the whole identity. Name and
  * description used to carry an icon pencil each, which read as orphaned
  * chrome; the identity mutation saves every field together anyway, so one
@@ -26,6 +36,7 @@ export interface ProfileDraft {
  * signature emoji — which other participants never see; a human's does not.
  */
 export function ProfileEdit({
+    anchor,
     description,
     descriptionInfo,
     descriptionMaxLength,
@@ -36,6 +47,7 @@ export function ProfileEdit({
     onSave,
     voice,
 }: {
+    anchor?: ProfileEditAnchor;
     description: string;
     descriptionInfo?: React.ReactNode;
     descriptionMaxLength: number;
@@ -56,7 +68,7 @@ export function ProfileEdit({
     const [emojiEdit, setEmojiDraft] = React.useState<string | null | undefined>();
     const styleDraft = styleEdit ?? storedStyle;
     const emojiDraft = emojiEdit === undefined ? storedEmoji : emojiEdit;
-    const [open, setOpen] = React.useState(false);
+    const { open, placement, setOpen, trigger, triggerRef } = useProfileEditOpen(anchor);
 
     React.useEffect(() => {
         if (!open) {
@@ -108,10 +120,12 @@ export function ProfileEdit({
 
     return (
         <Popover isOpen={open} onOpenChange={setOpen}>
-            <Button isDisabled={isDisabled} size="sm" variant="secondary">
-                Edit Profile
-            </Button>
-            <Popover.Content className={voice ? 'w-96' : 'w-80'} placement="bottom">
+            <ProfileEditTrigger isDisabled={isDisabled} shown={trigger} />
+            <Popover.Content
+                className={voice ? 'w-96' : 'w-80'}
+                placement={placement}
+                triggerRef={triggerRef}
+            >
                 <Popover.Dialog className="grid gap-3 p-3">
                     <Popover.Heading>{entityLabel}</Popover.Heading>
                     <ProfileTextField
@@ -171,4 +185,32 @@ export function ProfileEdit({
             </Popover.Content>
         </Popover>
     );
+}
+
+function ProfileEditTrigger({ isDisabled, shown }: { isDisabled?: boolean; shown: boolean }) {
+    return shown ? (
+        <Button isDisabled={isDisabled} size="sm" variant="secondary">
+            Edit Profile
+        </Button>
+    ) : null;
+}
+
+function useProfileEditOpen(anchor: ProfileEditAnchor | undefined) {
+    const [ownOpen, setOwnOpen] = React.useState(false);
+    if (anchor) {
+        return {
+            open: anchor.isOpen,
+            placement: 'bottom end' as const,
+            setOpen: anchor.onOpenChange,
+            trigger: false,
+            triggerRef: anchor.triggerRef,
+        };
+    }
+    return {
+        open: ownOpen,
+        placement: 'bottom' as const,
+        setOpen: setOwnOpen,
+        trigger: true,
+        triggerRef: undefined,
+    };
 }

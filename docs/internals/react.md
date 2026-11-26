@@ -90,8 +90,9 @@ Profile loading follows the same rule. Human profiles reserve identity facts and
 Agents independently. Profile settings keeps Identity rows and Account actions visible while
 the member directory resolves, with identity inputs disabled until the real member arrives.
 Computer profiles reserve their named sections during the first roster read. An Agent profile
-page stays blank while its Agent loads. Its hub then paints identity and card titles at once,
-and its remote parts — card facts and the Chats, Recent activity, and usage below — land as one
+page stays blank while its Agent loads. Its hub then paints the Captain card's identity and fact
+labels at once, and its remote parts — the card's facts and the Needs you, Working on, Recent,
+and Drive list beside it — land as one
 reveal: immediately when every hub read is cached, else when they settle or after 150ms,
 whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves when they land.
 

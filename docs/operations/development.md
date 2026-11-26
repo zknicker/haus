@@ -127,7 +127,7 @@ seeds the activity the Inbox is a lens over: unread lines in both Channels and
 both Agent DMs (Tiny's DM ends on its unanswered stale-copy question; Blippy's DM line already has
 your reply), and Blippy @mentioning you with its rename question in `#product`. It also
 seeds one claim Blippy left stalled (shown
-on Blippy's profile under **Stopped before finishing**), one
+on Blippy's profile under **Needs you**), one
 settled Worker, and seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.
 

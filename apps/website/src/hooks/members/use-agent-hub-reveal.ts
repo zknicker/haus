@@ -1,3 +1,4 @@
+import { unfinishedTaskStates } from '@haus/api';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
@@ -6,11 +7,14 @@ import { useClaims } from '../servers/use-claims.ts';
 import { useComputers } from '../servers/use-computers.ts';
 import { useConnections } from '../servers/use-connections.ts';
 import { agentActivityHistoryInput } from './use-agent-activity-history.ts';
-import { useAgentChats } from './use-agent-chats.ts';
 import { useAgentReminders } from './use-agent-reminders.ts';
 import { useAgentTriggers } from './use-agent-triggers.ts';
 import { useAgentTurns } from './use-agent-turns.ts';
-import { useAgentUsage } from './use-agent-usage.ts';
+
+/** The Tasks a Captain page lists under Working on: its unfinished assignments. */
+export function captainTaskFilters(agentId: string) {
+    return { assignee: { agentId }, states: [...unfinishedTaskStates] };
+}
 
 /** How long the hub waits for its reads before showing whatever has landed. */
 export const agentHubRevealDelayMs = 150;
@@ -33,14 +37,16 @@ export function useAgentHubReveal(input: {
         useComputers(serverId),
         useConnections(serverId),
         useClaims(serverId),
-        useAgentChats(serverId, agentId),
+        hausTrpc.task.list.useQuery(
+            { ...captainTaskFilters(agentId), serverId },
+            queryPolicy.syncedSnapshot
+        ),
         useProjects(serverId),
         hausTrpc.agent.activityHistory.useQuery(agentActivityHistoryInput(serverId, agentId), {
             ...queryPolicy.syncedSnapshot,
             enabled: Boolean(serverId && agentId),
         }),
         useAgentTurns(serverId, agentId),
-        useAgentUsage(serverId, agentId),
     ];
     // Automations are read only by people who may see them; for others they never settle.
     const automations = [

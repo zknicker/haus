@@ -16,7 +16,7 @@ export interface StalledClaim {
  * claiming run settled without answering, which is the one thing that lifts a
  * claim out of bookkeeping; and not `live` means no run holds it now, so no
  * reply is coming. Chat says nothing about these by default — the Agent
- * profile's "Stopped before finishing" section is where a person finds out.
+ * page's "Needs you" group is where a person finds out.
  */
 export function selectStalledClaims<TClaim extends StalledClaim>(
     items: readonly TClaim[]

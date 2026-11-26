@@ -1,5 +1,5 @@
 ---
-summary: Agent profile — the single Server-backed surface for an agent's identity, configuration, activity, chats, automations, skills, workspace, and MCP connections.
+summary: Agent profile — the single Server-backed surface for an agent's identity, configuration, current work, activity, automations, skills, workspace, and MCP connections.
 read_when:
   - changing the agent profile hub or sections, where a profile opens, or agent avatar click targets
   - changing per-agent settings surfaces, Server APIs, or Computer-backed workspace access
@@ -10,9 +10,17 @@ read_when:
 One component family renders every per-agent surface: a hub page (`home`)
 with drill-down sections, under a persistent header (face, name, live
 presence, and Message / Stop / Restart actions). There is no separate
-per-agent settings surface. The hub holds identity, summary cards that state
-their fact, the Agent's chats, recent activity, and usage; clicking a card
-drills into its section with a breadcrumb back to the hub
+per-agent settings surface. The hub is a Captain card beside a list. The card
+holds identity, the description, any connection or health problem as a compact
+Alert, and six one-line setup facts (Runs on, Model, Automations, Skills,
+Connections, Workspace); pressing a fact drills into its section with a
+breadcrumb back to the hub. The list is Capy's Issues list: grey group bars
+over single-line rows for **Needs you** (claims the Captain took whose run
+ended with no reply), **Working on** (its unfinished assigned Tasks),
+**Recent** (each turn's one-line summary, with All activity), and **Drive**
+(its rule files, with All files). Needs you and Working on hide when empty.
+In a wide container the card is a sticky 20rem left rail; in the 420px side
+pane it stacks over the list
 ([ADR 0038](../docs/adr/0038-destinations-open-as-tabs.md)).
 
 ## Hosting
@@ -34,16 +42,17 @@ drills into its section with a breadcrumb back to the hub
 
 ## Sections
 
-The hub (`home`) links every section through a card, except Permissions,
-which opens from the header's `···` menu; each section is a
+The hub (`home`) links every setup section through a card fact row. Profile
+and Permissions open from the card's `···` menu, which leads with Edit
+profile for Owners and Admins; a Member's menu holds only Profile. Each section is a
 drill-down under a breadcrumb back to the hub, with the lifecycle menu at the
 breadcrumb's end for Owners and Admins.
 
 - **Runs on** (`runtime`). The assigned Computer and its health; the desired
   runtime, model, and effort, beside what the Computer reports.
 - **Profile** (`profile`). Server-owned identity facts: name, handle,
-  description, and who created the Agent and when. Editing lives on the hub
-  header's Edit Profile popover — name, description (counted against 280), the
+  description, who created the Agent and when, and its home Project. Editing
+  lives in the Edit profile popover, opened from the card's `···` menu — name, description (counted against 280), the
   private conversation style (counted against 2000), and the signature emoji.
   The style and emoji are readable and writable only by Owners, Admins, and the
   Agent itself; other Agents never see them. The Agent edits its own only when an
@@ -58,11 +67,10 @@ breadcrumb's end for Owners and Admins.
   configuration.
 - **Permissions** (`permissions`). What the Agent may manage for other Agents,
   one switch row per power. An Owner or Admin turns on **Manage connections**
-  to make the Agent a connection admin. The hub keeps its six cards; Permissions
-  has none, and an Owner or Admin opens it from the hub header's `···` menu,
-  where it leads ahead of the lifecycle verbs. Members do not see Permissions:
-  the menu is not theirs, and the address falls back to the hub as an unknown
-  section does.
+  to make the Agent a connection admin. Permissions has no fact row; an Owner
+  or Admin opens it from the card's `···` menu, ahead of the lifecycle verbs.
+  Members do not see Permissions: their menu holds only Profile, and the
+  address falls back to the hub as an unknown section does.
 - **Workspace** (`workspace`). Read-only file tree and viewer over the
   agent's real Computer workspace through an authorized live
   Server↔Computer relay. The Server does not replicate workspace files.
@@ -73,8 +81,8 @@ breadcrumb's end for Owners and Admins.
   history from durable Server records ([agent-activity](agent-activity.md))
   with Copy Diagnostic Info. Raw tool evidence is not part of this history.
 
-The hub itself also lists the Chats the Agent participates in, recent
-activity, and compact usage.
+The hub lists no Chats (Projects live in the sidebar) and no usage tile;
+usage lives on the Server's Usage page.
 
 ## Ownership
 

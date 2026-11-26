@@ -1,43 +1,56 @@
 import type { Agent } from '@haus/api';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ItemCard } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
 import * as React from 'react';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
+import { SettingsFact } from '../../settings/layout/settings-text.tsx';
+import { AgentHomeProjectRow } from './agent-home-project.tsx';
+import { ProfileListSection } from './profile-list-section.tsx';
 
 /**
- * The Agent's identity as settled facts. Editing lives on the profile header,
- * where the name and the photo already are, so this card states the record —
- * including the created date, which is provenance rather than identity.
+ * The Agent's identity as settled facts plus its home Project. Editing the
+ * name and brief lives on the profile header, where the name and the photo
+ * already are, so this card states the record — including the created date,
+ * which is provenance rather than identity.
  */
 export function AgentProfileCard({ agent }: { agent: Agent }) {
     const creator = useAgentCreatorName(agent);
-    const rows = [
+    const facts = [
         { label: 'Name', value: agent.displayName },
         { label: 'Handle', value: `@${agent.handle}` },
-        { label: 'Description', value: agent.description || 'No description yet.' },
         { label: 'Created', value: formatCreatedAt(agent.createdAt, creator) },
     ];
 
     return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Profile</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
-                {rows.map((row, index) => (
-                    <React.Fragment key={row.label}>
-                        {index > 0 ? <Separator /> : null}
-                        <ItemCard>
-                            <ItemCard.Content>
-                                <ItemCard.Title>{row.label}</ItemCard.Title>
-                                <ItemCard.Description>{row.value}</ItemCard.Description>
-                            </ItemCard.Content>
-                        </ItemCard>
-                    </React.Fragment>
-                ))}
-            </ItemCardGroup>
-        </ItemCardGroup>
+        <ProfileListSection title="Profile">
+            {facts.map((row, index) => (
+                <React.Fragment key={row.label}>
+                    {index > 0 ? <Separator /> : null}
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>{row.label}</ItemCard.Title>
+                        </ItemCard.Content>
+                        <ItemCard.Action>
+                            <SettingsFact>{row.value}</SettingsFact>
+                        </ItemCard.Action>
+                    </ItemCard>
+                </React.Fragment>
+            ))}
+            <Separator />
+            {/* The brief is prose, so it reads under its label rather than
+                squeezed into the trailing slot. */}
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>Description</ItemCard.Title>
+                    <ItemCard.Description className="whitespace-normal" data-selectable-text="">
+                        {agent.description || 'No description yet.'}
+                    </ItemCard.Description>
+                </ItemCard.Content>
+            </ItemCard>
+            <Separator />
+            <AgentHomeProjectRow agent={agent} />
+        </ProfileListSection>
     );
 }
 
@@ -46,18 +59,6 @@ export function useAgentCreatorName(agent: Agent): string | null {
     const agents = useAgents(agent.serverId);
     const humans = useHumanDirectory(agent.serverId);
     return agentCreatorName(agent, agents.data ?? [], humans.name);
-}
-
-/**
- * The hub's Profile card fact: provenance, which the header never states, so
- * the card does not repeat the header's description. Without a known creator
- * it falls back to the handle.
- */
-export function formatAgentProfileFact(
-    agent: Pick<Agent, 'createdAt' | 'handle'>,
-    creator: string | null
-): string {
-    return creator ? `Created by ${creator} · ${formatDate(agent.createdAt)}` : `@${agent.handle}`;
 }
 
 /**

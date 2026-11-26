@@ -46,7 +46,7 @@ test('a Grok Agent with no xAI connection warns on its profile and links to Sett
     const html = renderProfileWarning([testConnection()]);
     expect(html).toContain('>No xAI connection<');
     expect(html).toContain('href="/s/team-room/settings/models"');
-    expect(html).toContain('>Connect one in Settings → Models<');
+    expect(html).toContain('>Connect<');
 });
 
 test('the warning is gone once the list holds an xAI connection', () => {
@@ -78,5 +78,5 @@ test('a Captain pinned to a turned-off connection names it and links to turn it 
         { agent: testAgent({ desiredModelId: 'grok-4', modelConnectionId: 'mcn_grok', serverId }) }
     );
     expect(html).toContain('>SuperGrok is turned off<');
-    expect(html).toContain('>Turn it on in Settings → Models<');
+    expect(html).toContain('>Turn on<');
 });

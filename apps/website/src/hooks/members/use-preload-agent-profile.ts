@@ -4,6 +4,7 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { serverRouteModules } from '../../routes/app/server-route-modules.ts';
 import { agentActivityHistoryInput } from './use-agent-activity-history.ts';
+import { captainTaskFilters } from './use-agent-hub-reveal.ts';
 import { agentTurnsInput } from './use-agent-turns.ts';
 
 /**
@@ -39,7 +40,10 @@ export function usePreloadAgentProfile(
             return;
         }
         void utils.agent.deliveryState.prefetch(input, queryPolicy.syncedSnapshot);
-        void utils.agent.chats.prefetch(input, queryPolicy.syncedSnapshot);
+        void utils.task.list.prefetch(
+            { ...captainTaskFilters(agentId), serverId: server.id },
+            queryPolicy.syncedSnapshot
+        );
         void utils.project.list.prefetch({ serverId: server.id }, queryPolicy.syncedSnapshot);
         void utils.agent.turns.prefetch(
             agentTurnsInput(server.id, agentId),
@@ -49,8 +53,7 @@ export function usePreloadAgentProfile(
             agentActivityHistoryInput(server.id, agentId),
             queryPolicy.syncedSnapshot
         );
-        void utils.stats.agentUsage.prefetch(input, queryPolicy.syncedSnapshot);
-        // Reminders and triggers render only for Owners and Admins (`AgentHubCards`).
+        // Reminders and triggers render only for Owners and Admins (`AgentCaptainFacts`).
         if (server.role !== 'member') {
             void utils.reminder.list.prefetch(input, queryPolicy.syncedSnapshot);
             void utils.trigger.list.prefetch(input, queryPolicy.syncedSnapshot);

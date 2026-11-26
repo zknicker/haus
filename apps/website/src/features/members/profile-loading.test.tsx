@@ -9,8 +9,6 @@ import { hausTrpc, type ServerDetail } from '../../lib/haus-server.tsx';
 import { SettingsHumanRoute } from '../../routes/app/settings-route.tsx';
 import { ComputerPage } from '../computers/computer-page.tsx';
 import { ProfileSettings } from '../settings/profile/page.tsx';
-import { AgentUsageTile } from '../usage/agent-usage-tile.tsx';
-import { testAgent } from './agent-fixtures.ts';
 
 test('an unresolved human profile keeps identity labels and its independent Agent section', () => {
     const markup = render(
@@ -43,14 +41,6 @@ test('a device page stays blank before its roster resolves', () => {
     expect(markup).not.toContain('Access');
     expect(markup).not.toContain('Attach a device');
     expect(markup).not.toContain('Device unavailable');
-});
-
-test('Agent usage reserves the tile and link without inventing a token total', () => {
-    const markup = render(<AgentUsageTile agent={testAgent()} server={server} />);
-    expect(markup).toContain('Processed tokens');
-    expect(markup).toContain('See in Usage');
-    expect(markup).toContain('aria-busy="true"');
-    expect(markup).not.toContain('No model turns');
 });
 
 function render(children: ReactNode) {

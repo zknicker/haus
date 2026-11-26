@@ -54,6 +54,17 @@ export function resolveTurnRowTitle(
     return { kind: 'none' };
 }
 
+/** The Chat a turn's trigger names, even when the trigger quotes no message. */
+export function turnTriggerPlace(
+    trigger: AgentTurnTrigger | null,
+    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>
+) {
+    if (!trigger || !('chatId' in trigger) || typeof trigger.chatId !== 'string') {
+        return null;
+    }
+    return placeOf(trigger.chatId, chats);
+}
+
 /**
  * The open row's way back to its Chat: `View in #product`. A DM is always a
  * person and this Agent, so it names the Agent (`View in DM with Tiny`), where

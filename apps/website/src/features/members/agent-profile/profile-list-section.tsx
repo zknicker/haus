@@ -4,6 +4,8 @@ import type * as React from 'react';
 /**
  * The one anatomy every Agent-profile list shares: a transparent group whose
  * header carries the title and its row count, wrapping the rows themselves.
+ * The `item-card-group--profile` modifier sets the title on the page column's
+ * edge, the edge the header's avatar and the cards' borders already share.
  *
  * Rows arrive as children because each list owns its own row shape — the
  * duplication worth removing is the header, the count, and the clipped group,
@@ -18,16 +20,19 @@ export function ProfileListSection({
     /** A control acting on the whole list, at the altitude it acts on. */
     action?: React.ReactNode;
     children: React.ReactNode;
-    count: number | undefined;
+    count?: number;
     title: string;
 }) {
     return (
-        <ItemCardGroup variant="transparent">
+        <ItemCardGroup className="item-card-group--profile" variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>
                     {title}
                     {count === undefined ? null : (
-                        <span className="text-muted ms-2 tabular-nums">{count}</span>
+                        <span className="text-muted ms-2 tabular-nums">
+                            <span className="sr-only"> </span>
+                            {count}
+                        </span>
                     )}
                 </ItemCardGroup.Title>
                 {action}

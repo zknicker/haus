@@ -23,7 +23,7 @@ export function AgentTools({
     );
 
     return (
-        <ItemCardGroup variant="transparent">
+        <ItemCardGroup className="item-card-group--profile" variant="transparent">
             <ItemCardGroup.Header>
                 {/* "Connections", the same noun as the Settings section these
                     rows come from — "Agent MCP Access" named the one concept

@@ -58,7 +58,7 @@ export function agentSection(id: string): AppPlaceAnchor {
 
 export function agentProfile(): AppPlaceAnchor[] {
     return [
-        label('features/members/agent-profile/agent-header.tsx', 'Captain profile'),
+        label('features/members/agent-profile/agent-profile-edit.tsx', 'Captain profile'),
         { kind: 'page', path: 'agents/:agentId/:section' },
     ];
 }

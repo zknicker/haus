@@ -2055,6 +2055,16 @@
         }
     }
 
+    /*
+     * A Captain page section (`ProfileListSection`): the title sits on the
+     * page column's edge, the edge the header's avatar, the hub cards and the
+     * list boxes already share. Stock insets it ×4 to meet the row text, which
+     * gave the page two left edges. Rows keep their own inset.
+     */
+    .item-card-group--profile > .item-card-group__header {
+        padding-inline: 0;
+    }
+
     /* A wide gutter between the columns; rows land on a ~70px pitch. */
     .item-card-group--catalog .item-card-group--grid {
         column-gap: calc(var(--spacing) * 7);
@@ -2493,6 +2503,16 @@
         --button-fg: var(--alert-action);
         --button-bg-hover: var(--alert-action-hover);
         --button-bg-pressed: var(--alert-action-hover);
+    }
+
+    /*
+     * A title-only Alert is one scanline: indicator, title and trailing action
+     * share a centre line. Stock top-aligns them, which left the 24px title
+     * row riding above a taller `sm` action. With a description the stock
+     * top alignment stays, so the icon keeps to the title's line.
+     */
+    .alert:not(:has(.alert__description)) {
+        align-items: center;
     }
 
     .alert.haus-hover-card__banner {
@@ -4065,6 +4085,234 @@
         font-weight: 400;
         color: var(--muted);
         font-variant-numeric: tabular-nums;
+    }
+
+    /*
+     * The Captain page's list, Capy's Issues list: the Tasks list's quiet
+     * group bar (title, count, a trailing link) over single-line 34px rows.
+     * A 14px glyph gutter stays on every row so titles share one edge; meta
+     * sits flush right in muted columns ending in the age.
+     */
+    .captain-list__group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .captain-list__bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: calc(var(--spacing) * 3);
+        min-height: calc(var(--spacing) * 7);
+        margin-block-end: calc(var(--spacing) * 0.5);
+        padding-inline: calc(var(--spacing) * 4);
+        padding-inline-start: var(--captain-list-title-inset);
+        border-radius: calc(var(--radius) * 1.5);
+        background: color-mix(in oklab, var(--foreground) 4%, transparent);
+    }
+
+    .captain-list__group {
+        --captain-list-title-inset: calc(var(--spacing) * 4 + 14px + var(--spacing) * 2);
+    }
+
+    .captain-list__bar-title {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+        font-size: var(--text-sm);
+        font-weight: 500;
+        color: var(--foreground);
+    }
+
+    .captain-list__bar-count {
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .captain-list__bar-action {
+        gap: calc(var(--spacing) * 0.5);
+        font-size: var(--text-sm);
+        font-weight: 400;
+        color: var(--muted);
+    }
+
+    .captain-list__bar-action:is(:hover, [data-hovered="true"], [data-focus-visible="true"]) {
+        color: var(--foreground);
+        text-decoration: none;
+    }
+
+    .list-view--secondary.captain-list .list-view__item {
+        position: relative;
+        min-height: 34px;
+        padding-block: calc(var(--spacing) * 0.5);
+        border-block-end: 0;
+        border-radius: calc(var(--radius) * 1.5);
+    }
+
+    .captain-list .list-view__item-content {
+        gap: calc(var(--spacing) * 2);
+    }
+
+    .captain-list__glyph {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+    }
+
+    .captain-list__glyph svg:not(.task-status-disc) {
+        width: 14px;
+        height: 14px;
+        color: inherit;
+    }
+
+    .captain-list__key {
+        flex-shrink: 0;
+        font-size: var(--text-sm);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .captain-list .list-view__title.captain-list__title {
+        font-weight: 400;
+    }
+
+    .captain-list__facts {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+        font-size: var(--text-sm);
+        color: var(--muted);
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .captain-list__place {
+        max-width: 6.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: end;
+    }
+
+    .captain-list__status {
+        width: 4.5rem;
+        text-align: end;
+    }
+
+    .captain-list__age {
+        min-width: calc(var(--spacing) * 8);
+        text-align: end;
+    }
+
+    @container (max-width: 36rem) {
+        .captain-list__status {
+            display: none;
+        }
+
+        .captain-list__group {
+            --captain-list-title-inset: calc(var(--spacing) * 2.5 + 14px + var(--spacing) * 2);
+        }
+
+        .captain-list__bar {
+            padding-inline-end: calc(var(--spacing) * 2.5);
+        }
+
+        .list-view--secondary.captain-list .list-view__item {
+            padding-inline: calc(var(--spacing) * 2.5);
+        }
+    }
+
+    /* Matches `.task-list__menu`: the ⋯ takes the age column's place on hover, focus or open. */
+    .captain-list__menu {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-end: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .captain-list
+        .list-view__item:is(:hover, [data-hovered], :focus-within, [data-focus-visible])
+        .captain-list__age:has(+ .captain-list__menu),
+    .captain-list .list-view__item:has([aria-expanded="true"]) .captain-list__age:has(+ .captain-list__menu) {
+        opacity: 0;
+    }
+
+    @media (hover: hover) {
+        .captain-list
+            .list-view__item:not(:hover, [data-hovered], :focus-within, [data-focus-visible])
+            .captain-list__menu:not(:has([aria-expanded="true"])) {
+            opacity: 0;
+            pointer-events: none;
+        }
+    }
+
+    @media (hover: none) {
+        .captain-list__age:has(+ .captain-list__menu) {
+            visibility: hidden;
+        }
+    }
+
+    .captain-list__empty {
+        padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
+        padding-inline-start: var(--captain-list-title-inset);
+        font-size: var(--text-sm);
+        color: var(--muted);
+    }
+
+    /*
+     * The Captain card's setup facts: one-line 32px rows, a muted label
+     * column, the fact, and a chevron into the section that edits it.
+     */
+    .list-view--secondary.captain-facts {
+        width: auto;
+        margin-inline: calc(var(--spacing) * -2);
+    }
+
+    .list-view--secondary.captain-facts .list-view__item {
+        position: relative;
+        min-height: 32px;
+        padding-block: calc(var(--spacing) * 1);
+        padding-inline: calc(var(--spacing) * 2);
+        border-block-end: 0;
+        border-radius: calc(var(--radius) * 1.5);
+    }
+
+    .list-view--secondary.captain-facts .list-view__item:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        inset-inline: calc(var(--spacing) * 2);
+        inset-block-end: 0;
+        height: var(--hairline-width, 1px);
+        background: var(--hairline, var(--separator));
+    }
+
+    .captain-facts .list-view__item-content {
+        gap: calc(var(--spacing) * 2);
+    }
+
+    .captain-facts .list-view__item-action {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 2);
+    }
+
+    .captain-facts__label {
+        flex-shrink: 0;
+        width: 5.5rem;
+        font-size: var(--text-sm);
+        color: var(--muted);
+    }
+
+    .captain-facts .list-view__title.captain-facts__value {
+        font-weight: 400;
+    }
+
+    .captain-facts .list-view__title.captain-facts__value--unset {
+        color: var(--muted);
     }
 
     /*
