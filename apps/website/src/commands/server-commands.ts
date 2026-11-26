@@ -11,6 +11,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
     activityRoute,
+    issuesRoute,
     serverArchivedChatsRoute,
     serverChatRoute,
     serverComputersRoute,
@@ -74,6 +75,12 @@ function buildNavigationGroup(context: CommandContext): AppCommandGroup {
             id: 'home',
             route: serverRoute(context.serverSlug),
             title: 'Home',
+        },
+        {
+            icon: getRouteTabIcon('issues'),
+            id: 'issues',
+            route: issuesRoute(context.serverSlug),
+            title: 'Issues',
         },
         {
             icon: getRouteTabIcon('tasks'),

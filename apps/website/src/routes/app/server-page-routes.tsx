@@ -24,6 +24,8 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'chats/:chatId', Component: serverRouteComponent('ChatRoute') },
         { path: 'dm/:agentId', Component: serverRouteComponent('ImplicitAgentDmRoute') },
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
+        { path: 'issues', Component: serverRouteComponent('IssuesPageRoute') },
+        { path: 'issues/:code', Component: serverRouteComponent('IssuePageRoute') },
         { path: 'tasks', Component: serverRouteComponent('TasksPageRoute') },
         { path: 'tasks/:shortId', Component: serverRouteComponent('TaskPageRoute') },
         { path: 'workers/:workerId', Component: serverRouteComponent('WorkerPageRoute') },

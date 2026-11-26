@@ -10,6 +10,8 @@ export {
     DeferredSettingsSectionRoute,
 } from './deferred-settings-route.tsx';
 export { InboxPage } from './inbox-page.tsx';
+export { IssuePageRoute } from './issue-page-route.tsx';
+export { IssuesPageRoute } from './issues-page-route.tsx';
 export { SearchRoute } from './search-route.tsx';
 export { ServerDefaultPage } from './server-default-page.tsx';
 export { ServerLayout } from './server-layout.tsx';
