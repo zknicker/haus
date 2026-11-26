@@ -11,6 +11,7 @@ import { playbookRecipes } from './corpus/playbooks.ts';
 import { techniqueRecipesA } from './corpus/techniques-a.ts';
 import { techniqueRecipesB } from './corpus/techniques-b.ts';
 import { driveTopic } from './drive-topic.ts';
+import { issuesTopic } from './issues-topic.ts';
 import { productTopics } from './product-topics.ts';
 import { reposTopic } from './repos-topic.ts';
 import { rulesTopic } from './rules-topic.ts';
@@ -90,6 +91,7 @@ export const manualTopics: readonly ManualTopic[] = [
     ...navigationTopics,
     ...productTopics,
     ...workTopics,
+    issuesTopic,
     reposTopic,
     rulesTopic,
     secretsTopic,

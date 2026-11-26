@@ -14,7 +14,7 @@ const prompt = renderAgentInstructions({
 
 test('lists the Computers and Repos families just before Manual', () => {
     expect(prompt).toContain(
-        "\n16. **Computers**: `haus computer list`. Read the `computers` Manual topic before the first call that targets another Computer.\n17. **Repos**: `haus repo list`, `haus repo checkout` (your own worktree of a repo already on the call's Computer).\n18. **Manual**: `haus manual get`"
+        "\n17. **Computers**: `haus computer list`. Read the `computers` Manual topic before the first call that targets another Computer.\n18. **Repos**: `haus repo list`, `haus repo checkout` (your own worktree of a repo already on the call's Computer).\n19. **Manual**: `haus manual get`"
     );
-    expect(prompt).not.toContain('19. **');
+    expect(prompt).not.toContain('20. **');
 });
