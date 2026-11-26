@@ -6,6 +6,7 @@ import { setAgentInlineReplyFollow } from '../chats/reply-follow-route.ts';
 import type { ManagedSkillSeeder } from '../managed-skills/seeder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
+import { registerTaskCredentialScope } from '../tasks/task-credential-scope.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { unfollowAgentTask } from './attention.ts';
@@ -99,6 +100,7 @@ export function registerAgentApiRoutes(
     }
 ) {
     registerAgentDispatchIds(app, options.db);
+    registerTaskCredentialScope(app, options.db);
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
     registerAgentAgentRoutes(app, {
         agentDelivery: options.agentDelivery,
