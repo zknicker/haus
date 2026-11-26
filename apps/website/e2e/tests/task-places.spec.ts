@@ -3,9 +3,10 @@ import { createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const title = 'Rotate the webhook signing secret';
+const brief = 'Rotate the leaked webhook secret and revoke the old one.';
 const originLine = 'The webhook secret leaked into a log. Rotating it now.';
 
-test('an Agent-started Task previews under its origin, opens as a place, and closes out of the sidebar', async ({
+test('an Agent-started Task previews under its origin, opens as a place, and archives out of the sidebar', async ({
     page,
 }) => {
     const slug = 'task-places';
@@ -26,31 +27,31 @@ test('an Agent-started Task previews under its origin, opens as a place, and clo
     const origin = page.locator(`[data-message-id="${originId}"]`);
     await expect(origin).toContainText(originLine);
 
-    const { key } = await agent.startTask({ from: originId, title });
-    const preview = origin.getByRole('button', { name: `Open task ${key}, ${title}, Open` });
+    const { shortId } = await agent.startTask({ brief, from: originId, title });
+    const preview = origin.getByRole('button', {
+        name: new RegExp(`^Open task ${title}, Active`, 'u'),
+    });
     await expect(preview).toBeVisible();
 
     const sidebarRow = page
         .getByRole('treegrid', { exact: true, name: 'Tasks' })
-        .getByRole('row', { exact: true, name: `${key} ${title}` });
+        .getByRole('row', { name: new RegExp(title, 'u') });
     await expect(sidebarRow).toBeVisible();
 
     await preview.click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks/${key}$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks/${shortId}$`, 'u'));
     await expect(page.getByRole('button', { name: /^Started from #all, Orbit: / })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Details' })).toBeVisible();
-    await expect(page.getByText('No messages yet')).toBeVisible();
+    await expect(page.getByText(brief, { exact: true })).toBeVisible();
 
-    const composer = page.getByRole('textbox', { name: `Message ${key} ${title}` });
+    const composer = page.getByRole('textbox', { name: `Message ${title}` });
     await composer.click();
     await page.keyboard.type('Thanks, ping me when the old one is revoked.');
     await page.keyboard.press('Enter');
     await expect(composer).toHaveText('');
-    const conversation = page.getByRole('region', { name: `${key} ${title}` });
     await expect(
-        conversation.getByText('Thanks, ping me when the old one is revoked.', { exact: true })
+        page.getByText('Thanks, ping me when the old one is revoked.', { exact: true })
     ).toBeVisible();
-    const detail = await client.task.get.query({ key, serverId: server.id });
+    const detail = await client.task.get.query({ serverId: server.id, shortId });
     if (!detail.chatId) {
         throw new Error('A started Task has its own Chat.');
     }
@@ -66,14 +67,14 @@ test('an Agent-started Task previews under its origin, opens as a place, and clo
         .toContain('Thanks, ping me when the old one is revoked.');
 
     await page.getByRole('button', { name: /^State/u }).click();
-    await page.getByRole('option', { exact: true, name: 'Done' }).click();
+    await page.getByRole('option', { exact: true, name: 'Archived' }).click();
     await expect
-        .poll(async () => (await client.task.get.query({ key, serverId: server.id })).state)
-        .toBe('done');
+        .poll(
+            async () => (await client.task.get.query({ serverId: server.id, shortId })).archivedAt
+        )
+        .not.toBeNull();
     await expect(sidebarRow).toHaveCount(0);
 
-    await page.goto(`/s/${slug}/tasks`);
-    const row = page.getByRole('row', { name: new RegExp(`^${key} ${title}`, 'u') });
-    await expect(row).toBeVisible();
-    await expect(row.getByRole('img', { exact: true, name: 'Done' })).toBeVisible();
+    await page.goto(`/s/${slug}/tasks?view=archived`);
+    await expect(page.getByRole('row', { name: new RegExp(`^${title}`, 'u') })).toBeVisible();
 });

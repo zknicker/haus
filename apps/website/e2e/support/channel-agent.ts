@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { createHomedAgent } from './project.ts';
+import { captainsProjectId, createHomedAgent } from './project.ts';
 import { assertOpaqueId, createClient, runPsql } from './server.ts';
 
 /**
@@ -47,6 +47,12 @@ export async function createChannelAgent(input: {
         runtimeId: 'codex',
         serverId: input.serverId,
     });
+    const homeProjectId = await captainsProjectId(owner, input.serverId);
+    runPsql(
+        input.databaseUrl,
+        `update projects set default_worker_place = 'computer', default_worker_computer_id = '${agentComputerId}'
+         where chat_id = '${homeProjectId}'`
+    );
     const runnerToken = await mintAgentRunner(created.agent.id, chatId, agentCredentialHash);
 
     const agentPost = (path: string, body: unknown) =>
@@ -95,34 +101,35 @@ export async function createChannelAgent(input: {
             return payload.message.id;
         },
         startTask: async (task: {
-            assignee?: string;
+            brief?: string;
             from: string;
-            state?: 'open' | 'todo';
             target?: string;
             title: string;
         }) => {
-            const response = await agentPost('/api/agent/tasks/start', {
-                ...task,
-                target: task.target ?? `#${input.channelName}`,
-            });
-            const payload = (await response.json()) as {
-                target?: string;
-                task?: { key: string };
+            const start = async () => {
+                const response = await agentPost('/api/agent/tasks/start', {
+                    brief: task.brief ?? task.title,
+                    from: task.from,
+                    target: task.target ?? `#${input.channelName}`,
+                    title: task.title,
+                });
+                const payload = (await response.json()) as {
+                    state?: string;
+                    target?: string;
+                    task?: { shortId: string };
+                };
+                return { payload, response };
             };
+            let { payload, response } = await start();
+            if (response.status === 200 && payload.state === 'held') {
+                ({ payload, response } = await start());
+            }
             if (response.status !== 200 || !(payload.task && payload.target)) {
                 throw new Error(
                     `The Task fixture could not start as its Agent: ${response.status} ${JSON.stringify(payload)}`
                 );
             }
-            return { key: payload.task.key, target: payload.target };
-        },
-        setTaskState: async (key: string, state: 'canceled' | 'done' | 'open' | 'todo') => {
-            const response = await agentPost('/api/agent/tasks/state', { key, state });
-            if (response.status !== 200) {
-                throw new Error(
-                    `The Task fixture could not set ${key} ${state}: ${response.status} ${await response.text()}`
-                );
-            }
+            return { shortId: payload.task.shortId, target: payload.target };
         },
     };
 }
