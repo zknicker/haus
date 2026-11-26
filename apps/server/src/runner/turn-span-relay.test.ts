@@ -229,6 +229,7 @@ test('turn timings and reasoning arrive on the exported span, and out-of-bound t
         lastSendMs: 910,
         sentChats: 1,
         sessionCreateMs: 80,
+        slotWaitMs: 70,
     };
     try {
         for (const refused of [
@@ -272,6 +273,7 @@ test('turn timings and reasoning arrive on the exported span, and out-of-bound t
             'haus.turn.last_send_ms': 910,
             'haus.turn.sent_chats': 1,
             'haus.turn.session_create_ms': 80,
+            'haus.turn.slot_wait_ms': 70,
         });
         expect(
             Object.keys(untimed?.attributes ?? {}).filter((key) => key.startsWith('haus.turn.'))

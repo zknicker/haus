@@ -64,6 +64,7 @@ function turnTimingAttributes(timings: RunnerTurnSpanFrame['timings']) {
         'haus.turn.last_send_ms': timings.lastSendMs,
         'haus.turn.sent_chats': timings.sentChats,
         'haus.turn.session_create_ms': timings.sessionCreateMs,
+        'haus.turn.slot_wait_ms': timings.slotWaitMs,
     };
     return attributes;
 }

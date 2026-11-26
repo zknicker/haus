@@ -16,6 +16,7 @@ export function createHarnesses(input: {
     journal?: JournalUploads;
     link: RunnerLink;
     log: (line: string) => void;
+    maxClaude: number;
     maxWarm: number;
 }) {
     const { capacity } = input;
@@ -26,6 +27,7 @@ export function createHarnesses(input: {
             log: input.log,
             ...(input.journal ? { uploads: input.journal } : {}),
         }),
+        maxClaude: input.maxClaude,
         maxWarm: input.maxWarm,
         ...(capacity
             ? { onCapacity: (connection, windows) => capacity.observed(connection, windows) }

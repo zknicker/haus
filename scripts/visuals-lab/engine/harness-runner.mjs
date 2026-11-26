@@ -30,6 +30,7 @@ export async function createHarnessRunner({
         book: login.book,
         link: login.link,
         log: (line) => process.stderr.write(`${line}\n`),
+        maxClaude: 1,
         maxWarm: 1,
     });
     const runId = crypto.randomUUID();

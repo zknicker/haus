@@ -73,6 +73,18 @@ export class WarmPool<Process> {
         return entry ? [entry.process] : [];
     }
 
+    evictOldest(alive: (process: Process) => boolean = () => true) {
+        const evicted: Process[] = [];
+        for (const [agentId, entry] of this.parked) {
+            this.parked.delete(agentId);
+            evicted.push(entry.process);
+            if (alive(entry.process)) {
+                break;
+            }
+        }
+        return evicted;
+    }
+
     expire(now: number) {
         const expired: Process[] = [];
         for (const [key, entry] of this.parked) {

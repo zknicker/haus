@@ -15,6 +15,7 @@ import {
     claudePaths,
     claudeQueryOptions,
 } from './claude-launch.ts';
+import { ClaudeSlots } from './claude-slots.ts';
 import { ClaudeTurn } from './claude-turn.ts';
 import { CompactingPool } from './compacting-pool.ts';
 import type { IdleCompactionGate, IdleCompactionHooks } from './idle-compaction-scheduler.ts';
@@ -25,6 +26,7 @@ const expiryIntervalMs = 60_000;
 export function createClaudeHarness(options: {
     env?: Readonly<Record<string, string | undefined>>;
     hooks: IdleCompactionHooks<ClaudeConnection>;
+    maxClaude: number;
     maxWarm: number;
     onCapacity?: (
         connection: RunnerModelConnection,
@@ -44,6 +46,10 @@ export function createClaudeHarness(options: {
         }
         return Promise.all(connections.map((connection) => connection.ended));
     };
+    const slots = new ClaudeSlots({
+        evict: () => closeAll(pool.evictOldest()),
+        limit: options.maxClaude,
+    });
     const expiry = setInterval(() => closeAll(pool.expire(Date.now())), expiryIntervalMs);
     expiry.unref();
     let bootstrap: Promise<string> | null = null;
@@ -55,7 +61,8 @@ export function createClaudeHarness(options: {
     const connect = async (
         launch: RuntimeLaunch,
         resumeFrom: string | undefined,
-        signal?: AbortSignal
+        signal?: AbortSignal,
+        onSlotWait?: (waitedMs: number) => void
     ) => {
         const paths = claudePaths(launch.agentDir);
         const facts = claudeLaunchFacts(launch, await bootstrapFingerprint());
@@ -74,6 +81,10 @@ export function createClaudeHarness(options: {
         } else {
             closeAll(pool.take(launch.agentId));
         }
+        const slot = await slots.acquire(signal);
+        if (slot.waitedMs !== null) {
+            onSlotWait?.(slot.waitedMs);
+        }
         const sessionId = resumeFrom ?? crypto.randomUUID();
         return await ClaudeConnection.open({
             launchKey,
@@ -87,6 +98,7 @@ export function createClaudeHarness(options: {
                 ...(resumeFrom ? { resume: resumeFrom } : {}),
             }),
             sessionId,
+            slot,
         });
     };
 
@@ -94,15 +106,15 @@ export function createClaudeHarness(options: {
         bootstrapFingerprint,
         harness: 'claude-agent-sdk' as const,
         instructionsOnResume: 'launched' as const,
-        async openSession({ resumeFrom, signal }: OpenSessionOptions) {
+        async openSession({ onSlotWait, resumeFrom, signal }: OpenSessionOptions) {
             signal?.throwIfAborted();
-            const connection = await connect(launch, resumeFrom, signal);
+            const connection = await connect(launch, resumeFrom, signal, onSlotWait);
             connection.binding.bind(launch.tools);
             connection.owner = owner(launch);
             return claudeSession({
                 connection,
                 isResume: resumeFrom !== undefined,
-                park: (parked) =>
+                park: (parked) => {
                     closeAll(
                         pool.park(
                             launch.agentId,
@@ -110,7 +122,9 @@ export function createClaudeHarness(options: {
                             parked,
                             Date.now()
                         )
-                    ),
+                    );
+                    slots.parked();
+                },
                 relaunch: async (nativeSessionId, signal) => {
                     const next = await connect(launch, nativeSessionId, signal);
                     next.binding.bind(launch.tools);

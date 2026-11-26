@@ -19,6 +19,7 @@ export const telemetryAttributeKeys = [
     'haus.turn.harness_ready_ms',
     'haus.turn.bootstrap_ms',
     'haus.turn.session_create_ms',
+    'haus.turn.slot_wait_ms',
     'haus.turn.first_stream_ms',
     'haus.turn.first_tool_ms',
     'haus.turn.first_send_ms',

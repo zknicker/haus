@@ -21,7 +21,7 @@ import { idleCompactionGate } from './idle-compaction-gate.ts';
 import { inboxStore } from './inbox-store.ts';
 import { recoverDispatches } from './recovered-dispatches.ts';
 import { createRunActivity } from './run-activity.ts';
-import { crashedRunSummary, skipReplacedRun } from './run-endings.ts';
+import { crashedRunSummary, skipReplacedRun, thrownRunResult } from './run-endings.ts';
 import { runRecords } from './run-records.ts';
 import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
@@ -38,7 +38,7 @@ interface ActiveRun {
 export function createTurnHost(input: {
     book: ConnectionBook;
     capacity?: CapacityReader;
-    config: Pick<RunnerConfig, 'dataDir' | 'maxWarm'>;
+    config: Pick<RunnerConfig, 'dataDir' | 'maxClaude' | 'maxWarm'>;
     journal?: JournalUploads;
     ledger: DispatchLedger;
     link: RunnerLink;
@@ -52,6 +52,7 @@ export function createTurnHost(input: {
         ...(input.journal ? { journal: input.journal } : {}),
         link: input.link,
         log,
+        maxClaude: input.config.maxClaude,
         maxWarm: input.config.maxWarm,
     });
     const host = createTurnHostWith({
@@ -187,7 +188,7 @@ export function createTurnHostWith(input: {
                 tools: run.tools,
             });
         } catch (error) {
-            result = { failure: error, status: 'failed', tokenUsage: null };
+            result = thrownRunResult(error, current.controller.signal);
         }
         await finishTurn(
             { activity, connection, journal, records, result, run, startedAt, store, timings },

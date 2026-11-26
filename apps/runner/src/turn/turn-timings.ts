@@ -3,7 +3,7 @@ import type { CommittedSend } from '../run-context.ts';
 import type { TurnEvent } from './turn-event.ts';
 
 type TurnMilestone = 'firstStreamMs' | 'firstToolMs' | 'harnessReadyMs';
-type TurnPhase = 'sessionCreateMs';
+type TurnPhase = 'sessionCreateMs' | 'slotWaitMs';
 
 export type TurnTimings = ReturnType<typeof startTurnTimings>;
 
@@ -23,6 +23,9 @@ export function startTurnTimings(now = () => performance.now()) {
             } finally {
                 marks[phase] = (marks[phase] ?? 0) + since(phaseStartedAt);
             }
+        },
+        record(phase: TurnPhase, ms: number) {
+            marks[phase] = (marks[phase] ?? 0) + ms;
         },
         async *observe(events: AsyncIterable<TurnEvent>) {
             for await (const event of events) {

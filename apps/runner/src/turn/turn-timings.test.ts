@@ -24,6 +24,7 @@ test('a turn records each milestone once from its start and sums its session-cre
         })
     ).rejects.toThrow('resume refused');
     await timings.measure('sessionCreateMs', async () => {
+        timings.record('slotWaitMs', 6);
         clock.now = 1060;
     });
     const seen: string[] = [];
@@ -45,6 +46,7 @@ test('a turn records each milestone once from its start and sums its session-cre
         firstToolMs: 300,
         harnessReadyMs: 12,
         sessionCreateMs: 40,
+        slotWaitMs: 6,
     });
 });
 

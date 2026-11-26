@@ -55,6 +55,7 @@ it starts the run, which is the turn span's start:
 | --- | --- |
 | `harness_ready_ms` | Run start to the native session open; includes connection lookup, journal open, Agent context read, instruction composition, and the bootstrap fingerprint |
 | `session_create_ms` | Time inside the native session open or resume, including a failed attempt |
+| `slot_wait_ms` | Time a Claude turn queued for a process slot, inside `session_create_ms`; absent when it got one at once ([capacity](../../specs/runtime-drivers.md#capacity)) |
 | `first_stream_ms` | Run start to the first normalized harness event of any type, which may be progress, a finish, or an error rather than model text |
 | `first_tool_ms` | Run start to the first harness tool-call event; absent for tool-free turns |
 | `first_send_ms`, `last_send_ms` | Run start to the first/last Server-confirmed committed send through the runner's `haus` proxy |

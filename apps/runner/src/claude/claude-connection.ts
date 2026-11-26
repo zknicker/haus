@@ -19,6 +19,7 @@ import {
     parseClaudeMessage,
 } from './claude-messages.ts';
 import { ClaudeNormalizer } from './claude-normalizer.ts';
+import type { ClaudeSlot } from './claude-slots.ts';
 import { createHausMcpServer, HausToolBinding } from './haus-tools.ts';
 import type { IdleCompactable, IdleCompactionOwner } from './idle-compaction.ts';
 
@@ -82,17 +83,25 @@ export class ClaudeConnection implements IdleCompactable {
         onCapacity?: CapacitySink;
         options: Options;
         sessionId: string;
+        slot: ClaudeSlot;
     }) {
-        if (input.options.cwd) {
-            await mkdir(input.options.cwd, { mode: 0o700, recursive: true });
+        let connection: ClaudeConnection;
+        try {
+            if (input.options.cwd) {
+                await mkdir(input.options.cwd, { mode: 0o700, recursive: true });
+            }
+            connection = new ClaudeConnection(
+                input.options,
+                input.launchKey,
+                input.sessionId,
+                input.minTokens,
+                input.onCapacity
+            );
+        } catch (error) {
+            input.slot.release();
+            throw error;
         }
-        const connection = new ClaudeConnection(
-            input.options,
-            input.launchKey,
-            input.sessionId,
-            input.minTokens,
-            input.onCapacity
-        );
+        void connection.ended.then(() => input.slot.release());
         try {
             await connection.initialize();
         } catch (error) {

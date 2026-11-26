@@ -82,8 +82,20 @@ When a restore is impossible, each Agent falls back to the reset path below.
 The runner runs one turn per Agent at a time (ADR 0011) and many Agents at once. It keeps a warm
 harness process per Agent for 60 minutes after its last turn, the length of Claude's one-hour
 prompt cache, and caps warm processes at `HAUS_RUNNER_MAX_WARM` (default 16), closing the least
-recently used idle one first. A turn never waits for a warm slot. It opens a cold process, which
-resumes from the volume.
+recently used idle one first.
+
+Each Claude session is its own subprocess, so the runner also caps live Claude processes, running
+and warm together, at `HAUS_RUNNER_MAX_CLAUDE` (default 6). A turn that reuses its own warm
+process needs no new slot. A turn that needs a new process and finds every slot held closes the
+least recently used warm process first; when none is warm it waits in a first-come queue, and each
+process that parks while turns wait is closed in turn to admit the next. The Claude Agent SDK's
+30-second initialize timeout starts only once the turn holds a slot, so a waiting turn never times
+out; a Stop or reset leaves the queue and settles the turn as interrupted. The Server shows the waiting turn as starting work. The
+runner logs each wait, and the turn span carries it as `haus.turn.slot_wait_ms`. Pi sessions run
+in the runner process and take no slot.
+
+The production runner container has a 4 GB memory limit (`apps/server/compose.yml`), sized for six
+Claude processes, so a spike kills the runner rather than PostgreSQL or the Server.
 
 ## Harnesses
 
