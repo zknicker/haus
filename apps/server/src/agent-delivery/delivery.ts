@@ -3,6 +3,7 @@ import {
     type AgentActivityEvent,
     type AgentCommand,
     type AgentTurnSummary,
+    isBatchedChatlessInboxSource,
     isChatlessInboxSource,
     type ReminderScriptCommand,
     type ReminderScriptResult,
@@ -626,11 +627,11 @@ export class AgentDelivery {
         }
         await invalidateFlush(tx, { agentId, serverId: state.serverId });
         const first = admitted.lead;
-        // A sub-agent wake, Drive conflict, or Task assignment is concrete work with no Chat:
-        // a chatless run. A wake or conflict runs alone; Task assignments coalesce: ten
+        // A sub-agent wake, Drive conflict, process exit, or Issue item is concrete work with no Chat:
+        // a chatless run. Most run alone; Issue items of one kind coalesce: ten
         // assignments wake the Agent once (ADR 0051).
         if (isChatlessInboxSource(first.source)) {
-            const rows = first.source === 'task_assignment' ? admitted.selected : [first];
+            const rows = isBatchedChatlessInboxSource(first.source) ? admitted.selected : [first];
             return await planChatlessRun(tx, { agentId, config, rows, state });
         }
         const runId = createOpaqueId('run');

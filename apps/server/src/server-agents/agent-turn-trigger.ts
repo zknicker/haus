@@ -2,6 +2,7 @@ import {
     AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH,
     type AgentTurnTrigger,
     type AgentTurnTriggerPreview,
+    isBatchedChatlessInboxSource,
 } from '@haus/api';
 
 const claimAssignmentKeyPattern = /^claim-assign:([^:]+):\d+$/u;
@@ -10,7 +11,7 @@ const claimAssignmentKeyPattern = /^claim-assign:([^:]+):\d+$/u;
 export interface AgentTurnTriggerRecord {
     /** The run's Agent, which narrows a read of its settled inbox rows to that Agent's index. */
     readonly agentId?: string;
-    /** Null only for a chatless run: a sub-agent wake, Task assignment, or Drive conflict. */
+    /** Null only for a chatless run: a sub-agent wake, Drive conflict, process exit, or Issue item. */
     readonly chatId: string | null;
     /** The run this trigger woke. */
     readonly runId?: string;
@@ -22,10 +23,10 @@ export interface AgentTurnTriggerRecord {
 /** Message quotes by message id; a message absent here reads as gone (`preview: null`). */
 export type AgentTurnTriggerPreviews = ReadonlyMap<string, AgentTurnTriggerPreview>;
 
-/** Task assignment triggers by `workId`, read beside the page; one absent here is unknown. */
-export type AgentTurnTaskTriggers = ReadonlyMap<
+/** Issue item triggers by `workId`, read beside the page; one absent here is unknown. */
+export type AgentTurnIssueTriggers = ReadonlyMap<
     string,
-    Extract<AgentTurnTrigger, { kind: 'task' }>
+    Extract<AgentTurnTrigger, { kind: 'issue' }>
 >;
 
 const noPreviews: AgentTurnTriggerPreviews = new Map();
@@ -36,13 +37,13 @@ const noPreviews: AgentTurnTriggerPreviews = new Map();
  * does not recognize, is absent (null) rather than guessed. A message or claim
  * trigger quotes its message from `previews`. A sub-agent wake has no Chat to gate
  * on: it names only itself, so any reader who may see the Agent's turns sees it. A
- * Task assignment has no Chat either, and every member sees every board, so `tasks`
+ * Issue item has no Chat either, and every member reads every Issue, so `issues`
  * names it ungated.
  */
 export function agentTurnTrigger(
     record: AgentTurnTriggerRecord | null,
     previews: AgentTurnTriggerPreviews = noPreviews,
-    tasks: AgentTurnTaskTriggers = new Map()
+    issues: AgentTurnIssueTriggers = new Map()
 ): AgentTurnTrigger | null {
     if (!record) {
         return null;
@@ -50,8 +51,8 @@ export function agentTurnTrigger(
     if (record.source === 'subagent') {
         return { kind: 'subagent' };
     }
-    if (record.source === 'task_assignment') {
-        return tasks.get(record.workId) ?? null;
+    if (isBatchedChatlessInboxSource(record.source)) {
+        return issues.get(record.workId) ?? null;
     }
     const trigger = triggerFor(record, previews);
     if (!trigger) {

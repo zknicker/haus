@@ -1,6 +1,7 @@
 import type { TaskArchiveInput } from '@haus/api';
 import { and, eq, type SQL, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { handBackArchivedTaskIssues } from '../issues/issue-handback.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { tasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -34,11 +35,21 @@ export async function archiveTask(
             taskChatId: current.chatId,
             taskId: current.id,
         });
+        const issues = await handBackArchivedTaskIssues(tx, {
+            actor,
+            serverId: input.serverId,
+            taskId: current.id,
+        });
         const task = await readTask(tx, input.serverId, current.id);
         return {
-            events: [prepareTaskUpdatedEvent(task), ...reminderEvents, ...workers.events],
+            events: [
+                prepareTaskUpdatedEvent(task),
+                ...reminderEvents,
+                ...workers.events,
+                ...issues.events,
+            ],
             task,
-            wakes: workers.wakes,
+            wakes: [...workers.wakes, ...issues.agentWakes],
             workerFrames: workers.frames,
         };
     });

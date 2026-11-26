@@ -10,13 +10,15 @@ export interface Hearer {
     mentioned: boolean;
 }
 
-const hearsFollowedPlace = ({ ambient, follows, mentioned }: Hearer) =>
-    ambient || mentioned || follows;
-
+/**
+ * A Project's hearers hear its channel and its inline replies. A Task chat has no ambient
+ * hearers: an agent hears one only when a message @mentions it or it follows the Task
+ * (ADR 0062, specs/inbox.md#hearing).
+ */
 const hearingRules: Record<HearingPlace, (hearer: Hearer) => boolean> = {
     channel: ({ ambient, mentioned }) => ambient || mentioned,
-    reply: hearsFollowedPlace,
-    task: hearsFollowedPlace,
+    reply: ({ ambient, follows, mentioned }) => ambient || mentioned || follows,
+    task: ({ follows, mentioned }) => mentioned || follows,
 };
 
 export function hears(place: HearingPlace, hearer: Hearer) {

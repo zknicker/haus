@@ -28,6 +28,7 @@ export async function readUnworkedTaskWakes(
                 eq(taskPullRequestsTable.number, pull.number),
                 isNull(tasksTable.archivedAt),
                 isNotNull(tasksTable.chatId),
+                isNotNull(tasksTable.createdByAgentId),
                 notExists(
                     db
                         .select({ id: workersTable.id })

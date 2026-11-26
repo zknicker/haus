@@ -1,4 +1,4 @@
-import type { PushEnvironment, PushNotificationPayload } from '@haus/api';
+import type { PushEnvironment, PushIssuePayload, PushNotificationPayload } from '@haus/api';
 
 /** Where one push goes: a registered device and the app topic it listens on. */
 export interface PushDevice {
@@ -11,7 +11,7 @@ export interface PushRequest {
     /** Replaces an undelivered push with the same id on the device. */
     collapseId: string;
     device: PushDevice;
-    payload: PushNotificationPayload;
+    payload: PushIssuePayload | PushNotificationPayload;
 }
 
 /**

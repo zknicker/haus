@@ -12,6 +12,7 @@ import {
     openIssueStates,
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import { nameIssueActors } from '../issues/issue-actor-names.ts';
 import { addIssueComment } from '../issues/issue-comments.ts';
@@ -23,6 +24,7 @@ import { updateIssue } from '../issues/issue-update.ts';
 import type { IssueTx, IssueWriteResult } from '../issues/issue-write.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import {
     agentIssueActor,
     requireAgentHomeProject,
@@ -41,9 +43,21 @@ import {
 
 const listLimit = 50;
 
-export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase) {
-    const commit = async (runner: ResolvedRunner, result: IssueWriteResult) => {
+export function registerAgentIssueRoutes(
+    app: FastifyInstance,
+    options: {
+        agentDelivery: AgentDelivery;
+        db: HausDatabase;
+        postCommitWork: ServerPostCommitWork;
+    }
+) {
+    const { agentDelivery, db, postCommitWork } = options;
+    const publish = async (result: Pick<IssueWriteResult, 'agentWakes' | 'events'>) => {
         publishRealtime(result.events);
+        await postCommitWork.wakeAgents(agentDelivery, result.agentWakes);
+    };
+    const commit = async (runner: ResolvedRunner, result: IssueWriteResult) => {
+        await publish(result);
         return { issue: await toAgentIssueRow(db, runner.serverId, result.issue) };
     };
 
@@ -135,7 +149,7 @@ export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase)
                 },
                 writerGuard(runner)
             );
-            publishRealtime(result.events);
+            await publish(result);
             const name = await nameIssueActors(db, serverId, [actor]);
             return { comment: toAgentComment(result.comment, name) };
         }

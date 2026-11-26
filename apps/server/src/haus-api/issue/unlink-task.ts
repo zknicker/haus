@@ -7,5 +7,5 @@ export const unlinkIssueTaskProcedure = issueProcedure
     .input(issueTaskLinkInputSchema)
     .output(issueMutationResultSchema)
     .mutation(async ({ ctx, input }) =>
-        commitIssueWrite(await unlinkIssueTask(ctx.hausDb, memberIssueActor(ctx.member), input))
+        commitIssueWrite(ctx, await unlinkIssueTask(ctx.hausDb, memberIssueActor(ctx.member), input))
     );

@@ -18,7 +18,7 @@ export {
     indentContinuationLines,
     shortInboxId,
 } from './inbox-header-format.ts';
-export { composeTaskAssignmentInput } from './inbox-task-assignment-format.ts';
+export { composeIssueAssignmentInput, composeIssueEventInput } from './inbox-issue-format.ts';
 export { formatInlineReplyContext } from './inline-reply-format.ts';
 export { formatInstructionsUpdate } from './instructions-update-format.ts';
 export {

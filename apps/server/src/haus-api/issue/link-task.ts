@@ -7,5 +7,5 @@ export const linkIssueTaskProcedure = issueProcedure
     .input(issueTaskLinkInputSchema)
     .output(issueMutationResultSchema)
     .mutation(async ({ ctx, input }) =>
-        commitIssueWrite(await linkIssueTask(ctx.hausDb, memberIssueActor(ctx.member), input))
+        commitIssueWrite(ctx, await linkIssueTask(ctx.hausDb, memberIssueActor(ctx.member), input))
     );

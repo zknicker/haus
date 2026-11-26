@@ -10,7 +10,12 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { issuesTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { allocateIssueNumber } from '../tasks/task-key-ledger.ts';
-import { actorColumns, requireIssueActor, requireIssueAssignee } from './issue-actor.ts';
+import {
+    actorColumns,
+    requireActiveTaskAssignee,
+    requireIssueActor,
+    requireIssueAssignee,
+} from './issue-actor.ts';
 import {
     appendIssueEvents,
     prepareIssueCreatedEvent,
@@ -25,6 +30,7 @@ import {
 import { readIssue } from './issue-read.ts';
 import { deriveIssueWrite } from './issue-wakes.ts';
 import { insertIssueTaskLink, type IssueWriteResult } from './issue-write.ts';
+import { settleIssueWrite } from './issue-write-effects.ts';
 
 export async function createIssue(db: HausDatabase, actor: IssueActor, input: IssueCreateInput) {
     return await db.transaction(async (tx) => {
@@ -33,8 +39,15 @@ export async function createIssue(db: HausDatabase, actor: IssueActor, input: Is
         await requireIssueActor(tx, serverId, actor);
         const project = await requireIssueProject(tx, serverId, input.projectId);
         const assignee = input.assignee ?? null;
+        const state = input.state ?? 'todo';
         if (assignee) {
             await requireIssueAssignee(tx, serverId, assignee);
+            await requireActiveTaskAssignee(tx, {
+                assignee,
+                code: null,
+                open: issueStateType(state) === 'open',
+                serverId,
+            });
         }
         const parent = input.parentId
             ? await requireIssueParent(tx, {
@@ -47,7 +60,6 @@ export async function createIssue(db: HausDatabase, actor: IssueActor, input: Is
             : null;
         const number = await allocateIssueNumber(tx, { keyId: project.keyId, serverId });
         const id = createOpaqueId('iss');
-        const state = input.state ?? 'todo';
         const creator = actorColumns(actor);
         const assigned = actorColumns(assignee);
         await tx.insert(issuesTable).values({
@@ -103,10 +115,8 @@ export async function createIssue(db: HausDatabase, actor: IssueActor, input: Is
             });
             events.push(prepareIssueUpdatedEvent(await readIssue(tx, serverId, parent.id)));
         }
-        return {
-            events,
-            issue,
-            wakes: deriveIssueWrite({ actor, after: issue, before: null, events: recorded }),
-        } satisfies IssueWriteResult;
+        const wakes = deriveIssueWrite({ actor, after: issue, before: null, events: recorded });
+        const settled = await settleIssueWrite(tx, { actor, before: null, events, issue, wakes });
+        return { ...settled, issue, wakes } satisfies IssueWriteResult;
     });
 }

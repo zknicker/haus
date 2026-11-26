@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import {
+    IssueAssigneeArchivedError,
     IssueConflictError,
     IssueInvariantError,
     IssueNotFoundError,
@@ -9,6 +10,7 @@ import {
 } from '../../issues/issue-errors.ts';
 import type { IssueWriteResult } from '../../issues/issue-write.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
+import type { HausContext } from '../context.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const issueProcedure = memberProcedure.use(async ({ next }) => {
@@ -19,8 +21,13 @@ export const issueProcedure = memberProcedure.use(async ({ next }) => {
     throw toIssueError(result.error.cause) ?? result.error;
 });
 
-export function commitIssueWrite(result: Pick<IssueWriteResult, 'events' | 'issue'>) {
+/** After an Issue write commits: publish its events and wake the agents it queued for. */
+export function commitIssueWrite(
+    ctx: Pick<HausContext, 'agentDelivery' | 'postCommitWork'>,
+    result: Pick<IssueWriteResult, 'agentWakes' | 'events' | 'issue'>
+) {
     publishRealtime(result.events);
+    void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.agentWakes);
     return { issue: result.issue };
 }
 
@@ -32,6 +39,7 @@ function toIssueError(cause: unknown) {
         return new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
     if (
+        cause instanceof IssueAssigneeArchivedError ||
         cause instanceof IssueInvariantError ||
         cause instanceof IssueParentProjectError ||
         cause instanceof IssueParentCycleError

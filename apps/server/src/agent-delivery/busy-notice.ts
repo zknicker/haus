@@ -1,10 +1,11 @@
 import {
     type AgentCommand,
-    type AgentTaskAssignmentNotice,
+    type AgentIssueWakeNotice,
+    batchedChatlessInboxSources,
     type WorkerReportsNotice,
     workerReportsPerRun,
 } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, tasksTable } from '../postgres/schema.ts';
 import { readTasks } from '../tasks/task-read.ts';
@@ -16,9 +17,9 @@ import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
 /**
  * The content-free notice for a busy Agent, when the active run has work it has
- * not been told about: the window of Chat rows, plus a count of queued Task
- * assignments and of one Task's queued Worker reports. Neither has its bodies
- * in a notice; they wait for the Agent's next turn (ADR 0051, specs/inbox.md).
+ * not been told about: the window of Chat rows, plus a count of queued Issue
+ * items and of one Task's queued Worker reports. Neither has its bodies
+ * in a notice; they wait for the Agent's next turn (specs/inbox.md).
  */
 export async function planBusyNotice(
     tx: HausDatabase,
@@ -30,9 +31,9 @@ export async function planBusyNotice(
     const unnoticed = (await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows)).filter(
         listed
     );
-    const tasks = await readTaskAssignmentNotice(tx, agentId);
+    const issues = await readIssueItemsNotice(tx, agentId);
     const reports = await readWorkerReportsNotice(tx, { agentId, serverId });
-    if (unnoticed.length === 0 && !tasks?.fresh && !reports?.fresh) {
+    if (unnoticed.length === 0 && !issues?.fresh && !reports?.fresh) {
         return null;
     }
     const pending = noticeWindow(
@@ -43,7 +44,7 @@ export async function planBusyNotice(
         agentId,
         inbox: await buildInboxItems(tx, pending),
         runId: input.runId,
-        ...(tasks ? { taskAssignments: tasks.notice } : {}),
+        ...(issues ? { issueItems: issues.notice } : {}),
         totalPending: await store.countQueuedNoticeItems(tx, agentId),
         type: 'notice',
         unreadElsewhere: await readUnreadElsewhere(tx, {
@@ -56,18 +57,23 @@ export async function planBusyNotice(
     };
 }
 
-/** Every queued assignment, the ones no notice has named first, so an ack can reach them. */
-async function readTaskAssignmentNotice(
+/** Every queued Issue item, the ones no notice has named first, so an ack can reach them. */
+async function readIssueItemsNotice(
     tx: HausDatabase,
     agentId: string
-): Promise<{ fresh: boolean; notice: AgentTaskAssignmentNotice } | null> {
+): Promise<{ fresh: boolean; notice: AgentIssueWakeNotice } | null> {
     const rows = await tx
         .select({
             dedupeKey: agentInboxTable.dedupeKey,
             noticeRunId: agentInboxTable.noticeRunId,
         })
         .from(agentInboxTable)
-        .where(and(store.queuedFor(agentId), eq(agentInboxTable.source, 'task_assignment')))
+        .where(
+            and(
+                store.queuedFor(agentId),
+                inArray(agentInboxTable.source, [...batchedChatlessInboxSources])
+            )
+        )
         .orderBy(...store.inboxOrder());
     if (rows.length === 0) {
         return null;
