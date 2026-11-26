@@ -25,7 +25,8 @@ export async function settleIssueWrite(
 ) {
     const { actor, before, issue } = input;
     const reassigned = before === null || !sameIssueActor(before.assignee, issue.assignee);
-    if (reassigned && before !== null) {
+    const parked = issue.state.id === 'backlog' || issue.state.type === 'closed';
+    if (before !== null && (reassigned || parked)) {
         await retireIssueAssignments(tx, { issueId: issue.id, serverId: issue.serverId });
     }
     const notified = reassigned

@@ -7,6 +7,7 @@ import {
 } from '@haus/api';
 import * as z from 'zod';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 const fixture = agentCreationFixture();
 let orbit: { token: string };
@@ -221,6 +222,20 @@ test('replies stay one level deep and the timeline names who did what', async ()
         (await call(orbit, '/api/agent/issues?assignee=me')).body
     );
     expect(mine.issues.map((row) => row.code)).toContain(issue.code);
+});
+
+test('assignee and link take a Task by its short id', async () => {
+    const task = await startTestTask(fixture.harness, fixture.owner, {
+        channelId: fixture.channelId,
+        serverId: fixture.serverId,
+        title: 'Crew on the deploy',
+    });
+    const assigned = await file('Assign by short id', { assignee: `task:${task.shortId}` });
+    expect(assigned.assignee).toMatchObject({ kind: 'task', taskId: task.id });
+
+    const linked = await file('Link by short id');
+    await write(orbit, '/api/agent/issues/link', { code: linked.code, taskId: task.shortId });
+    expect((await show(linked.code)).issue.taskIds).toEqual([task.id]);
 });
 
 async function waitForLockWaiters(count: number) {

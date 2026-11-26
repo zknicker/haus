@@ -36,7 +36,7 @@ export async function queueIssueWakes(
     const byAgent = input.actor?.kind === 'captain' || input.actor?.kind === 'task';
     for (const wake of input.wakes) {
         const agentId = await recipientAgent(tx, serverId, wake.recipient);
-        if (!agentId) {
+        if (!agentId || (input.actor?.kind === 'captain' && input.actor.agentId === agentId)) {
             continue;
         }
         const issue = await readIssue(tx, serverId, wake.issueId);

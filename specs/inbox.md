@@ -210,7 +210,7 @@ A durable `message.created` is planned once by Server delivery
   Task's assignee Agent with no Run behind it ([Workers](workers.md#pull-request-readings)).
 - An Issue write queues its derived wakes ([Issue items](#issue-items)) in its own transaction.
   Each is `mentioned=true` and has no Chat, so the row holds its typed attention as JSON rather
-  than an envelope. Reassigning or unassigning retires a queued `issue_assignment`; a run that
+  than an envelope. Reassigning, unassigning, or moving the Issue to `backlog`, `done` or `canceled` retires a queued `issue_assignment`; a run that
   already holds it keeps it, and a failed run forgets it on requeue (`retireStaleRequeuedItems`)
   unless the Issue is still `todo` or `in_progress` and assigned to the agent. A change an agent
   made spends the automation chain; one a person made resets it

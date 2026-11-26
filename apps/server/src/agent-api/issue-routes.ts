@@ -32,6 +32,7 @@ import {
     resolveIssueActorRef,
     resolveIssueLabels,
     resolveProjectKey,
+    taskIdOfRef,
 } from './issue-refs.ts';
 import { agentIssueRead, agentIssueWrite, withImplicitIssueVersion } from './issue-route-shell.ts';
 import {
@@ -166,6 +167,7 @@ export function registerAgentIssueRoutes(
             async (runner, input) => {
                 const { serverId } = runner;
                 const issue = await findIssueByCode(db, serverId, input.code);
+                const taskId = await taskIdOfRef(db, serverId, input.taskId);
                 const result = await withImplicitIssueVersion(
                     undefined,
                     issueVersion(serverId, input.code),
@@ -177,7 +179,7 @@ export function registerAgentIssueRoutes(
                                 expectedVersion,
                                 issueId: issue.id,
                                 serverId,
-                                taskId: input.taskId,
+                                taskId,
                             },
                             writerGuard(runner)
                         )

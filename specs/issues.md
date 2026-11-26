@@ -128,7 +128,7 @@ from the assignee in the same transaction:
 | A person | Nobody; the person gets human unread and push |
 | None | Nobody |
 
-- The actor never wakes itself.
+- The actor never wakes itself, including a Captain whose own Task is the assignee.
 - Assigning while the Issue is in `backlog` wakes nobody. Moving an assigned Issue from `backlog`
   to `todo` or `in_progress` wakes as an assignment. Assigning a closed Issue wakes nobody either.
 - Until Task agents exist (step 5), a Task assignee wakes the Captain that started the Task, as pull
@@ -150,7 +150,7 @@ is keyed by the parent's id and the child's `state_changed` event id.
 
 - `issue_assignment` replaces `task_assignment`. Identity `issue-assign:<issueId>:<version>`.
   Every queued assignment for one agent rides one run, up to 50, by priority then age, and a busy
-  agent gets a count. Reassigning or unassigning before a run takes it retires it
+  agent gets a count. Reassigning, unassigning, or moving it to `backlog`, `done` or `canceled` before a run takes it retires it
   (`retireIssueAssignments`).
 - `issue_event` carries a comment, a state change, or a closed last sub-issue. Identity
   `issue-event:<issueId>:<timelineEventId>`. Coalesced per agent per run, up to 50; a run carries
