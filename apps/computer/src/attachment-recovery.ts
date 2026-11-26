@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Attachment } from './attachment.ts';
+import type { AttachmentRecord as Attachment } from './attachment.ts';
 
 export const computerMachineUnlinkedExitCode = 77;
 

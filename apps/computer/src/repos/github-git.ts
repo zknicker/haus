@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { GitIdentity } from '@haus/api';
 import { computerEntrypoint } from '../build-identity.ts';
@@ -21,7 +22,9 @@ export function githubAppGit(dataRoot: string, serverId: string, subject: Github
         join(dataRoot, 'servers', serverId),
         subject.access === 'write' ? subject.invocationId : subject.agentId,
     ];
-    const git: GithubAppGit = { helper: `!${words.map(shellQuote).join(' ')}` };
+    const git: GithubAppGit = {
+        helper: `!HOME=${shellQuote(homedir())} ${words.map(shellQuote).join(' ')}`,
+    };
     return git;
 }
 

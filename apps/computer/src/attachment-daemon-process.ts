@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 export interface AttachmentDaemonMarker {
-    credentialHash: string | null;
+    computerId: string | null;
     pid: number;
 }
 
@@ -70,11 +70,11 @@ export class AttachmentDaemonProcessRegistry {
 
     async planStart(
         marker: AttachmentDaemonMarker | null,
-        credentialHash: string,
+        computerId: string,
         serverId: string
     ): Promise<AttachmentDaemonStartPlan> {
         const inspection = marker ? await this.inspect(marker.pid, serverId) : null;
-        return planAttachmentDaemonStart(marker, credentialHash, inspection);
+        return planAttachmentDaemonStart(marker, computerId, inspection);
     }
 
     async verifiedPid(
@@ -124,13 +124,13 @@ export function classifyAttachmentDaemonProcess(
 
 export function planAttachmentDaemonStart(
     marker: AttachmentDaemonMarker | null,
-    credentialHash: string,
+    computerId: string,
     inspection: AttachmentDaemonProcessInspection | null
 ): AttachmentDaemonStartPlan {
     if (!(marker && inspection?.kind === 'verified')) {
         return { kind: 'start' };
     }
-    if (marker.credentialHash === credentialHash) {
+    if (marker.computerId === computerId) {
         return { kind: 'retain' };
     }
     return { kind: 'restart', pid: marker.pid };
@@ -159,13 +159,13 @@ export async function readAttachmentDaemonMarker(
         const contents = await readFile(path, 'utf8');
         const legacyPid = Number.parseInt(contents, 10);
         if (Number.isSafeInteger(legacyPid) && legacyPid > 0) {
-            return { credentialHash: null, pid: legacyPid };
+            return { computerId: null, pid: legacyPid };
         }
         const marker: unknown = JSON.parse(contents);
-        if (!(isRecord(marker) && isCredentialHash(marker.credentialHash) && isPid(marker.pid))) {
+        if (!(isRecord(marker) && isComputerId(marker.computerId) && isPid(marker.pid))) {
             return null;
         }
-        return { credentialHash: marker.credentialHash, pid: marker.pid };
+        return { computerId: marker.computerId, pid: marker.pid };
     } catch {
         return null;
     }
@@ -204,8 +204,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
 
-function isCredentialHash(value: unknown): value is string {
-    return typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value);
+function isComputerId(value: unknown): value is string {
+    return typeof value === 'string' && /^[A-Za-z0-9_-]+$/u.test(value);
 }
 
 function isPid(value: unknown): value is number {

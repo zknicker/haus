@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
-import { chmod, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { type AttachmentKeychain, buildAttachmentKeychain } from './attachment-keychain.ts';
+import { writePrivateJson } from './attachment-store.ts';
 
 export interface PendingAttachment {
     credential: string;
@@ -13,15 +15,17 @@ const pendingDirectory = 'pending-attachments';
 
 export async function getOrCreatePendingAttachment(options: {
     dataRoot: string;
+    keychain?: AttachmentKeychain | null;
     origin: string;
     slug: string;
 }): Promise<PendingAttachment> {
+    const keychain = options.keychain === undefined ? buildAttachmentKeychain : options.keychain;
     const destination = pendingAttachmentPath(options.dataRoot, options.slug);
     const directory = join(options.dataRoot, pendingDirectory);
     await mkdir(directory, { mode: 0o700, recursive: true });
     await chmod(directory, 0o700);
 
-    const existing = await readPendingAttachment(options.dataRoot, options.slug);
+    const existing = await readPendingAttachment(options.dataRoot, options.slug, keychain);
     if (existing) {
         assertPendingAttachmentMatches(existing, options);
         return existing;
@@ -36,7 +40,7 @@ export async function getOrCreatePendingAttachment(options: {
             if (!isAlreadyExists(cause)) {
                 throw cause;
             }
-            const recovered = await readPendingAttachment(options.dataRoot, options.slug);
+            const recovered = await readPendingAttachment(options.dataRoot, options.slug, keychain);
             if (recovered) {
                 assertPendingAttachmentMatches(recovered, options);
                 return recovered;
@@ -51,7 +55,7 @@ export async function getOrCreatePendingAttachment(options: {
     }
 
     try {
-        const recovered = await readPendingAttachment(options.dataRoot, options.slug);
+        const recovered = await readPendingAttachment(options.dataRoot, options.slug, keychain);
         if (recovered) {
             assertPendingAttachmentMatches(recovered, options);
             return recovered;
@@ -62,14 +66,11 @@ export async function getOrCreatePendingAttachment(options: {
             origin: options.origin,
             slug: options.slug,
         };
-        const temporary = `${destination}.${randomBytes(8).toString('hex')}.tmp`;
-        try {
-            await writeFile(temporary, `${JSON.stringify(pending)}\n`, { mode: 0o600 });
-            await chmod(temporary, 0o600);
-            await rename(temporary, destination);
-        } finally {
-            await rm(temporary, { force: true });
+        const { credential, ...record } = pending;
+        if (keychain) {
+            await keychain.write(pendingAccount(options.slug), credential);
         }
+        await writePrivateJson(destination, keychain ? record : pending);
         return pending;
     } finally {
         await rm(lock, { force: true, recursive: true });
@@ -78,7 +79,8 @@ export async function getOrCreatePendingAttachment(options: {
 
 export async function readPendingAttachment(
     dataRoot: string,
-    slug: string
+    slug: string,
+    keychain: AttachmentKeychain | null = buildAttachmentKeychain
 ): Promise<PendingAttachment | null> {
     const destination = pendingAttachmentPath(dataRoot, slug);
     let value: unknown;
@@ -90,14 +92,26 @@ export async function readPendingAttachment(
         }
         throw new Error('The pending Computer attachment record is unreadable.');
     }
-    if (!isPendingAttachment(value) || value.slug !== slug) {
+    const pending = keychain
+        ? { ...(value as object), credential: await keychain.read(pendingAccount(slug), slug) }
+        : value;
+    if (!isPendingAttachment(pending) || pending.slug !== slug) {
         throw new Error('The pending Computer attachment record is invalid.');
     }
-    return value;
+    return pending;
 }
 
-export async function removePendingAttachment(dataRoot: string, slug: string) {
+export async function removePendingAttachment(
+    dataRoot: string,
+    slug: string,
+    keychain: AttachmentKeychain | null = buildAttachmentKeychain
+) {
     await rm(pendingAttachmentPath(dataRoot, slug), { force: true });
+    await keychain?.delete(pendingAccount(slug));
+}
+
+function pendingAccount(slug: string) {
+    return `pending-${slug}`;
 }
 
 function pendingAttachmentPath(dataRoot: string, slug: string) {
