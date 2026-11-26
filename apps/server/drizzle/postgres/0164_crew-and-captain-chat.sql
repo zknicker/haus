@@ -1,7 +1,8 @@
 -- ADR 0062 step 5b: one shared Captain chat per Captain replaces Captain DMs, Captains get a human
 -- owner, inbox rows carry a Task delivery mode, crew reports are chatless inbox items, and crew
--- Tasks may name a repo and ref. Schema only: the one-off script retires old Captain DMs before
--- this runs, so the narrowed chats_shape holds.
+-- Tasks may name a repo and ref. Inbox rows addressed 'dm' become 'task_chat' in Task chats and
+-- are deleted elsewhere. The one-off script retires old Captain DMs before this runs, so the
+-- narrowed chats_shape holds.
 CREATE TABLE "captain_chat_members" (
 	"chat_id" text NOT NULL,
 	"chat_kind" text DEFAULT 'captain' NOT NULL,
@@ -15,6 +16,8 @@ CREATE TABLE "captain_chat_members" (
 );
 --> statement-breakpoint
 ALTER TABLE "agent_inbox" DROP CONSTRAINT "agent_inbox_addressed_reason";--> statement-breakpoint
+UPDATE "agent_inbox" SET "addressed_reason" = 'task_chat' FROM "chats" WHERE "agent_inbox"."addressed_reason" = 'dm' AND "chats"."server_id" = "agent_inbox"."server_id" AND "chats"."id" = "agent_inbox"."chat_id" AND "chats"."kind" = 'task';--> statement-breakpoint
+DELETE FROM "agent_inbox" WHERE "addressed_reason" = 'dm';--> statement-breakpoint
 ALTER TABLE "agent_inbox" DROP CONSTRAINT "agent_inbox_chat";--> statement-breakpoint
 ALTER TABLE "agent_run_triggers" DROP CONSTRAINT "agent_run_triggers_chat";--> statement-breakpoint
 ALTER TABLE "chats" DROP CONSTRAINT "chats_kind";--> statement-breakpoint
