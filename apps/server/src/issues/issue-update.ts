@@ -18,14 +18,25 @@ import { appendIssueEvents, prepareIssueUpdatedEvent } from './issue-events.ts';
 import { requireIssueParent, subscribeToIssue, writeIssueLabels } from './issue-fields.ts';
 import { lockIssue, readIssue } from './issue-read.ts';
 import { deriveIssueWrite, deriveSubIssuesClosed } from './issue-wakes.ts';
-import { insertIssueTaskLink, type IssueTx, type IssueWriteResult } from './issue-write.ts';
+import {
+    insertIssueTaskLink,
+    type IssueTx,
+    type IssueWriteGuard,
+    type IssueWriteResult,
+} from './issue-write.ts';
 
-export async function updateIssue(db: HausDatabase, actor: IssueActor, input: IssueUpdateInput) {
+export async function updateIssue(
+    db: HausDatabase,
+    actor: IssueActor,
+    input: IssueUpdateInput,
+    guard?: IssueWriteGuard
+) {
     return await db.transaction(async (tx) => {
         const { serverId } = input;
         await lockServerRow(tx, serverId);
         await requireIssueActor(tx, serverId, actor);
         const current = await lockIssue(tx, serverId, input.issueId);
+        await guard?.(tx, current);
         requireIssueVersion(current.version, input.expectedVersion);
         if (input.expectAssignee !== undefined) {
             await requireExpectedAssignee(tx, current, input.expectAssignee);

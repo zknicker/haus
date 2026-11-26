@@ -7,14 +7,20 @@ import { requireIssueActor } from './issue-actor.ts';
 import { IssueInvariantError, requireIssueVersion } from './issue-errors.ts';
 import { appendIssueEvents, prepareIssueUpdatedEvent } from './issue-events.ts';
 import { lockIssue, readIssue } from './issue-read.ts';
-import { insertIssueTaskLink, type IssueTx, type IssueWriteResult } from './issue-write.ts';
+import {
+    insertIssueTaskLink,
+    type IssueTx,
+    type IssueWriteGuard,
+    type IssueWriteResult,
+} from './issue-write.ts';
 
 export async function linkIssueTask(
     db: HausDatabase,
     actor: IssueActor,
-    input: IssueTaskLinkInput
+    input: IssueTaskLinkInput,
+    guard?: IssueWriteGuard
 ) {
-    return await writeLink(db, actor, input, async (tx) => {
+    return await writeLink(db, actor, input, guard, async (tx) => {
         await requireTask(tx, input.serverId, input.taskId);
         return await insertIssueTaskLink(tx, {
             actor,
@@ -28,9 +34,10 @@ export async function linkIssueTask(
 export async function unlinkIssueTask(
     db: HausDatabase,
     actor: IssueActor,
-    input: IssueTaskLinkInput
+    input: IssueTaskLinkInput,
+    guard?: IssueWriteGuard
 ) {
-    return await writeLink(db, actor, input, async (tx, issue) => {
+    return await writeLink(db, actor, input, guard, async (tx, issue) => {
         if (sameIssueActor(issue.assignee, { kind: 'task', taskId: input.taskId })) {
             throw new IssueInvariantError(
                 `${issue.code} is assigned to that Task; reassign it before unlinking the Task.`
@@ -54,6 +61,7 @@ async function writeLink(
     db: HausDatabase,
     actor: IssueActor,
     input: IssueTaskLinkInput,
+    guard: IssueWriteGuard | undefined,
     change: (tx: IssueTx, issue: Awaited<ReturnType<typeof lockIssue>>) => Promise<boolean>
 ) {
     return await db.transaction(async (tx) => {
@@ -61,6 +69,7 @@ async function writeLink(
         await lockServerRow(tx, serverId);
         await requireIssueActor(tx, serverId, actor);
         const current = await lockIssue(tx, serverId, input.issueId);
+        await guard?.(tx, current);
         requireIssueVersion(current.version, input.expectedVersion);
         const wasLinked = current.taskIds.includes(input.taskId);
         if (!(await change(tx, current))) {

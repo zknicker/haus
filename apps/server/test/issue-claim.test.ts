@@ -115,6 +115,42 @@ describe('claiming with --expect-assignee', () => {
 });
 
 describe('who writes where', () => {
+    test('a former assignee who loses the Issue while its write waits is refused', async () => {
+        const issue = await file('Patch the login loop');
+        await write(orbit, '/api/agent/issues/update', { assignee: '@peer', code: issue.code });
+        const { issue: record } = await fixture.owner.trpc.issue.get.query({
+            code: issue.code,
+            serverId: fixture.serverId,
+        });
+        let pending: ReturnType<typeof call> | undefined;
+        await fixture.harness.sql.begin(async (tx) => {
+            await tx`select id from servers where id = ${fixture.serverId} for update`;
+            await tx`
+                update issues
+                set assignee_agent_id = ${fixture.orbitAgentId}, version = version + 1
+                where id = ${record.id}
+            `;
+            pending = call(peer, '/api/agent/issues/update', {
+                code: issue.code,
+                priority: 'urgent',
+            });
+            await waitForLockWaiters(1);
+        });
+        const reply = await pending;
+        expect(reply?.status).toBe(403);
+        expect(refusalSchema.parse(reply?.body).code).toBe('ISSUE_PROJECT_NOT_HOME');
+        expect((await show(issue.code)).issue).toMatchObject({
+            assignee: { handle: 'orbit', kind: 'captain' },
+            priority: 'normal',
+        });
+        for (const [path, body] of [
+            ['/api/agent/issues/comment', { body: 'Still mine?', code: issue.code }],
+            ['/api/agent/issues/link', { code: issue.code, taskId: 'tsk_none' }],
+        ] as const) {
+            expect((await refused(peer, path, body)).code).toBe('ISSUE_PROJECT_NOT_HOME');
+        }
+    });
+
     test('another Project edits only Issues assigned to it', async () => {
         const issue = await file('Audit the webhooks');
         const denied = await refused(peer, '/api/agent/issues/update', {
@@ -186,3 +222,19 @@ test('replies stay one level deep and the timeline names who did what', async ()
     );
     expect(mine.issues.map((row) => row.code)).toContain(issue.code);
 });
+
+async function waitForLockWaiters(count: number) {
+    const deadline = performance.now() + 2000;
+    while (performance.now() < deadline) {
+        const [row] = (await fixture.harness.sql`
+            select count(*)::int as waiting from pg_stat_activity
+            where datname = current_database()
+              and pid <> pg_backend_pid()
+              and wait_event_type = 'Lock'
+        `) as { waiting: number }[];
+        if ((row?.waiting ?? 0) >= count) {
+            return;
+        }
+    }
+    throw new Error(`Fewer than ${count} writers reached the held Server lock.`);
+}
