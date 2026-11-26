@@ -21,6 +21,7 @@ describe('haus repo checkout on the runner', () => {
             operation: { kind: 'repo-checkout', ref: 'release/28', repository: 'haus/haus' },
             runId: 'run_1',
             seq: 0,
+            sessionGeneration: 1,
             timeoutMs: 300_000,
             toolCallId: 'toolu_1',
             type: 'invocation-request',

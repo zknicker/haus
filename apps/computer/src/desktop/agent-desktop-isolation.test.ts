@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { bashRunner } from '../invocations/bash.ts';
 import { invocationEnvironment } from '../invocations/environment.ts';
+import { operationSession } from '../invocations/operation-session.test-support.ts';
 import { inlinePayloads } from '../invocations/operation.ts';
 import { agentDesktopToolsRoot, installAgentDesktop } from './agent-desktop-binary.ts';
 
@@ -37,6 +38,7 @@ test('bash invocations cannot reach the bundled agent-desktop by name or locatio
             payloads: inlinePayloads,
             signal: new AbortController().signal,
             timeoutMs: 30_000,
+            ...operationSession(),
         }
     );
 

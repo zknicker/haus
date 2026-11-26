@@ -79,6 +79,7 @@ function checkout(runId: string, toolCallId: string, repository: string, folder?
         },
         runId,
         seq: 0,
+        sessionGeneration: 1,
         toolCallId,
         type: 'invocation-request',
     });

@@ -17,6 +17,7 @@ export interface RunAuthority {
 }
 
 export interface BashToolInput {
+    readonly background?: boolean;
     readonly command: string;
     readonly computer?: string;
     readonly description?: string;
@@ -39,6 +40,7 @@ export interface ExecuteToolInput {
 }
 
 export interface ShellToolInput {
+    readonly background?: boolean;
     readonly command: readonly string[];
     readonly computer?: string;
     readonly timeout_ms?: number;
@@ -48,6 +50,17 @@ export interface ShellToolInput {
 export interface ApplyPatchToolInput {
     readonly computer?: string;
     readonly input: string;
+}
+
+export interface ProcessReadToolInput {
+    readonly afterSeq: number;
+    readonly computer?: string;
+    readonly processId: string;
+}
+
+export interface ProcessKillToolInput {
+    readonly computer?: string;
+    readonly processId: string;
 }
 
 export interface ViewImageToolInput {
@@ -74,6 +87,16 @@ export interface RunTools {
     bash(toolCallId: string, input: BashToolInput, signal: AbortSignal): Promise<ToolOutcome>;
     edit(toolCallId: string, input: EditToolInput, signal: AbortSignal): Promise<ToolOutcome>;
     execute(toolCallId: string, input: ExecuteToolInput, signal: AbortSignal): Promise<ToolOutcome>;
+    processKill(
+        toolCallId: string,
+        input: ProcessKillToolInput,
+        signal: AbortSignal
+    ): Promise<ToolOutcome>;
+    processRead(
+        toolCallId: string,
+        input: ProcessReadToolInput,
+        signal: AbortSignal
+    ): Promise<ToolOutcome>;
     settle(): Promise<RunVisibility>;
     shell(toolCallId: string, input: ShellToolInput, signal: AbortSignal): Promise<ToolOutcome>;
     viewImage(

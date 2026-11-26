@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { EditorCommand } from '@haus/api';
 import { editRunner } from './editor.ts';
+import { operationSession } from './operation-session.test-support.ts';
 import { inlinePayloads, type OperationResult } from './operation.ts';
 
 let testDir = '';
@@ -28,6 +29,7 @@ function run(edit: EditorCommand, signal = new AbortController().signal) {
             payloads: inlinePayloads,
             signal,
             timeoutMs: 30_000,
+            ...operationSession(),
         }
     );
 }

@@ -156,6 +156,7 @@ export function invocationRequest(agentId: string, runId: string, toolCallId: st
         operation: { command: 'ls drive', kind: 'bash' },
         runId,
         seq: 0,
+        sessionGeneration: 1,
         toolCallId,
         type: 'invocation-request',
     };

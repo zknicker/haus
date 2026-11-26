@@ -34,7 +34,8 @@ export interface AgentChain {
  * A sub-agent wake is the Agent's own earlier turn calling back, so an Agent that starts new
  * background work on every wake spends the chain instead of looping forever. A Drive conflict
  * answers the Agent's own push, so it spends the chain too, but it waits at the ceiling rather
- * than being refused: the copies it names stay in Drive until someone merges them.
+ * than being refused: the copies it names stay in Drive until someone merges them. A process
+ * exit answers the Agent's own background process and waits at the ceiling the same way.
  */
 const automationInboxSources = [
     'trigger',
@@ -43,6 +44,7 @@ const automationInboxSources = [
     'delivery_problem',
     'subagent',
     'drive_conflict',
+    'process_exit',
 ] as const;
 
 export function isAutomationAuthored(row: AuthoredWork): boolean {

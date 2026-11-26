@@ -32,6 +32,7 @@ test('a repo-checkout invocation makes the worktree, and a file read inside it c
             notAfter: '2999-01-01T00:00:00.000Z',
             operation,
             runId: 'run-1',
+            sessionGeneration: 1,
             timeoutMs: 30_000,
             type: 'invoke',
         });

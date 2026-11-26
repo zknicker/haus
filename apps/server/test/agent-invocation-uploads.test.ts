@@ -180,6 +180,7 @@ async function requestWrite(agentId: string, run: string, toolCallId: string, by
         operation: { bytes, kind: 'file-write', mode: 0o600, path: './photo.jpg' },
         runId: run,
         seq: 0,
+        sessionGeneration: 1,
         toolCallId,
         type: 'invocation-request',
     });

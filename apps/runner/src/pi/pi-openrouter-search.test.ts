@@ -144,6 +144,8 @@ describe('OpenRouter web search', () => {
             'function bash',
             'function str_replace_based_edit_tool',
             'function execute',
+            'function process_read',
+            'function process_kill',
             'function web_fetch',
             'openrouter:web_search',
         ]);
@@ -176,6 +178,8 @@ describe('OpenRouter web search', () => {
             'function bash',
             'function str_replace_based_edit_tool',
             'function execute',
+            'function process_read',
+            'function process_kill',
             'function web_fetch',
             'openrouter:web_search',
         ]);
@@ -221,6 +225,8 @@ describe('OpenRouter web search', () => {
             'function bash',
             'function str_replace_based_edit_tool',
             'function execute',
+            'function process_read',
+            'function process_kill',
             'function web_fetch',
             'function web_search',
         ]);

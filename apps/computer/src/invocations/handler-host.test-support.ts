@@ -9,6 +9,7 @@ import { fileReadRunner, fileWriteRunner, viewImageRunner } from './files.ts';
 import { createInvocationHandler } from './handler.ts';
 import type { OperationRunners } from './operation.ts';
 import { inlinePayloads } from './operation.ts';
+import { processKillRunner, processReadRunner } from './processes/process-runners.ts';
 import { createRepoCheckoutRunner } from './repo-checkout.ts';
 
 export function invocationRunners(agentsRoot: string) {
@@ -19,6 +20,8 @@ export function invocationRunners(agentsRoot: string) {
         edit: editRunner,
         'file-read': fileReadRunner,
         'file-write': fileWriteRunner,
+        'process-kill': processKillRunner,
+        'process-read': processReadRunner,
         'repo-checkout': createRepoCheckoutRunner(agentsRoot),
         'view-image': viewImageRunner,
     } satisfies OperationRunners;

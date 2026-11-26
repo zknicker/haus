@@ -306,18 +306,28 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
 
 ## Long work and the desktop
 
-- **Background processes** (step 4). `bash` with `background: true` starts a process on the
-  Machine and returns its process id. `process_read { processId, afterSeq }` reads output after a
-  cursor, and `process_kill` ends it. A process outlives the turn and is recorded in the Computer
-  ledger under the session's agent id and generation. When it exits, the Server queues a
-  `process_exit` item that wakes its session ([inbox.md](inbox.md#process-exits)). Each Computer
-  caps live background processes. Archive and access revocation kill them. Captains use them too.
-  They replace Workers' long-running builds and must exist before step 7.
+- **Background processes** (step 4). `bash` (or `shell`) with `background: true` starts a process
+  on the Machine, or the call's `computer`, and returns its process id (`prc_` plus 16
+  characters). `process_read { processId, afterSeq }` reads up to 64 KiB of output after a byte
+  cursor and names the next cursor and whether the process still runs, and `process_kill` ends it
+  (SIGTERM to its process group, SIGKILL after 5 seconds). Both take `computer` like every
+  machine tool, and only the session that started a process can reach it. A process outlives the
+  turn and is recorded in the Computer's ledger (`runtime/processes/` under the agent's folder)
+  with the session's agent id and generation, its output in a log beside it. When it ends on its
+  own, the Computer sends `process-exit` and resends it on every connect until the Server
+  acknowledges it, and the Server queues a `process_exit` item that wakes its session
+  ([inbox.md](inbox.md#process-exits)). Each Computer caps live background processes at 8 and
+  refuses a start past that. Archive (older generations only) and its own `process_kill` end a
+  process silently; an access revocation ends it and reports the exit, and a process the Computer
+  finds still running after its own restart is ended and reported with no exit code. A `haus`
+  command cannot run in the background. Captains use them too. They replace Workers'
+  long-running builds and must exist before step 7.
 - **Desktop lease** (step 4). The first `desktop` call in a turn takes a Computer-wide lease for
-  that session, held on the Server, which already routes calls. It is released at turn end,
-  after 60 seconds without a desktop call, on archive, and on revoke. Another session's desktop
-  call is refused `desktop-busy`, naming the holder. The Computer's per-command lock stays as a
-  backstop ([computer-use.md](computer-use.md)).
+  that session, held in memory on the Server, which already routes calls; a later turn of the same
+  session takes it over. It is released when the turn settles, 60 seconds after the last desktop
+  call started or finished, on archive, and on revoke. Another session's desktop call is refused
+  `desktop-busy` before it reaches the Computer, naming the holder ("Studio's desktop is in use by
+  Orbit."). The Computer's per-command lock stays as a backstop ([computer-use.md](computer-use.md)).
 
 ## Worktrees, commits and pull requests
 
@@ -432,7 +442,7 @@ deletes its Tasks, their chats and their hidden agent rows with it
 | Archive then unarchive runs a fresh generation, and a stale-generation dispatch is refused | `apps/server/test/task-unarchive.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |
 | A Captain-directed turn without a report sends one `unreported` crew report | `apps/server/test/crew-report-delivery.test.ts` |
 | A Task's access follows its Captain's or starter's current grant, never its own Machine, and refuses other targets | `apps/server/test/task-machine-access.test.ts` |
-| Archive deletes the session, kills processes, removes clean worktrees and keeps unpushed ones | `apps/server/test/task-archive.test.ts`, `apps/computer/src/invocations/task-archive.test.ts` |
+| Archive deletes the session, kills processes, removes clean worktrees and keeps unpushed ones | `apps/server/test/task-archive.test.ts`, `apps/computer/src/invocations/task-archive.test.ts` (step 5); the generation fence and process kill alone, `apps/computer/src/invocations/session.test.ts`, `apps/computer/src/invocations/processes/processes.test.ts` |
 | A Task writes Drive only under its own folders | `apps/server/test/task-drive-write.test.ts` |
 | A second session's desktop call is refused `desktop-busy` | `apps/server/test/desktop-lease.test.ts` |
 | The Captain chat reaches only its Captain, even when another Captain is @mentioned | `apps/server/test/captain-chat.test.ts` |

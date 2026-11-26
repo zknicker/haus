@@ -11,6 +11,7 @@ import { fileReadRunner, fileWriteRunner, viewImageRunner } from './files.ts';
 import { createInvocationHandler } from './handler.ts';
 import type { InvocationHandler } from './operation.ts';
 import { createInvocationPayloads } from './payloads.ts';
+import { processKillRunner, processReadRunner } from './processes/process-runners.ts';
 import { createRepoCheckoutRunner } from './repo-checkout.ts';
 
 interface AttachmentInvocations {
@@ -125,6 +126,8 @@ export function attachmentInvocations(
             edit: editRunner,
             'file-read': fileReadRunner,
             'file-write': fileWriteRunner,
+            'process-kill': processKillRunner,
+            'process-read': processReadRunner,
             'repo-checkout': createRepoCheckoutRunner(join(serverRoot, 'agents')),
             'view-image': viewImageRunner,
         },

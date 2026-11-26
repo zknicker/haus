@@ -64,6 +64,7 @@ function invoke(agentId: string, invocationId: string, command: string) {
         notAfter: '2999-01-01T00:00:00.000Z',
         operation: { command, kind: 'bash' },
         runId: 'run-1',
+        sessionGeneration: 1,
         timeoutMs: 30_000,
         type: 'invoke',
     };

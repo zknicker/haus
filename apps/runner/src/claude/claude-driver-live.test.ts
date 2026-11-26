@@ -149,6 +149,8 @@ function localTools() {
         },
         edit: () => Promise.resolve(refused),
         execute: () => Promise.resolve(refused),
+        processKill: () => Promise.resolve(refused),
+        processRead: () => Promise.resolve(refused),
         settle: () =>
             Promise.resolve({
                 sendCount: 0,

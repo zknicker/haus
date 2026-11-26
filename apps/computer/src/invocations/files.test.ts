@@ -3,6 +3,7 @@ import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileReadRunner, fileWriteRunner, imageMediaType, viewImageRunner } from './files.ts';
+import { operationSession } from './operation-session.test-support.ts';
 import { inlinePayloads, type OperationResult } from './operation.ts';
 
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
@@ -27,6 +28,7 @@ function context(signal = new AbortController().signal) {
         payloads: inlinePayloads,
         signal,
         timeoutMs: 60_000,
+        ...operationSession(),
     };
 }
 

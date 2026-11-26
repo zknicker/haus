@@ -13,6 +13,7 @@ import {
     type OperationRunners,
     textResult,
 } from './operation.ts';
+import type { ProcessRegistry } from './processes/process-registry.ts';
 import { recordWorktreeUse } from './worktree-use.ts';
 
 export async function executeInvocation(
@@ -22,6 +23,7 @@ export async function executeInvocation(
         controller: AbortController;
         logPath: string;
         payloads: InvocationPayloads;
+        processes: ProcessRegistry;
         runners: OperationRunners;
         start: () => boolean;
     }
@@ -48,6 +50,9 @@ export async function executeInvocation(
                 invocationId: command.invocationId,
                 logPath: input.logPath,
                 payloads: input.payloads,
+                processes: input.processes,
+                runId: command.runId,
+                sessionGeneration: command.sessionGeneration,
                 signal: input.controller.signal,
                 timeoutMs,
             });
@@ -74,8 +79,11 @@ export async function executeInvocation(
 
 const notStartedResult = textResult('cancelled', 'Cancelled before it started.');
 
-export function cancelledBeforeStart(invocationId: string) {
-    return invokeResult(invocationId, notStartedResult);
+export function cancelledBeforeStart(invocationId: string, text?: string) {
+    return invokeResult(
+        invocationId,
+        text === undefined ? notStartedResult : textResult('cancelled', text)
+    );
 }
 
 function invokeResult(invocationId: string, result: OperationResult) {
@@ -113,6 +121,10 @@ function runOperation(
             return runners.desktop(operation, context);
         case 'repo-checkout':
             return runners['repo-checkout'](operation, context);
+        case 'process-read':
+            return runners['process-read'](operation, context);
+        case 'process-kill':
+            return runners['process-kill'](operation, context);
     }
 }
 

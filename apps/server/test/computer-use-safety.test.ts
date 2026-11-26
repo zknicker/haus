@@ -126,6 +126,7 @@ function desktop(runId: string, toolCallId: string, args: string[]) {
         operation: { args, kind: 'desktop' },
         runId,
         seq: 0,
+        sessionGeneration: 1,
         toolCallId,
         type: 'invocation-request',
     });

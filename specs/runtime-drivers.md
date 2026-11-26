@@ -152,10 +152,16 @@ Machine pass (`apps/server/src/computer-access/agent-access.ts`), and a per-call
 other than its Machine is refused `TASK_MACHINE_ONLY` ([tasks.md](tasks.md#machine-and-model)).
 
 **On the Computer (step 4).** Invocations, the ledger, working folders and worktrees already key on
-the agent id, so each Task session gets its own. Each Computer runs invocations serially within one
-session and in parallel across sessions, up to a per-Computer cap (default 4), queueing the rest.
-Every invocation carries the session generation, and the Computer refuses one older than the
-newest `task-archive` it holds for that agent. Background processes and the desktop lease are in
+the agent id, so each Task session gets its own. The runner stamps every `invocation-request` with
+its run's session generation and the Server copies it onto `invoke`. The Computer queues
+invocations per agent id and generation, so they run serially within one session and in parallel
+across sessions, up to a per-Computer cap (default 4), queueing the rest in order; a call waiting
+for a slot can still be cancelled. `task-archive { agentId, generation }` records the generation in
+the agent's `runtime/session-archive.json`, stops that agent's open invocations and background
+processes from older generations, and from then on the Computer cancels any invocation stamped
+with an older generation before it starts ("This session was archived, so nothing ran."), across
+restarts. Step 4 builds the frame and the Server's `archiveSession`; step 5 sends it at archive and
+adds worktree cleanup. Background processes and the desktop lease are in
 [tasks.md](tasks.md#long-work-and-the-desktop).
 
 ## Harnesses
@@ -448,9 +454,9 @@ What the runner does:
 
 | Model family | Machine tools | Runner tools |
 | --- | --- | --- |
-| Claude | `bash`, `str_replace_based_edit_tool` | `execute`, `WebSearch`, `WebFetch` |
-| GPT | `shell`, `apply_patch`, `view_image` | `execute`, `web_fetch`, web search |
-| Every other Pi model | `bash`, `str_replace_based_edit_tool` | `execute`, `web_fetch`, web search |
+| Claude | `bash`, `str_replace_based_edit_tool`, `process_read`, `process_kill` | `execute`, `WebSearch`, `WebFetch` |
+| GPT | `shell`, `apply_patch`, `view_image`, `process_read`, `process_kill` | `execute`, `web_fetch`, web search |
+| Every other Pi model | `bash`, `str_replace_based_edit_tool`, `process_read`, `process_kill` | `execute`, `web_fetch`, web search |
 
 Web search on Pi is the provider's own search, hosted in the request or behind a `web_search`
 tool ([Web reach](#web-reach)).
@@ -459,11 +465,13 @@ Each machine tool keeps the input shape its models are trained on:
 
 | Tool | Input |
 | --- | --- |
-| `bash` | `{ command: string, timeout?: number, description?: string }`, Claude Code's Bash shape without `run_in_background` |
+| `bash` | `{ command: string, timeout?: number, description?: string, background?: boolean }`, Claude Code's Bash shape with `background` in place of `run_in_background` |
 | `str_replace_based_edit_tool` | `{ command: 'view' \| 'create' \| 'str_replace' \| 'insert', path, file_text?, old_str?, new_str?, insert_line?, view_range? }`, Anthropic's text editor shape |
-| `shell` | `{ command: string[], workdir?: string, timeout_ms?: number }`, Codex's shape |
+| `shell` | `{ command: string[], workdir?: string, timeout_ms?: number, background?: boolean }`, Codex's shape |
 | `apply_patch` | `{ input: string }`, Codex's patch grammar |
 | `view_image` | `{ path: string }` |
+| `process_read` | `{ processId: string, afterSeq: number }`, a background process's output after a byte cursor ([tasks.md](tasks.md#long-work-and-the-desktop)) |
+| `process_kill` | `{ processId: string }` |
 
 Every machine tool also takes an optional `computer`, a Computer id or name
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
@@ -1141,6 +1149,12 @@ update-required.
 `permissionsMoved` ([macOS permissions](computer-use.md#macos-permissions)). Protocol 46 Servers
 parse `computerUse` strictly and would reject the whole inventory, so only a protocol 47 Server
 receives the field.
+
+**Computer protocol 51 (ADR 0062 step 4).** `invoke` and `invocation-request` carry
+`sessionGeneration`. `bash` gains `background`, and `process-read` and `process-kill` are new
+operations. `task-archive` and `process-exit-ack` go down; `process-exit` comes up, resent on every
+connect until acknowledged. The `desktop-busy` refusal is the Server's own and never reaches a
+Computer.
 
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,

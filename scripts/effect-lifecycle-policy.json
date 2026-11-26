@@ -375,11 +375,11 @@
         },
         "apps/computer/src/invocations/handler.ts": {
             "disposition": "finite-cleanup",
-            "reason": "One AbortController per active invocation carries cancel; the active entry is removed in finally after the finished record is durable, and every frame's work is tracked until settled().",
+            "reason": "One AbortController per active invocation carries cancel; the active entry is removed in finally after the finished record is durable, the session slot is released in finally, and every frame's work is tracked until settled().",
             "risks": {
                 "abortController": 2,
                 "catchAndIgnore": 0,
-                "finallyBlock": 1,
+                "finallyBlock": 2,
                 "manualPromise": 0,
                 "timer": 0
             }
@@ -1404,6 +1404,61 @@
                 "catchAndIgnore": 0,
                 "finallyBlock": 2,
                 "manualPromise": 2,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/processes/process-records.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each record write and log read closes its file handle in a lexical finally; the records own no background work.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/processes/process-registry.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each background process owns one exit promise resolved once its record is written; the spawn log handle closes in finally, and a stop's SIGKILL timer is cleared in finally when the process exits.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/invocations/session-fences.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each archive write closes its temp file handle in a lexical finally before the atomic rename.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/session-frames.test-support.ts": {
+            "disposition": "test-support",
+            "reason": "The test frame sink resolves one waiter per awaited frame type when the handler sends it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/session-slots.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A call waiting for an invocation slot holds one promise, resolved by the releasing call or by its own abort, which also removes the waiter.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
                 "timer": 0
             }
         }

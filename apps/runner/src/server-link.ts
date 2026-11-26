@@ -140,6 +140,7 @@ export function openServerLink(input: {
             invocationClock: input.invocationClock ?? systemInvocationClock,
             ledger: input.ledger,
             link,
+            sessionGeneration: start.sessionGeneration,
         });
         runs.set(start.runId, toolset);
         const tools = {

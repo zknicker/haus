@@ -177,6 +177,7 @@ async function invokeOf(server: ServerStandIn) {
         notAfter: '2999-01-01T00:00:00.000Z',
         operation: request.operation,
         runId: request.runId,
+        sessionGeneration: request.sessionGeneration,
         timeoutMs: request.timeoutMs,
         type: 'invoke',
     });
@@ -189,6 +190,7 @@ function invoke(operation: InvocationOperation, timeoutMs: number) {
         notAfter: '2999-01-01T00:00:00.000Z',
         operation,
         runId: 'run_1',
+        sessionGeneration: 1,
         timeoutMs,
         type: 'invoke',
     } satisfies InvokeCommand;

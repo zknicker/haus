@@ -1,4 +1,10 @@
 import * as z from 'zod';
+import {
+    processExitAckSchema,
+    processKillOperationSchema,
+    processReadOperationSchema,
+    sessionArchiveCommandSchema,
+} from './agent-processes.ts';
 import { idSchema } from './chat-contract-primitives.ts';
 import { desktopRefusalSchema, screenRefusalSchema } from './computer-use.ts';
 import { repoFolderPathSchema, repoNameSchema } from './repos.ts';
@@ -15,13 +21,14 @@ export const invocationComputerTargetSchema = z.string().trim().min(1).max(200);
  * a replay re-renders the same text. `not-found` names no Computer on the
  * Server, `no-access` is the Computer's Agent access list, `moved` is a call
  * that names no Computer from a run started before the Agent's Machine changed
- * (ADR 0057 decision 7), and the rest are the computer use causes of `desktop`
- * calls.
+ * (ADR 0057 decision 7), `desktop-busy` is another session's desktop lease, and the rest
+ * are the computer use causes of `desktop` calls.
  */
 export const invocationRefusalSchema = z.enum([
     'not-found',
     'no-access',
     'moved',
+    'desktop-busy',
     ...desktopRefusalSchema.options,
 ]);
 export type InvocationRefusal = z.infer<typeof invocationRefusalSchema>;
@@ -41,6 +48,8 @@ export const invocationOperationKindSchema = z.enum([
     'browser',
     'desktop',
     'repo-checkout',
+    'process-read',
+    'process-kill',
 ]);
 export type InvocationOperationKind = z.infer<typeof invocationOperationKindSchema>;
 
@@ -51,6 +60,8 @@ export const invocationTimeoutsMs = {
     edit: { default: 30_000, max: 30_000 },
     'file-read': { default: 60_000, max: 60_000 },
     'file-write': { default: 60_000, max: 60_000 },
+    'process-kill': { default: 30_000, max: 30_000 },
+    'process-read': { default: 30_000, max: 30_000 },
     'repo-checkout': { default: 300_000, max: 300_000 },
     'view-image': { default: 30_000, max: 30_000 },
 } as const satisfies Record<InvocationOperationKind, { default: number; max: number }>;
@@ -149,6 +160,7 @@ export type InvocationEdit = z.infer<typeof invocationEditSchema>;
 export const invocationOperationSchema = z.discriminatedUnion('kind', [
     z
         .object({
+            background: z.literal(true).optional(),
             command: z.string().min(1).max(262_144),
             cwd: machinePathSchema.optional(),
             kind: z.literal('bash'),
@@ -191,6 +203,8 @@ export const invocationOperationSchema = z.discriminatedUnion('kind', [
             repository: repoNameSchema,
         })
         .strict(),
+    processReadOperationSchema,
+    processKillOperationSchema,
 ]);
 export type InvocationOperation = z.infer<typeof invocationOperationSchema>;
 
@@ -230,6 +244,7 @@ export const invokeCommandSchema = z
         notAfter: z.iso.datetime({ offset: true }),
         operation: invocationOperationSchema,
         runId: idSchema,
+        sessionGeneration: z.number().int().positive(),
         timeoutMs: z.number().int().positive().max(invocationTimeoutsMs.bash.max),
         type: z.literal('invoke'),
     })
@@ -254,6 +269,8 @@ export const invocationCommandSchemas = [
     invokeCommandSchema,
     invokeCancelCommandSchema,
     invokeResultAckSchema,
+    processExitAckSchema,
+    sessionArchiveCommandSchema,
 ] as const;
 
 export const invokeAcceptedSchema = z

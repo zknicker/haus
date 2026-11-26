@@ -1,4 +1,5 @@
 import type { AgentCommand, AgentStartCommand, chatlessInboxSources } from '@haus/api';
+import { decodeProcessExit } from '../agent-invocations/process-exits.ts';
 import { decodeDriveConflict } from '../drive/conflict-item.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -25,7 +26,8 @@ type ChatlessFrameConfig = Pick<
 type ChatlessRow = Pick<store.InboxItemRow, 'content' | 'createdAt' | 'dedupeKey' | 'source'>;
 
 /**
- * Starts the run a queued sub-agent wake, Drive conflict, or batch of Task assignments leads. Each
+ * Starts the run a queued sub-agent wake, Drive conflict, process exit, or batch of Task
+ * assignments leads. Each
  * is concrete work with no Chat, so its run carries its attention alone: no inbox
  * items, no Chat lifecycle event. Busy notices, settlement, failure, and Stop treat
  * it like any concrete run, and it resumes the main session.
@@ -123,7 +125,7 @@ export function chatlessStartFrame(
 
 type ChatlessAttention = Pick<
     AgentStartCommand,
-    'driveConflict' | 'subagentWake' | 'taskAssignments'
+    'driveConflict' | 'processExit' | 'subagentWake' | 'taskAssignments'
 >;
 
 type ChatlessSource = (typeof chatlessInboxSources)[number];
@@ -133,6 +135,7 @@ const chatlessAttentions: Record<
     (rows: readonly [ChatlessRow, ...ChatlessRow[]]) => ChatlessAttention
 > = {
     drive_conflict: ([row]) => ({ driveConflict: decodeDriveConflict(row.content) }),
+    process_exit: ([row]) => ({ processExit: decodeProcessExit(row.content) }),
     // The runtime's own report is already in the conversation; the wake carries no body.
     subagent: ([row]) => ({
         subagentWake: { createdAt: row.createdAt.toISOString(), id: row.dedupeKey },

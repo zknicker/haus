@@ -49,6 +49,7 @@ test('an invocation is sent with its clamped timeout, answered, acknowledged, an
         notAfter: new Date(requestedAt.getTime() + 630_000).toISOString(),
         operation: { command: 'ls drive', kind: 'bash' },
         runId: 'run_happy',
+        sessionGeneration: 1,
         timeoutMs: 600_000,
         type: 'invoke',
     });

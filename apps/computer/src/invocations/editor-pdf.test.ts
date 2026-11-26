@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { EditorCommand } from '@haus/api';
 import { readPdfBytes } from './editor-pdf.ts';
 import { editRunner } from './editor.ts';
+import { operationSession } from './operation-session.test-support.ts';
 import { type InvocationPayloads, inlinePayloads } from './operation.ts';
 import { digest, serveInvocationPayloads } from './payload-server.test-support.ts';
 import { createInvocationPayloads } from './payloads.ts';
@@ -114,6 +115,7 @@ function view(path: string, payloads: InvocationPayloads = inlinePayloads) {
             payloads,
             signal: new AbortController().signal,
             timeoutMs: 30_000,
+            ...operationSession(),
         }
     );
 }

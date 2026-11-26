@@ -1,7 +1,6 @@
 import {
     type DispatchKey,
     dispatchIdOf,
-    type InvocationRequestFrame,
     type InvocationResultFrame,
     type InvokeResult,
     invocationGraceMs,
@@ -12,21 +11,17 @@ import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
+import { createDesktopLeases } from './desktop-lease.ts';
 import { createFenceEpochs } from './fence-epochs.ts';
-import { machineResultAnswer, offlineAnswer, settledAnswer } from './invocation-answers.ts';
+import { machineResultAnswer, settledAnswer } from './invocation-answers.ts';
 import { type InvocationClock, systemInvocationClock } from './invocation-clock.ts';
-import { clampTimeoutMs, invokeCommand, noticeAnswer } from './invocation-frames.ts';
-import { decideInvocation } from './invocation-gate.ts';
-import { bindRunnerUpload } from './invocation-payloads.ts';
+import { noticeAnswer } from './invocation-frames.ts';
 import { reattachInvocations } from './invocation-reattach.ts';
-import { gateSend } from './invocation-send-gate.ts';
+import { createInvocationRequests } from './invocation-request.ts';
 import {
-    readAgentMachine,
     recordAccepted,
-    recordInvocation,
     recordOpenInvocationsUnknown,
     recordResult,
-    recordSendFailure,
     recordSentRefusal,
     recordUnknown,
 } from './invocation-store.ts';
@@ -39,6 +34,13 @@ import {
 } from './open-invocations.ts';
 
 export type InvocationRouter = ReturnType<typeof routeInvocations>;
+
+interface SessionArchiveTarget {
+    agentId: string;
+    computerId: string;
+    generation: number;
+    serverId: string;
+}
 
 interface RouterInput {
     appOrigin: string;
@@ -61,10 +63,12 @@ function routeInvocations(input: RouterInput) {
     const byDispatch = new Map<string, string>();
     const undelivered = new Map<string, InvocationResultFrame>();
     const fenceEpochs = createFenceEpochs();
+    const desktopLeases = createDesktopLeases(clock);
     const stopSettleWatch = onAgentLifecycle((event) => {
         if (event.phase !== 'settled') {
             return;
         }
+        desktopLeases.releaseRun(event.runId);
         for (const invocation of open.values()) {
             if (invocation.key.runId === event.runId) {
                 invocation.runSettled = true;
@@ -85,6 +89,12 @@ function routeInvocations(input: RouterInput) {
         if (invocation) {
             byDispatch.delete(dispatchIdOf(invocation.key));
             announceDesktopActivity(invocation);
+            if (invocation.command.operation.kind === 'desktop') {
+                desktopLeases.refresh(invocation, {
+                    agentId: invocation.command.agentId,
+                    runId: invocation.key.runId,
+                });
+            }
         }
     }
 
@@ -108,88 +118,18 @@ function routeInvocations(input: RouterInput) {
         }
     }
 
-    async function request(frame: InvocationRequestFrame) {
-        const agent = await readAgentMachine(db, frame.agentId);
-        if (!agent) {
-            answer(noticeAnswer(frame, 'offline'));
-            return;
-        }
-        const requestedAt = new Date();
-        const decision = await decideInvocation(db, {
-            frame,
-            home: agent.computerId,
-            isOnline: (computerId) => computers.isOnline(computerId),
-            placementGeneration: agent.placementGeneration,
-            serverId: agent.serverId,
-        });
-        const timeoutMs = clampTimeoutMs(frame.operation, frame.timeoutMs);
-        const { created, record } = await recordInvocation(db, {
-            computerId: decision.computerId,
-            frame,
-            requestedAt,
-            serverId: agent.serverId,
-            timeoutMs,
-            verdict: decision.verdict,
-        });
-        if (!created) {
-            if (record.state === 'finished' || record.state === 'unknown') {
-                answer(await settledAnswer(db, { appOrigin, record }));
-            }
-            return;
-        }
-        if (frame.operation.kind === 'file-write' && frame.operation.bytes.kind === 'attachment') {
-            await bindRunnerUpload(db, record, frame.operation.bytes.attachmentId);
-        }
-        const { computerId } = decision;
-        if (decision.verdict.kind !== 'send' || computerId === null) {
-            answer(await settledAnswer(db, { appOrigin, candidates: decision.candidates, record }));
-            return;
-        }
-        const scope = {
-            appOrigin,
-            computerId,
-            fenceEpochs,
-            frame,
-            placementGeneration: frame.computer === undefined ? agent.placementGeneration : null,
-            record,
-            serverId: agent.serverId,
-        };
-        const gated = await gateSend(db, scope);
-        if (gated.kind === 'refused') {
-            if (gated.answer) {
-                answer(gated.answer);
-            }
-            return;
-        }
-        const command = invokeCommand(frame, {
-            invocationId: record.id,
-            operation: gated.operation,
-            requestedAt,
-            timeoutMs,
-        });
-        const invocation: OpenInvocation = {
-            accepted: false,
-            cancelled: false,
-            command,
-            computerId,
-            fenced: false,
-            grace: armGrace(record.id, timeoutMs),
-            homeComputerId: agent.computerId,
-            key: { runId: frame.runId, seq: frame.seq, toolCallId: frame.toolCallId },
-            runSettled: false,
-            serverId: agent.serverId,
-            stopped: false,
-        };
-        open.set(record.id, invocation);
-        byDispatch.set(dispatchIdOf(frame), record.id);
-        if (!computers.send(computerId, command)) {
-            forget(record.id);
-            const failed = await recordSendFailure(db, record.id);
-            answer(failed ? await offlineAnswer(db, failed) : noticeAnswer(frame, 'offline'));
-            return;
-        }
-        announceDesktopActivity(invocation);
-    }
+    const request = createInvocationRequests({
+        answer,
+        appOrigin,
+        armGrace,
+        byDispatch,
+        computers,
+        db,
+        desktopLeases,
+        fenceEpochs,
+        forget,
+        open,
+    });
 
     function cancel(key: DispatchKey) {
         const invocationId = byDispatch.get(dispatchIdOf(key));
@@ -251,6 +191,7 @@ function routeInvocations(input: RouterInput) {
         cancel,
         close() {
             stopSettleWatch();
+            desktopLeases.close();
             for (const invocationId of [...open.keys()]) {
                 forget(invocationId);
             }
@@ -263,7 +204,16 @@ function routeInvocations(input: RouterInput) {
         computerAttaching: fenceHeld,
         fenceAgent(target: { agentId: string; computerId: string; serverId: string }) {
             fenceEpochs.bump(target);
+            desktopLeases.releaseAgent(target.agentId, target);
             return fence(target);
+        },
+        archiveSession(target: SessionArchiveTarget) {
+            desktopLeases.releaseAgent(target.agentId);
+            computers.send(target.computerId, {
+                agentId: target.agentId,
+                generation: target.generation,
+                type: 'task-archive',
+            });
         },
         async ingestComputerFrame(computerId: string, frame: unknown) {
             const accepted = invokeAcceptedSchema.safeParse(frame);

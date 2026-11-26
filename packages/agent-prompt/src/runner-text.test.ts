@@ -51,10 +51,14 @@ test('the runner tools describe how each one works', () => {
     expect(runnerToolDescriptions).toEqual({
         apply_patch:
             'Edits files on your Machine, or the one `computer` names, with one patch between `*** Begin Patch` and `*** End Patch`: add, update, delete, or move files, with paths relative to your working directory.',
-        bash: 'Runs one shell command on your Machine, or the one `computer` names, starting in your working directory with no state kept from the call before. A command that is exactly one `haus` invocation runs in Haus itself and works while that Computer is offline.',
+        bash: 'Runs one shell command on your Machine, or the one `computer` names, starting in your working directory with no state kept from the call before. A command that is exactly one `haus` invocation runs in Haus itself and works while that Computer is offline. Set `background` to start a long command and return at once with its process id.',
         execute:
             'Runs a JavaScript program against your granted tools: `tools.search`, `tools.describe`, and `tools.call`.',
-        shell: 'Runs one command on your Machine, or the one `computer` names, given as an argv array, starting in your working directory or `workdir` with no state kept from the call before. A command that is exactly one `haus` invocation, alone or as the script of `bash -lc`, runs in Haus itself and works while that Computer is offline.',
+        process_kill:
+            'Ends a background process you started, on your Machine or the one `computer` names. Ending it yourself sends no exit notice.',
+        process_read:
+            'Reads the output of a background process after `afterSeq`, a byte cursor that starts at 0, on your Machine or the one `computer` names. It shows the next cursor and whether the process still runs; when it ends, a process exit wakes you.',
+        shell: 'Runs one command on your Machine, or the one `computer` names, given as an argv array, starting in your working directory or `workdir` with no state kept from the call before. A command that is exactly one `haus` invocation, alone or as the script of `bash -lc`, runs in Haus itself and works while that Computer is offline. Set `background` to start a long command and return at once with its process id.',
         str_replace_based_edit_tool:
             'Views, creates, and edits text files on your Machine, or the one `computer` names: `view` a file, a directory, or a PDF as its text plus images of its scanned and figure pages (on a PDF, `view_range` selects pages and shows each one as an image), `create` a file with `file_text`, `str_replace` an exact unique `old_str` with `new_str`, or `insert` `new_str` after `insert_line`.',
         view_image: 'Shows you an image file from your Machine, or the one `computer` names.',

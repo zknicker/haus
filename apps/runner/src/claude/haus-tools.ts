@@ -6,7 +6,13 @@ import type { RunTools, ToolOutcome } from '../run-context.ts';
 import { computerTargetBounds, computerTargetDescription } from '../tools/computer-target.ts';
 import { hausServerName } from './claude-tool-events.ts';
 
-export const hausToolNames = ['bash', 'str_replace_based_edit_tool', 'execute'] as const;
+export const hausToolNames = [
+    'bash',
+    'str_replace_based_edit_tool',
+    'execute',
+    'process_read',
+    'process_kill',
+] as const;
 
 export const hausAllowedTools = [
     ...hausToolNames.map((name) => `mcp__${hausServerName}__${name}`),
@@ -52,6 +58,7 @@ export function createHausMcpServer(binding: HausToolBinding) {
                 'bash',
                 runnerToolDescriptions.bash,
                 {
+                    background: z.boolean().optional(),
                     command: z.string().min(1),
                     computer: computerField,
                     description: z.string().optional(),
@@ -82,6 +89,24 @@ export function createHausMcpServer(binding: HausToolBinding) {
                 { code: z.string().min(1) },
                 (input, extra) =>
                     binding.run(extra, (tools, id, signal) => tools.execute(id, input, signal))
+            ),
+            tool(
+                'process_read',
+                runnerToolDescriptions.process_read,
+                {
+                    afterSeq: z.number().int().nonnegative(),
+                    computer: computerField,
+                    processId: z.string().min(1),
+                },
+                (input, extra) =>
+                    binding.run(extra, (tools, id, signal) => tools.processRead(id, input, signal))
+            ),
+            tool(
+                'process_kill',
+                runnerToolDescriptions.process_kill,
+                { computer: computerField, processId: z.string().min(1) },
+                (input, extra) =>
+                    binding.run(extra, (tools, id, signal) => tools.processKill(id, input, signal))
             ),
         ],
     });

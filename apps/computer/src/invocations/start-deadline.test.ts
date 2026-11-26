@@ -148,6 +148,7 @@ function invoke(invocationId: string, command: string) {
         notAfter: new Date(pastDeadline).toISOString(),
         operation: { command, kind: 'bash' },
         runId: 'run-1',
+        sessionGeneration: 1,
         timeoutMs: 5000,
         type: 'invoke',
     };

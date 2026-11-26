@@ -20,6 +20,7 @@ import {
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
+import { ingestProcessExit } from '../agent-invocations/process-exits.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
@@ -81,6 +82,12 @@ export async function ingestReport(
 
     if (
         (await invocations.ingestComputerFrame(computerId, frame)) ||
+        (await ingestProcessExit(db, delivery, {
+            acknowledge: (ack) => connections.send(computerId, ack),
+            computerId,
+            frame,
+            serverId,
+        })) ||
         (await ingestWorkerReport({
             db,
             connections,

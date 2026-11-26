@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { editRunner } from '../editor.ts';
+import { operationSession } from '../operation-session.test-support.ts';
 import { inlinePayloads } from '../operation.ts';
 import {
     applyEditsToFileText,
@@ -36,6 +37,7 @@ function replace(path: string, oldText: string, newText: string) {
             payloads: inlinePayloads,
             signal: new AbortController().signal,
             timeoutMs: 30_000,
+            ...operationSession(),
         }
     );
 }
