@@ -49,7 +49,7 @@ export const agentRunTriggersTable = pgTable(
         }).onDelete('cascade'),
         check(
             'agent_run_triggers_chat',
-            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event'))`
+            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event', 'crew_report'))`
         ),
     ]
 );

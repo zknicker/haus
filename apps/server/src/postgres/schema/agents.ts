@@ -18,6 +18,7 @@ import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { computersTable } from './computers.ts';
 import { modelConnectionsTable } from './model-connections.ts';
+import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 
 /**
@@ -93,6 +94,8 @@ export const agentsTable = pgTable(
         conversationStyle: text('personality'),
         /** The model connection a human chose; null runs on the default for its model's provider. */
         modelConnectionId: text('model_connection_id'),
+        /** A Captain's active human owner (ADR 0062); a Task agent has none. */
+        ownerUserId: text('owner_user_id'),
         /**
          * Counts Machine changes (ADR 0057 decision 7). Work started under an older generation
          * (a Drive push, a call routed to the default Machine) is refused.
@@ -161,6 +164,12 @@ export const agentsTable = pgTable(
             foreignColumns: [computersTable.serverId, computersTable.id],
             name: 'agents_crew_computer_fk',
         }).onDelete('set null (crew_computer_id)' as UpdateDeleteAction),
+        foreignKey({
+            columns: [table.serverId, table.ownerUserId],
+            foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
+            name: 'agents_owner_membership_fk',
+        }),
+        check('agents_owner_shape', sql`${table.kind} = 'captain' or ${table.ownerUserId} is null`),
         check('agents_kind', sql`${table.kind} in ('captain', 'task')`),
         check(
             'agents_home_project_shape',

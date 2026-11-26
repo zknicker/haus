@@ -62,6 +62,7 @@ export * from './schema/task-keys.ts';
 export * from './schema/task-labels.ts';
 export * from './schema/task-links.ts';
 export * from './schema/task-pull-requests.ts';
+export * from './schema/task-reports.ts';
 export * from './schema/tasks.ts';
 export * from './schema/triggers.ts';
 export * from './schema/users.ts';
