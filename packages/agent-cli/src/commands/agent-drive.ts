@@ -7,6 +7,7 @@ import {
     artifactVersionsResultResponseSchema,
 } from '../artifact-drive-response-schema.ts';
 import type { SubCommand } from '../subcommand.ts';
+import { DRIVE_WRITE_SUBCOMMAND } from './agent-drive-write.ts';
 import { ARTIFACT_SHARE_SUBCOMMAND } from './artifact-share.ts';
 import { artifactRoute, resolveArtifactId } from './artifact-target.ts';
 
@@ -69,6 +70,7 @@ export const DRIVE_SUBCOMMANDS: SubCommand[] = [
         },
     },
     ARTIFACT_SHARE_SUBCOMMAND,
+    DRIVE_WRITE_SUBCOMMAND,
 ];
 
 function print(value: unknown) {
