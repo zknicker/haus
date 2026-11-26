@@ -1,25 +1,22 @@
 import { useNavigate } from 'react-router-dom';
-import { useCreateTask } from '../../hooks/tasks/use-create-task.ts';
+import { useStartTask } from '../../hooks/tasks/use-start-task.ts';
 import { taskRoute } from '../servers/server-routes.ts';
 import { type HomeAsk, planHomeTask } from './home-send.ts';
 
-export function useHomeSend(serverId: string, slug: string) {
+export function useHomeSend(slug: string) {
     const navigate = useNavigate();
-    const create = useCreateTask();
-    const send = (ask: HomeAsk, onCreated: () => void) => {
+    const start = useStartTask();
+    const send = (ask: HomeAsk, onStarted: () => void) => {
         const input = planHomeTask(ask);
         if (!input) {
             return;
         }
-        create.mutate(
-            { ...input, serverId },
-            {
-                onSuccess: ({ task }) => {
-                    onCreated();
-                    navigate(taskRoute(slug, task.shortId));
-                },
-            }
-        );
+        start.mutate(input, {
+            onSuccess: ({ task }) => {
+                onStarted();
+                navigate(taskRoute(slug, task.shortId));
+            },
+        });
     };
-    return { error: create.error?.message ?? null, isPending: create.isPending, send };
+    return { error: start.error?.message ?? null, isPending: start.isPending, send };
 }
