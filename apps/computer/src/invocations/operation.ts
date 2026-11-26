@@ -53,6 +53,8 @@ export interface InvocationHandlerInput {
     invocationLimit?: number;
     processLimit?: number;
     payloadsFor: (invocationId: string) => InvocationPayloads;
+    /** Removes an archived session's clean worktrees and answers the unpushed ones it kept. */
+    releaseWorktrees?: (agentId: string) => Promise<readonly string[]>;
     runners: OperationRunners;
     send: (frame: InvokeAccepted | InvokeResult | ProcessExitFrame) => boolean;
 }

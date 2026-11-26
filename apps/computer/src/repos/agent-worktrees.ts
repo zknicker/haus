@@ -132,6 +132,23 @@ export function removeAgentWorktrees(input: {
     });
 }
 
+/**
+ * An archived Task's worktrees (specs/tasks.md#archive): each clean one goes with its local
+ * branch, after a fresh fetch; an unpushed or dirty one stays with its branch and is returned.
+ */
+export async function removeArchivedWorktrees(input: {
+    agentId: string;
+    dataRoot: string;
+    serverId: string;
+}) {
+    return await withAgentCleanup(input.agentId, () =>
+        removeCleanWorktreesOf(worktreesRoot(input.dataRoot, input.serverId), input.agentId, {
+            credentials: cleanupGit(input, input.agentId),
+            deleteBranch: true,
+        })
+    );
+}
+
 export function agentWorktreeOf(path: string, root: string) {
     const inside = relative(root, resolve(path));
     if (inside === '' || inside.startsWith('..') || isAbsolute(inside)) {
