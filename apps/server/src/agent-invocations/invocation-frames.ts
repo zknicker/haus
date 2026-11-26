@@ -4,7 +4,6 @@ import {
     type InvocationOutcome,
     type InvocationRequestFrame,
     type InvocationResultFrame,
-    type InvokeCancelCommand,
     type InvokeCommand,
     type InvokeResult,
     invocationGraceMs,
@@ -41,15 +40,6 @@ export function invokeCommand(
         type: 'invoke',
     };
     return command;
-}
-
-export function dropUnstartedCancel(invocationId: string) {
-    const cancel: InvokeCancelCommand = {
-        dropIfNotStarted: true,
-        invocationId,
-        type: 'invoke-cancel',
-    };
-    return cancel;
 }
 
 export function noticeAnswer(

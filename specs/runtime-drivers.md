@@ -800,7 +800,7 @@ same maximum again, so a bad frame cannot hold a command past it.
 | `completed` | The operation finished. A non-zero exit is `completed` with its code. | The output and exit code |
 | `failed` | The operation refused its input and changed nothing (no match for `old_str`, a bad patch, a missing file). | The refusal |
 | `timed-out` | The timeout fired and the process group was killed. | The partial output and the timeout |
-| `cancelled` | Stop or the turn's abort killed it. | The partial output |
+| `cancelled` | Stop or the turn's abort killed it, or it never started because its start deadline passed. | The partial output |
 | `unknown` | Accepted or possibly accepted, with no result inside the grace: the Computer crashed, disconnected, or answered too late. | It may or may not have run; check its effects before running it again |
 | `offline` | The Server never sent `invoke`. Nothing ran. | The machine is offline; `haus` and `execute` still work |
 
@@ -832,7 +832,16 @@ reconnect resend: a reconnect inside the window resends unaccepted `invoke` fram
 pending results. An unaccepted invocation that was cancelled, or whose run has settled, is not
 resent: it gets `invoke-cancel` and runs out its window, because only the Computer's ledger knows
 whether it ever arrived. The PostgreSQL record decides every race between a result and the grace,
-so exactly one of them answers the runner. A Server that starts turns every invocation still `sent` or
+so exactly one of them answers the runner.
+
+**A call never starts after `unknown`.** Every `invoke` carries `notAfter`, the request time plus
+the timeout plus the grace, so a reconnect resend keeps the original deadline. The Computer checks
+it right before it executes, after the offline hold, the per-Agent queue, and the Drive hold. A
+call past it settles `cancelled` with "Cancelled before it started." and never runs. When the
+grace turns a call `unknown`, the Server also sends `invoke-cancel` with `dropIfNotStarted` to a
+connected Computer: a call still waiting is cancelled the same way, and a call already running
+ignores it, finishes, and its result is recorded late. The deadline is compared against the
+Computer's clock, so a skewed clock moves it by the skew. A Server that starts turns every invocation still `sent` or
 `accepted` `unknown`, because it keeps no operation to resend. An answer the runner socket cannot
 take waits in memory and goes out when the runner attaches again.
 
@@ -1011,13 +1020,14 @@ never attaches after the cutover. An older Computer connects update-required.
 
 | Frame | Direction | Carries |
 | --- | --- | --- |
-| `invoke` | Server → Computer | `invocationId`, `agentId`, `runId`, `operation` (its bytes inline or an attachment reference), `timeoutMs` |
+| `invoke` | Server → Computer | `invocationId`, `agentId`, `runId`, `operation` (its bytes inline or an attachment reference), `timeoutMs`, `notAfter` |
 | `invoke-accepted` | Computer → Server | `invocationId` |
 | `invoke-result` | Computer → Server | `invocationId`, `outcome`, `exitCode?`, `output` (inline or an attachment reference), `truncated`, `logPath?` |
 | `invoke-result-ack` | Server → Computer | `invocationId` |
-| `invoke-cancel` | Server → Computer | `invocationId` |
+| `invoke-cancel` | Server → Computer | `invocationId`, `dropIfNotStarted?` |
 
-R2 bumps the protocol to 39 for these frames. Their schemas live in
+R2 bumps the protocol to 39 for these frames. Protocol 50 adds the required `notAfter` start
+deadline to `invoke` and the optional `dropIfNotStarted` to `invoke-cancel`. Their schemas live in
 `packages/haus-api/src/agent-invocations.ts`, and the three Server → Computer frames are members of
 `agentCommandSchema`. R3's invocation router (`apps/server/src/agent-invocations/`) sends
 `invoke`, and the Computer ingest chain hands it the two upstream frames.
@@ -1112,10 +1122,11 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A crash after accepting and before the result reports `unknown` and never runs the command again | `apps/computer/src/invocations/ledger-crash.test.ts` | R2 |
 | A resent `invoke` whose acknowledgement was lost returns the ledger's answer and runs nothing | `apps/computer/src/invocations/ledger-replay.test.ts` | R2 |
 | Timeout and cancel kill the process group and return partial output | `apps/computer/src/invocations/run.test.ts` | R2 |
+| A call held offline or queued until past its `notAfter` never runs, the expiry cancel drops a waiting call, and a running call ignores it and still reports | `apps/computer/src/invocations/start-deadline.test.ts` | Protocol 50 |
 | A Computer that restarts after recording `unknown` answers every resent `invoke` with `unknown` and never runs it | `apps/computer/src/invocations/ledger-crash.test.ts` | R2 |
 | An Agent with no machine, a detached one, or one in update-required mode gets `offline` at once, recorded and with nothing sent, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R3 |
-| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, a connected Computer that answers past the grace leaves it `unknown` as the runner saw it, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
-| An invocation is sent once with its clamped timeout, its result is recorded, answered, and acknowledged, a repeated key sends nothing, a cancel reaches the Computer, and a reconnect resends unaccepted `invoke` frames and cancels a settled run's | `apps/server/test/agent-invocations-routing.test.ts` | R3 |
+| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, a connected Computer that answers past the grace gets the drop-if-not-started cancel and leaves it `unknown` as the runner saw it, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
+| An invocation is sent once with its clamped timeout and its `notAfter`, its result is recorded, answered, and acknowledged, a repeated key sends nothing, a cancel reaches the Computer, and a reconnect resends unaccepted `invoke` frames and cancels a settled run's | `apps/server/test/agent-invocations-routing.test.ts` | R3 |
 | A payload is stored and read only under its invocation and Computer, its digest and size match, a run reads only its own invocations' payloads, and no general attachment route reads or attaches one | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
 | A runner upload binds to its dispatch key, a 2 MiB `haus` write reaches the machine through the Computer download with a matching digest, and another run, tool call, or Agent can neither bind nor read it | `apps/server/test/agent-invocation-uploads.test.ts`, `apps/runner/src/haus/haus-cli.test.ts` | R3c |

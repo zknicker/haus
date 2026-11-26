@@ -40,9 +40,13 @@ test('an invocation is sent with its clamped timeout, answered, acknowledged, an
     });
     const invoke = await computer.next(frameOfType('invoke'));
     const invocationId = String(invoke.invocationId);
+    const [{ requested_at: requestedAt }] = await setup.harness.sql<[{ requested_at: Date }]>`
+        select requested_at from agent_invocations where id = ${invocationId}
+    `;
     expect(invoke).toEqual({
         agentId: setup.agentId,
         invocationId,
+        notAfter: new Date(requestedAt.getTime() + 630_000).toISOString(),
         operation: { command: 'ls drive', kind: 'bash' },
         runId: 'run_happy',
         timeoutMs: 600_000,

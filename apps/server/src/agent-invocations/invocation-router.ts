@@ -15,12 +15,7 @@ import type { RunnerLink } from '../runner/runner-link.ts';
 import { createFenceEpochs } from './fence-epochs.ts';
 import { machineResultAnswer, offlineAnswer, settledAnswer } from './invocation-answers.ts';
 import { type InvocationClock, systemInvocationClock } from './invocation-clock.ts';
-import {
-    clampTimeoutMs,
-    dropUnstartedCancel,
-    invokeCommand,
-    noticeAnswer,
-} from './invocation-frames.ts';
+import { clampTimeoutMs, invokeCommand, noticeAnswer } from './invocation-frames.ts';
 import { decideInvocation } from './invocation-gate.ts';
 import { bindRunnerUpload } from './invocation-payloads.ts';
 import { reattachInvocations } from './invocation-reattach.ts';
@@ -37,6 +32,7 @@ import {
 } from './invocation-store.ts';
 import {
     announceDesktopActivity,
+    dropUnstarted,
     type OpenInvocation,
     stopDesktopCommands,
     stoppedResult,
@@ -103,9 +99,7 @@ function routeInvocations(input: RouterInput) {
     async function expire(invocationId: string) {
         const invocation = open.get(invocationId);
         forget(invocationId);
-        if (invocation) {
-            computers.send(invocation.computerId, dropUnstartedCancel(invocationId));
-        }
+        dropUnstarted(computers, invocationId, invocation);
         const record = await recordUnknown(db, invocationId);
         if (record && invocation) {
             answer(
