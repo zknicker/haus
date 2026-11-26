@@ -2621,5 +2621,16 @@
             "computer": null,
             "agent": null
         }
+    },
+    {
+        "version": "30.9.0",
+        "date": "2026-11-26",
+        "targets": {
+            "server": "29.8.0",
+            "app": null,
+            "ios": null,
+            "computer": "26.0.4",
+            "agent": "17.3.2"
+        }
     }
 ]
