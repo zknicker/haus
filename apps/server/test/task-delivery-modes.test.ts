@@ -71,7 +71,7 @@ test('a busy Task hears steer at its next boundary, never queue', async () => {
     expect(pulledContent).not.toContain('Only after this turn.');
 });
 
-test('interrupt aborts the live turn and runs again with its unseen work', async () => {
+test('interrupt aborts the live turn and runs again, the interrupting message first', async () => {
     const task = await startCrew(orbit, 'Rotate the signing key.');
     const { delivery, runner } = liveDelivery(task);
     await delivery.dispatchAgent(task.agentId, fixture.serverId);
@@ -86,8 +86,8 @@ test('interrupt aborts the live turn and runs again with its unseen work', async
     const second = runner.starts()[1];
     expect(second?.runId).not.toBe(first?.runId);
     expect(second?.inbox.map((item) => item.content)).toEqual([
-        'Rotate the signing key.',
         'Stop: use the new vault.',
+        'Rotate the signing key.',
     ]);
     expect((await readDeliveryState(connection.db, task.agentId))?.activeRunId).toBe(
         second?.runId ?? ''

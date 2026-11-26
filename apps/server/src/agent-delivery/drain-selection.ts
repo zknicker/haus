@@ -4,6 +4,7 @@ import { chatlessStartFrame } from './chatless-run.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
 import { attachQueuedGreeting, isGreetingRow, retireSpentGreeting } from './greeting.ts';
 import { buildInboxItems } from './inbox-items.ts';
+import { leadWithInterrupts } from './interrupt-lead.ts';
 import {
     isConcreteInboxSource as isConcreteSource,
     isNoticelessInboxSource,
@@ -69,7 +70,11 @@ export async function startFrame(
         drainItemIds: [...runRows, ...humanDrain.drainRows].map((row) => row.dedupeKey),
         ...(greets ? { greets: true as const } : {}),
         homeTimezone: config.homeTimezone,
-        inbox: await buildInboxItems(db, runRows.length > 0 ? runRows : noticeRows, state.agentId),
+        inbox: await buildInboxItems(
+            db,
+            await leadWithInterrupts(db, runRows.length > 0 ? runRows : noticeRows),
+            state.agentId
+        ),
         inboxDelivery: runRows.length > 0 ? 'concrete' : 'notice',
         modelId: state.activeRunModelId ?? '',
         runId: state.activeRunId ?? '',

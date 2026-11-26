@@ -68,6 +68,7 @@ import * as failureHold from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { inboxWork } from './inbox-work.ts';
+import { leadWithInterrupts } from './interrupt-lead.ts';
 import { killActiveRun } from './kill-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import {
@@ -675,7 +676,11 @@ export class AgentDelivery {
                 drainItemIds: drainRows.map((row) => row.dedupeKey),
                 ...(greets ? { greets: true as const } : {}),
                 homeTimezone: config.homeTimezone,
-                inbox: await buildInboxItems(tx, concrete ? selected : noticeRows, agentId),
+                inbox: await buildInboxItems(
+                    tx,
+                    await leadWithInterrupts(tx, concrete ? selected : noticeRows),
+                    agentId
+                ),
                 inboxDelivery: concrete ? 'concrete' : 'notice',
                 modelId: config.desiredModelId,
                 runId,
