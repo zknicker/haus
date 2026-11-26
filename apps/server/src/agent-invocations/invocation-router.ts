@@ -89,10 +89,12 @@ function routeInvocations(input: RouterInput) {
         if (invocation) {
             byDispatch.delete(dispatchIdOf(invocation.key));
             announceDesktopActivity(invocation);
-            desktopLeases.refresh(invocation, {
-                agentId: invocation.command.agentId,
-                runId: invocation.key.runId,
-            });
+            if (invocation.command.operation.kind === 'desktop') {
+                desktopLeases.refresh(invocation, {
+                    agentId: invocation.command.agentId,
+                    runId: invocation.key.runId,
+                });
+            }
         }
     }
 
