@@ -3,18 +3,25 @@ import { agentDetailInputSchema } from './agent.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
 /**
- * Inbox sources with no Chat: the sub-agent wake, a Task assigned to the Agent
- * (ADR 0053), a Drive push's conflicts (ADR 0054), and a background process's exit
- * (ADR 0062). Each leads its own chatless
- * run, and the Server schema's chat checks name exactly these sources, except that
- * migration 0124 already lets a `task_assignment` name its Task's Chat (ADR 0053).
+ * Inbox sources with no Chat: the sub-agent wake, a Drive push's conflicts (ADR 0054), and,
+ * from ADR 0062, a background process's exit, an Issue assigned to the agent, and a change on
+ * an Issue it is derived for. Each leads its own chatless run, and the Server schema's chat
+ * checks name exactly these sources.
  */
 export const chatlessInboxSources = [
     'subagent',
-    'task_assignment',
     'drive_conflict',
     'process_exit',
+    'issue_assignment',
+    'issue_event',
 ] as const;
+
+/** The chatless sources that coalesce: every queued item of one kind rides one run. */
+export const batchedChatlessInboxSources = ['issue_assignment', 'issue_event'] as const;
+
+export function isBatchedChatlessInboxSource(source: string): boolean {
+    return (batchedChatlessInboxSources as readonly string[]).includes(source);
+}
 
 export function isChatlessInboxSource(source: string): boolean {
     return (chatlessInboxSources as readonly string[]).includes(source);
@@ -44,7 +51,7 @@ export const agentDeliveryRecordSchema = z
     })
     .strict()
     .refine((record) => (record.chatId === null) === isChatlessInboxSource(record.source), {
-        message: 'Only a sub-agent wake or task assignment delivery is chatless.',
+        message: 'Only a chatless inbox source has no Chat.',
         path: ['chatId'],
     });
 

@@ -1,7 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
-import { taskShortIdSchema } from './task-short-id.ts';
-import { taskTitleSchema } from './task.ts';
+import { issueCodeSchema, issueTitleSchema } from './issue.ts';
 
 /** How much of a waking message a trigger quotes: enough for any one-line title. */
 export const AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH = 1000;
@@ -35,9 +34,10 @@ export type AgentTurnTriggerPreview = z.infer<typeof agentTurnTriggerPreviewSche
  * - `greeting`: a new Agent's one-time wake to introduce itself in `#all`, when it led
  *   the run alone.
  * - `subagent`: background work the Agent started finished or stopped; no Chat.
- * - `task`: a Task assigned to the Agent (`task_assignment`); no Chat. Tasks are
- *   visible to every member, so it carries the Task's short id and title for the row title.
- *   Assignments coalesce into one run: this is the oldest, and `more` counts the others.
+ * - `issue`: an Issue assigned to the agent (`issue_assignment`) or changed under it
+ *   (`issue_event`); no Chat. Issues are visible to every member, so it carries the Issue's
+ *   code and title for the row title. Items of one kind coalesce into one run: this is the
+ *   one that led it, and `more` counts the others.
  * - `private`: the turn has a recorded trigger in a Chat the reader cannot see.
  */
 export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
@@ -66,11 +66,11 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('subagent') }).strict(),
     z
         .object({
-            shortId: taskShortIdSchema,
-            kind: z.literal('task'),
+            code: issueCodeSchema,
+            issueId: idSchema,
+            kind: z.literal('issue'),
             more: z.number().int().positive().optional(),
-            taskId: idSchema,
-            title: taskTitleSchema,
+            title: issueTitleSchema,
         })
         .strict(),
     z.object({ kind: z.literal('private') }).strict(),

@@ -1,12 +1,14 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { issueCodeSchema } from './issue.ts';
 import { messageNotificationReasons } from './message-notification.ts';
 import { taskShortIdSchema } from './task-short-id.ts';
 
 /**
  * iPhone push (APNs). A device registers its token for the signed-in human;
  * Server sends one alert per message that notifies that human under
- * `messageNotificationReason` (ADR 0038). Registration is per human, not per
+ * `messageNotificationReason` (ADR 0038), and one per Issue assignment or subscribed
+ * comment (`issue-notification.ts`). Registration is per human, not per
  * Server: a device receives pushes from every Server the human belongs to.
  */
 export const pushEnvironments = ['sandbox', 'production'] as const;
@@ -117,9 +119,39 @@ export const pushNotificationPayloadSchema = z
         path: ['taskShortId'],
     });
 
-export type PushRegisterDeviceInput = z.infer<typeof pushRegisterDeviceInputSchema>;
+/**
+ * The JSON body of one Issue push (specs/issues.md#assignee-and-wakes): an assignment to the
+ * person, or a comment on an Issue they subscribe to. The actor and code are the title, the
+ * Issue's title or the comment the body, and the ids a tap routes by. It has no sender or
+ * conversation, so it is a plain alert the Notification Service extension never rewrites.
+ * `kind` tells it from a message push.
+ */
+export const pushIssuePayloadSchema = z
+    .object({
+        aps: z
+            .object({
+                alert: z
+                    .object({
+                        body: z.string().max(pushAlertBodyMaxLength),
+                        title: z.string().min(1),
+                    })
+                    .strict(),
+                badge: z.number().int().nonnegative().optional(),
+                sound: z.literal('default'),
+                'thread-id': idSchema,
+            })
+            .strict(),
+        code: issueCodeSchema,
+        issueId: idSchema,
+        kind: z.enum(['issue_assignment', 'issue_comment']),
+        serverId: idSchema,
+    })
+    .strict();
+
+export type PushRegisterDeviceInput =z.infer<typeof pushRegisterDeviceInputSchema>;
 export type PushUnregisterDeviceInput = z.infer<typeof pushUnregisterDeviceInputSchema>;
 export type PushDeviceResult = z.infer<typeof pushDeviceResultSchema>;
 export type PushNotificationSender = z.infer<typeof pushNotificationSenderSchema>;
 export type PushNotificationConversation = z.infer<typeof pushNotificationConversationSchema>;
 export type PushNotificationPayload = z.infer<typeof pushNotificationPayloadSchema>;
+export type PushIssuePayload = z.infer<typeof pushIssuePayloadSchema>;
