@@ -8,6 +8,7 @@ import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './commands/agent-direct
 import { DRIVE_SUBCOMMANDS } from './commands/agent-drive.ts';
 import { IMAGE_SUBCOMMANDS } from './commands/agent-image.ts';
 import { INBOX_SUBCOMMANDS } from './commands/agent-inbox.ts';
+import { ISSUE_SUBCOMMANDS } from './commands/agent-issue.ts';
 import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './commands/agent-manual.ts';
 import { MESSAGE_SUBCOMMANDS } from './commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './commands/agent-profile.ts';
@@ -32,6 +33,7 @@ export const commandGroups = {
     drive: DRIVE_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,
     inbox: INBOX_SUBCOMMANDS,
+    issue: ISSUE_SUBCOMMANDS,
     manual: MANUAL_SUBCOMMANDS,
     message: MESSAGE_SUBCOMMANDS,
     profile: PROFILE_SUBCOMMANDS,

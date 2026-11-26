@@ -11,6 +11,10 @@ import {
     desktopActivityEventSchema,
     imageGenerationUpdatedEventSchema,
     invitationUpdatedEventSchema,
+    issueCommentedEventSchema,
+    issueCreatedEventSchema,
+    issueSubscriptionUpdatedEventSchema,
+    issueUpdatedEventSchema,
     mcpUpdatedEventSchema,
     memberUpdatedEventSchema,
     messageCreatedEventSchema,
@@ -89,4 +93,12 @@ export const taskAssignedTopic = createTopic('task.assigned', taskAssignedEventS
 export const taskFollowUpdatedTopic = createTopic(
     'task.follow.updated',
     taskFollowUpdatedEventSchema
+);
+
+export const issueCreatedTopic = createTopic('issue.created', issueCreatedEventSchema);
+export const issueUpdatedTopic = createTopic('issue.updated', issueUpdatedEventSchema);
+export const issueCommentedTopic = createTopic('issue.commented', issueCommentedEventSchema);
+export const issueSubscriptionUpdatedTopic = createTopic(
+    'issue.subscription.updated',
+    issueSubscriptionUpdatedEventSchema
 );

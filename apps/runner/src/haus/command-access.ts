@@ -51,6 +51,15 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
     },
     image: { generate: reads('--reference'), models: serverOnly, wait: writes('--out') },
     inbox: { check: serverOnly },
+    issue: {
+        comment: serverOnly,
+        create: serverOnly,
+        link: serverOnly,
+        list: serverOnly,
+        show: serverOnly,
+        unlink: serverOnly,
+        update: serverOnly,
+    },
     manual: { get: serverOnly, search: serverOnly },
     message: {
         check: serverOnly,

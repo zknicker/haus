@@ -50,7 +50,6 @@ type Issue = {
     closedSubIssueCount: number;
     creator: IssueActor;
     taskIds: string[]; // linked Tasks, newest first
-    pullRequests: { repository: string; number: number; state: 'draft' | 'open' | 'merged' | 'closed' }[];
     version: number;
     createdAt: string;
     updatedAt: string;
@@ -59,15 +58,24 @@ type Issue = {
 ```
 
 - Wire shapes live in `packages/haus-api/src/issue.ts`, one schema per type above, validated at
-  every boundary. The tRPC feature is `apps/server/src/haus-api/issue/`.
+  every boundary; comments, activity and the detail read are in `issue-timeline.ts`, App inputs in
+  `issue-input.ts`, and the Agent routes in `issue-agent.ts`. The tRPC feature is
+  `apps/server/src/haus-api/issue/` (`list get create update comment editComment linkTask
+  unlinkTask setSubscription`), with one stream per event: `issue.onCreated`, `issue.onUpdated`
+  (edits, moves, assignment, links, and a parent's sub-issue changes) and `issue.onCommented` for
+  every member, and `issue.onSubscriptionUpdated` for the subscriber only.
+- `issue.get` answers the detail: the Issue, its sub-issues, comments, activity, the reader's
+  subscription, and the pull requests of its linked Tasks (`state` null until the Server has a
+  reading).
 - `closedAt` is set exactly while the state is `done` or `canceled`, the same check the Task row
   enforces today (`apps/server/src/postgres/schema/tasks.ts:98-101`).
 - Every mutation takes `expectedVersion` and fails closed with a conflict. Agent routes may omit
   it and take last-write-wins after bounded retries, as Task routes do today
   (`withImplicitVersion` in `apps/server/src/agent-api/task-route-shell.ts`).
 - There is no deletion. Canceled is the end state for work nobody will do.
-- The label catalog is today's `task_labels` table renamed `issue_labels`
-  (`apps/server/src/postgres/schema/task-labels.ts`).
+- The label catalog is today's `task_labels` table
+  (`apps/server/src/postgres/schema/task-labels.ts`), shared with Tasks until they drop labels;
+  renaming it `issue_labels` waits for that step.
 - Issues have no visibility field. Projects are open, so anyone who can read the Project reads
   its Issues.
 
@@ -93,10 +101,10 @@ then by age.
 ## Codes
 
 - An Issue's code is its Project's key and its number, `GEN-12`. Numbers come from the Project's
-  key ledger, which becomes the Issue counter: the `task_keys` table renamed `project_keys`, one
-  row per Project key with its `next_number`, allocated under the entry's row lock after the
-  Server row lock, as `allocateTaskNumber` does today
-  (`apps/server/src/tasks/task-key-ledger.ts:17`).
+  key ledger, which becomes the Issue counter: the `task_keys` table, one row per Project key with
+  its `next_number`, allocated by `allocateIssueNumber` under the entry's row lock after the
+  Server row lock (`apps/server/src/tasks/task-key-ledger.ts`). Tasks draw from the same counter
+  until they stop taking numbers; renaming the table `project_keys` waits for that step.
 - `issues` is unique on `(key_id, number)`, written in the same transaction as the allocation.
 - A number is never reused. The ledger's `next_number` only rises, so a new Issue never takes a
   code that a Task, a commit trailer or an older Issue once carried.
@@ -132,7 +140,10 @@ from the assignee in the same transaction:
 by someone else, plus one wake when its Issue's last open sub-issue closes. Title, description,
 priority, label and due-date edits are activity only.
 
-**Inbox items** ([inbox.md](inbox.md#issue-items)):
+**Inbox items** ([inbox.md](inbox.md#issue-items)). Step 2 derives each item, its recipient and
+its identity in the write's transaction (`apps/server/src/issues/issue-wakes.ts`) and returns them
+with the write; step 3 queues them. A comment's `timelineEventId` is the comment id. A closed last
+sub-issue is keyed by the parent's id and the child's `state_changed` event id.
 
 - `issue_assignment` (step 3) replaces `task_assignment`. Identity
   `issue-assign:<issueId>:<version>`. Every queued assignment for one agent rides one run, up to
@@ -188,7 +199,9 @@ them explicitly.
   Issues and an Issue several Tasks. A crew Task working one Issue displays "GEN-12 · title".
 - **Pull requests.** An Issue shows the pull requests of its linked Tasks, plus pull requests
   linked by hand with `haus issue link GEN-12 --pr <url>`. Readings come from the Server's stored
-  pull request readings ([github-app-connection.md](github-app-connection.md)).
+  pull request readings ([github-app-connection.md](github-app-connection.md)). Step 2 builds the
+  Task links; hand links and their notices are not built yet, and `link` takes only `--task`.
+- **Unlinking.** A Task that holds the Issue cannot be unlinked; reassign the Issue first.
 - **Pull request notices.** A change on a pull request (ready for review, checks finished) reaches
   agents only through today's `pull_request` inbox item (`apps/server/src/github/pull-request-wake.ts`,
   identity `<repo>#<number>:<change>:<headSha>`), never as an `issue_event`. Recipients, once per
@@ -244,7 +257,7 @@ Issue.
 | --- | --- |
 | `issue create --title <t> [--state] [--priority] [--assignee] [--due] [--labels] [--parent <code>]` | Files an Issue in the caller's Project with the description on stdin. Defaults: `todo`, unassigned |
 | `issue update <code> [--title] [--state] [--priority] [--assignee] [--expect-assignee] [--due] [--labels] [--parent] [--expected-version]` | Edits one Issue |
-| `issue list [--assignee <me\|crew\|none\|@handle>] [--state <states>] [--project <KEY>] [--parent <code>] [--query <text>]` | Defaults to open Issues assigned to the caller or its crew, by priority then age, at most 50 rows |
+| `issue list [--all] [--assignee <me\|none\|@handle\|task:<id>>] [--state <states>] [--project <KEY>] [--parent <code>] [--query <text>]` | Defaults to open Issues assigned to the caller, by priority then age, at most 50 rows; `--all`, `--project`, `--parent` or `--query` drop the assignee default. `--assignee crew` arrives with crew Tasks in step 5 |
 | `issue show <code>` | The Issue, its sub-issues, links, and newest activity |
 | `issue comment <code> [--reply-to <commentId>]` | Comments with the body on stdin |
 | `issue link <code> (--task <id> \| --pr <url>)` / `issue unlink …` | Links or unlinks a Task or pull request |
