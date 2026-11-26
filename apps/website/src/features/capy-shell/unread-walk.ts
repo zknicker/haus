@@ -47,7 +47,7 @@ export function walkRows({
                 return section.chatIds.map(chatRow);
             default:
                 return section.tasks.map((task) => ({
-                    href: taskRoute(slug, task.key),
+                    href: taskRoute(slug, task.shortId),
                     unread:
                         taskUnread(
                             previews.find((preview) => preview.chatId === task.chatId),

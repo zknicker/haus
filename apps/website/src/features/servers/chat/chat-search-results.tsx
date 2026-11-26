@@ -88,7 +88,7 @@ function SearchResultRow({
     query: string;
 }) {
     const author = messageAuthor(match);
-    const place = match.taskKey ?? (chat ? chatPlace(chat) : null);
+    const place = match.taskShortId ? `task:${match.taskShortId}` : chat ? chatPlace(chat) : null;
 
     return (
         <ListView.Item id={match.id} textValue={`${author.name} ${match.content}`}>

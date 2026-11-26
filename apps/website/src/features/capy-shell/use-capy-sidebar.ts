@@ -22,7 +22,7 @@ export function useCapySidebarSections(serverId: string) {
         { ...queryPolicy.syncedSnapshot, select: selectAgentIds }
     ).data;
     const chatLayout = useChatListSelection(serverId, selectChatLayout);
-    const openTasks = hausTrpc.task.listOpen.useQuery(
+    const openTasks = hausTrpc.task.listActive.useQuery(
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: sortedOpenTaskSlots }
     ).data;

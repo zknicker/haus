@@ -29,7 +29,7 @@ export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
     taskId,
 }: RowProps & { taskId: string }) {
     const row = useOpenTaskRow(serverId, taskId);
-    const href = row ? taskRoute(slug, row.key) : '';
+    const href = row ? taskRoute(slug, row.shortId) : '';
     const { preload, rowRef } = useRowNavigation(serverId, row?.chatId ?? undefined, href);
     if (!row) {
         return null;
@@ -41,7 +41,7 @@ export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
             isCurrent={isCurrent}
             onHoverStart={preload}
             ref={rowRef}
-            textValue={`${row.key} ${row.title}`}
+            textValue={row.title}
         >
             <TaskNavigationContextMenu href={href} serverId={serverId} taskId={taskId}>
                 <Sidebar.MenuIcon>
@@ -53,11 +53,7 @@ export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
                     <Sidebar.MenuLabel
                         className={cn(row.unreadCount > 0 && 'text-foreground font-medium')}
                     >
-                        {row.waitingOnYou ? (
-                            <WaitingOnYouKey taskKey={row.key} />
-                        ) : (
-                            <span className="text-muted me-1.5 tabular-nums">{row.key}</span>
-                        )}
+                        {row.waitingOnYou ? <WaitingOnYouMark /> : null}
                         {row.title}
                     </Sidebar.MenuLabel>
                     <UnreadDot count={row.unreadCount} />
@@ -115,7 +111,7 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
     );
 });
 
-function WaitingOnYouKey({ taskKey }: { taskKey: string }) {
+function WaitingOnYouMark() {
     const keyRef = React.useRef<HTMLSpanElement>(null);
     const [isOpen, setOpen] = React.useState(false);
     const { hoverProps } = useHover({ onHoverChange: setOpen });
@@ -128,7 +124,6 @@ function WaitingOnYouKey({ taskKey }: { taskKey: string }) {
             >
                 <span className="sr-only">Waiting on you, </span>
                 <span aria-hidden="true" className="bg-accent size-1.5 rounded-full" />
-                <span className="text-accent tabular-nums">{taskKey}</span>
             </span>
             <Tooltip.Content triggerRef={keyRef}>Waiting on you</Tooltip.Content>
         </Tooltip>

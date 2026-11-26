@@ -12,7 +12,6 @@ import {
     AgentRuntimeSection,
     AgentSkillsSection,
 } from './agent-setup-sections.tsx';
-import { AgentWorkingOn } from './agent-working-on.tsx';
 
 export { AgentWorkspace };
 
@@ -28,7 +27,6 @@ export function AgentHubContent({
     return (
         <>
             <AgentNeedsYou agent={agent} server={server} />
-            <AgentWorkingOn agent={agent} server={server} />
             <AgentRecent
                 agent={agent}
                 onSeeAll={() => onSectionChange('activity')}

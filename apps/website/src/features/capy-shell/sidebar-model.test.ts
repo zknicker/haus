@@ -21,15 +21,14 @@ const chat = (fields: Partial<Chat> & Pick<Chat, 'id' | 'kind'>) =>
         ...fields,
     }) as Chat;
 
-const task = (id: string, key: string, createdAt: string, chatId: string | null = null) =>
+const task = (id: string, shortId: string, createdAt: string, chatId: string | null = null) =>
     ({
-        assignee: { agentId: 'forge', kind: 'agent' },
+        archivedAt: null,
         chatId,
         createdAt,
         id,
-        key,
-        state: 'open',
-        title: `Title ${key}`,
+        shortId,
+        title: `Title ${shortId}`,
     }) as Task;
 
 const preview = (chatId: string, contents: string[]) =>
@@ -64,13 +63,13 @@ test('the sidebar runs Captains, Projects, open Tasks, then People', () => {
                 chat({ id: 'eng', kind: 'channel', name: 'eng' }),
                 chat({ id: 'dm-ada', kind: 'dm', peerUserId: 'ada', unreadCount: 2 }),
             ],
-            openTasks: [task('t1', 'ENG-1', '2026-11-18T10:00:00.000Z')],
+            openTasks: [task('t1', 'eng00001', '2026-11-18T10:00:00.000Z')],
         })
     );
     expect(sections).toEqual([
         { agentDmChatIds: {}, agentIds: ['forge', 'orbit'], kind: 'captains' },
         { chatIds: ['eng'], kind: 'projects', teamRoomId: null },
-        { kind: 'open-tasks', tasks: [{ chatId: null, key: 'ENG-1', taskId: 't1' }] },
+        { kind: 'open-tasks', tasks: [{ chatId: null, shortId: 'eng00001', taskId: 't1' }] },
         { chatIds: ['dm-ada'], kind: 'people' },
     ]);
 });
@@ -164,14 +163,14 @@ test('a Task that @mentions you in an unread message waits on you and sorts firs
         preview('c3', ['[@Ada](user://ada) take a look']),
     ];
     const tasks = [
-        task('t1', 'ENG-1', '2026-11-18T12:00:00.000Z', 'c1'),
-        task('t2', 'SEC-2', '2026-11-18T09:00:00.000Z', 'c2'),
-        task('t3', 'ENG-3', '2026-11-18T11:00:00.000Z', 'c3'),
+        task('t1', 'eng00001', '2026-11-18T12:00:00.000Z', 'c1'),
+        task('t2', 'sec00002', '2026-11-18T09:00:00.000Z', 'c2'),
+        task('t3', 'eng00003', '2026-11-18T11:00:00.000Z', 'c3'),
     ];
-    expect(openTaskSlots(tasks, waitingChatIds(previews, 'zach')).map((slot) => slot.key)).toEqual([
-        'SEC-2',
-        'ENG-1',
-        'ENG-3',
+    expect(openTaskSlots(tasks, waitingChatIds(previews, 'zach')).map((slot) => slot.shortId)).toEqual([
+        'sec00002',
+        'eng00001',
+        'eng00003',
     ]);
     const waiting = openTaskRow({
         task: tasks[1] as Task,
@@ -181,18 +180,18 @@ test('a Task that @mentions you in an unread message waits on you and sorts firs
     expect(taskUnread(previews[1], 'zach')).toEqual({ mentionsViewer: false, unreadCount: 2 });
 });
 
-test('an open Task row is one line: key, title, unread, and whether it waits on you', () => {
+test('an active Task row is one line: title, unread, and whether it waits on you', () => {
     expect(
         openTaskRow({
-            task: task('t2', 'ENG-2', '2026-11-18T12:00:00Z', 'c2'),
+            task: task('t2', 'eng00002', '2026-11-18T12:00:00Z', 'c2'),
             unread: taskUnread(undefined, 'zach'),
         })
     ).toEqual({
         chatId: 'c2',
-        key: 'ENG-2',
-        state: 'open',
+        shortId: 'eng00002',
+        state: 'active',
         taskId: 't2',
-        title: 'Title ENG-2',
+        title: 'Title eng00002',
         unreadCount: 0,
         waitingOnYou: false,
     });

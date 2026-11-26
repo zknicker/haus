@@ -16,7 +16,7 @@ export function useHomeSend(serverId: string, slug: string) {
             {
                 onSuccess: ({ task }) => {
                     onCreated();
-                    navigate(taskRoute(slug, task.key));
+                    navigate(taskRoute(slug, task.shortId));
                 },
             }
         );

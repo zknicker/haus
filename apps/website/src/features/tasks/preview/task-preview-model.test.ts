@@ -19,23 +19,21 @@ test('a Task with no messages yet still previews, with no count', () => {
     });
     expect(
         taskPreviewLabel({
-            key: 'SEC-13',
+            archivedAt: null,
             messageCount: 0,
-            state: 'todo',
             title: 'Audit tokens',
             unreadCount: 0,
         })
-    ).toBe('Open task SEC-13, Audit tokens, Todo');
+    ).toBe('Open task Audit tokens, Active');
 });
 
 test('the open button names the Task, its state, and its counts', () => {
     expect(
         taskPreviewLabel({
-            key: 'SEC-12',
+            archivedAt: '2026-11-20T12:00:00.000Z',
             messageCount: 4,
-            state: 'open',
             title: 'Rate-limit webhooks',
             unreadCount: 1,
         })
-    ).toBe('Open task SEC-12, Rate-limit webhooks, Open, 4 messages, 1 new');
+    ).toBe('Open task Rate-limit webhooks, Archived, 4 messages, 1 new');
 });

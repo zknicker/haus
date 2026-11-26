@@ -1,5 +1,5 @@
 import type { TaskPreview } from '@haus/api';
-import { taskStateLabels } from '../task-state.ts';
+import { taskStateLabels, taskStateOf } from '../task-state.ts';
 
 export function taskPreviewCounts(preview: Pick<TaskPreview, 'messageCount' | 'unreadCount'>) {
     const { messageCount } = preview;
@@ -13,13 +13,12 @@ export function taskPreviewCounts(preview: Pick<TaskPreview, 'messageCount' | 'u
 }
 
 export function taskPreviewLabel(
-    preview: Pick<TaskPreview, 'key' | 'messageCount' | 'state' | 'title' | 'unreadCount'>
+    preview: Pick<TaskPreview, 'archivedAt' | 'messageCount' | 'title' | 'unreadCount'>
 ) {
     const counts = taskPreviewCounts(preview);
     return [
-        `Open task ${preview.key}`,
-        preview.title,
-        taskStateLabels[preview.state],
+        `Open task ${preview.title}`,
+        taskStateLabels[taskStateOf(preview)],
         counts.messages,
         counts.unread,
     ]

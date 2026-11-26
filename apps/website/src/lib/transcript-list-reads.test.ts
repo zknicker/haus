@@ -272,13 +272,13 @@ function tailReads(requests: readonly ReadRequest[]) {
 
 function taskPreview(originMessageId: string, messageCount: number): TaskPreview {
     return {
+        archivedAt: null,
         chatId: 'cht_task',
         followed: true,
-        key: 'SEC-1',
         messageCount,
         originMessageId,
         recentMessages: [],
-        state: 'open',
+        shortId: 'k3mq7xta',
         taskId: 'tsk_1',
         title: 'Fix the deploy',
         unreadCount: 0,

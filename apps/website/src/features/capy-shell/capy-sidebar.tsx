@@ -151,7 +151,7 @@ function CapySidebarSectionView({
                     <Sidebar.Menu aria-label="Tasks">
                         {section.tasks.map((task) => (
                             <OpenTaskNavigationRow
-                                isCurrent={selection.pathname === taskRoute(slug, task.key)}
+                                isCurrent={selection.pathname === taskRoute(slug, task.shortId)}
                                 key={task.taskId}
                                 serverId={serverId}
                                 slug={slug}

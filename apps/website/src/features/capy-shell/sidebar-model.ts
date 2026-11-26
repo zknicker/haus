@@ -2,6 +2,7 @@ import type { Agent, Chat, ChatUnreadPreview, Task } from '@haus/api';
 import type { ServerMember } from '@haus/api/membership';
 import { parseHausRichReferences, parseUserReferenceTarget } from '@haus/api/rich-references';
 import { humanDisplayName } from '../servers/human-identity.ts';
+import { type TaskState, taskStateOf } from '../tasks/task-state.ts';
 
 export interface CaptainTile {
     agentId: string;
@@ -16,9 +17,9 @@ export type CaptainPresence = 'error' | 'paused' | 'working';
 
 export interface OpenTaskRow {
     chatId: string | null;
-    key: string;
+    shortId: string;
     waitingOnYou: boolean;
-    state: Task['state'];
+    state: TaskState;
     taskId: string;
     title: string;
     unreadCount: number;
@@ -75,14 +76,14 @@ export function openTaskRow({
     task,
     unread,
 }: {
-    task: Pick<Task, 'chatId' | 'id' | 'key' | 'state' | 'title'>;
+    task: Pick<Task, 'archivedAt' | 'chatId' | 'id' | 'shortId' | 'title'>;
     unread: TaskUnread;
 }) {
     return {
         chatId: task.chatId,
-        key: task.key,
+        shortId: task.shortId,
         waitingOnYou: unread.mentionsViewer,
-        state: task.state,
+        state: taskStateOf(task),
         taskId: task.id,
         title: task.title,
         unreadCount: unread.unreadCount,

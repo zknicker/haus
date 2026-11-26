@@ -130,8 +130,8 @@ function RevisionTask({
     }
     return (
         <ItemCard.Description>
-            <Link className="text-accent" to={taskRoute(slug, task.key)}>
-                {task.key} {task.title}
+            <Link className="text-accent" to={taskRoute(slug, task.shortId)}>
+                {task.title}
             </Link>
         </ItemCard.Description>
     );

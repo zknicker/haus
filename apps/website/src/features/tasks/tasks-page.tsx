@@ -23,8 +23,8 @@ export function TasksPage() {
     const filters = readTasksPageFilters(params);
     const tasks = useTaskList(server.id, taskListFilters(filters));
     const ordered = React.useMemo(
-        () => (tasks.data ? orderTasksForPage(tasks.data, filters.labelId) : null),
-        [tasks.data, filters.labelId]
+        () => (tasks.data ? orderTasksForPage(tasks.data) : null),
+        [tasks.data]
     );
 
     const filtered = isFiltered(filters);

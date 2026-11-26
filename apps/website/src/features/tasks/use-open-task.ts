@@ -7,5 +7,5 @@ import { taskRoute } from '../servers/server-routes.ts';
 export function useOpenTask() {
     const { server } = useServerContext();
     const navigate = useNavigate();
-    return (task: Pick<Task, 'key'>) => navigate(taskRoute(server.slug, task.key));
+    return (task: Pick<Task, 'shortId'>) => navigate(taskRoute(server.slug, task.shortId));
 }

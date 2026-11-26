@@ -72,5 +72,5 @@ function cachedOrigin(queryClient: QueryClient, serverId: string, taskId: string
 
 function invalidateTaskLists(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.list, { serverId }) });
-    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.listOpen, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.listActive, { serverId }) });
 }

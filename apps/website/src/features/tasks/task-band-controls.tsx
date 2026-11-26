@@ -12,36 +12,35 @@ import { useTask } from '../../hooks/tasks/use-task.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { copyTaskReference } from './copy-task-reference.ts';
 import { TaskDetails } from './details/task-details.tsx';
-import { TaskAssigneeSelect, TaskStateSelect } from './task-properties.tsx';
+import { TaskStateSelect } from './task-properties.tsx';
 import { TaskStateDisc } from './task-state-disc.tsx';
-import { taskStateLabels } from './task-state.ts';
+import { type TaskState, taskStateLabels, taskStateOf } from './task-state.ts';
 import { showTaskUpdateError } from './task-update-error.ts';
 import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
 export function TaskBandControls({
     detailsInBand,
-    taskKey,
+    shortId,
 }: {
     detailsInBand: boolean;
-    taskKey: string;
+    shortId: string;
 }) {
     const { server } = useServerContext();
-    const task = useTask(server.id, { key: taskKey }).data;
+    const task = useTask(server.id, { shortId }).data;
     if (!task) {
         return null;
     }
     const isHistory = task.chatId === null;
     return (
         <>
-            {isHistory ? <TaskStateText state={task.state} /> : <TaskStateSelect task={task} />}
-            {isHistory ? null : <TaskAssigneeSelect task={task} />}
+            {isHistory ? <TaskStateText state={taskStateOf(task)} /> : <TaskStateSelect task={task} />}
             {detailsInBand && !isHistory ? <DetailsButton task={task} /> : null}
             {isHistory ? null : <FollowButton task={task} />}
             <Tooltip>
                 <Button
                     aria-label="Copy reference"
                     isIconOnly
-                    onPress={() => copyTaskReference(task.key)}
+                    onPress={() => copyTaskReference(task)}
                     size="sm"
                     variant="ghost"
                 >
@@ -53,7 +52,7 @@ export function TaskBandControls({
     );
 }
 
-function TaskStateText({ state }: { state: TaskDetail['state'] }) {
+function TaskStateText({ state }: { state: TaskState }) {
     return (
         <span className="flex items-center gap-1.5 text-sm">
             <TaskStateDisc state={state} />

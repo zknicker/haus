@@ -73,7 +73,7 @@ describe('Task stream hooks', () => {
             () => useTaskCreatedStream(serverId),
             event
         );
-        const lists = [read('task.list', { serverId }), read('task.listOpen', { serverId })];
+        const lists = [read('task.list', { serverId }), read('task.listActive', { serverId })];
         expect(onEvent).toEqual(lists);
         expect(onRecovery).toEqual(lists);
         expect(eventOps.some((op) => op.op === 'noteMessageAnnotated')).toBe(false);
@@ -125,14 +125,14 @@ describe('Task stream hooks', () => {
                 read('task.get', { key: 'SEC-12', serverId }),
                 read('task.get', { serverId, taskId: 'tsk_12' }),
                 read('task.list', { serverId }),
-                read('task.listOpen', { serverId }),
+                read('task.listActive', { serverId }),
                 read('chat.unreadPreviews', { serverId }),
             ])
         );
         expect(onRecovery).toEqual([
             read('task.get', { serverId }),
             read('task.list', { serverId }),
-            read('task.listOpen', { serverId }),
+            read('task.listActive', { serverId }),
             read('chat.unreadPreviews', { serverId }),
         ]);
     });

@@ -1,17 +1,13 @@
 import { expect, test } from 'bun:test';
-import { homeCaptainId, planHomeTask } from './home-send.ts';
+import { planHomeTask } from './home-send.ts';
 
-const captain = { agentId: 'forge', name: 'Forge' };
-
-test('a Home ask becomes a Task in its Project for its Captain, first line as title', () => {
+test('a Home ask becomes a Task in its Project, first line as title', () => {
     expect(
         planHomeTask({
-            captain,
             projectChatId: 'cht_eng',
             text: ' Fix composer fonts \nThey fall back to Arial on Windows. ',
         })
     ).toEqual({
-        assigneeAgentId: 'forge',
         description: 'They fall back to Arial on Windows.',
         projectId: 'cht_eng',
         title: 'Fix composer fonts',
@@ -19,38 +15,16 @@ test('a Home ask becomes a Task in its Project for its Captain, first line as ti
 });
 
 test('a one-line ask has no description, and an empty ask plans nothing', () => {
-    expect(planHomeTask({ captain, projectChatId: 'cht_eng', text: 'Ship it' })).toEqual({
-        assigneeAgentId: 'forge',
+    expect(planHomeTask({ projectChatId: 'cht_eng', text: 'Ship it' })).toEqual({
         projectId: 'cht_eng',
         title: 'Ship it',
     });
-    expect(planHomeTask({ captain, projectChatId: 'cht_eng', text: ' \n ' })).toBeNull();
+    expect(planHomeTask({ projectChatId: 'cht_eng', text: ' \n ' })).toBeNull();
 });
 
 test('a first line longer than a title keeps the whole ask as the description', () => {
     const long = 'x'.repeat(250);
-    const plan = planHomeTask({ captain, projectChatId: 'cht_eng', text: long });
+    const plan = planHomeTask({ projectChatId: 'cht_eng', text: long });
     expect(plan?.title.length).toBe(200);
     expect(plan?.description).toBe(long);
-});
-
-test("the Captain defaults to the Project's Captain, else the Server's first", () => {
-    const captainIds = ['forge', 'orbit'];
-    expect(
-        homeCaptainId({ captainIds, picked: null, projectCaptainIds: ['retired', 'orbit'] })
-    ).toBe('orbit');
-    expect(homeCaptainId({ captainIds, picked: null, projectCaptainIds: [] })).toBe('forge');
-    expect(
-        homeCaptainId({ captainIds: [], picked: null, projectCaptainIds: ['orbit'] })
-    ).toBeNull();
-});
-
-test('a picked Captain wins until it is retired, then the default returns', () => {
-    const captainIds = ['forge', 'orbit'];
-    expect(homeCaptainId({ captainIds, picked: 'forge', projectCaptainIds: ['orbit'] })).toBe(
-        'forge'
-    );
-    expect(homeCaptainId({ captainIds, picked: 'gone', projectCaptainIds: ['orbit'] })).toBe(
-        'orbit'
-    );
 });

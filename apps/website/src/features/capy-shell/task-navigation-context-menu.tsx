@@ -50,7 +50,7 @@ function TaskRowContextMenu({
     }
     return (
         <ContextMenu.Menu
-            aria-label={`${task.key} actions`}
+            aria-label={`${task.title} actions`}
             onAction={(key) => {
                 if (key === 'open-task') {
                     navigate(href);
@@ -59,7 +59,7 @@ function TaskRowContextMenu({
                 runRowTabItem(tabOpeners, key, href);
             }}
         >
-            <ContextMenu.Item id="open-task" textValue={`Open ${task.key}`}>
+            <ContextMenu.Item id="open-task" textValue={`Open ${task.title}`}>
                 <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                 <Label>Open task</Label>
             </ContextMenu.Item>
@@ -75,6 +75,6 @@ function useOpenTask(serverId: string, taskId: string) {
         (tasks: Task[]) => tasks.find((task) => task.id === taskId),
         [taskId]
     );
-    return hausTrpc.task.listOpen.useQuery({ serverId }, { ...queryPolicy.syncedSnapshot, select })
+    return hausTrpc.task.listActive.useQuery({ serverId }, { ...queryPolicy.syncedSnapshot, select })
         .data;
 }

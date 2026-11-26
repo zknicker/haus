@@ -16,9 +16,9 @@ import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
 export { TaskBandControls } from './task-band-controls.tsx';
 
-export function TaskPage({ panelShown, taskKey }: { panelShown: boolean; taskKey: string }) {
+export function TaskPage({ panelShown, shortId }: { panelShown: boolean; shortId: string }) {
     const { server } = useServerContext();
-    const task = useTask(server.id, { key: taskKey });
+    const task = useTask(server.id, { shortId });
 
     if (task.error?.data?.code === 'NOT_FOUND') {
         return <TaskUnavailable title="Task not found" />;
@@ -59,7 +59,7 @@ function TaskDetailView({
                 <TaskConversation
                     chatId={chatId}
                     origin={task.origin}
-                    title={`${task.key} ${task.title}`}
+                    title={task.title}
                 />
                 {panelShown ? (
                     <div className="task-rail">

@@ -1,4 +1,4 @@
-import { parseTaskKey } from '@haus/api';
+import { isTaskShortId } from '@haus/api';
 import * as React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useServerContext } from '../../features/servers/server-context.ts';
@@ -19,16 +19,16 @@ const TaskBandControls = React.lazy(async () => ({
 const taskPanelMinWidth = 900;
 
 export function TaskPageRoute() {
-    const { taskKey: param = '' } = useParams();
+    const { shortId: param = '' } = useParams();
     const { server } = useServerContext();
     const frameRef = React.useRef<HTMLElement>(null);
     const panelShown = usePaneWideEnough(frameRef, taskPanelMinWidth);
-    const taskKey = parseTaskKey(param) ? param : null;
-    const task = useTask(server.id, taskKey ? { key: taskKey } : undefined).data;
-    const current = task ? `${task.key} ${task.title}` : (taskKey ?? 'Task');
+    const shortId = isTaskShortId(param) ? param : null;
+    const task = useTask(server.id, shortId ? { shortId } : undefined).data;
+    const current = task ? task.title : 'Task';
     useWindowTitle(current);
 
-    if (!taskKey) {
+    if (!shortId) {
         return <Navigate replace to={tasksRoute(server.slug)} />;
     }
     return (
@@ -36,16 +36,16 @@ export function TaskPageRoute() {
             <PageBand>
                 <PageBand.Trail
                     crumbs={[{ href: tasksRoute(server.slug), label: 'Tasks' }]}
-                    current={task ? { identifier: task.key, label: task.title } : current}
+                    current={task ? { identifier: task.shortId, label: task.title } : current}
                 />
                 <PageBand.Controls>
                     <React.Suspense fallback={null}>
-                        <TaskBandControls detailsInBand={!panelShown} taskKey={taskKey} />
+                        <TaskBandControls detailsInBand={!panelShown} shortId={shortId} />
                     </React.Suspense>
                 </PageBand.Controls>
             </PageBand>
             <React.Suspense fallback={<div aria-busy="true" className="min-h-0 flex-1" />}>
-                <TaskPage panelShown={panelShown} taskKey={taskKey} />
+                <TaskPage panelShown={panelShown} shortId={shortId} />
             </React.Suspense>
         </section>
     );

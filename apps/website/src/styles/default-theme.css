@@ -3887,27 +3887,6 @@
         gap: calc(var(--spacing) * 2);
     }
 
-    .task-list__key {
-        flex-shrink: 0;
-        min-width: 3rem;
-        font-size: var(--text-sm);
-        color: var(--muted);
-        font-variant-numeric: tabular-nums;
-    }
-
-    .task-list__labels {
-        display: none;
-        flex-shrink: 0;
-        align-items: center;
-        gap: calc(var(--spacing) * 1.5);
-    }
-
-    @container (min-width: 40rem) {
-        .task-list__labels {
-            display: flex;
-        }
-    }
-
     .task-list__facts {
         position: relative;
         display: flex;
@@ -4315,33 +4294,6 @@
         color: var(--muted);
     }
 
-    /*
-     * A Task's facts are Capy's property list: a muted label column and an
-     * inline control per row, at 32px.
-     */
-    .task-facts {
-        display: flex;
-        min-width: 0;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: calc(var(--spacing) * 1);
-    }
-
-    .task-fact {
-        display: grid;
-        grid-template-columns: 4.5rem minmax(0, 1fr);
-        align-items: start;
-        gap: calc(var(--spacing) * 2);
-        font-size: var(--text-sm);
-
-        > dt,
-        > dd {
-            display: flex;
-            align-items: center;
-            min-height: calc(var(--spacing) * 8);
-        }
-    }
-
     /* The description's prose sits on the rail's text edge, its Edit button on the heading's. */
     .task-description-body {
         display: flex;
@@ -4361,11 +4313,11 @@
     }
 
     /*
-     * The Task page's right rail is one unframed column, no card: facts, the
+     * The Task page's right rail is one unframed column, no card: the
      * description, then Workers and Pull requests under quiet muted headings.
      * Every part starts on the ghost `sm` button's text edge (spacing ×3), so
-     * fact labels, "Add description", section headings and the work rows'
-     * glyphs share one left line.
+     * "Add description", section headings and the work rows' glyphs share one
+     * left line.
      */
     .task-rail {
         display: flex;
@@ -4374,10 +4326,6 @@
         gap: calc(var(--spacing) * 4);
         overflow-y: auto;
         padding-block: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
-    }
-
-    .task-facts .task-fact {
-        padding-inline: calc(var(--spacing) * 3);
     }
 
     .task-rail-section .disclosure__heading .button {
@@ -4393,24 +4341,12 @@
         padding-block: calc(var(--spacing) * 1.5);
     }
 
-    /* The facts, then the description as its own section at the rail's section rhythm. */
+    /* The description as its own section at the rail's section rhythm. */
     .task-details {
         display: flex;
         min-width: 0;
         flex-direction: column;
         gap: calc(var(--spacing) * 4);
-    }
-
-    /*
-     * A plain fact value (no control) takes the InlineSelect and DatePicker
-     * triggers' spacing ×1 inset, so every value starts on one column.
-     */
-    .task-fact__text {
-        padding-inline: calc(var(--spacing) * 1);
-    }
-
-    .task-fact .date-picker__trigger {
-        gap: calc(var(--spacing) * 1.5);
     }
 
     /* A pull request's meta truncates its words, never its diff. */

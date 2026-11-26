@@ -1,21 +1,23 @@
-import { type TaskState, taskStates } from '@haus/api';
 import type { ClaimStatus } from '../claims/claim-presentation.ts';
 
-export const taskStateOrder: readonly TaskState[] = taskStates;
+/** A Task is active or archived (ADR 0062); `archivedAt` is the only record of it. */
+export type TaskState = 'active' | 'archived';
+
+export const taskStateOrder: readonly TaskState[] = ['active', 'archived'];
 
 export const taskStateLabels: Record<TaskState, string> = {
-    canceled: 'Canceled',
-    done: 'Done',
-    open: 'Open',
-    todo: 'Todo',
+    active: 'Active',
+    archived: 'Archived',
 };
 
 export const taskStateDiscs: Record<TaskState, ClaimStatus> = {
-    canceled: 'closed',
-    done: 'done',
-    open: 'in_progress',
-    todo: 'todo',
+    active: 'in_progress',
+    archived: 'closed',
 };
+
+export function taskStateOf(task: { archivedAt: string | null }): TaskState {
+    return task.archivedAt === null ? 'active' : 'archived';
+}
 
 export function isTaskState(value: unknown): value is TaskState {
     return taskStateOrder.includes(value as TaskState);

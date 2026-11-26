@@ -57,7 +57,7 @@ export function useOpenHappeningNowRow(): (row: HappeningNowRow) => void {
     return (row) => {
         if (row.kind === 'work') {
             if (row.work.task) {
-                navigate(taskRoute(server.slug, row.work.task.key), {
+                navigate(taskRoute(server.slug, row.work.task.shortId), {
                     state: tabIntentState(currentOpenGesture()),
                 });
                 return;

@@ -2,12 +2,9 @@ import type { Task } from '@haus/api';
 import { ListView } from '@heroui-pro/react';
 import { GridListHeader, GridListSection } from 'react-aria-components';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
-import { TaskAssigneeMark, TaskDueDate, TaskLabelChips } from './task-facts.tsx';
-import { taskPriorityLabels } from './task-presentation.ts';
-import { TaskPriorityIcon } from './task-priority-icon.tsx';
 import { TaskRowMenu } from './task-row-menu.tsx';
 import { TaskStateDisc } from './task-state-disc.tsx';
-import { taskStateLabels } from './task-state.ts';
+import { taskStateLabels, taskStateOf } from './task-state.ts';
 import { groupTasksByState, type TaskStateGroup, taskAge } from './tasks-page-model.ts';
 import { useOpenTask } from './use-open-task.ts';
 
@@ -50,24 +47,15 @@ function TaskStateSection({ group, now }: { group: TaskStateGroup; now: number }
 
 function TaskListRow({ now, task }: { now: number; task: Task }) {
     return (
-        <ListView.Item id={task.id} textValue={`${task.key} ${task.title}`}>
+        <ListView.Item id={task.id} textValue={task.title}>
             <ListView.ItemContent>
-                <span aria-label={taskStateLabels[task.state]} role="img">
-                    <TaskStateDisc state={task.state} />
+                <span aria-label={taskStateLabels[taskStateOf(task)]} role="img">
+                    <TaskStateDisc state={taskStateOf(task)} />
                 </span>
-                <span className="task-list__key">{task.key}</span>
                 <ListView.Title className="min-w-0">{task.title}</ListView.Title>
-                <span className="task-list__labels">
-                    <TaskLabelChips labelIds={task.labelIds} />
-                </span>
             </ListView.ItemContent>
             <ListView.ItemAction>
                 <span className="task-list__facts">
-                    <TaskDueDate task={task} />
-                    <TaskAssigneeMark assignee={task.assignee} />
-                    <span aria-label={`${taskPriorityLabels[task.priority]} priority`} role="img">
-                        <TaskPriorityIcon className="text-muted" priority={task.priority} />
-                    </span>
                     <span
                         className="task-list__age"
                         title={`Created ${createdFormat.format(new Date(task.createdAt))}`}

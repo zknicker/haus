@@ -19,7 +19,7 @@ export interface HappeningNowWork {
     provider: CloudAgentProvider | null;
     state: WorkerJobState;
     statusText: string;
-    task: { id: string; key: string } | null;
+    task: { id: string; shortId: string } | null;
     title: string;
 }
 
@@ -49,12 +49,12 @@ export function toHappeningNowWork(
     }));
 }
 
-function workTask({ taskId, taskKey }: ActiveWorker): HappeningNowWork['task'] {
-    return taskId !== null && taskKey !== null ? { id: taskId, key: taskKey } : null;
+function workTask({ taskId, taskShortId }: ActiveWorker): HappeningNowWork['task'] {
+    return taskId !== null && taskShortId !== null ? { id: taskId, shortId: taskShortId } : null;
 }
 
 export function happeningNowWorkSubline(work: HappeningNowWork): string {
-    const facts = [work.statusText, work.task?.key, work.chatLabel, work.agentName];
+    const facts = [work.statusText, work.task?.shortId, work.chatLabel, work.agentName];
     return facts.filter((fact) => fact !== undefined).join(' · ');
 }
 

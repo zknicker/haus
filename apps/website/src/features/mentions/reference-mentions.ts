@@ -49,7 +49,6 @@ export function readReferenceMentions(
                 displayName: humans.member(userId ?? null) ? humans.name(userId ?? null) : null,
             })
         ),
-        content,
         taskLinks
     );
 }

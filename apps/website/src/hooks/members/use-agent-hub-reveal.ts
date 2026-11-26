@@ -1,4 +1,3 @@
-import { unfinishedTaskStates } from '@haus/api';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
@@ -10,11 +9,6 @@ import { agentActivityHistoryInput } from './use-agent-activity-history.ts';
 import { useAgentReminders } from './use-agent-reminders.ts';
 import { useAgentTriggers } from './use-agent-triggers.ts';
 import { useAgentTurns } from './use-agent-turns.ts';
-
-/** The Tasks a Captain page lists under Working on: its unfinished assignments. */
-export function captainTaskFilters(agentId: string) {
-    return { assignee: { agentId }, states: [...unfinishedTaskStates] };
-}
 
 /** How long the hub waits for its reads before showing whatever has landed. */
 export const agentHubRevealDelayMs = 150;
@@ -37,10 +31,6 @@ export function useAgentHubReveal(input: {
         useComputers(serverId),
         useConnections(serverId),
         useClaims(serverId),
-        hausTrpc.task.list.useQuery(
-            { ...captainTaskFilters(agentId), serverId },
-            queryPolicy.syncedSnapshot
-        ),
         useProjects(serverId),
         hausTrpc.agent.activityHistory.useQuery(agentActivityHistoryInput(serverId, agentId), {
             ...queryPolicy.syncedSnapshot,

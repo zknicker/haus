@@ -23,7 +23,7 @@ export function WorkerPageRoute() {
     useWindowTitle(work?.title ?? 'Worker');
     const crumbs = [
         { href: tasksRoute(server.slug), label: 'Tasks' },
-        ...(task ? [{ href: taskRoute(server.slug, task.key), label: task.key }] : []),
+        ...(task ? [{ href: taskRoute(server.slug, task.shortId), label: task.title }] : []),
     ];
 
     return (

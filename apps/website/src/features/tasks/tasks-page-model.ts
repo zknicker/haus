@@ -1,49 +1,30 @@
-import type { Task, TaskState } from '@haus/api';
+import type { Task } from '@haus/api';
 import type { TaskListFilters } from '../../hooks/tasks/use-task-list.ts';
-import { assigneeFilterFromKey } from './task-assignee.ts';
-import { isTaskState } from './task-state.ts';
+import { isTaskState, type TaskState, taskStateOf } from './task-state.ts';
 
 export interface TasksPageFilters {
-    assignee: null | string;
-    keyId: null | string;
-    labelId: null | string;
     state: null | TaskState;
 }
 
 export function readTasksPageFilters(params: URLSearchParams): TasksPageFilters {
     const state = params.get('state');
-    return {
-        assignee: params.get('assignee'),
-        keyId: params.get('key'),
-        labelId: params.get('label'),
-        state: isTaskState(state) ? state : null,
-    };
+    return { state: isTaskState(state) ? state : null };
 }
 
-export function isFiltered(filters: TasksPageFilters): boolean {
-    return Object.values(filters).some((value) => value !== null);
+export function isFiltered(filters: TasksPageFilters) {
+    return filters.state !== null;
 }
 
-export function taskListFilters(filters: Omit<TasksPageFilters, 'labelId'>): TaskListFilters {
-    return {
-        ...(filters.assignee === null ? {} : { assignee: assigneeFilterFromKey(filters.assignee) }),
-        ...(filters.keyId === null ? {} : { keyId: filters.keyId }),
-        ...(filters.state === null ? {} : { states: [filters.state] }),
-    };
+export function taskListFilters(filters: TasksPageFilters): TaskListFilters {
+    return filters.state === 'archived' ? { archived: true } : {};
 }
 
-const stateRank: Record<TaskState, number> = { canceled: 3, done: 2, open: 0, todo: 1 };
-
-export function orderTasksForPage(tasks: readonly Task[], labelId: null | string = null): Task[] {
-    return tasks
-        .filter((task) => labelId === null || task.labelIds.includes(labelId))
-        .sort(
-            (a, b) =>
-                stateRank[a.state] - stateRank[b.state] ||
-                Date.parse(b.completedAt ?? b.createdAt) -
-                    Date.parse(a.completedAt ?? a.createdAt) ||
-                a.key.localeCompare(b.key, undefined, { numeric: true })
-        );
+export function orderTasksForPage(tasks: readonly Task[]) {
+    return [...tasks].sort(
+        (a, b) =>
+            Date.parse(b.archivedAt ?? b.createdAt) - Date.parse(a.archivedAt ?? a.createdAt) ||
+            a.shortId.localeCompare(b.shortId)
+    );
 }
 
 export interface TaskStateGroup {
@@ -54,11 +35,12 @@ export interface TaskStateGroup {
 export function groupTasksByState(ordered: readonly Task[]): TaskStateGroup[] {
     const groups: TaskStateGroup[] = [];
     for (const task of ordered) {
+        const state = taskStateOf(task);
         const last = groups.at(-1);
-        if (last?.state === task.state) {
+        if (last?.state === state) {
             last.tasks.push(task);
         } else {
-            groups.push({ state: task.state, tasks: [task] });
+            groups.push({ state, tasks: [task] });
         }
     }
     return groups;
