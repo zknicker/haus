@@ -10,20 +10,17 @@ export function useIssuePatch() {
         issue: IssueVersion,
         patch: IssuePatch,
         options?: { onSettled?: () => void; onSuccess?: () => void }
-    ) =>
-        update.mutate(
-            {
+    ) => {
+        void update
+            .mutateAsync({
                 expectedVersion: issue.version,
                 issueId: issue.id,
                 patch,
                 serverId: issue.serverId,
-            },
-            {
-                onError: showIssueUpdateError,
-                onSettled: options?.onSettled,
-                onSuccess: options?.onSuccess,
-            }
-        );
+            })
+            .then(() => options?.onSuccess?.(), showIssueUpdateError)
+            .finally(() => options?.onSettled?.());
+    };
 }
 
 export function showIssueUpdateError(error: { message: string }) {
