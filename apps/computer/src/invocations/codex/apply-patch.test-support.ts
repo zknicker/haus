@@ -3,8 +3,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { editRunner } from '../editor.ts';
-import { inlinePayloads, type OperationResult } from '../operation.ts';
 import { operationSession } from '../operation-session.test-support.ts';
+import { inlinePayloads, type OperationResult } from '../operation.ts';
 
 export function patchWorkspace() {
     const workspace = { dir: '' };

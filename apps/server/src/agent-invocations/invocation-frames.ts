@@ -20,7 +20,7 @@ export function clampTimeoutMs(operation: InvocationOperation, requestedMs: numb
 }
 
 export function invokeCommand(
-    frame: Pick<InvocationRequestFrame, 'agentId' | 'runId'>,
+    frame: Pick<InvocationRequestFrame, 'agentId' | 'runId' | 'sessionGeneration'>,
     input: {
         invocationId: string;
         operation: InvocationOperation;
@@ -36,6 +36,7 @@ export function invokeCommand(
         ).toISOString(),
         operation: input.operation,
         runId: frame.runId,
+        sessionGeneration: frame.sessionGeneration,
         timeoutMs: input.timeoutMs,
         type: 'invoke',
     };

@@ -3,8 +3,8 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createBrowserRunner, streamedResult } from './browser.ts';
-import { inlinePayloads } from './operation.ts';
 import { operationSession } from './operation-session.test-support.ts';
+import { inlinePayloads } from './operation.ts';
 
 let testDir: string;
 

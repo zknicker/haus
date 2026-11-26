@@ -1,6 +1,6 @@
 import type { Context } from '@earendil-works/chord/context';
 import { defineTool, type ToolRegistration } from '@earendil-works/pi-durable';
-import { arr, int, obj, oneOf, opt, str, tuple } from '@earendil-works/pi-schema';
+import { arr, bool, int, obj, oneOf, opt, str, tuple } from '@earendil-works/pi-schema';
 import { runnerToolDescriptions } from '@haus/agent-prompt';
 import type { InvocationOutcome } from '@haus/api';
 import type { RunTools, ToolOutcome } from '../run-context.ts';
@@ -13,8 +13,14 @@ import type { WebSearchRoute } from './pi-web-search.ts';
 type RunnerToolName = keyof typeof runnerToolDescriptions;
 
 const familyTools = {
-    gpt: ['shell', 'apply_patch', 'view_image', 'execute'],
-    'text-editor': ['bash', 'str_replace_based_edit_tool', 'execute'],
+    gpt: ['shell', 'apply_patch', 'view_image', 'execute', 'process_read', 'process_kill'],
+    'text-editor': [
+        'bash',
+        'str_replace_based_edit_tool',
+        'execute',
+        'process_read',
+        'process_kill',
+    ],
 } as const satisfies Record<PiToolFamily, readonly RunnerToolName[]>;
 
 export function piToolNames(family: PiToolFamily, search: WebSearchRoute) {
@@ -83,6 +89,7 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
                     tools.bash(api.callId, args, signal)
                 ),
             parameters: obj({
+                background: opt(bool()),
                 command: str({ minLength: 1 }),
                 computer: computerField(),
                 description: opt(str()),
@@ -97,6 +104,26 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
                 ),
             parameters: obj({ code: str({ minLength: 1 }) }),
         }),
+        process_kill: defineTool({
+            ...shared('process_kill'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (tools, signal) =>
+                    tools.processKill(api.callId, args, signal)
+                ),
+            parameters: obj({ computer: computerField(), processId: str({ minLength: 1 }) }),
+        }),
+        process_read: defineTool({
+            ...shared('process_read'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (tools, signal) =>
+                    tools.processRead(api.callId, args, signal)
+                ),
+            parameters: obj({
+                afterSeq: int({ minimum: 0 }),
+                computer: computerField(),
+                processId: str({ minLength: 1 }),
+            }),
+        }),
         shell: defineTool({
             ...shared('shell'),
             execute: (args, api, context) =>
@@ -104,6 +131,7 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
                     tools.shell(api.callId, args, signal)
                 ),
             parameters: obj({
+                background: opt(bool()),
                 command: arr(str(), { minItems: 1 }),
                 computer: computerField(),
                 timeout_ms: opt(int({ maximum: 600_000, minimum: 1 })),

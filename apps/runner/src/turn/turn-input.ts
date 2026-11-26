@@ -3,6 +3,7 @@ import {
     composeDriveConflictInput,
     composeInboxDrain,
     composeInboxNotice,
+    composeProcessExitInput,
     composeTaskAssignmentInput,
     composeTurnContent,
     composeUnknownToolCalls,
@@ -76,6 +77,9 @@ function composeOpening(start: AgentStartCommand, session: TurnSessionView) {
 function composeChatlessBody(start: AgentStartCommand) {
     if (start.taskAssignments) {
         return composeTaskAssignmentInput(start.taskAssignments);
+    }
+    if (start.processExit) {
+        return composeProcessExitInput(start.processExit);
     }
     return start.driveConflict
         ? composeDriveConflictInput(start.driveConflict, start.agentName)

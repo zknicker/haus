@@ -91,6 +91,8 @@ describe('Pi Durable driver', () => {
             'bash',
             'str_replace_based_edit_tool',
             'execute',
+            'process_read',
+            'process_kill',
             'web_fetch',
             'web_search',
         ]);
@@ -203,7 +205,7 @@ describe('Pi Durable driver', () => {
         ).toEqual(['Sleep.', 'Next.']);
     });
 
-    test('GPT models get shell, apply_patch, view_image, and the web tools', async () => {
+    test('GPT models get shell, apply_patch, view_image, the process tools, and the web tools', async () => {
         const { run } = await startedRun();
         const seen: TranscriptContext[] = [];
         const harness = fauxHarness([
@@ -224,6 +226,8 @@ describe('Pi Durable driver', () => {
             'apply_patch',
             'view_image',
             'execute',
+            'process_read',
+            'process_kill',
             'web_fetch',
             'web_search',
         ]);

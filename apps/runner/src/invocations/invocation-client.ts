@@ -43,6 +43,7 @@ export function createInvocationClient(input: {
     clock: InvocationClock;
     dispatches: RunDispatches;
     link: RunnerLink;
+    sessionGeneration: number;
 }) {
     const open = new Map<string, OpenInvocation>();
     const halt = (pending: OpenInvocation) => {
@@ -127,6 +128,7 @@ export function createInvocationClient(input: {
                 agentId: input.agentId,
                 ...(options.computer === undefined ? {} : { computer: options.computer }),
                 operation,
+                sessionGeneration: input.sessionGeneration,
                 timeoutMs,
                 type: 'invocation-request',
             });

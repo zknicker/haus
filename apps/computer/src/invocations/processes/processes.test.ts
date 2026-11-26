@@ -27,7 +27,12 @@ test('a background process outlives its call, reads from a cursor, and reports i
     const sink = frameSink(agentsRoot);
     const handler = await createInvocationHandler(sink.input);
 
-    const processId = await startBackground(handler, sink, 'inv-1', `echo first; cat ${go}; echo second; exit 3`);
+    const processId = await startBackground(
+        handler,
+        sink,
+        'inv-1',
+        `echo first; cat ${go}; echo second; exit 3`
+    );
     const exit = sink.next('process-exit');
     await writeFile(go, 'go\n');
     expect(await exit).toMatchObject({
@@ -93,7 +98,9 @@ test('the Computer refuses a background process past its cap', async () => {
     const handler = await createInvocationHandler({ ...sink.input, processLimit: 1 });
     const processId = await startBackground(handler, sink, 'inv-1', 'sleep 30');
 
-    handler.receive(invokeFrame(task, 'inv-2', { background: true, command: 'true', kind: 'bash' }));
+    handler.receive(
+        invokeFrame(task, 'inv-2', { background: true, command: 'true', kind: 'bash' })
+    );
     await handler.settled();
     expect(sink.results().at(-1)).toEqual({
         invocationId: 'inv-2',

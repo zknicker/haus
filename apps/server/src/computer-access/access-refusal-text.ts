@@ -47,6 +47,7 @@ export function ranOnLine(name: string) {
 }
 
 const gonePhrases = {
+    'desktop-busy': 'another session was using that Computer’s desktop',
     'no-access': 'you didn’t have access to that Computer',
     moved: 'your Machine changed after this run started',
     'no-session': 'nobody was logged in to that Computer’s screen',

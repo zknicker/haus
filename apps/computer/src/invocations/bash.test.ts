@@ -3,9 +3,9 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { bashRunner } from './bash.ts';
+import { operationSession } from './operation-session.test-support.ts';
 import { inlinePayloads } from './operation.ts';
 import { OutputTail } from './pi/output-tail.ts';
-import { operationSession } from './operation-session.test-support.ts';
 
 let testDir: string;
 let logPath: string;

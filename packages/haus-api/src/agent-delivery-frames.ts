@@ -4,6 +4,7 @@ import {
     driveConflictAttentionSchema,
     unreadElsewhereSchema,
 } from './agent-inbox.ts';
+import { processExitAttentionSchema } from './agent-processes.ts';
 import {
     agentTaskAssignmentNoticeSchema,
     agentTaskAssignmentsSchema,
@@ -84,6 +85,8 @@ export const agentStartCommandSchema = z
         driveConflict: driveConflictAttentionSchema.optional(),
         /** Drainable on any start: concrete work, and human work addressed to this Agent. */
         drainItemIds: drainItemIdsSchema,
+        /** Present only on a process exit run: one background process that ended. */
+        processExit: processExitAttentionSchema.optional(),
         /** This run carries the new Agent's one-time `#all` greeting (ADR 0028). */
         greets: z.literal(true).optional(),
         homeTimezone: z.string().trim().min(1).max(128).optional(),
@@ -111,6 +114,7 @@ export const agentStartCommandSchema = z
         (frame) => {
             const attentions = [
                 frame.driveConflict,
+                frame.processExit,
                 frame.subagentWake,
                 frame.taskAssignments,
             ].filter((attention) => attention !== undefined).length;

@@ -1,6 +1,4 @@
-import {
-    invocationOutcomeNotices,
-} from '@haus/api';
+import { invocationOutcomeNotices } from '@haus/api';
 import type * as z from 'zod';
 import { finishedRecord, type Ledger } from './ledger.ts';
 

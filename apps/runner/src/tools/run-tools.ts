@@ -1,4 +1,4 @@
-import { patchCommandSchema } from '@haus/api';
+import { agentProcessIdSchema, type InvocationOperation, patchCommandSchema } from '@haus/api';
 import type { RunDispatches } from '../dispatch/dispatch-id.ts';
 import { createRunDispatches } from '../dispatch/dispatch-id.ts';
 import type { DispatchLedger } from '../dispatch/ledger.ts';
@@ -24,6 +24,7 @@ export function createRunTools(input: {
     invocationClock: InvocationClock;
     ledger: DispatchLedger;
     link: RunnerLink;
+    sessionGeneration: number;
 }) {
     const { authority } = input;
     const dispatches: RunDispatches = createRunDispatches({
@@ -37,12 +38,14 @@ export function createRunTools(input: {
         clock: input.invocationClock,
         dispatches,
         link: input.link,
+        sessionGeneration: input.sessionGeneration,
     });
     const proxy = startHausProxy({ authority, dispatches });
     const mcp = createMcpClient(authority);
     const runCommand = async (
         toolCallId: string,
         command: {
+            background?: boolean;
             computer?: string;
             cwd?: string;
             machine: string;
@@ -52,6 +55,9 @@ export function createRunTools(input: {
         signal: AbortSignal
     ) => {
         const route = await routeBashCommand(command.script);
+        if (command.background && route.kind !== 'machine') {
+            return hausNotBackground;
+        }
         if (route.kind === 'haus') {
             return await runHausCommand({
                 argv: route.argv,
@@ -71,9 +77,31 @@ export function createRunTools(input: {
         return invocationToolOutcome(
             await invocations.invoke(
                 toolCallId,
-                { command: command.machine, cwd: command.cwd, kind: 'bash' },
+                {
+                    ...(command.background ? { background: true as const } : {}),
+                    command: command.machine,
+                    cwd: command.cwd,
+                    kind: 'bash',
+                },
                 { computer: command.computer, requestedTimeoutMs: command.timeoutMs, signal }
             )
+        );
+    };
+    const processCall = async (
+        toolCallId: string,
+        call: { computer?: string; processId: string },
+        signal: AbortSignal,
+        operation: (processId: string) => InvocationOperation
+    ) => {
+        const processId = agentProcessIdSchema.safeParse(call.processId);
+        if (!processId.success) {
+            return unknownProcess(call.processId);
+        }
+        return invocationToolOutcome(
+            await invocations.invoke(toolCallId, operation(processId.data), {
+                computer: call.computer,
+                signal,
+            })
         );
     };
     const tools: RunTools = {
@@ -97,6 +125,7 @@ export function createRunTools(input: {
             return runCommand(
                 toolCallId,
                 {
+                    background: bash.background,
                     computer: bash.computer,
                     machine: bash.command,
                     script: bash.command,
@@ -130,6 +159,19 @@ export function createRunTools(input: {
                 toolCallId,
             });
         },
+        processKill(toolCallId, kill, signal) {
+            return processCall(toolCallId, kill, signal, (processId) => ({
+                kind: 'process-kill',
+                processId,
+            }));
+        },
+        processRead(toolCallId, read, signal) {
+            return processCall(toolCallId, read, signal, (processId) => ({
+                afterSeq: Math.max(0, Math.trunc(read.afterSeq)),
+                kind: 'process-read',
+                processId,
+            }));
+        },
         async settle() {
             const visibility = proxy.visibility();
             proxy.close();
@@ -140,6 +182,7 @@ export function createRunTools(input: {
             return runCommand(
                 toolCallId,
                 {
+                    background: shell.background,
                     computer: shell.computer,
                     cwd: shell.workdir,
                     machine: command,
@@ -179,3 +222,15 @@ const hausNotAlone = {
     ],
     isError: true,
 } satisfies ToolOutcome;
+
+const hausNotBackground = {
+    content: [{ text: 'Error: a `haus` command cannot run in the background.', type: 'text' }],
+    isError: true,
+} satisfies ToolOutcome;
+
+function unknownProcess(processId: string) {
+    return {
+        content: [{ text: `Error: ${processId} is not a background process id.`, type: 'text' }],
+        isError: true,
+    } satisfies ToolOutcome;
+}

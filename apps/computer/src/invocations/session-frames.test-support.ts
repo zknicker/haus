@@ -6,7 +6,8 @@ export function frameSink(agentsRoot: string) {
     const waiters: { resolve: (frame: unknown) => void; type: string }[] = [];
     const input = handlerInput(agentsRoot, frames);
     return {
-        exits: () => frames.filter((frame): frame is ProcessExitFrame => typeOf(frame) === 'process-exit'),
+        exits: () =>
+            frames.filter((frame): frame is ProcessExitFrame => typeOf(frame) === 'process-exit'),
         frames,
         input: {
             ...input,

@@ -5,10 +5,10 @@ import { join } from 'node:path';
 import type { EditorCommand } from '@haus/api';
 import { readPdfBytes } from './editor-pdf.ts';
 import { editRunner } from './editor.ts';
+import { operationSession } from './operation-session.test-support.ts';
 import { type InvocationPayloads, inlinePayloads } from './operation.ts';
 import { digest, serveInvocationPayloads } from './payload-server.test-support.ts';
 import { createInvocationPayloads } from './payloads.ts';
-import { operationSession } from './operation-session.test-support.ts';
 
 const fixture = join(import.meta.dir, 'fixtures', 'two-pages.pdf');
 let root = '';

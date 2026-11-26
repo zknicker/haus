@@ -95,6 +95,8 @@ export function toolCategory(toolName: string, input: unknown) {
         WebFetch: 'browsing',
         apply_patch: 'editing_files',
         execute: 'using_tool',
+        process_kill: 'running_command',
+        process_read: 'running_command',
         view_image: 'reading_files',
         web_fetch: 'browsing',
         web_search: 'searching_web',

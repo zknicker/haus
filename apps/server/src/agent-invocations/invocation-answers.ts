@@ -15,6 +15,7 @@ import {
 import { readComputerFacts } from '../computer-access/computer-facts.ts';
 import { desktopStoppedText, renderDesktopRefusal } from '../computer-use/computer-use-gate.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { desktopBusyText } from './invocation-desktop.ts';
 import {
     keyOf,
     noticeAnswer,
@@ -33,7 +34,12 @@ const notStartedText = 'Cancelled before it started.';
 
 export async function settledAnswer(
     db: HausDatabase,
-    input: { appOrigin: string; candidates?: readonly string[]; record: InvocationRecord }
+    input: {
+        appOrigin: string;
+        candidates?: readonly string[];
+        desktopHolder?: string | null;
+        record: InvocationRecord;
+    }
 ) {
     const { record } = input;
     const { outcome } = record;
@@ -104,6 +110,7 @@ async function refusalText(
     input: {
         appOrigin: string;
         candidates?: readonly string[];
+        desktopHolder?: string | null;
         record: InvocationRecord;
         refusal: InvocationRefusal;
     }
@@ -126,9 +133,14 @@ async function refusalText(
     if (!computerId) {
         return goneComputerText(refusal);
     }
-    if (refusal === 'no-access') {
+    if (refusal === 'no-access' || refusal === 'desktop-busy') {
         const computer = await readComputerFacts(db, { computerId, serverId: record.serverId });
-        return computer ? noAccessText(computer, input.appOrigin) : goneComputerText(refusal);
+        if (!computer) {
+            return goneComputerText(refusal);
+        }
+        return refusal === 'no-access'
+            ? noAccessText(computer, input.appOrigin)
+            : desktopBusyText(computer.name, input.desktopHolder);
     }
     const text = await renderDesktopRefusal(db, {
         appOrigin: input.appOrigin,

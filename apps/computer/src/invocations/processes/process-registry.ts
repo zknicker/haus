@@ -100,7 +100,9 @@ export function createProcessRegistry(input: {
             ended = true;
             void written
                 .then(() => finish(entry, exitCode))
-                .catch((error: unknown) => console.error('Background process record failed.', error))
+                .catch((error: unknown) =>
+                    console.error('Background process record failed.', error)
+                )
                 .finally(resolve);
         };
         child.once('exit', (code) => {

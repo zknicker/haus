@@ -78,6 +78,7 @@ export async function runnerBarrier(runner: RunnerClient, agentId: string, toolC
         operation: { command: 'true', kind: 'bash' },
         runId: 'run_barrier',
         seq: 0,
+        sessionGeneration: 1,
         toolCallId,
         type: 'invocation-request',
     });

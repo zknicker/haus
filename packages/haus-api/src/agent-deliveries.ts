@@ -4,11 +4,17 @@ import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
 /**
  * Inbox sources with no Chat: the sub-agent wake, a Task assigned to the Agent
- * (ADR 0053), and a Drive push's conflicts (ADR 0054). Each leads its own chatless
+ * (ADR 0053), a Drive push's conflicts (ADR 0054), and a background process's exit
+ * (ADR 0062). Each leads its own chatless
  * run, and the Server schema's chat checks name exactly these sources, except that
  * migration 0124 already lets a `task_assignment` name its Task's Chat (ADR 0053).
  */
-export const chatlessInboxSources = ['subagent', 'task_assignment', 'drive_conflict'] as const;
+export const chatlessInboxSources = [
+    'subagent',
+    'task_assignment',
+    'drive_conflict',
+    'process_exit',
+] as const;
 
 export function isChatlessInboxSource(source: string): boolean {
     return (chatlessInboxSources as readonly string[]).includes(source);

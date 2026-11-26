@@ -98,6 +98,8 @@ describe('native web search on Pi', () => {
             'function bash',
             'function str_replace_based_edit_tool',
             'function execute',
+            'function process_read',
+            'function process_kill',
             'function web_fetch',
             'web_search',
         ]);
@@ -169,6 +171,8 @@ describe('native web search on Pi', () => {
             'function bash',
             'function str_replace_based_edit_tool',
             'function execute',
+            'function process_read',
+            'function process_kill',
             'function web_fetch',
             'function web_search',
         ]);

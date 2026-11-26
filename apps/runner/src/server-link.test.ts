@@ -40,6 +40,7 @@ describe('runner server link', () => {
             operation: { command: 'ls -la', kind: 'bash' },
             runId: 'run_1',
             seq: 0,
+            sessionGeneration: 1,
             timeoutMs: 600_000,
             toolCallId: 'toolu_1',
             type: 'invocation-request',
