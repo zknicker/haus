@@ -1,6 +1,7 @@
 import type { ComputerAgentAccessGrant, ComputerAgentAccessInput } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
+import { readCrewOn } from '../computer-access/task-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, computerAgentAccessTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -66,7 +67,14 @@ export async function revokeComputerAgentAccess(
         const barred =
             deleted.length > 0 &&
             !(await isAgentAllowedOn(tx, { ...input, computerId: computer.id }));
-        return { barred, computerId: computer.id };
+        const crew = barred
+            ? await readCrewOn(tx, {
+                  captainId: input.agentId,
+                  computerId: computer.id,
+                  serverId: input.serverId,
+              })
+            : [];
+        return { barredAgentIds: barred ? [input.agentId, ...crew] : [], computerId: computer.id };
     });
 }
 

@@ -7,9 +7,11 @@ import {
     TaskConflictError,
     TaskInvariantError,
     TaskNotFoundError,
+    TaskProjectArchivedError,
     TaskProjectNotHomeError,
 } from '../tasks/task-errors.ts';
-import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
+import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
+import { sendAgentIssueError } from './issue-route-shell.ts';
 
 export class AgentTaskInputError extends Error {}
 
@@ -107,10 +109,18 @@ function sendAgentTaskError(reply: FastifyReply, cause: unknown) {
             nextAction: 'Read it again, then retry on the current state.',
         });
     }
+    if (cause instanceof TaskProjectArchivedError) {
+        return sendAgentApiError(
+            reply,
+            409,
+            'TASK_PROJECT_ARCHIVED' satisfies AgentTaskRefusalCode,
+            cause.message
+        );
+    }
     if (cause instanceof AgentTaskInputError || cause instanceof TaskInvariantError) {
         return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
     }
-    return sendAgentReadError(reply, cause);
+    return sendAgentIssueError(reply, cause);
 }
 
 function sendMissingToken(reply: FastifyReply) {

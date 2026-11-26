@@ -6,34 +6,16 @@ import { TaskInvariantError, TaskProjectNotHomeError } from './task-errors.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-export async function resolveStartProject(
+/** The refusal for work in a Project that is not the Captain's home (ADR 0055). */
+export async function notHomeProjectError(
     db: Reader,
-    input: {
-        agentId: string;
-        origin: { chatId: string; kind: 'channel' | 'dm' };
-        projectKey?: string;
-        serverId: string;
-    }
+    input: { projectId: string; serverId: string }
 ) {
-    const home = await readAgentHome(db, input);
-    const originProject =
-        input.origin.kind === 'channel' && !(await isAllChannel(db, input.origin.chatId))
-            ? input.origin.chatId
-            : home.projectId;
-    const project = await (input.projectKey !== undefined
-        ? readProjectByKey(db, { key: input.projectKey, serverId: input.serverId })
-        : readProject(db, { projectId: originProject, serverId: input.serverId }));
-    if (project.projectId !== home.projectId) {
-        throw new TaskProjectNotHomeError({
-            channelName: project.name,
-            homeAgentHandles: await readHomeAgentHandles(db, {
-                projectId: project.projectId,
-                serverId: input.serverId,
-            }),
-        });
-    }
-    await requireChatWritable(db, { chatId: project.projectId, serverId: input.serverId });
-    return { projectId: project.projectId };
+    const project = await readProject(db, input);
+    return new TaskProjectNotHomeError({
+        channelName: project.name,
+        homeAgentHandles: await readHomeAgentHandles(db, input),
+    });
 }
 
 export async function requireFilingProject(
@@ -43,27 +25,6 @@ export async function requireFilingProject(
     const project = await readProject(db, input);
     await requireChatWritable(db, { chatId: project.projectId, serverId: input.serverId });
     return { projectId: project.projectId };
-}
-
-async function isAllChannel(db: Reader, chatId: string) {
-    const [chat] = await db
-        .select({ isAll: chatsTable.isAll })
-        .from(chatsTable)
-        .where(eq(chatsTable.id, chatId))
-        .limit(1);
-    return chat?.isAll === true;
-}
-
-async function readAgentHome(db: Reader, input: { agentId: string; serverId: string }) {
-    const [home] = await db
-        .select({ projectId: agentsTable.homeProjectId })
-        .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
-        .limit(1);
-    if (!home?.projectId) {
-        throw new Error(`Agent ${input.agentId} has no Project.`);
-    }
-    return { projectId: home.projectId };
 }
 
 const projectColumns = {

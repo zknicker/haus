@@ -43,6 +43,14 @@ export class TaskProjectNotHomeError extends Error {
     }
 }
 
+/** An archived Project's Tasks stay archived until the Project is restored (ADR 0062). */
+export class TaskProjectArchivedError extends Error {
+    constructor() {
+        super('This Task’s Project is archived, so the Task stays archived. Restore the Project first.');
+        this.name = 'TaskProjectArchivedError';
+    }
+}
+
 export function requireTaskPlace<Task extends { chatId: string | null }>(
     task: Task
 ): asserts task is Task & { chatId: string } {

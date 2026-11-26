@@ -56,7 +56,7 @@ async function countAgents(db: HausDatabase, runner: ResolvedRunner, input: Agen
         .where(
             and(
                 eq(agentsTable.serverId, runner.serverId),
-                isNull(agentsTable.retiredAt),
+                isNull(agentsTable.retiredAt), eq(agentsTable.kind, 'captain'),
                 input.query ? ilike(agentsTable.handle, `%${escapeLike(input.query)}%`) : undefined
             )
         );

@@ -8,6 +8,7 @@ import { onTaskCreatedProcedure } from './on-created.ts';
 import { onTaskFollowUpdatedProcedure } from './on-follow-updated.ts';
 import { onTaskUpdatedProcedure } from './on-updated.ts';
 import { setTaskFollowProcedure } from './set-follow.ts';
+import { startTaskProcedure } from './start.ts';
 import { unarchiveTaskProcedure } from './unarchive.ts';
 import { updateTaskProcedure } from './update.ts';
 
@@ -21,6 +22,7 @@ export const taskRouter = createRouter({
     onFollowUpdated: onTaskFollowUpdatedProcedure,
     onUpdated: onTaskUpdatedProcedure,
     setFollow: setTaskFollowProcedure,
+    start: startTaskProcedure,
     unarchive: unarchiveTaskProcedure,
     update: updateTaskProcedure,
 });

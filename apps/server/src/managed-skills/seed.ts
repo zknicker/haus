@@ -113,7 +113,7 @@ async function planSkill(tx: HausDatabase, agent: AgentRef, skill: ManagedSkill)
             and(
                 eq(agentsTable.serverId, agent.serverId),
                 eq(agentsTable.id, agent.agentId),
-                isNull(agentsTable.retiredAt)
+                isNull(agentsTable.retiredAt), eq(agentsTable.kind, 'captain')
             )
         )
         .limit(1);

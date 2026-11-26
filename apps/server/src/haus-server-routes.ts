@@ -114,6 +114,7 @@ export async function registerHausServerRoutes(
         modelCatalog: dependencies.modelConnections.catalog,
         postCommitWork: dependencies.postCommitWork,
         storage: dependencies.artifactStorage,
+        taskSessions: { invocations: dependencies.invocations, runner: dependencies.runnerLink },
     });
     registerMcpOAuthCallback(app, dependencies.mcpOAuthRelay);
     registerGithubSetupRoute(app, {

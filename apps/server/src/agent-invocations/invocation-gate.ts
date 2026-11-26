@@ -1,5 +1,5 @@
 import type { InvocationOperation, InvocationRefusal, InvocationRequestFrame } from '@haus/api';
-import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
+import { readAgentAccess } from '../computer-access/agent-access.ts';
 import { desktopGateRefusal } from '../computer-use/computer-use-gate.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { readRunPlacement } from './invocation-placement.ts';
@@ -61,8 +61,9 @@ export async function gateInvocation(
         serverId: string;
     }
 ) {
-    if (!(await isAgentAllowedOn(db, input))) {
-        return refused('no-access');
+    const access = await readAgentAccess(db, input);
+    if (access !== 'allowed') {
+        return refused(access);
     }
     if (input.operation.kind === 'desktop') {
         const cause = await desktopGateRefusal(db, input);

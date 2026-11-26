@@ -31,6 +31,9 @@ export function movedText(machineName: string | null) {
     return `${now}, and this run started before that, so a call that names no Computer ran nothing. Your next turn runs on the new Machine. To reach a Computer now, name it with \`computer\`. ${listHint}`;
 }
 
+export const taskMachineOnlyText =
+    'A Task works only on its own Machine, so nothing ran. Leave `computer` out to run there.';
+
 export function computerOfflineText(name: string) {
     return `${name} is offline. Nothing ran. \`haus\` and \`execute\` still work, and \`haus computer list\` shows which Computers are online.`;
 }
@@ -49,6 +52,7 @@ export function ranOnLine(name: string) {
 const gonePhrases = {
     'desktop-busy': 'another session was using that Computer’s desktop',
     'no-access': 'you didn’t have access to that Computer',
+    'task-machine-only': 'a Task works only on its own Machine',
     moved: 'your Machine changed after this run started',
     'no-session': 'nobody was logged in to that Computer’s screen',
     'not-listed': 'computer use there wasn’t allowed for you',

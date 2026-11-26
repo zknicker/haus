@@ -95,6 +95,7 @@ export function registerAgentApiRoutes(
         modelCatalog: import('../server-agents/agent-model-catalog.ts').AgentModelCatalog;
         postCommitWork: ServerPostCommitWork;
         storage: import('../artifacts/storage.ts').ArtifactStorage | null;
+        taskSessions: import('../tasks/task-session.ts').TaskSessionWire;
     }
 ) {
     registerAgentDispatchIds(app, options.db);
@@ -138,9 +139,11 @@ export function registerAgentApiRoutes(
     });
     registerAgentTaskRoutes(app, {
         agentDelivery: options.agentDelivery,
+        catalog: options.modelCatalog,
         computers: options.computers,
         db: options.db,
         postCommitWork: options.postCommitWork,
+        sessions: options.taskSessions,
     });
     registerAgentPullRequestAttachRoute(app, { db: options.db, githubApp: options.githubApp });
     registerAgentTriggerRoutes(app, options.db, {
