@@ -7,6 +7,7 @@ import {
     type InvocationOperation,
     type InvokeAccepted,
     type InvokeResult,
+    type ProcessExitFrame,
     invocationFrameMaxBytes,
 } from '@haus/api';
 import { invocationRunners } from './handler-host.test-support.ts';
@@ -260,7 +261,7 @@ async function invoke(operation: InvocationOperation) {
 }
 
 async function startHandler() {
-    const sent: (InvokeAccepted | InvokeResult)[] = [];
+    const sent: (InvokeAccepted | InvokeResult | ProcessExitFrame)[] = [];
     const agentsRoot = join(root, 'servers', 'server-1', 'agents');
     const handler = await createInvocationHandler({
         agentsRoot,
@@ -291,6 +292,7 @@ function invokeFrame(invocationId: string, operation: InvocationOperation, timeo
         notAfter: '2999-01-01T00:00:00.000Z',
         operation,
         runId: 'run-1',
+        sessionGeneration: 1,
         timeoutMs,
         type: 'invoke',
     };

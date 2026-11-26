@@ -6,8 +6,10 @@ import {
     type InvokeResult,
     invocationInlineBytesMax,
     type MachineInvocationOutcome,
+    type ProcessExitFrame,
     type ScreenRefusal,
 } from '@haus/api';
+import type { ProcessRegistry } from './processes/process-registry.ts';
 
 export type StopReason = 'cancel' | 'timeout';
 
@@ -23,6 +25,9 @@ export interface OperationContext {
     invocationId: string;
     logPath: string;
     payloads: InvocationPayloads;
+    processes: ProcessRegistry;
+    runId: string;
+    sessionGeneration: number;
     signal: AbortSignal;
     timeoutMs: number;
 }
@@ -45,9 +50,11 @@ export type OperationRunners = { [Kind in InvocationOperation['kind']]: Operatio
 
 export interface InvocationHandlerInput {
     agentsRoot: string;
+    invocationLimit?: number;
+    processLimit?: number;
     payloadsFor: (invocationId: string) => InvocationPayloads;
     runners: OperationRunners;
-    send: (frame: InvokeAccepted | InvokeResult) => boolean;
+    send: (frame: InvokeAccepted | InvokeResult | ProcessExitFrame) => boolean;
 }
 
 export interface InvocationHandler {

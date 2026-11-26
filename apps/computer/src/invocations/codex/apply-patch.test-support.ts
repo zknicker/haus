@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { editRunner } from '../editor.ts';
 import { inlinePayloads, type OperationResult } from '../operation.ts';
+import { operationSession } from '../operation-session.test-support.ts';
 
 export function patchWorkspace() {
     const workspace = { dir: '' };
@@ -35,6 +36,7 @@ export function applyPatchIn(
             payloads: inlinePayloads,
             signal: options.signal ?? new AbortController().signal,
             timeoutMs: 30_000,
+            ...operationSession(),
         }
     );
 }

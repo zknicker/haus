@@ -12,11 +12,15 @@ import {
 import { type OutputPipe, OutputTail } from './pi/output-tail.ts';
 import { killProcessTree, signalProcess, waitForChildProcess } from './pi/shell.ts';
 import { formatTail } from './pi/tail-notice.ts';
+import { startBackgroundProcess } from './processes/process-runners.ts';
 import { exitStatus } from './stream-process.ts';
 
 export const cancelKillGraceMs = 5000;
 
 export const bashRunner: OperationRunner<'bash'> = async (operation, context) => {
+    if (operation.background) {
+        return await startBackgroundProcess(operation, context);
+    }
     try {
         await access(context.cwd, constants.F_OK);
     } catch {

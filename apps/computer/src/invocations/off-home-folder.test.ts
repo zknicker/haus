@@ -30,6 +30,7 @@ test('a call from an Agent with no folder here runs in its own workspace, with H
         notAfter: '2999-01-01T00:00:00.000Z',
         operation: { command: 'pwd -P; printf "%s" "$HOME"', kind: 'bash' },
         runId: 'run-1',
+        sessionGeneration: 1,
         timeoutMs: 30_000,
         type: 'invoke',
     });

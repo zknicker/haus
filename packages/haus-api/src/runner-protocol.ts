@@ -89,6 +89,8 @@ export const invocationRequestFrameSchema = z
         /** The call's `computer` field as the model wrote it; absent runs on the Agent's Machine. */
         computer: invocationComputerTargetSchema.optional(),
         operation: invocationOperationSchema,
+        /** The run's session generation; the Computer refuses one older than the session's archive. */
+        sessionGeneration: z.number().int().positive(),
         timeoutMs: z.number().int().positive().max(invocationTimeoutsMs.bash.max).optional(),
         type: z.literal('invocation-request'),
     })

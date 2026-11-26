@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { bashRunner } from './bash.ts';
 import { inlinePayloads } from './operation.ts';
 import { OutputTail } from './pi/output-tail.ts';
+import { operationSession } from './operation-session.test-support.ts';
 
 let testDir: string;
 let logPath: string;
@@ -131,6 +132,7 @@ async function bash(command: string, cwd = testDir) {
             payloads: inlinePayloads,
             signal: new AbortController().signal,
             timeoutMs: 120_000,
+            ...operationSession(),
         }
     );
 }

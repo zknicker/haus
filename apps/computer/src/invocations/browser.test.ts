@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createBrowserRunner, streamedResult } from './browser.ts';
 import { inlinePayloads } from './operation.ts';
+import { operationSession } from './operation-session.test-support.ts';
 
 let testDir: string;
 
@@ -24,6 +25,7 @@ const context = {
     payloads: inlinePayloads,
     signal: new AbortController().signal,
     timeoutMs: 60_000,
+    ...operationSession(),
 };
 
 describe('browser invocations', () => {

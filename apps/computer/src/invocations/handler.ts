@@ -2,31 +2,48 @@ import { join } from 'node:path';
 import {
     agentFenceCommandSchema,
     agentPathSegment,
+    computerProcessLimit,
     type InvokeCancelCommand,
     type InvokeCommand,
-    invocationOutcomeNotices,
     invokeCancelCommandSchema,
     invokeCommandSchema,
     invokeResultAckSchema,
+    processExitAckSchema,
+    type SessionArchiveCommand,
+    sessionArchiveCommandSchema,
 } from '@haus/api';
-import type * as z from 'zod';
 import { holdDriveFolder } from '../drive/turn-sync.ts';
 import { createKeyedQueue } from '../keyed-queue.ts';
+import { isRecord, recoverLedger, withParsed } from './handler-recovery.ts';
 import { cancelledBeforeStart, executeInvocation } from './handler-run.ts';
-import { type AcceptedRecord, createLedger, finishedRecord, type Ledger } from './ledger.ts';
+import { type AcceptedRecord, createLedger, finishedRecord } from './ledger.ts';
 import { createOfflineHold } from './offline-hold.ts';
 import type { InvocationHandler, InvocationHandlerInput } from './operation.ts';
+import { createProcessRegistry } from './processes/process-registry.ts';
+import { createSessionFences } from './session-fences.ts';
+import { computerInvocationLimit, createInvocationSlots } from './session-slots.ts';
 
 interface ActiveInvocation {
     accepted: Promise<AcceptedRecord | null>;
     agentId: string;
     controller: AbortController;
+    sessionGeneration: number;
     started: boolean;
 }
+
+const archivedText = 'This session was archived, so nothing ran.';
 
 export async function createInvocationHandler(input: InvocationHandlerInput) {
     const ledger = createLedger(input.agentsRoot);
     const agentByInvocation = await recoverLedger(ledger);
+    const processes = createProcessRegistry({
+        agentsRoot: input.agentsRoot,
+        limit: input.processLimit ?? computerProcessLimit,
+        send: input.send,
+    });
+    await processes.recover();
+    const fences = createSessionFences(input.agentsRoot);
+    const slots = createInvocationSlots(input.invocationLimit ?? computerInvocationLimit);
     const active = new Map<string, ActiveInvocation>();
     const queue = createKeyedQueue((error) => console.error('Invocation did not finish.', error));
     const pending = new Set<Promise<void>>();
@@ -63,11 +80,12 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
             accepted,
             agentId: command.agentId,
             controller: new AbortController(),
+            sessionGeneration: command.sessionGeneration,
             started: false,
         };
         active.set(id, entry);
         track(
-            queue.run(command.agentId, async () => {
+            queue.run(sessionKey(entry), async () => {
                 const record = await accepted;
                 if (record) {
                     await holdDriveFolder(
@@ -103,29 +121,46 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
 
     async function run(command: InvokeCommand, record: AcceptedRecord, entry: ActiveInvocation) {
         const id = command.invocationId;
-        const { controller } = entry;
-        await offline.released(controller.signal);
-        const startable = () =>
-            !(controller.signal.aborted || Date.now() >= Date.parse(command.notAfter));
-        const result = startable()
-            ? await executeInvocation(command, {
-                  agentsRoot: input.agentsRoot,
-                  controller,
-                  logPath: ledger.logPath(command.agentId, id),
-                  payloads: input.payloadsFor(id),
-                  runners: input.runners,
-                  start: () => {
-                      entry.started = startable();
-                      return entry.started;
-                  },
-              })
-            : cancelledBeforeStart(id);
         try {
+            const result = await execute(command, entry);
             await ledger.write(finishedRecord(record, result, new Date().toISOString()));
+            input.send(result);
         } finally {
             active.delete(id);
         }
-        input.send(result);
+    }
+
+    async function execute(command: InvokeCommand, entry: ActiveInvocation) {
+        const id = command.invocationId;
+        const { controller } = entry;
+        await offline.released(controller.signal);
+        if (!(await fences.allows(command.agentId, command.sessionGeneration))) {
+            return cancelledBeforeStart(id, archivedText);
+        }
+        const release = await slots.acquire(controller.signal);
+        if (!release) {
+            return cancelledBeforeStart(id);
+        }
+        const startable = () =>
+            !(controller.signal.aborted || Date.now() >= Date.parse(command.notAfter));
+        try {
+            return startable()
+                ? await executeInvocation(command, {
+                      agentsRoot: input.agentsRoot,
+                      controller,
+                      logPath: ledger.logPath(command.agentId, id),
+                      payloads: input.payloadsFor(id),
+                      processes,
+                      runners: input.runners,
+                      start: () => {
+                          entry.started = startable();
+                          return entry.started;
+                      },
+                  })
+                : cancelledBeforeStart(id);
+        } finally {
+            release();
+        }
     }
 
     function cancel(command: InvokeCancelCommand) {
@@ -135,13 +170,27 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
         }
     }
 
-    function fence(agentId: string) {
+    async function stopSessions(agentId: string, before?: number) {
+        const keys = new Set<string>();
         for (const entry of active.values()) {
-            if (entry.agentId === agentId) {
+            if (
+                entry.agentId === agentId &&
+                (before === undefined || entry.sessionGeneration < before)
+            ) {
                 entry.controller.abort('cancel');
+                keys.add(sessionKey(entry));
             }
         }
-        return queue.settled(agentId);
+        await processes.stopSession(agentId, {
+            ...(before === undefined ? {} : { before }),
+            ending: before === undefined ? 'revoked' : 'archived',
+        });
+        await Promise.all([...keys].map((key) => queue.settled(key)));
+    }
+
+    async function archive(command: SessionArchiveCommand) {
+        await fences.archive(command.agentId, command.generation);
+        await stopSessions(command.agentId, command.generation);
     }
 
     async function answerFromLedger(agentId: string, invocationId: string) {
@@ -193,9 +242,10 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
             for (const invocationId of pruned) {
                 agentByInvocation.delete(invocationId);
             }
+            await processes.resend();
         },
         disconnected: offline.hold,
-        fence,
+        fence: (agentId) => stopSessions(agentId),
         receive: (frame) => {
             if (!isRecord(frame)) {
                 return false;
@@ -209,12 +259,22 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
                     return true;
                 case 'agent-fence':
                     withParsed(agentFenceCommandSchema, frame, ({ agentId }) =>
-                        track(fence(agentId))
+                        track(stopSessions(agentId))
+                    );
+                    return true;
+                case 'task-archive':
+                    withParsed(sessionArchiveCommandSchema, frame, (command) =>
+                        track(archive(command))
                     );
                     return true;
                 case 'invoke-result-ack':
                     withParsed(invokeResultAckSchema, frame, ({ invocationId }) =>
                         acknowledge(invocationId)
+                    );
+                    return true;
+                case 'process-exit-ack':
+                    withParsed(processExitAckSchema, frame, ({ processId }) =>
+                        track(processes.acknowledge(processId))
                     );
                     return true;
                 default:
@@ -225,46 +285,6 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
     } satisfies InvocationHandler;
 }
 
-async function recoverLedger(ledger: Ledger) {
-    const records = await ledger.list();
-    const finishedAt = new Date().toISOString();
-    await Promise.all(
-        records.flatMap((record) =>
-            record.state === 'accepted'
-                ? [
-                      ledger.write(
-                          finishedRecord(
-                              record,
-                              {
-                                  invocationId: record.invocationId,
-                                  outcome: 'unknown',
-                                  output: { kind: 'text', text: invocationOutcomeNotices.unknown },
-                                  truncated: false,
-                                  type: 'invoke-result',
-                              },
-                              finishedAt
-                          )
-                      ),
-                  ]
-                : []
-        )
-    );
-    return new Map(records.map((record) => [record.invocationId, record.agentId]));
-}
-
-function withParsed<Command>(
-    schema: z.ZodType<Command>,
-    frame: Record<string, unknown>,
-    handle: (command: Command) => void
-) {
-    const parsed = schema.safeParse(frame);
-    if (parsed.success) {
-        handle(parsed.data);
-    } else {
-        console.error(`Ignored a malformed ${String(frame.type)} frame.`, parsed.error.message);
-    }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
+function sessionKey(entry: Pick<ActiveInvocation, 'agentId' | 'sessionGeneration'>) {
+    return `${entry.agentId}:${entry.sessionGeneration}`;
 }

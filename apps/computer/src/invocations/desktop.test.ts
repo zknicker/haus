@@ -5,6 +5,7 @@ import { withScreenshotPath } from '../desktop/desktop-command.ts';
 import { refusalResult } from '../desktop/desktop-refusals.ts';
 import { createDesktopRunner } from './desktop.ts';
 import { inlinePayloads, textResult } from './operation.ts';
+import { operationSession } from './operation-session.test-support.ts';
 
 const context = {
     agentId: 'agent-1',
@@ -15,6 +16,7 @@ const context = {
     payloads: inlinePayloads,
     signal: new AbortController().signal,
     timeoutMs: 60_000,
+    ...operationSession(),
 };
 
 function failed(text: string) {

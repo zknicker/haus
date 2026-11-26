@@ -8,6 +8,7 @@ import { editRunner } from './editor.ts';
 import { type InvocationPayloads, inlinePayloads } from './operation.ts';
 import { digest, serveInvocationPayloads } from './payload-server.test-support.ts';
 import { createInvocationPayloads } from './payloads.ts';
+import { operationSession } from './operation-session.test-support.ts';
 
 const fixture = join(import.meta.dir, 'fixtures', 'two-pages.pdf');
 let root = '';
@@ -114,6 +115,7 @@ function view(path: string, payloads: InvocationPayloads = inlinePayloads) {
             payloads,
             signal: new AbortController().signal,
             timeoutMs: 30_000,
+            ...operationSession(),
         }
     );
 }
