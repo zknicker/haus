@@ -28,4 +28,7 @@ ALTER TABLE "agents" ADD CONSTRAINT "agents_home_project_shape" CHECK (case when
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_session_shape" CHECK (num_nonnulls("tasks"."agent_id", "tasks"."computer_id", "tasks"."model") in (0, 3));--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_captain_shape" CHECK ("tasks"."captain_id" is null or ("tasks"."agent_id" is not null and "tasks"."created_by_agent_id" = "tasks"."captain_id"));--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_start_request_length" CHECK ("tasks"."start_request_id" is null or char_length("tasks"."start_request_id") between 1 and 128);--> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_model_length" CHECK ("tasks"."model" is null or char_length("tasks"."model") between 1 and 128);
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_model_length" CHECK ("tasks"."model" is null or char_length("tasks"."model") between 1 and 128);--> statement-breakpoint
+ALTER TABLE "tasks" ALTER CONSTRAINT "tasks_agent_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
+ALTER TABLE "tasks" ALTER CONSTRAINT "tasks_captain_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
+ALTER TABLE "tasks" ALTER CONSTRAINT "tasks_computer_fk" DEFERRABLE INITIALLY DEFERRED;
