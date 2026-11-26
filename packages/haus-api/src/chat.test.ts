@@ -27,6 +27,7 @@ test('Chat sends accept only client intent and never an authoritative actor', ()
         attachmentIds: [],
         chatId: 'cht_all',
         content: 'Hello from the Server.',
+        delivery: 'steer',
         nonce: 'send-1',
         serverId: 'srv_main',
     });

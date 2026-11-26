@@ -1193,6 +1193,53 @@ paths:
                 $ref: '#/components/schemas/AgentTaskStartResponse'
         default:
           $ref: '#/components/responses/AgentError'
+  /api/agent/tasks/send:
+    post:
+      operationId: sendAgentTask
+      tags: [Agent CLI]
+      summary: Message a Task in its chat and wake it.
+      description: >-
+        The one way an agent messages a Task. From a Captain it unarchives an archived Task; from
+        a Task it is refused `TASK_ARCHIVED`. A Task sends only to active Tasks of its own Project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentTaskSendRequest'
+      responses:
+        '200':
+          description: The posted message and the Task.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskSendResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/tasks/report:
+    post:
+      operationId: reportAgentTask
+      tags: [Agent CLI]
+      summary: A Task reports its turn.
+      description: >-
+        Posts the report in the Task's own chat. A Captain-directed turn's report reaches its
+        Captain as a crew report; a person-driven turn's reaches it only when it is needs-you
+        without a person. `needs-you` with `person` mentions that person instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentTaskReportRequest'
+      responses:
+        '200':
+          description: The posted report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskReportResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/tasks/archive:
     post:
       operationId: archiveAgentTask
@@ -2132,11 +2179,10 @@ components:
         totals:
           type: object
           additionalProperties: false
-          required: [conversations, dms, mentions]
+          required: [conversations, mentions]
           description: Over every unread conversation, whatever the view.
           properties:
             conversations: { type: integer, minimum: 0 }
-            dms: { type: integer, minimum: 0 }
             mentions: { type: integer, minimum: 0 }
     AgentManualNavigationTopic:
       type: object
@@ -3087,6 +3133,15 @@ components:
           minLength: 1
           maxLength: 128
           description: The model id. Defaults to the crew model, then the Captain's own.
+        ref:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The ref the Task checks `repo` out at. Needs `repo`.
+        repo:
+          type: string
+          pattern: '^[\w.-]+/[\w.-]+$'
+          description: A Server repo, `owner/name`, the Task checks out before anything else.
         requestId:
           type: string
           minLength: 1
@@ -3099,6 +3154,56 @@ components:
             The chat the Captain answers in, as a send target like `#security`. Its freshness hold
             runs first.
         title: { type: string, minLength: 1, maxLength: 200 }
+    AgentTaskSendRequest:
+      type: object
+      additionalProperties: false
+      required: [body, task]
+      description: >-
+        An agent posts in a Task's chat as itself and wakes the Task (ADR 0062). It spends the
+        automation chain.
+      properties:
+        body: { type: string, minLength: 1, maxLength: 20000 }
+        delivery:
+          type: string
+          enum: [steer, interrupt, queue]
+          default: steer
+          description: >-
+            `steer` reaches a busy Task at its next tool boundary, `interrupt` aborts its live turn,
+            and `queue` waits for the next turn.
+        task: { type: string, minLength: 1, maxLength: 128 }
+    AgentTaskSendResponse:
+      type: object
+      additionalProperties: false
+      required: [message, task]
+      properties:
+        message: { type: object }
+        task: { $ref: '#/components/schemas/AgentTaskRow' }
+    AgentTaskReportRequest:
+      type: object
+      additionalProperties: false
+      required: [outcome, text]
+      description: A Task agent reports its own turn to its Captain (ADR 0062).
+      properties:
+        ask: { type: string, minLength: 1, maxLength: 8000 }
+        outcome: { type: string, enum: [done, needs-you, failed] }
+        person:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: A human who can read the Task, asked by a needs-you report.
+        pullRequestUrls:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uri, maxLength: 500 }
+        text: { type: string, minLength: 1, maxLength: 8000 }
+    AgentTaskReportResponse:
+      type: object
+      additionalProperties: false
+      required: [message, reachesCaptain, task]
+      properties:
+        message: { type: object }
+        reachesCaptain: { type: boolean }
+        task: { $ref: '#/components/schemas/AgentTaskRow' }
     AgentTaskStartResponse:
       oneOf:
         - type: object

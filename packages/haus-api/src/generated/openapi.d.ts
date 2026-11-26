@@ -847,6 +847,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/tasks/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Message a Task in its chat and wake it.
+         * @description The one way an agent messages a Task. From a Captain it unarchives an archived Task; from a Task it is refused `TASK_ARCHIVED`. A Task sends only to active Tasks of its own Project.
+         */
+        post: operations["sendAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A Task reports its turn.
+         * @description Posts the report in the Task's own chat. A Captain-directed turn's report reaches its Captain as a crew report; a person-driven turn's reaches it only when it is needs-you without a person. `needs-you` with `person` mentions that person instead.
+         */
+        post: operations["reportAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/tasks/archive": {
         parameters: {
             query?: never;
@@ -1469,7 +1509,6 @@ export interface components {
             /** @description Over every unread conversation, whatever the view. */
             totals: {
                 conversations: number;
-                dms: number;
                 mentions: number;
             };
         };
@@ -1990,11 +2029,45 @@ export interface components {
             machine?: string;
             /** @description The model id. Defaults to the crew model, then the Captain's own. */
             model?: string;
+            /** @description The ref the Task checks `repo` out at. Needs `repo`. */
+            ref?: string;
+            /** @description A Server repo, `owner/name`, the Task checks out before anything else. */
+            repo?: string;
             /** @description The caller's idempotency key; a retry returns the same Task. */
             requestId?: string;
             /** @description The chat the Captain answers in, as a send target like `#security`. Its freshness hold runs first. */
             target?: string;
             title?: string;
+        };
+        /** @description An agent posts in a Task's chat as itself and wakes the Task (ADR 0062). It spends the automation chain. */
+        AgentTaskSendRequest: {
+            body: string;
+            /**
+             * @description `steer` reaches a busy Task at its next tool boundary, `interrupt` aborts its live turn, and `queue` waits for the next turn.
+             * @default steer
+             * @enum {string}
+             */
+            delivery: "steer" | "interrupt" | "queue";
+            task: string;
+        };
+        AgentTaskSendResponse: {
+            message: Record<string, never>;
+            task: components["schemas"]["AgentTaskRow"];
+        };
+        /** @description A Task agent reports its own turn to its Captain (ADR 0062). */
+        AgentTaskReportRequest: {
+            ask?: string;
+            /** @enum {string} */
+            outcome: "done" | "needs-you" | "failed";
+            /** @description A human who can read the Task, asked by a needs-you report. */
+            person?: string;
+            pullRequestUrls?: string[];
+            text: string;
+        };
+        AgentTaskReportResponse: {
+            message: Record<string, never>;
+            reachesCaptain: boolean;
+            task: components["schemas"]["AgentTaskRow"];
         };
         AgentTaskStartResponse: {
             /** @constant */
@@ -4015,6 +4088,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentTaskStartResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    sendAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskSendRequest"];
+            };
+        };
+        responses: {
+            /** @description The posted message and the Task. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskSendResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    reportAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskReportRequest"];
+            };
+        };
+        responses: {
+            /** @description The posted report. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskReportResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

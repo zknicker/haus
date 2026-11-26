@@ -124,6 +124,13 @@ export const agentTaskStartInputSchema = z
         issue: z.string().trim().min(1).max(64).optional(),
         machine: z.string().trim().min(1).max(200).optional(),
         model: taskModelSchema.optional(),
+        /** A Server repo, `owner/name`, the Task checks out first; `ref` is its starting ref. */
+        ref: z.string().trim().min(1).max(200).optional(),
+        repo: z
+            .string()
+            .trim()
+            .regex(/^[\w.-]+\/[\w.-]+$/u, 'Name the repo as owner/name.')
+            .optional(),
         requestId: taskStartRequestIdSchema.optional(),
         target: z.string().trim().min(1).max(200).optional(),
         title: taskTitleSchema.optional(),
@@ -132,6 +139,10 @@ export const agentTaskStartInputSchema = z
     .refine((input) => input.from === undefined || input.target !== undefined, {
         message: 'Name the chat of the `from` message with `target`.',
         path: ['target'],
+    })
+    .refine((input) => input.ref === undefined || input.repo !== undefined, {
+        message: 'Name the repo of the `ref` with `repo`.',
+        path: ['repo'],
     });
 
 export type AgentTaskStartInput = z.infer<typeof agentTaskStartInputSchema>;

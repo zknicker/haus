@@ -14,6 +14,37 @@ export const runnerSessionPolicySchema = z
         memoryPath: z.string().min(1).max(512).nullable(),
         /** The Drive rule files the turn carries, outermost first. */
         rulePaths: z.array(z.string().min(1).max(512)).max(8),
+        /**
+         * A Task session's own facts for its instructions: who started it, its linked Issues and
+         * the repo it checks out first. Null for a Captain.
+         */
+        task: z
+            .object({
+                /** The crew Task's Captain; null for a Task a person started. */
+                captainHandle: z.string().min(1).max(64).nullable(),
+                issues: z
+                    .array(
+                        z
+                            .object({
+                                code: z.string().min(1).max(64),
+                                description: z.string().max(20_000),
+                                title: z.string().min(1).max(200),
+                            })
+                            .strict()
+                    )
+                    .max(10),
+                repo: z
+                    .object({
+                        name: z.string().min(1).max(200),
+                        ref: z.string().max(200).nullable(),
+                    })
+                    .strict()
+                    .nullable(),
+                shortId: z.string().min(1).max(16),
+                title: z.string().min(1).max(200),
+            })
+            .strict()
+            .nullable(),
         warmIdleMs: z.number().int().positive(),
     })
     .strict();

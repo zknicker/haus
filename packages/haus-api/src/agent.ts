@@ -39,6 +39,8 @@ export const agentSchema = z
          * idle. Zero while its Computer is offline (specs/agent-activity.md).
          */
         backgroundSubagents: z.number().int().nonnegative().default(0),
+        /** The Captain's one shared chat (ADR 0062). */
+        captainChatId: idSchema.nullable(),
         computerId: idSchema,
         /**
          * A Server Owner or Admin made this Agent a connection admin: it can turn connection
@@ -48,12 +50,15 @@ export const agentSchema = z
         createdAt: timestampSchema,
         createdByAgentId: z.string().nullable(),
         createdByUserId: z.string().nullable(),
+        /** The Machine a Captain's crew runs on; null falls back to the Project default (ADR 0062). */
+        crewComputerId: idSchema.nullable(),
+        /** The model a Captain's crew runs; null falls back to the Captain's own. */
+        crewModel: z.string().nullable(),
         description: z.string().max(500).nullable(),
         desiredModelId: z.string(),
         desiredReasoningEffort: agentReasoningEffortSchema.default('medium'),
         desiredRuntimeId: z.string(),
         displayName: z.string(),
-        dmChatId: idSchema.nullable(),
         effectiveModelId: z.string().nullable(),
         effectiveReasoningEffort: agentReasoningEffortSchema.nullable(),
         effectiveReportedAt: timestampSchema.nullable(),
@@ -64,6 +69,8 @@ export const agentSchema = z
         missingResources: z.array(z.string()),
         /** The model connection a human chose; null runs on the default for the model's provider. */
         modelConnectionId: idSchema.nullable().default(null),
+        /** The Captain's human owner; a Captain another Captain made takes its creator's owner. */
+        ownerUserId: idSchema.nullable(),
         serverId: idSchema,
         status: agentStatusSchema,
         wakePause: agentWakePauseSchema.nullable().default(null),

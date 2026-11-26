@@ -12,15 +12,17 @@
  *
  * The caller owns access: the rule assumes the human can see the Chat. A DM
  * is only visible to its members, so a DM message seen by a human is theirs.
+ * A Captain chat is visible to everyone, so only its subscribed members hear
+ * every message (`subscribed`); the Server adds them from the chat itself.
  */
-export const messageNotificationReasons = ['dm', 'mention', 'reply'] as const;
+export const messageNotificationReasons = ['dm', 'mention', 'reply', 'subscribed'] as const;
 
 export type MessageNotificationReason = (typeof messageNotificationReasons)[number];
 
 /** The addressing facts `message.created` carries for a new message. */
 export interface MessageNotificationFacts {
     authorUserId: string | null;
-    conversationKind: 'channel' | 'dm';
+    conversationKind: 'channel' | 'dm' | 'captain';
     mentionedUserIds: readonly string[];
     /** The human author of the message this one inline-replies to. */
     replyToAuthorUserId: string | null;

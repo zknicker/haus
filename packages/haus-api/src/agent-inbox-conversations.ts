@@ -19,7 +19,7 @@ export const agentInboxConversationSchema = z
     .object({
         activityKey: agentInboxActivityKeySchema,
         chatId: z.string().min(1),
-        kind: z.enum(['channel', 'dm', 'task']),
+        kind: z.enum(['channel', 'dm', 'task', 'captain']),
         lastReadSequence: z.number().int().nonnegative(),
         latestAt: z.iso.datetime({ offset: true }).nullable(),
         latestSenderHandle: z.string().min(1).nullable(),
@@ -41,7 +41,6 @@ export const agentInboxConversationsResponseSchema = z
         totals: z
             .object({
                 conversations: z.number().int().nonnegative(),
-                dms: z.number().int().nonnegative(),
                 mentions: z.number().int().nonnegative(),
             })
             .strict(),

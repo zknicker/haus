@@ -65,10 +65,14 @@ export const pushNotificationSenderSchema = z
     })
     .strict();
 
-/** Where the pushed message lives: a Channel (named without `#`) or a DM (no name). */
+/**
+ * Where the pushed message lives: a Channel (named without `#`), a DM (no name), or a Captain
+ * chat (named by its Captain).
+ */
 export const pushNotificationConversationSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('channel'), name: z.string().min(1) }).strict(),
     z.object({ kind: z.literal('dm'), name: z.null() }).strict(),
+    z.object({ kind: z.literal('captain'), name: z.string().min(1) }).strict(),
 ]);
 
 /**

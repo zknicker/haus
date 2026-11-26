@@ -73,13 +73,16 @@ export type Task = z.infer<typeof taskSchema>;
 export const taskMessagePlaceSchema = z
     .object({
         chatId: idSchema,
-        chatKind: z.enum(['channel', 'dm']),
-        /** The Channel's name. Null for a DM, which a context label never names by its peer. */
+        chatKind: z.enum(['channel', 'dm', 'captain']),
+        /**
+         * The Channel's name. Null for a DM, which a context label never names by its peer, and
+         * for a Captain chat, which has no name of its own.
+         */
         chatName: z.string().min(1).nullable(),
     })
     .strict()
-    .refine((place) => (place.chatKind === 'dm') === (place.chatName === null), {
-        message: 'A Channel has a name and a DM has none.',
+    .refine((place) => (place.chatKind === 'channel') === (place.chatName !== null), {
+        message: 'A Channel has a name; a DM and a Captain chat have none.',
         path: ['chatName'],
     });
 
