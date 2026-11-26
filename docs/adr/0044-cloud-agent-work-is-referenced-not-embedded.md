@@ -1,6 +1,6 @@
 ---
-status: accepted
-summary: Cloud Agent work is its own Agent-owned record that Messages link to; every link renders the same live card with the same actions, anyone who can read a linking Message can see the work, the `cloud-agent-work` body kind retires, and launch placement (work Thread, receipts, completion target) stays exactly as it is, except that a launch never opens a new Thread (amended 2026-10-12).
+status: superseded
+summary: Superseded by ADR 0062, which deletes cloud agent work and Workers. Historical decision. Cloud Agent work is its own Agent-owned record that Messages link to; every link renders the same live card with the same actions, anyone who can read a linking Message can see the work, the `cloud-agent-work` body kind retires, and launch placement (work Thread, receipts, completion target) stays exactly as it is, except that a launch never opens a new Thread (amended 2026-10-12).
 read_when:
   - changing Cloud Agent work storage, its link to Messages, or the `cloud-agent-work` body kind
   - adding or changing the Cloud Agent work rich reference, its card, or who may see Cloud Agent work
@@ -11,6 +11,9 @@ read_when:
 # ADR 0044: Cloud Agent work is referenced, not embedded
 
 ## Status
+
+Superseded 2026-11-26 by [ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md):
+parallel work is a Task with its own chat, so there is no work record for Messages to reference.
 
 Amended 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): cloud work attaches to a Task, not to Messages or Threads.
 

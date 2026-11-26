@@ -9,6 +9,8 @@ read_when:
   - changing model logins, runner settings, or which models an Agent can use
   - changing the Computer or runner protocol frames for Agents, drive pulls, or pushes
   - changing the native Claude Code or Codex drivers that run Workers on Computers
+  - changing runner session kinds (Captain and Task), their policy, admission order, warm parking, archive resets, or retire (ADR 0062)
+  - changing how a Task agent's tool calls are gated by its Captain's or starter's Computer access
 ---
 
 # Runtime drivers
@@ -96,6 +98,65 @@ in the runner process and take no slot.
 
 The production runner container has a 4 GB memory limit (`apps/server/compose.yml`), sized for six
 Claude processes, so a spike kills the runner rather than PostgreSQL or the Server.
+
+### Session kinds
+
+Built in step 5 of [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md),
+whose steps 2 to 6 release together.
+The runner hosts two kinds of session, a Captain's and a Task's. Both are agents, so every path
+below keys on the agent id unchanged (`/data/agents/<agent-id>/`,
+`apps/runner/src/turn/agent-sessions.ts`). The runner never learns product nouns: the Server
+sends each run's policy in its start frame.
+
+```ts
+type RunnerSessionPolicy = {
+    kind: 'captain' | 'task';
+    warmIdleMs: number; // Captain 60 min; Task 5 min
+    idleCompaction: boolean; // Captain true; Task false
+    admission: 'captain' | 'interactive' | 'crew';
+};
+```
+
+`runner-start { start, runCredential, reasoningEffort?, policy }` carries it; the runner applies it
+to that run and the warm process it parks.
+
+**Admission.** Live Claude processes, warm ones included, share one cap (`HAUS_RUNNER_MAX_CLAUDE`,
+default 6, from step 0). Before any turn waits, the runner closes warm processes least recently
+used first, Task processes before Captain processes. A turn that still cannot get a slot waits,
+ordered by `admission`: Captain turns, then `interactive` turns (a person's message started
+them), then `crew` turns (a Captain's brief or send started them). A waiting turn moves up one
+rank after every 2 minutes it waits, so crew work never starves. Pi sessions run in-process and
+take no slot. The Server shows a waiting turn as starting, and the turn's `slotWaitMs` timing is
+the signal to move off the mini. `HAUS_RUNNER_MAX_WARM` stays as the cap on parked processes
+alone and is never above `HAUS_RUNNER_MAX_CLAUDE`; the config refuses a larger value, and the
+default becomes 6.
+
+**Parking.** A Task's warm process closes after `warmIdleMs`; its next turn cold-resumes the same
+native conversation. A Task whose Machine is offline at a turn boundary is not dispatched until
+the Machine reconnects, so it holds no slot.
+
+**Archive is not retire.** Retire bars an agent id for the runner's lifetime: `announce` adds it to
+`retired`, and `enter` refuses every later run (`apps/runner/src/turn/agent-sessions.ts:26-28,61-66`).
+Archiving a Task instead sends a new reset scope, `archive`, stamped with the generation the
+archive bumped. `apply` closes the process, deletes `/data/agents/<agent-id>/` and advances the
+applied generation, as `full` does, and never touches `retired`. `enter` then refuses any run with
+an older generation, so a stale dispatch cannot revive the deleted session, and unarchive's newer
+generation runs normally. On `runner-hello` the runner reports the agent directories it holds with
+their applied generation, and the Server answers the newest reset for each, so an archive missed
+while the runner was down still lands. Retire stays for deleted agents only.
+
+**Task access (step 5).** The runner never decides access. The Server's invocation gate checks a
+Task agent's call against its Captain's current Agent access (crew) or its starter's (a person's
+Task) on the Task's one Machine, at every dispatch and resend; a Task agent never gets the own
+Machine pass (`apps/server/src/computer-access/agent-access.ts`), and a per-call `computer` target
+other than its Machine is refused `TASK_MACHINE_ONLY` ([tasks.md](tasks.md#machine-and-model)).
+
+**On the Computer (step 4).** Invocations, the ledger, working folders and worktrees already key on
+the agent id, so each Task session gets its own. Each Computer runs invocations serially within one
+session and in parallel across sessions, up to a per-Computer cap (default 4), queueing the rest.
+Every invocation carries the session generation, and the Computer refuses one older than the
+newest `task-archive` it holds for that agent. Background processes and the desktop lease are in
+[tasks.md](tasks.md#long-work-and-the-desktop).
 
 ## Harnesses
 
@@ -1103,6 +1164,10 @@ schemas, except the sub-agent and background-work frames, which are deleted. It 
 protocol has no version of its own, since the runner ships with the Server.
 
 ## Workers
+
+Superseded by [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md):
+Tasks run on the runner as [Task sessions](#session-kinds), and step 7 deletes the Worker drivers
+and everything below once Task agents work end to end. History until then.
 
 Computers keep what Workers import: `workers/` (including the Claude Code and Codex Worker
 drivers in `runtime/claude-code/claude-worker-driver.ts` and `runtime/codex/codex-worker-driver.ts`),

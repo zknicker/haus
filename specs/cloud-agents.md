@@ -1,5 +1,5 @@
 ---
-summary: Cloud places for Workers. How a Worker runs on `cursor` or `claude`, carried by a Computer that holds the provider login. Covers the provider boundary, turns on a hosted run with rules inlined in the brief, follow-up delivery and stalls, reports taken from the provider's result, the Claude adapter (sign-in, environment pin, monitoring, status mapping), Cursor readiness and the Cursor adapter, the per-provider model setting, and provider settings and usage.
+summary: Superseded by ADR 0062, which deletes the Cursor and Claude cloud hand-off in step 7; kept as history until then. Cloud places for Workers. How a Worker runs on `cursor` or `claude`, carried by a Computer that holds the provider login. Covers the provider boundary, turns on a hosted run with rules inlined in the brief, follow-up delivery and stalls, reports taken from the provider's result, the Claude adapter (sign-in, environment pin, monitoring, status mapping), Cursor readiness and the Cursor adapter, the per-provider model setting, and provider settings and usage.
 read_when:
   - changing the `cursor` or `claude` Worker place, a provider adapter, or the provider boundary
   - changing how a cloud Worker's report is derived from the provider result, or the `Haus-Outcome` line
@@ -8,9 +8,14 @@ read_when:
   - changing Cursor readiness, Cursor authentication, the Cursor SDK pin, or Cursor usage reporting
   - changing the cloud model setting, the Cursor model catalog, or the model a turn requests
   - looking for the former Cloud Agents spec (its contract is now specs/workers.md)
+  - deleting the cloud hand-off (ADR 0062 step 7)
 ---
 
 # Cloud places
+
+> **Superseded by [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md).**
+> Tasks are agent sessions on the runner that work on a Mac; there are no cloud places. This spec
+> describes the shipped code until step 7 deletes it, and is history after that.
 
 `cursor` and `claude` are [Worker](workers.md) places that run on a provider's hosted agent instead
 of a Haus Computer. Everything provider-neutral, including the record, the CLI, reports, follow-ups,

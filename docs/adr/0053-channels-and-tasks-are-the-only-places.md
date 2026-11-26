@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: Haus has two kinds of place, Channels (and DMs) for conversation and Tasks for work. A Task is a Channel for one piece of work, started by an Agent from a Message in a Channel, with a state (todo, open, done, canceled), attached cloud agents and pull requests that report to it, followers who see it unread, and a key from a per-Channel ledger. Threads are migrated into inline replies and deleted; boards and custom columns go. Supersedes ADR 0013, ADR 0043, and the proposed Open Threads ADR 0051; amends ADR 0051 (Tasks), 0044, 0041, 0029, and 0026. Accepted 2026-11-17, shipped in Haus 19.0.0.
+summary: Haus has two kinds of place, Channels (and DMs) for conversation and Tasks for work. A Task is a Channel for one piece of work, started by an Agent from a Message in a Channel, with a state (todo, open, done, canceled), attached cloud agents and pull requests that report to it, followers who see it unread, and a key from a per-Channel ledger. Threads are migrated into inline replies and deleted; boards and custom columns go. Supersedes ADR 0013, ADR 0043, and the proposed Open Threads ADR 0051; amends ADR 0051 (Tasks), 0044, 0041, 0029, and 0026. Accepted 2026-11-17, shipped in Haus 19.0.0. Amended 2026-11-26 by ADR 0062: a Task stays a place but becomes an agent session, active or archived, and its state, key, priority, labels, due date and assignee move to Issues; a message to an archived Task unarchives it.
 read_when:
   - deciding where an Agent posts work, progress, or a cloud agent outcome
   - changing Tasks, their states, origin Message, followers, keys, or the Tasks page
@@ -23,6 +23,9 @@ Accepted 2026-11-17. Shipped in Haus 19.0.0. Supersedes
 [ADR 0041](0041-cloud-agent-cards-mirror-cursor.md),
 [ADR 0029](0029-inline-replies-preserve-conversation.md), and
 [ADR 0026](0026-automation-provenance-rides-the-agents-message.md). Consequences lists each change.
+
+Amended 2026-11-26 by [ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md); see
+[the amendment](#amendment-2026-11-26-a-task-is-an-agent-session).
 
 ## Context
 
@@ -119,6 +122,26 @@ Agent when a pull request becomes ready after its Run settles, so that moment pa
     Closing a Task, done or canceled, cancels its pending reminders, and reopening does not
     restore them. If a check must happen after the work lands, the Task stays open until the
     check passes.
+
+## Amendment 2026-11-26: a Task is an agent session
+
+[ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md) keeps decision 1 (two kinds of
+place) and changes what a Task is:
+
+- **Decision 2.** A Task is a place with its own agent: one fresh session, a Machine and a model.
+  It is active or archived, with an activity status, and has no state, priority, labels, due date
+  or assignee; those move to the [Issue](../../specs/issues.md).
+- **Decisions 3 and 4.** A person starts a Task from Home or a Project, or a Captain starts one as
+  crew. An origin Message is optional. Tasks never start Tasks.
+- **Decision 6.** Pull requests attach to the Task that opened them and wake it. Cloud agents and
+  Workers are deleted.
+- **Decisions 8 to 10.** The sidebar lists active Tasks the reader follows; the Tasks page lists
+  My, All and Archived.
+- **Decision 11.** Keys number Issues, not Tasks. A Task has a short id.
+- **Decision 13.** A Task ends when someone archives it. A message to an archived Task unarchives
+  it and wakes it, replacing reopen-on-post.
+- **Decisions 9, 12 and 16** stand: followers and unread, the Task page with its side panel, and
+  one-time reminders.
 
 ## Considered and rejected
 

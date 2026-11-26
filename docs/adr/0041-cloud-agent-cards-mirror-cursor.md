@@ -1,5 +1,6 @@
 ---
-summary: The Cloud Agent work card headlines Cursor's own status for the newest Run Cursor has received, never a Haus-invented state or "Queued"; the card is a quiet, height-stable reference while the delegating Agent's messages carry outcomes and failures; Thread previews list one row per job; follow-up delivery is bounded.
+status: superseded
+summary: Superseded by ADR 0062, which deletes cloud agent work and the Cursor and Claude cloud hand-off. Historical decision. The Cloud Agent work card headlines Cursor's own status for the newest Run Cursor has received, never a Haus-invented state or "Queued"; the card is a quiet, height-stable reference while the delegating Agent's messages carry outcomes and failures; Thread previews list one row per job; follow-up delivery is bounded.
 read_when:
   - changing the Cloud Agent work card, its job-state chip, status line, or layout
   - changing `deriveCloudAgentJob`, the `job` field, or how follow-up Runs affect job state
@@ -12,6 +13,9 @@ read_when:
 # ADR 0041: Cloud Agent Cards Mirror Cursor
 
 ## Status
+
+Superseded 2026-11-26 by [ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md):
+there are no cloud agents or Worker cards; a Task shows its own activity status.
 
 Accepted 2026-10-09. Amended 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): the card lives on the Task page, and the Runs list gives way to the newest Run's summary.
 

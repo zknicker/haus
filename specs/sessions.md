@@ -1,8 +1,19 @@
+---
+summary: Agent sessions — one persistent runtime session per agent spanning every chat it participates in, turns, attention, rotation and reset, instruction updates, context snapshots, and generations. A Captain's session spans its Project, its Captain chat and every chat it is addressed in; a Task is its own hidden agent with one session over its own chat that ends at archive (ADR 0062).
+read_when:
+  - changing what a session or turn is, or when a session rotates or resets
+  - changing how a Captain's one session spans its Project chat, its Captain chat and mentions
+  - changing Task sessions, their context, parking, archive, or unarchive on a fresh generation
+  - changing instruction updates, MEMORY.md receipts, or context snapshots
+  - changing discretion guidance now that Captain chats are shared
+---
+
 # Sessions
 
 One agent owns one persistent runtime session spanning every chat it
-participates in. Channels, DMs, and Tasks are routing and presentation surfaces —
-never session boundaries. Different agents are fully isolated. Normative per
+participates in. Channels, DMs, Captain chats, and Tasks are routing and presentation surfaces —
+never session boundaries. A Task is its own agent, so its session is its own
+([Task sessions](#task-sessions)). Different agents are fully isolated. Normative per
 [ADR 0011](../docs/adr/0011-agents-own-one-global-session.md) as amended by
 [ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md);
 delivery, cursors, and notices in [inbox.md](inbox.md).
@@ -66,6 +77,38 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   tells the Agent Haus interrupted its previous turn, because the runtime's transcript records the
   cancelled tool call as the user declining it. A runtime that ignores cancellation fails the turn
   instead, which destroys its live session and keeps the last idle resume state.
+
+## Task sessions
+
+New in step 5 of [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md).
+A Task is a hidden agent of kind `task` ([tasks.md](tasks.md#captains-and-the-captain-chat)), so
+everything above holds for it per agent, and the runner keys its session by that agent id as it
+does for Captains (`apps/runner/src/turn/agent-sessions.ts:7-79`). What differs:
+
+- **One chat.** A Task's session hears only its own chat: people's posts, its Captain's sends,
+  other Tasks' `haus task send`, its reminders, its pull request wakes, and its background process
+  exits. It never hears a Project, a Captain chat, or `#all`.
+- **Fresh context.** Its first turn starts a new session on the Task instructions, the rule stack
+  and the brief ([tasks.md](tasks.md#what-a-task-reads)). It has no `MEMORY.md`, no skills of its
+  own beyond the managed set, and no `#all` greeting.
+- **Parking.** Its warm process parks after about 5 minutes idle, not 60, and a resume after
+  parking is a cold resume of the same native conversation
+  ([runtime-drivers.md](runtime-drivers.md#session-kinds)). Whether a cold resume still hits the
+  prompt cache is measured before the number is fixed.
+- **Archive ends it, without retiring the agent.** Archive bumps the generation (reason
+  `archive` in `agent_session_rotations`) and deletes the session and its volume directory under
+  a generation-stamped `archive` reset; the agent id stays usable
+  ([tasks.md](tasks.md#archive)).
+- **Unarchive starts fresh.** Unarchive bumps the generation again (reason `unarchive`). The next
+  turn starts a new session from the composed Task input plus a bounded replay: the newest 50
+  chat messages, at most 24,000 characters, and the linked Issues' current state. Older history
+  stays readable through `haus message read`.
+- **Rotation.** Model switches are not offered for a Task in v1: a Task keeps the model it started
+  with. Session reset and Full reset are Captain actions only.
+
+A Captain's session is unchanged by Tasks. It spans its home Project, its Captain chat, the chats
+that @mention it, and its crew reports. The Captain chat is not under the Project, so moving a
+Captain's home does not move its chat.
 
 ## Cursors
 
@@ -201,13 +244,15 @@ the stamp are execution lineage, not conversation.
 The agent's knowledge is its own: anything learned in any chat may inform
 any other. There are no trust domains. The prompt teaches discretion — what
 was shared in a DM was shared with the agent, not with every room; don't
-volunteer private specifics elsewhere. Hard isolation is a separate agent.
+volunteer private specifics elsewhere. The shared Captain chat that replaces Captain DMs
+(ADR 0062) is visible to everyone on the Server, so the DM discretion rule leaves the prompt with
+Captain DMs; person-to-person DMs never reach an agent. Hard isolation is a separate agent.
 Multi-human norm: don't tell an agent what you wouldn't tell everyone who
 can talk to it.
 
 ## Non-goals
 
 - No per-chat model overrides.
-- No context forking per Task; runtime sub-agents remain an engine
-  execution detail, not a session contract.
+- No context forking of a Captain's session; a Task is a separate agent with its own session,
+  not a fork. Runtime sub-agents remain an engine execution detail, not a session contract.
 - No migration shims: cutover starts every agent on a fresh global session.

@@ -1,5 +1,5 @@
 ---
-summary: Normative Workers contract (ADR 0056). A Worker is a quiet, scoped run attached to one Task, started by an Agent with `haus worker` on a place (`computer:<name>`, `cursor`, `claude`). It reads the rule stack at launch and WORKER.md on change, ends each turn with a typed report (done, needs-you, failed) that posts in the Task and wakes its Agent, asks structured questions through its harness's own question tool (the turn ends and any follow-up answers), takes follow-ups between turns, and is supervised with per-place limits, stop, and a missing report counted as failed. Covers the record, places, the Computer run in a worktree with that machine's logins, deliverables in Drive, the Haus-Task trailer, pull requests attached through reports, the card, and the migration from cloud agents.
+summary: Superseded by ADR 0062; what survives (the brief and rule stack, WORKER.md receipts, typed reports, worktree cleanup, the trailer, pull requests through reports) is folded into specs/tasks.md, and step 7 deletes Workers. Kept as history. Normative Workers contract (ADR 0056). A Worker is a quiet, scoped run attached to one Task, started by an Agent with `haus worker` on a place (`computer:<name>`, `cursor`, `claude`). It reads the rule stack at launch and WORKER.md on change, ends each turn with a typed report (done, needs-you, failed) that posts in the Task and wakes its Agent, asks structured questions through its harness's own question tool (the turn ends and any follow-up answers), takes follow-ups between turns, and is supervised with per-place limits, stop, and a missing report counted as failed. Covers the record, places, the Computer run in a worktree with that machine's logins, deliverables in Drive, the Haus-Task trailer, pull requests attached through reports, the card, and the migration from cloud agents.
 read_when:
   - changing Workers, Worker turns, Worker reports, or the `haus worker` CLI family
   - changing where a Worker runs, the Run Workers here setting, Agent access for Worker starts, the Project's default place, or concurrency limits
@@ -11,9 +11,16 @@ read_when:
   - changing the Worker card, the Task's live Worker summary, or Happening now
   - changing how a Worker's harness question (AskUserQuestion, request_user_input) is captured, settled, shown, or answered
   - migrating cloud agent work, Runs, or `haus cloud-agent` to Workers
+  - deleting Workers or `haus worker` (ADR 0062 step 7)
 ---
 
 # Workers
+
+> **Superseded by [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md).**
+> Parallel work is a [Task](tasks.md), an agent session with its own chat. What survives from this
+> contract lives in tasks.md: what a Task reads, `WORKER.md` receipts, typed crew reports, worktree
+> cleanup at archive, the `Haus-Task` trailer, and pull requests attached through reports. This
+> spec describes the shipped code until step 7 deletes Workers, and is history after that.
 
 An Agent runs one turn at a time. A Worker is how it does parallel work: a scoped run attached to
 one Task, briefed by the Agent, working where the work is, and reporting back.
