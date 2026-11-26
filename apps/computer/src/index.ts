@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
-import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
@@ -9,6 +8,7 @@ import { handleAgentResetFrame } from './agent-reset-frames.ts';
 import { handleAgentRetireFrame } from './agent-retire-frames.ts';
 import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
+import { readAttachmentWhenAvailable } from './attachment-credential-wait.ts';
 import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
 import {
     AttachmentDaemonProcessRegistry,
@@ -23,6 +23,7 @@ import {
 } from './attachment-management-reports.ts';
 import {
     archiveUnlinkedAttachment,
+    needsNewAttachment,
     clearTerminalUnlinked,
     isTerminalUnlinked,
     markTerminalUnlinked,
@@ -41,7 +42,7 @@ import { createAttachmentStore } from './attachment-store.ts';
 import { recordAttachmentManagementEvent } from './attachment-system-event-outbox.ts';
 import { runAttachmentUpdate } from './attachment-update.ts';
 import { handleWorkerFrame } from './attachment-workers.ts';
-import type { Attachment } from './attachment.ts';
+import type { Attachment, AttachmentRecord } from './attachment.ts';
 import { handleBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
@@ -142,7 +143,8 @@ const dataRoot = process.env.HAUS_COMPUTER_DATA_ROOT ?? join(homedir(), '.haus',
 const sendComputerReport = createComputerReporter(dataRoot);
 const sendUsageReport = createUsageReporter(dataRoot);
 const serverOrigin = process.env.HAUS_SERVER_ORIGIN ?? 'https://haus.chat';
-const { findAttachment, listAttachments, readAttachment } = createAttachmentStore(dataRoot);
+const { findAttachment, listAttachments, readAttachment, readAttachmentRecord, writeAttachment } =
+    createAttachmentStore(dataRoot);
 const attachmentDaemonProcesses = new AttachmentDaemonProcessRegistry();
 
 const headerCommands: Record<string, { updateStatus: boolean }> = {
@@ -378,7 +380,11 @@ async function main(args: string[]) {
         return;
     }
     if (command === '__attachment-daemon') {
-        const attachment = await readAttachment(target);
+        const attachment = await readAttachmentWhenAvailable(() => readAttachment(target), {
+            dataRoot,
+            log: (message) => console.error(message),
+            serverId: target,
+        });
         if (!attachment) {
             throw new Error('This Server is not attached to this Haus Computer.');
         }
@@ -390,7 +396,7 @@ async function main(args: string[]) {
             const daemonWork = new AttachmentDaemonWork(runtime, workers);
             return withAttachmentShutdown(daemonWork, runtime, partition, () =>
                 runAttachmentDaemon(runtime, {
-                    attachmentExists: async () => (await readAttachment(target)) !== null,
+                    attachmentExists: async () => (await readAttachmentRecord(target)) !== null,
                     connect: () => connect(attachment, runtime, daemonWork),
                     isTerminalUnlinkedError: isComputerMachineUnlinked,
                     log: (message) => console.error(`/${attachment.slug}: ${message}`),
@@ -450,7 +456,7 @@ async function main(args: string[]) {
             console.log(stdoutRenderer.ok(`Haus Computer resumed /${slug}.`));
             return;
         } catch (error) {
-            if (!isComputerMachineUnlinked(error)) {
+            if (!needsNewAttachment(error)) {
                 throw error;
             }
         }
@@ -462,7 +468,7 @@ async function main(args: string[]) {
  * A terminally unlinked attachment never starts its daemon, so start/restart
  * must report the setup path instead of claiming success.
  */
-async function reportUnlinkedAttachment(attachment: Attachment): Promise<boolean> {
+async function reportUnlinkedAttachment(attachment: AttachmentRecord): Promise<boolean> {
     if (!(await isTerminalUnlinked(dataRoot, attachment))) {
         return false;
     }
@@ -516,7 +522,7 @@ async function attachServer(slug: string) {
     console.log(stdoutRenderer.ok(`Haus Computer attached to /${slug}.`));
 }
 
-async function setupServer(slug: string, current: Attachment | null) {
+async function setupServer(slug: string, current: AttachmentRecord | null) {
     let session = await resolveComputerLogin({
         allowLogin: true,
         complete: false,
@@ -626,25 +632,16 @@ async function requiredAttachment(target: string | undefined) {
     return attachment;
 }
 
-async function validate(attachment: Attachment) {
+async function validate(record: AttachmentRecord) {
+    const attachment = await readAttachment(record.serverId);
+    if (!attachment) {
+        throw new Error(`This Haus Computer is not attached to /${record.slug}.`);
+    }
     await postComputerRoute(
         '/computer/validate',
         { credentialHash: hash(attachment.credential), serverId: attachment.serverId },
         attachment.serverOrigin
     );
-}
-
-async function writeAttachment(attachment: Attachment) {
-    const directory = join(dataRoot, 'servers', attachment.serverId);
-    await mkdir(directory, { mode: 0o700, recursive: true });
-    const destination = join(directory, 'attachment.json');
-    const temporary = `${destination}.${randomBytes(8).toString('hex')}.tmp`;
-    try {
-        await writeFile(temporary, `${JSON.stringify(attachment)}\n`, { mode: 0o600 });
-        await rename(temporary, destination);
-    } finally {
-        await rm(temporary, { force: true });
-    }
 }
 
 function stoppedPath() {
@@ -667,7 +664,7 @@ async function stopComputerService() {
     await stopResidentService();
 }
 
-async function startAttachmentDaemon(attachment: Attachment) {
+async function startAttachmentDaemon(attachment: AttachmentRecord) {
     if (await isTerminalUnlinked(dataRoot, attachment)) {
         return;
     }
@@ -678,7 +675,7 @@ async function startAttachmentDaemon(attachment: Attachment) {
     const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
     const plan = await attachmentDaemonProcesses.planStart(
         marker,
-        hash(attachment.credential),
+        attachment.computerId,
         attachment.serverId
     );
     if (plan.kind === 'retain') {
@@ -702,7 +699,7 @@ async function startAttachmentDaemon(attachment: Attachment) {
     });
     await writeFile(
         attachmentDaemonPath(attachment),
-        `${JSON.stringify({ credentialHash: hash(attachment.credential), pid: child.pid })}\n`,
+        `${JSON.stringify({ computerId: attachment.computerId, pid: child.pid })}\n`,
         { mode: 0o600 }
     );
     attachmentDaemonProcesses.recordStarted(attachment.serverId, child.pid);
@@ -717,7 +714,7 @@ async function startAttachmentDaemon(attachment: Attachment) {
     });
 }
 
-async function stopAttachmentDaemon(attachment: Attachment) {
+async function stopAttachmentDaemon(attachment: AttachmentRecord) {
     const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
     const pid = await attachmentDaemonProcesses.verifiedPid(marker, attachment.serverId);
     if (pid) {
@@ -726,7 +723,7 @@ async function stopAttachmentDaemon(attachment: Attachment) {
     await rm(attachmentDaemonPath(attachment), { force: true });
 }
 
-function attachmentDaemonPath(attachment: Attachment) {
+function attachmentDaemonPath(attachment: AttachmentRecord) {
     return join(dataRoot, 'servers', attachment.serverId, 'attachment-daemon.pid');
 }
 

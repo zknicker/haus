@@ -1,12 +1,13 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Attachment } from './attachment.ts';
+import { readAttachmentCredentialWait } from './attachment-credential-wait.ts';
+import type { AttachmentRecord as Attachment } from './attachment.ts';
 import { type CliRenderer, plainCliRenderer } from './cli/render.ts';
 import { readComputerLoginSession } from './login.ts';
 import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
 
 interface AttachmentStatus {
-    daemon: 'running' | 'setup-required' | 'stopped';
+    daemon: 'keychain-locked' | 'running' | 'setup-required' | 'stopped';
     serverId: string;
     slug: string;
 }
@@ -30,12 +31,19 @@ export async function readComputerStatus(dataRoot: string): Promise<{
             attachments.map(async (attachment) => {
                 const marker = await readAttachmentDaemonMarker(dataRoot, attachment.serverId);
                 const terminal = await readTerminalUnlinked(dataRoot, attachment);
+                const running = marker !== null && isPidAlive(marker.pid);
+                const wait = running
+                    ? await readAttachmentCredentialWait(dataRoot, attachment.serverId)
+                    : null;
                 return {
-                    daemon: terminal
-                        ? 'setup-required'
-                        : marker && isPidAlive(marker.pid)
-                          ? 'running'
-                          : 'stopped',
+                    daemon:
+                        terminal || wait === 'missing'
+                            ? 'setup-required'
+                            : wait === 'locked'
+                              ? 'keychain-locked'
+                              : running
+                                ? 'running'
+                                : 'stopped',
                     serverId: attachment.serverId,
                     slug: attachment.slug,
                 };
@@ -72,7 +80,7 @@ export async function doctorComputer(
         const path = join(dataRoot, 'servers', attachment.serverId, 'attachment.json');
         const info = await stat(path).catch(() => null);
         checks.push({
-            label: `/${attachment.slug} credential file is private`,
+            label: `/${attachment.slug} attachment file is private`,
             ok: Boolean(info?.isFile() && (info.mode & 0o077) === 0),
         });
         checks.push({
@@ -153,6 +161,9 @@ function serviceLine(service: 'running' | 'stopped', render: CliRenderer) {
 function attachmentLine(item: AttachmentStatus, render: CliRenderer) {
     if (item.daemon === 'setup-required') {
         return render.fail(`setup required — run haus-computer setup /${item.slug}`);
+    }
+    if (item.daemon === 'keychain-locked') {
+        return render.fail('waiting — unlock the login Keychain on this Mac');
     }
     const state =
         item.daemon === 'running'

@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { repoFolderSchema, repoNameSchema } from '@haus/api';
 import * as z from 'zod';
-import type { Attachment } from '../attachment.ts';
+import type { AttachmentRecord as Attachment } from '../attachment.ts';
 import { resolveComputerLogin } from '../login.ts';
 import { inspectRepoFolder } from '../repos/repo-folder-requests.ts';
 import { listWorktrees } from '../repos/worktree.ts';

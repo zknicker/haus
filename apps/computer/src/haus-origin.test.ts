@@ -12,7 +12,7 @@ test('validates HTTP origins without rewriting custom servers', () => {
     expect(() => normalizeHttpOrigin('file:///tmp/app')).toThrow('HTTP(S)');
 });
 
-test('attachment lookups preserve server origins and credentials', async () => {
+test('attachment reads keep the credential, and listings never carry it', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-attachment-migration-'));
     const directory = join(root, 'servers', 'srv_test');
     const attachment = {
@@ -26,10 +26,10 @@ test('attachment lookups preserve server origins and credentials', async () => {
         await mkdir(directory, { recursive: true });
         await writeFile(join(directory, 'attachment.json'), JSON.stringify(attachment));
         const store = createAttachmentStore(root);
-        const expected = { ...attachment, serverOrigin: 'https://haus.chat' };
-        expect(await store.readAttachment('srv_test')).toEqual(expected);
-        expect(await store.findAttachment('test')).toEqual(expected);
-        expect(await store.listAttachments()).toEqual([expected]);
+        const { credential: _, ...record } = attachment;
+        expect(await store.readAttachment('srv_test')).toEqual(attachment);
+        expect(await store.findAttachment('test')).toEqual(record);
+        expect(await store.listAttachments()).toEqual([record]);
         expect(await store.readAttachment('../outside')).toBeNull();
         expect(JSON.parse(await readFile(join(directory, 'attachment.json'), 'utf8'))).toEqual(
             attachment

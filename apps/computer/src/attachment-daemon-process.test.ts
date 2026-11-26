@@ -15,26 +15,26 @@ const staleProcessKinds: AttachmentDaemonProcessInspection['kind'][] = [
 ];
 
 const marker = {
-    credentialHash: 'current-hash',
+    computerId: 'cmp_current',
     pid: 42,
 };
 
 describe('attachment daemon process identity', () => {
-    test('retains only a verified daemon with the current credential', () => {
-        expect(planAttachmentDaemonStart(marker, 'current-hash', { kind: 'verified' })).toEqual({
+    test('retains only a verified daemon for the current attachment', () => {
+        expect(planAttachmentDaemonStart(marker, 'cmp_current', { kind: 'verified' })).toEqual({
             kind: 'retain',
         });
     });
 
-    test('restarts a verified daemon when its credential changed', () => {
-        expect(planAttachmentDaemonStart(marker, 'new-hash', { kind: 'verified' })).toEqual({
+    test('restarts a verified daemon when the Server was attached again', () => {
+        expect(planAttachmentDaemonStart(marker, 'cmp_reattached', { kind: 'verified' })).toEqual({
             kind: 'restart',
             pid: 42,
         });
     });
 
     test.each(staleProcessKinds)('replaces a %s marker without authorizing a signal', (kind) => {
-        expect(planAttachmentDaemonStart(marker, 'current-hash', { kind })).toEqual({
+        expect(planAttachmentDaemonStart(marker, 'cmp_current', { kind })).toEqual({
             kind: 'start',
         });
     });

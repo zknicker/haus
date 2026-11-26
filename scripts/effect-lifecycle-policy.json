@@ -230,13 +230,35 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/attachment-state.ts": {
+        "apps/computer/src/attachment-keychain.ts": {
             "disposition": "finite-cleanup",
-            "reason": "A finite atomic filesystem transaction removes its temporary file and lock before returning.",
+            "reason": "A Keychain read races one bounded timer that the lexical finally clears, and the shared in-flight read forgets itself when it settles.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
-                "finallyBlock": 2,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/attachment-state.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite pending-setup transaction removes its lock before returning.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/attachment-store.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite atomic filesystem write removes its temporary file before returning.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
                 "manualPromise": 0,
                 "timer": 0
             }
@@ -254,11 +276,11 @@
         },
         "apps/computer/src/index.ts": {
             "disposition": "external-adapter",
-            "reason": "The Computer composition root bridges WebSocket closure, atomic attachment writes, and the terminal restart timer to owned services.",
+            "reason": "The Computer composition root bridges WebSocket closure and the terminal restart timer to owned services.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
-                "finallyBlock": 1,
+                "finallyBlock": 0,
                 "manualPromise": 1,
                 "timer": 0
             }

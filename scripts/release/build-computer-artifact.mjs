@@ -39,6 +39,7 @@ export async function buildComputerArtifact(input) {
             executablePath,
             '--env=HAUS_COMPUTER_BUILD_*',
             '--no-compile-autoload-dotenv',
+            '--no-compile-autoload-bunfig',
         ],
         {
             ...process.env,

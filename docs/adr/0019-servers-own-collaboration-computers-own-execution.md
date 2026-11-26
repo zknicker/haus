@@ -260,6 +260,9 @@ Intel Mac, Windows, or generic service-manager abstraction.
 Computer secrets use Raft-style locked-down local files rather than macOS
 Keychain. Each durable Server attachment credential lives in its own
 atomically-written mode-`0600` file under that attachment's data partition.
+(Amended 2026-11: Agent tools run as the same macOS user and could read that
+file, so the signed macOS release now keeps the credential in a login Keychain
+item; see [Auth](../api/auth.md#other-credentials).)
 Per-launch Agent runner credentials remain memory-only inside Haus Computer
 and are revoked at launch end. The Agent receives only a per-launch local proxy
 token in a mode-`0600` file; normal shutdown removes it and startup sweeps

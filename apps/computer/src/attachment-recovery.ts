@@ -1,9 +1,18 @@
 import { randomBytes } from 'node:crypto';
 import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Attachment } from './attachment.ts';
+import { AttachmentCredentialUnavailableError } from './attachment-keychain.ts';
+import type { AttachmentRecord as Attachment } from './attachment.ts';
+import { isComputerMachineUnlinked } from './cli/server-request.ts';
 
 export const computerMachineUnlinkedExitCode = 77;
+
+export function needsNewAttachment(error: unknown) {
+    return (
+        isComputerMachineUnlinked(error) ||
+        (error instanceof AttachmentCredentialUnavailableError && error.problem === 'missing')
+    );
+}
 
 export async function archiveUnlinkedAttachment(
     dataRoot: string,
