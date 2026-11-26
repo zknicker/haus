@@ -14,6 +14,7 @@ import { workerPullRequestStates } from './worker-pull-request.ts';
 
 export const agentIssueRefusalCodes = [
     'ISSUE_TAKEN',
+    'ISSUE_ASSIGNEE_ARCHIVED',
     'ISSUE_PARENT_PROJECT',
     'ISSUE_PARENT_CYCLE',
     'ISSUE_PROJECT_NOT_HOME',

@@ -14,6 +14,7 @@ export const cliFamilyTopics = {
     drive: 'drive',
     image: 'images',
     inbox: 'inbox',
+    issue: 'issues',
     manual: 'index',
     message: 'message',
     profile: 'profile',

@@ -157,11 +157,25 @@ test('Haus hands WORKER.md to every Worker turn, so the brief carries only the w
     expect(topic?.related).toContain('rules');
 });
 
-test('work split for other Agents is sibling Tasks; a claim stays inside the conversation', () => {
+test('the issues topic teaches the queue, claiming, and explicit state edits (ADR 0062)', () => {
+    const topic = getManualTopic('issues');
+    expect(topic?.id).toBe('issues');
+    expect(topic?.body).toContain(
+        '`haus issue list` shows the open Issues assigned to you, by priority then age.'
+    );
+    expect(topic?.body).toContain('--assignee me --expect-assignee none');
+    expect(topic?.body).toContain('Only an edit moves an Issue');
+    expect(topic?.body).toContain('ISSUE_ASSIGNEE_ARCHIVED');
+    expect(getManualTopic('inbox')?.body).toContain(
+        'A Task, in your Project or any other, reaches you only when a message @mentions you or you follow it'
+    );
+});
+
+test('work split for other Agents is Issues; a claim stays inside the conversation', () => {
     const body = getManualTopic('claims')?.body ?? '';
     expect(body).toContain('genuinely new work inside a conversation');
     expect(body).toContain(
-        'post one message that lists the pieces, start a Task from it for each, and assign them'
+        'is an Issue: file one for each piece with `haus issue create` and assign it (see issues)'
     );
     expect(body).not.toContain('for others to claim');
 });

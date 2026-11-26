@@ -181,7 +181,7 @@ every start. They restart with the same policy.
   patches it from live events.
 * **Agent lifecycle** (`agent.onLifecycle`): `working`, `reading`, `sending` (after the Agent's
   message commits), `settled` (terminal proof), projected to coarse availability. Every run
-  publishes it; `chatId` is null for a chatless run (a sub-agent wake or a Task assignment). Settlement
+  publishes it; `chatId` is null for a chatless run (a sub-agent wake or an Issue item). Settlement
   invalidates Agent list, delivery state, and activity reads. Lifecycle owns activity only: a
   `sending` notice reads no transcript, and a missed Agent message recovers like any other, on
   the message stream's next start.

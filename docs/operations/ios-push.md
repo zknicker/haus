@@ -34,7 +34,7 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
   preview, mentions as display names, at most 180 characters), `aps.sound: "default"`,
   `aps.thread-id` (APNs' grouping key) = conversation Chat id, `aps.badge` = unread Chats plus
   followed unread Tasks across every Server, and the tap-routing keys `serverId`, `chatId`,
-  `conversationChatId`, `messageId`, and `taskId` and `taskKey` (non-null exactly when the message
+  `conversationChatId`, `messageId`, and `taskId` and `taskShortId` (non-null exactly when the message
   is in a Task's own Chat, so a tap opens the Task). For Communication Notifications (sender avatar banners) it also carries
   `aps.mutable-content: 1`, `sender` (`id`, `kind` `agent` | `human`, `name` cut to 80 characters,
   `avatarUrl` absolute on `HAUS_APP_ORIGIN` or null when the sender has none — avatar routes are
@@ -48,6 +48,12 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
   resolved is not pushed. The worst-case payload stays under the 4 KB APNs limit
   (`push-payload.test.ts`). Headers: `apns-push-type: alert`, `apns-priority: 10`,
   `apns-collapse-id` = message id, `apns-topic` = the device's bundle id.
+- Issue payload (`pushIssuePayloadSchema`): a plain alert for an Issue assigned to the human
+  (`kind: "issue_assignment"`, title `<actor> assigned you GEN-12`, body the Issue's title,
+  collapse id `issue-assign:<issueId>:<version>`) or a comment on an Issue they subscribe to
+  (`kind: "issue_comment"`, title `<author> commented on GEN-12`, body the comment, collapse id the
+  comment id), with `serverId`, `issueId` and `code` for routing. The iPhone app does not route
+  Issue pushes yet.
 
 ## Server behavior
 

@@ -20,10 +20,10 @@ test('a message in its home Project channel reaches every home Agent', async () 
     expect(await heard(await send(project('web'), 'Morning, web.'))).toEqual(['ari', 'cyl']);
 });
 
-test('a message in a home Project Task reaches every home Agent without a follow', async () => {
+test("a Project's Captain does not hear an unaddressed message in a Task of its Project", async () => {
     const task = await startTask('web', 'Ship the landing page');
 
-    expect(await heard(await send(task.chatId, 'Progress on the page.'))).toEqual(['ari', 'cyl']);
+    expect(await heard(await send(task.chatId, 'Progress on the page.'))).toEqual([]);
 });
 
 test('another Project channel reaches an Agent at top level only on a mention', async () => {
@@ -38,23 +38,21 @@ test('another Project channel reaches an Agent at top level only on a mention', 
 test('another Project Task reaches an Agent on a mention, then while it follows', async () => {
     const task = await startTask('web', 'Wire the checkout');
 
-    expect(await heard(await send(task.chatId, 'Quiet note.'))).toEqual(['ari', 'cyl']);
-    expect(await heard(await send(task.chatId, '@bex the payload changed.'))).toEqual([
-        'ari',
-        'bex',
-        'cyl',
-    ]);
-    expect(await heard(await send(task.chatId, 'Following up.'))).toEqual(['ari', 'bex', 'cyl']);
+    expect(await heard(await send(task.chatId, 'Quiet note.'))).toEqual([]);
+    expect(await heard(await send(task.chatId, '@bex the payload changed.'))).toEqual(['bex']);
+    expect(await heard(await send(task.chatId, 'Following up.'))).toEqual(['bex']);
 
     expect(await unfollow('bex', task)).toBe(200);
-    expect(await heard(await send(task.chatId, 'After the unfollow.'))).toEqual(['ari', 'cyl']);
+    expect(await heard(await send(task.chatId, 'After the unfollow.'))).toEqual([]);
 });
 
-test('unfollowing a home Task changes nothing', async () => {
+test('a home Captain hears its own Project Task only while it follows it', async () => {
     const task = await startTask('web', 'Tune the images');
 
+    expect(await heard(await send(task.chatId, '@ari can you take a look?'))).toEqual(['ari']);
+    expect(await heard(await send(task.chatId, 'Still yours.'))).toEqual(['ari']);
     expect(await unfollow('ari', task)).toBe(200);
-    expect(await heard(await send(task.chatId, 'Still yours.'))).toEqual(['ari', 'cyl']);
+    expect(await heard(await send(task.chatId, 'After the unfollow.'))).toEqual([]);
 });
 
 test('a DM reaches its Agent wherever it lives', async () => {
@@ -106,7 +104,7 @@ test('moving an Agent home changes delivery from the next message', async () => 
     expect(await heard(await send(project('api'), 'API after the move.'))).toEqual(['bex']);
 });
 
-test('an unfollow right after a move into the Task home keeps the queued work', async () => {
+test("an unfollow withdraws the Task's queued work, even in the agent's own Project", async () => {
     agents.hal = await fixture.createAgent('hal', 'hal');
     const task = await startTask('web', 'Audit the fonts');
     await send(task.chatId, '@hal the fonts look off.');
@@ -117,8 +115,9 @@ test('an unfollow right after a move into the Task home keeps the queued work', 
         serverId: fixture.serverId,
     });
 
+    expect(await heard(queued)).toEqual(['hal']);
     expect(await unfollow('hal', task)).toBe(200);
-    expect(await heard(queued)).toEqual(['ari', 'cyl', 'dov', 'hal']);
+    expect(await heard(queued)).toEqual([]);
 });
 
 async function routingHandles(name: string, mentioned: string[] = []) {

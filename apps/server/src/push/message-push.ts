@@ -1,6 +1,7 @@
 import type { MessageCreatedEvent } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { messageCreatedTopic } from '../realtime/topics.ts';
+import { listenForIssuePushes } from './issue-push.ts';
 import { sendToDevices } from './push-delivery.ts';
 import { buildPushPayload } from './push-payload.ts';
 import { createPushQueue } from './push-queue.ts';
@@ -37,7 +38,8 @@ const pushBacklog = 1000;
  * every human the shared notification rule names: one alert per device per message,
  * sent off the send path after `pushReadGraceMs`, to humans who have not read it
  * by then. Failures are logged and recorded on the device;
- * they never reach the sender of the message.
+ * they never reach the sender of the message. Issue assignments and subscribed
+ * comments share this queue and sender; see `issue-push.ts`.
  */
 export function startMessagePush(
     db: HausDatabase,
@@ -87,11 +89,16 @@ export function startMessagePush(
             }
         }
     })();
+    const listeningForIssues = listenForIssuePushes(db, sender, queue, {
+        readGraceMs: options.readGraceMs ?? pushReadGraceMs,
+        signal: abort.signal,
+    });
 
     return {
         async close() {
             abort.abort();
             await listening;
+            await listeningForIssues;
             await queue.drain();
             await sender.close();
         },

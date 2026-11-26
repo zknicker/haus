@@ -142,7 +142,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     // Channel mutes and membership are deleted (ADR 0055); unfollow is the only narrowing.
     expect(prompt).not.toContain('To mute ordinary Activity delivery');
     expect(prompt).toContain(
-        'Outside your Project, `haus task unfollow --target task:<KEY-n>` and `haus message unfollow` stop what you follow.'
+        '`haus task unfollow --target task:<shortId>` stops a Task you follow, and outside your Project `haus message unfollow` stops a reply chain.'
     );
 
     // A human is asked by @mention where the work lives (ADR 0037); there is no Ask command.
@@ -224,8 +224,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // E2d (ADR 0059): -1 for the #all welcome rule, +37 for "You always hear #all, the team room."; W3: +22 for `haus worker places`. Measured after all three: 37,648.
     // Raised by exactly 128 (37,648 → 37,776) for the Computers entry (ADR 0057), 116 (→ 37,892) for Repos (ADR 0060).
     // Raised by exactly 59 (37,892 → 37,951): web sources are cited as Markdown links (ADR 0061).
-    // Lowered by exactly 38 (37,951 → 37,913): Tasks name `archive` for state/update/assign (ADR 0062).
-    expect(prompt.length).toBeLessThanOrEqual(37_913);
+    // Lowered by exactly 38 (37,951 → 37,913): Tasks name `archive` (ADR 0062). Raised by exactly 364 (→ 38,277): Captains work from Issues (step 3).
+    expect(prompt.length).toBeLessThanOrEqual(38_277);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');

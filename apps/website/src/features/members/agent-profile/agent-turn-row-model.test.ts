@@ -85,13 +85,13 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
     });
 });
 
-test('a Task assignment names the Task by title, with no place', () => {
+test('an Issue run names the Issue by code and title, with no place', () => {
     expect(
         resolveTurnRowTitle(
-            { kind: 'task', shortId: 'k3mq7xta', taskId: 'tsk_12', title: 'Rotate the deploy key' },
+            { code: 'GEN-12', issueId: 'iss_12', kind: 'issue', title: 'Rotate the deploy key' },
             chats
         )
-    ).toEqual({ kind: 'text', place: null, text: 'Task · Rotate the deploy key' });
+    ).toEqual({ kind: 'text', place: null, text: 'GEN-12 · Rotate the deploy key' });
 });
 
 test('a claim turn reads its claim message, and an attachment-only message says so', () => {

@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull, type SQL } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
 
@@ -10,14 +10,14 @@ export interface Hearer {
     mentioned: boolean;
 }
 
-const hearsFollowedPlace = ({ ambient, follows, mentioned }: Hearer) =>
-    ambient || mentioned || follows;
-
 const hearingRules: Record<HearingPlace, (hearer: Hearer) => boolean> = {
     channel: ({ ambient, mentioned }) => ambient || mentioned,
-    reply: hearsFollowedPlace,
-    task: hearsFollowedPlace,
+    reply: ({ ambient, follows, mentioned }) => ambient || mentioned || follows,
+    task: ({ follows, mentioned }) => mentioned || follows,
 };
+
+// WARNING: step 5a sets this to eq(agentsTable.kind, 'captain'), or every #all message wakes every Task agent.
+const hearingCandidatesAreCaptains: SQL | undefined = undefined;
 
 export function hears(place: HearingPlace, hearer: Hearer) {
     return hearingRules[place](hearer);
@@ -38,7 +38,13 @@ export async function listHearingCandidates(db: Pick<HausDatabase, 'select'>, se
             id: agentsTable.id,
         })
         .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, serverId), isNull(agentsTable.retiredAt)))
+        .where(
+            and(
+                eq(agentsTable.serverId, serverId),
+                isNull(agentsTable.retiredAt),
+                hearingCandidatesAreCaptains
+            )
+        )
         .orderBy(asc(agentsTable.createdAt), asc(agentsTable.id));
 }
 

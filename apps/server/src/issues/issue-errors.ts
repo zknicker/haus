@@ -29,6 +29,15 @@ export class IssueTakenError extends Error {
     }
 }
 
+export class IssueAssigneeArchivedError extends Error {
+    constructor(code: string | null) {
+        super(
+            `${code ?? 'An open Issue'} cannot be assigned to an archived Task. Assign it to someone active, or unarchive the Task first.`
+        );
+        this.name = 'IssueAssigneeArchivedError';
+    }
+}
+
 export class IssueParentProjectError extends Error {
     constructor() {
         super('A parent Issue must be in the same Project.');

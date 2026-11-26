@@ -8,7 +8,7 @@ import { archiveTask } from '../src/tasks/task-archive.ts';
 import { readTask } from '../src/tasks/task-read.ts';
 import { applyWorkerObservation } from '../src/workers/apply-worker-observation.ts';
 import { startWorker } from '../src/workers/start-worker.ts';
-import { insertTaskPlace, seedTaskBoard } from './task-delivery-fixture.ts';
+import { insertTaskPlace, seedTaskBoard } from './issue-delivery.fixture.ts';
 
 export type WorkerBoard = Awaited<ReturnType<typeof seedWorkerBoard>>;
 

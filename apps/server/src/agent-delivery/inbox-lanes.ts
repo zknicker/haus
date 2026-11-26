@@ -1,4 +1,4 @@
-// The attentions with no Chat (sub-agent wake, Task assignment, Drive conflict, process exit) are a first-party
+// The attentions with no Chat (sub-agent wake, Drive conflict, process exit, Issue items) are a first-party
 // contract; `@haus/api` owns the list.
 import { chatlessInboxSources } from '@haus/api';
 
@@ -23,7 +23,8 @@ export const concreteInboxSources = [
     'reminder',
     'claim_assignment',
     'subagent',
-    'task_assignment',
+    'issue_assignment',
+    'issue_event',
     'drive_conflict',
     'process_exit',
 ] as const;
@@ -52,7 +53,7 @@ export const bodilessInboxSources = [
  * Attentions no notice row, unread digest, or `haus inbox check` lists: the
  * chatless attentions, which lead their own runs and have no Chat to list them
  * under, and a new Agent's greeting, which rides a run rather than being read
- * (greeting.ts). Only Task assignments reach a busy Agent at all, as a bare
+ * (greeting.ts). Only Issue items reach a busy Agent at all, as a bare
  * count beside those rows (`planBusyNotice`).
  */
 export const noticelessInboxSources = ['greeting', ...chatlessInboxSources] as const;

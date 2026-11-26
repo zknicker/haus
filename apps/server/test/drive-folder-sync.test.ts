@@ -9,7 +9,6 @@ import { pullDrive } from '../../computer/src/drive/pull.ts';
 import { planDrivePush, sendDrivePush } from '../../computer/src/drive/push.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { recordRunTrigger } from '../src/server-agents/record-agent-turn.ts';
-import { taskAssignmentKey } from '../src/tasks/task-assignment-envelope.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 
@@ -46,8 +45,8 @@ async function writer(agentId: string) {
             { agentId, runId, serverId: fixture.serverId },
             {
                 chatId: null,
-                dedupeKey: taskAssignmentKey(`task_${runId}`, 1),
-                source: 'task_assignment',
+                dedupeKey: `subagent:${agentId}:${runId}`,
+                source: 'subagent',
             }
         );
         return (await fixture.mintRunner(runId, agentId, fixture.channelId, false)).token;

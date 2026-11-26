@@ -124,7 +124,11 @@ export function registerAgentApiRoutes(
         imageGeneration: options.imageGeneration,
     });
     registerAgentInboxRoutes(app, options);
-    registerAgentIssueRoutes(app, options.db);
+    registerAgentIssueRoutes(app, {
+        agentDelivery: options.agentDelivery,
+        db: options.db,
+        postCommitWork: options.postCommitWork,
+    });
     registerAgentManagedSkillRoutes(app, options.db);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });

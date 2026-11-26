@@ -4,11 +4,12 @@ import {
     driveConflictAttentionSchema,
     unreadElsewhereSchema,
 } from './agent-inbox.ts';
-import { processExitAttentionSchema } from './agent-processes.ts';
 import {
-    agentTaskAssignmentNoticeSchema,
-    agentTaskAssignmentsSchema,
-} from './agent-task-assignment.ts';
+    agentIssueAssignmentsSchema,
+    agentIssueEventsSchema,
+    agentIssueWakeNoticeSchema,
+} from './agent-issue-wake.ts';
+import { processExitAttentionSchema } from './agent-processes.ts';
 import { timestampSchema } from './chat-contract-primitives.ts';
 import { idSchema } from './chat.ts';
 import { connectionChipKindSchema } from './connection-chips.ts';
@@ -75,8 +76,8 @@ export const agentStartCommandSchema = z
         /** The Agent's pickup reaction; null means the Computer's default. */
         agentSignatureEmoji: z.string().min(1).max(64).nullable().default(null),
         /**
-         * The run's Chat; null only for a chatless run: a sub-agent wake, Task assignment, or
-         * Drive conflict.
+         * The run's Chat; null only for a chatless run: a sub-agent wake, Drive conflict,
+         * process exit, or batch of Issue items.
          */
         chatId: idSchema.nullable(),
         /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent must write. */
@@ -91,6 +92,10 @@ export const agentStartCommandSchema = z
         greets: z.literal(true).optional(),
         homeTimezone: z.string().trim().min(1).max(128).optional(),
         inbox: z.array(agentInboxItemSchema).max(100).default([]),
+        /** Present only on an Issue assignment run, which resumes the main session. */
+        issueAssignments: agentIssueAssignmentsSchema.optional(),
+        /** Present only on an Issue event run, which resumes the main session. */
+        issueEvents: agentIssueEventsSchema.optional(),
         /** Bodies are projected only for typed system attention or crash replay. */
         inboxDelivery: z.enum(['concrete', 'notice']),
         modelId: z.string().trim().min(1).max(128),
@@ -99,8 +104,6 @@ export const agentStartCommandSchema = z
         sessionGeneration: z.number().int().positive(),
         /** Present only on a sub-agent wake run, which carries no inbox items. */
         subagentWake: agentSubagentWakeAttentionSchema.optional(),
-        /** Present only on a Task assignment run, which resumes the main session. */
-        taskAssignments: agentTaskAssignmentsSchema.optional(),
         totalPending: z.number().int().nonnegative(),
         traceContext: traceCarrierSchema.optional(),
         type: z.literal('start'),
@@ -114,9 +117,10 @@ export const agentStartCommandSchema = z
         (frame) => {
             const attentions = [
                 frame.driveConflict,
+                frame.issueAssignments,
+                frame.issueEvents,
                 frame.processExit,
                 frame.subagentWake,
-                frame.taskAssignments,
             ].filter((attention) => attention !== undefined).length;
             if (attentions === 0) {
                 return frame.chatId !== null;
@@ -132,7 +136,7 @@ export const agentStartCommandSchema = z
         },
         {
             message:
-                'Only a sub-agent wake, Task assignment, or Drive conflict run is chatless, and it carries nothing but its attention.',
+                'Only a sub-agent wake, Drive conflict, process exit, or Issue item run is chatless, and it carries nothing but its attention.',
             path: ['chatId'],
         }
     );
@@ -142,15 +146,15 @@ export type AgentStartCommand = z.infer<typeof agentStartCommandSchema>;
 /**
  * Work landed for a busy Agent. The full envelopes are accepted into the
  * Computer's durable inbox; only their content-free metadata projection is
- * injected into the live model turn. Queued Task assignments have no envelope,
+ * injected into the live model turn. Queued Issue items have no envelope,
  * so they ride beside the inbox as a count; a notice carries at least one of the two.
  */
 export const agentNoticeCommandSchema = z
     .object({
         agentId: idSchema,
         inbox: z.array(agentInboxItemSchema).max(100),
+        issueItems: agentIssueWakeNoticeSchema.optional(),
         runId: idSchema,
-        taskAssignments: agentTaskAssignmentNoticeSchema.optional(),
         totalPending: z.number().int().nonnegative(),
         type: z.literal('notice'),
         unreadElsewhere: z.array(unreadElsewhereSchema).max(50).default([]),
@@ -159,11 +163,11 @@ export const agentNoticeCommandSchema = z
     .strict()
     .refine(
         (frame) =>
-            frame.taskAssignments !== undefined ||
+            frame.issueItems !== undefined ||
             frame.workerReports !== undefined ||
             (frame.inbox.length > 0 && frame.totalPending > 0),
         {
-            message: 'A notice carries inbox work, Task assignments, or Worker reports.',
+            message: 'A notice carries inbox work, Issue items, or Worker reports.',
             path: ['inbox'],
         }
     );
@@ -173,15 +177,15 @@ export type AgentNoticeCommand = z.infer<typeof agentNoticeCommandSchema>;
 /** Every work id a delivered notice covers, which its host acks back to the Server. */
 export function noticeReceipt(notice: {
     readonly inbox: readonly { readonly id: string }[];
+    readonly issueItems?: { readonly ids: readonly string[] };
     readonly runId: string;
-    readonly taskAssignments?: { readonly ids: readonly string[] };
     readonly workerReports?: { readonly ids: readonly string[] };
 }) {
     return {
         runId: notice.runId,
         workIds: [
             ...notice.inbox.map((item) => item.id),
-            ...(notice.taskAssignments?.ids ?? []),
+            ...(notice.issueItems?.ids ?? []),
             ...(notice.workerReports?.ids ?? []),
         ],
     };

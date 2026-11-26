@@ -3,8 +3,9 @@ import {
     composeDriveConflictInput,
     composeInboxDrain,
     composeInboxNotice,
+    composeIssueAssignmentInput,
+    composeIssueEventInput,
     composeProcessExitInput,
-    composeTaskAssignmentInput,
     composeTurnContent,
     composeUnknownToolCalls,
 } from '@haus/agent-prompt';
@@ -75,8 +76,11 @@ function composeOpening(start: AgentStartCommand, session: TurnSessionView) {
 }
 
 function composeChatlessBody(start: AgentStartCommand) {
-    if (start.taskAssignments) {
-        return composeTaskAssignmentInput(start.taskAssignments);
+    if (start.issueAssignments) {
+        return composeIssueAssignmentInput(start.issueAssignments);
+    }
+    if (start.issueEvents) {
+        return composeIssueEventInput(start.issueEvents);
     }
     if (start.processExit) {
         return composeProcessExitInput(start.processExit);

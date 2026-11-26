@@ -4,6 +4,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { issueTaskLinksTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { actorColumns } from './issue-actor.ts';
+import type { IssueAgentWake } from './issue-inbox.ts';
 import type { IssueWake } from './issue-wakes.ts';
 
 export type IssueTx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
@@ -11,6 +12,7 @@ export type IssueTx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 export type IssueWriteGuard = (tx: IssueTx, issue: Issue) => Promise<void>;
 
 export interface IssueWriteResult {
+    agentWakes: IssueAgentWake[];
     events: PreparedRealtimeEvent[];
     issue: Issue;
     wakes: IssueWake[];

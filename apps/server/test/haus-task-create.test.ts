@@ -52,7 +52,8 @@ test('a person files a Task with no origin, wakes nobody, and nothing posts in t
                     where task_chat_id = ${task.chatId} and user_id = ${fixture.ownerUserId}
                         and followed) as filer,
                 (select count(*)::int from agent_inbox
-                    where agent_id = ${fixture.orbitAgentId} and source = 'task_assignment')
+                    where agent_id = ${fixture.orbitAgentId}
+                        and source in ('issue_assignment', 'issue_event'))
                     as assignments
         `
     ).toEqual([{ assignments: 0, filer: 1, parent: fixture.channelId }]);

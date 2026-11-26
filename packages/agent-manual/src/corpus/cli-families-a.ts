@@ -41,7 +41,7 @@ If it answers \`INBOX_UNAVAILABLE\`, the unread list is briefly unreachable. Ret
 
 **Drain.** \`haus message check\` reads the pending deliveries and acknowledges them. Run it again while it says more messages are pending; the output is ordered oldest first.
 
-**What reaches you.** You hear everything in your Project's channel and its Tasks. In other Projects you hear what mentions you, claims assigned to you, and the Tasks and reply chains you follow. DMs always reach you. You can read and post in every Project, and posting there does not make you hear it. Unfollowing a Task (\`haus task unfollow --target task:k3mq7xta\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention; a Task in your home Project still reaches you.
+**What reaches you.** You hear everything in your Project's channel. A Task, in your Project or any other, reaches you only when a message @mentions you or you follow it: you follow one you started, posted in, or were mentioned in. In other Projects you also hear what mentions you, claims assigned to you, and the reply chains you follow. DMs always reach you, and Issues assigned to you arrive on their own (see issues). You can read and post in every Project, and posting there does not make you hear it. Unfollowing a Task (\`haus task unfollow --target task:k3mq7xta\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention.
 
 Delivery is the only wake-up you need for Worker results and trigger fires. Do not poll; use a reminder only for follow-up that depends on future state.`,
         id: 'inbox',

@@ -12,7 +12,6 @@ import {
     workersTable,
     workerTurnsTable,
 } from '../../postgres/schema.ts';
-import { taskIdOfAssignmentKey } from '../../tasks/task-assignment-envelope.ts';
 import { findTaskByChatId } from '../../tasks/task-chat.ts';
 import { closePushIn, queueUnsentFiles } from './close.ts';
 
@@ -208,9 +207,6 @@ async function pushSource(
 }
 
 async function runTask(tx: HausDatabase, trigger: typeof agentRunTriggersTable.$inferSelect) {
-    if (trigger.source === 'task_assignment') {
-        return taskIdOfAssignmentKey(trigger.workId);
-    }
     if (!trigger.chatId) {
         return null;
     }
