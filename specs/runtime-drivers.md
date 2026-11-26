@@ -113,12 +113,18 @@ type RunnerSessionPolicy = {
     kind: 'captain' | 'task';
     warmIdleMs: number; // Captain 60 min; Task 5 min
     idleCompaction: boolean; // Captain true; Task false
-    admission: 'captain' | 'interactive' | 'crew';
+    memoryPath: string | null; // agents/<handle>/MEMORY.md; null for a Task
+    rulePaths: string[]; // Captain: Haus, home Project, own AGENTS.md; Task: Haus, Project, Captain's WORKER.md
+    admission: 'captain' | 'interactive' | 'crew'; // not built yet
 };
 ```
 
-`runner-start { start, runCredential, reasoningEffort?, policy }` carries it; the runner applies it
-to that run and the warm process it parks.
+The policy (`packages/haus-api/src/runner-session-policy.ts`) rides the agent's own profile read,
+`GET /api/agent/profile` → `{ profile, session }`, which the runner already makes with the run
+credential at the start of every turn (`apps/server/src/server-agents/agent-session-policy.ts`).
+That keeps it out of `runner-start`, which agent delivery builds. The runner applies it to that
+turn's rules and memory, and to the warm process the turn parks; a turn whose profile read fails
+parks as a Captain.
 
 **Admission.** Live Claude processes, warm ones included, share one cap (`HAUS_RUNNER_MAX_CLAUDE`,
 default 6, from step 0). Before any turn waits, the runner closes warm processes least recently
@@ -143,13 +149,17 @@ applied generation, as `full` does, and never touches `retired`. `enter` then re
 an older generation, so a stale dispatch cannot revive the deleted session, and unarchive's newer
 generation runs normally. On `runner-hello` the runner reports the agent directories it holds with
 their applied generation, and the Server answers the newest reset for each, so an archive missed
-while the runner was down still lands. Retire stays for deleted agents only.
+while the runner was down still lands. That report is not built yet; meanwhile archive leaves the
+agent's `sessionResetKind` at `full`, so the first run of a newer generation deletes the directory
+an offline runner kept. Retire stays for deleted agents only. The `archive` scope is runner-only
+(`runnerAgentResetCommandSchema`); the Computer gets `task-archive` instead.
 
 **Task access (step 5).** The runner never decides access. The Server's invocation gate checks a
 Task agent's call against its Captain's current Agent access (crew) or its starter's (a person's
 Task) on the Task's one Machine, at every dispatch and resend; a Task agent never gets the own
 Machine pass (`apps/server/src/computer-access/agent-access.ts`), and a per-call `computer` target
-other than its Machine is refused `TASK_MACHINE_ONLY` ([tasks.md](tasks.md#machine-and-model)).
+other than its Machine is refused `TASK_MACHINE_ONLY`, the ledger refusal `task-machine-only`
+([tasks.md](tasks.md#machine-and-model)).
 
 **On the Computer (step 4).** Invocations, the ledger, working folders and worktrees already key on
 the agent id, so each Task session gets its own. The runner stamps every `invocation-request` with

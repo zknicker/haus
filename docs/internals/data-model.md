@@ -112,7 +112,12 @@ channel membership; migration 0138 set each home from the last 30 days of messag
 `channel_agent_participants` and `agent_channel_mutes`.
 Migration 0161 slimmed Tasks: `tasks.short_id` (8 lowercase Crockford base32 characters, unique
 per Server) names a Task, `tasks.archived_at` is its only archive state, and state, priority, due
-date, labels, assignee, key and number are gone (they live on Issues). `task_keys` is the key
+date, labels, assignee, key and number are gone (they live on Issues). Migration 0162 gave Tasks
+their own agents: `agents.kind` is `captain` or `task`, a Task agent has no home Project, and a
+Captain has `crew_computer_id` and `crew_model`. `tasks.agent_id` (unique), `computer_id` and
+`model` are all set or all null (null only for a Task from before 0162), `tasks.captain_id` names a
+crew Task's Captain (also its `created_by_agent_id`), `title_custom` marks a renamed or given
+title, and `start_request_id` makes a start idempotent per Server. `task_keys` is the key
 ledger, each entry with its own `next_number`; `projects.task_key_id` names a Project's entry
 (one per channel, unique). Migration 0130 made every live or archived channel a Project,
 renamed `#all` to `haus`, and gave channels that shared a key new entries by the key rule
