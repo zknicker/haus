@@ -38,9 +38,9 @@ export async function readPushRecipients(
     ]);
     const recipients: PushRecipient[] = [];
     for (const userId of await readPushableMembers(db, event.serverId, [...candidates])) {
-        const reason =
-            messageNotificationReason(event, userId) ??
-            (subscribers.has(userId) && userId !== event.authorUserId ? 'subscribed' : null);
+        const reason = messageNotificationReason(event, userId, {
+            subscribed: subscribers.has(userId),
+        });
         if (
             reason &&
             (await canSeeChat(db, userId, event)) &&

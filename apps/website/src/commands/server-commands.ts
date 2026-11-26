@@ -147,12 +147,7 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
                           kind: 'agent-avatar',
                       },
             id: `chat.${chat.id}`,
-            keywords: [
-                'chat',
-                chat.kind === 'channel' ? 'project channel room' : 'direct message dm',
-                title,
-                agent?.handle ?? '',
-            ],
+            keywords: ['chat', chatKindKeywords[chat.kind], title, agent?.handle ?? ''],
             opensPage: true,
             run: () => context.navigate(serverChatRoute(context.serverSlug, chat.id)),
             title,
@@ -167,6 +162,13 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
         },
         {
             commands: context.chats
+                .filter((chat) => chat.kind === 'captain' && !chat.peerAgentRetired)
+                .map(toCommand),
+            id: 'captain-chats',
+            title: 'Captains',
+        },
+        {
+            commands: context.chats
                 .filter((chat) => chat.kind === 'dm' && !chat.peerAgentRetired)
                 .map(toCommand),
             id: 'direct-messages',
@@ -174,6 +176,12 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
         },
     ];
 }
+
+const chatKindKeywords: Record<Chat['kind'], string> = {
+    captain: 'captain chat agent',
+    channel: 'project channel room',
+    dm: 'direct message dm',
+};
 
 function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppCommandGroup {
     const agent = currentChat.peerAgentId

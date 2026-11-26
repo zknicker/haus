@@ -22,10 +22,20 @@ const chats = [
         icon: null,
         id: 'cht_cove',
         isAll: false,
-        kind: 'dm',
+        kind: 'captain',
         name: null,
         peerAgentId: agent.id,
         peerUserId: null,
+    },
+    {
+        color: null,
+        icon: null,
+        id: 'cht_bo',
+        isAll: false,
+        kind: 'dm',
+        name: null,
+        peerAgentId: null,
+        peerUserId: 'usr_bo',
     },
 ] as Chat[];
 
@@ -47,6 +57,7 @@ describe('Server command groups', () => {
         expect(groups.map((group) => group.title)).toEqual([
             'Navigation',
             'Projects',
+            'Captains',
             'DMs',
             'Current Chat',
             'Settings',
@@ -58,8 +69,12 @@ describe('Server command groups', () => {
         expect(titles).not.toContain('Reminders');
         expect(groups.find((group) => group.id === 'developer')?.commands).toHaveLength(2);
 
+        const captainChat = groups.find((group) => group.id === 'captain-chats')?.commands[0];
+        expect(captainChat?.title).toBe('Cove');
+        expect(captainChat?.keywords).toContain('cove');
+        captainChat?.run();
         groups.find((group) => group.id === 'direct-messages')?.commands[0]?.run();
-        expect(navigated).toEqual(['/s/dev/chats/cht_cove']);
+        expect(navigated).toEqual(['/s/dev/chats/cht_cove', '/s/dev/chats/cht_bo']);
     });
 
     test("carries a channel's chosen icon and color into its command", () => {
@@ -133,7 +148,7 @@ describe('Server command groups', () => {
         expect(navigated).toEqual(['/s/dev/settings/archived']);
     });
 
-    test('omits a retired Agent DM from chat commands', () => {
+    test('omits a retired Captain from chat commands', () => {
         const retiredChats = chats.map((chat) =>
             chat.id === 'cht_cove'
                 ? {

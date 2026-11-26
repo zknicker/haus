@@ -51,15 +51,23 @@ export function messageAuthorName(
     return author.profile?.displayName ?? names.humans.name(author.userId);
 }
 
-/** Null for a top-level DM message, or a Channel this reader's list cannot name. */
+/**
+ * Null for a top-level DM message, or a Channel this reader's list cannot name. A Captain chat is
+ * named by its Captain.
+ */
 function messagePlace(input: {
     chatId: string;
-    names: Pick<MessageNotificationNames, 'chats'>;
+    names: Pick<MessageNotificationNames, 'agents' | 'chats'>;
     reason: MessageNotificationReason;
 }): null | string {
     if (input.reason === 'dm') {
         return null;
     }
-    const channel = input.names.chats.find((chat) => chat.id === input.chatId);
-    return channel?.name ? `#${channel.name}` : null;
+    const chat = input.names.chats.find((candidate) => candidate.id === input.chatId);
+    if (chat?.kind === 'captain') {
+        return (
+            input.names.agents.find((agent) => agent.id === chat.peerAgentId)?.displayName ?? null
+        );
+    }
+    return chat?.name ? `#${chat.name}` : null;
 }

@@ -32,11 +32,14 @@ export interface MessageNotificationFacts {
 
 /**
  * Why `message` notifies `userId`, or null when it does not. A DM is always
- * `dm`; elsewhere a mention wins over a reply when one message is both.
+ * `dm`; elsewhere a mention wins over a reply when one message is both, and
+ * either wins over `subscribed`, which only a Captain chat's subscribed member
+ * (`viewer.subscribed`) hears.
  */
 export function messageNotificationReason(
     message: MessageNotificationFacts,
-    userId: string
+    userId: string,
+    viewer: { subscribed?: boolean } = {}
 ): MessageNotificationReason | null {
     if (message.authorUserId === userId) {
         return null;
@@ -50,7 +53,7 @@ export function messageNotificationReason(
     if (message.replyToAuthorUserId === userId || message.taskOriginAuthorUserId === userId) {
         return 'reply';
     }
-    return null;
+    return message.conversationKind === 'captain' && viewer.subscribed ? 'subscribed' : null;
 }
 
 /**
