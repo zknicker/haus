@@ -13,6 +13,16 @@ test('parking past the cap evicts the least recently parked process first', () =
     expect(pool.size).toBe(2);
 });
 
+test('evicting takes the least recently parked process, one at a time', () => {
+    const pool = new WarmPool<string>({ idleMs: warmIdleMs, maxWarm: 16 });
+    pool.park('agent-1', identity('s1'), 'process-1', 0);
+    pool.park('agent-2', identity('s2'), 'process-2', minute);
+    pool.park('agent-1', identity('s1'), 'process-1', 2 * minute);
+    expect(pool.evictOldest()).toEqual(['process-2']);
+    expect(pool.evictOldest()).toEqual(['process-1']);
+    expect(pool.evictOldest()).toEqual([]);
+});
+
 test('a process parked for the full hour expires, one minute short of it is reused', () => {
     const pool = new WarmPool<string>({ idleMs: warmIdleMs, maxWarm: 16 });
     pool.park('agent-1', identity('s1'), 'process-1', 0);

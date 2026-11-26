@@ -8,7 +8,6 @@ import type {
 } from '../turn/runtime-driver.ts';
 import { warmIdleMs } from '../turn/warm-pool.ts';
 import { ClaudeConnection } from './claude-connection.ts';
-import { ClaudeSlots } from './claude-slots.ts';
 import {
     claudeBootstrapFingerprint,
     claudeLaunchFacts,
@@ -16,6 +15,7 @@ import {
     claudePaths,
     claudeQueryOptions,
 } from './claude-launch.ts';
+import { ClaudeSlots } from './claude-slots.ts';
 import { ClaudeTurn } from './claude-turn.ts';
 import { CompactingPool } from './compacting-pool.ts';
 import type { IdleCompactionGate, IdleCompactionHooks } from './idle-compaction-scheduler.ts';

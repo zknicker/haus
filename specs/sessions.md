@@ -45,8 +45,11 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   as one wake, which rides the first ordinary (Chat) run whatever else it carries
   and shows on that run warm or cold, because the run consumes it (ADR 0028).
   Startup never races a second mid-turn delivery.
-- A Computer starts at most five Agent runtimes at once; further starts queue. A runtime that
-  has not produced a live session within two minutes fails the turn as a retryable timeout.
+- The runner holds at most `HAUS_RUNNER_MAX_CLAUDE` (default 6) live Claude processes, warm
+  ones included; a turn that needs another first closes the least recently used warm one, then
+  waits its turn in a first-come queue. A Claude process that does not initialize within 30
+  seconds of getting its slot fails the turn; queue time never counts against it. Pi sessions
+  take no slot ([capacity](runtime-drivers.md#capacity)).
   A warm runtime process parked by the previous turn is reused when its runtime, native
   conversation, and launch fingerprint all match; otherwise the driver launches a fresh process
   that resumes the same conversation. A failed turn destroys its runtime session but keeps the

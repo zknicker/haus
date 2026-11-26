@@ -207,6 +207,11 @@ recreates the container from that image under `varlock run` like the database. B
 bunx varlock@1.16.1 run -- docker compose -f apps/server/compose.yml -p haus --profile runner up -d --build --force-recreate --wait haus-runner
 ```
 
+The service has a 4 GB memory limit with no swap, sized for the runner's six live Claude
+processes (`HAUS_RUNNER_MAX_CLAUDE`, [capacity](../../specs/runtime-drivers.md#capacity)), so a
+spike kills the runner, not PostgreSQL. The Colima VM needs that 4 GB plus PostgreSQL's share;
+`colima list` shows its memory.
+
 The image tag comes from `HAUS_RUNNER_IMAGE_TAG` and defaults to `local` for a hand build. After a proven start the workflow removes every other `haus-runner:<sha>` image except the
 previous one, which stays as the rollback target.
 
