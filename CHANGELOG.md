@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.9.0 - 2026-11-26
+
+- Search results are one list of single-line rows: author, the text around the first match, then the place and age on the right, with matches as the only highlight. Snippets show a link's label instead of its address, and a message in a Task's chat names the Task key. Filters appear once you type a query or pick a filter, with **Clear filters**.
+- The Activity log, on the Server page and in a Captain's Activity section, opens only the newest and running turns. Days are labeled group bars with a count, rows are one line, and a turn titled by its outcome no longer repeats it when opened.
+- A Captain's page puts a card beside the list with its identity, health and six setup facts, each a row that opens its editor. Needs you, Working on, Recent and Drive are one-line rows that drop columns in narrow panes. Edit profile and Profile move into the ••• menu, and the Chats, Profile, Workspace and Usage cards are gone.
+- Server 29.8.0, Haus Computer 26.0.4 and Haus Agent 17.3.2 publish together. Haus Computer 26.0.4 and Haus Agent 17.3.2 change no behavior: the Manual text Captains read is the same. Computer protocol 49 is unchanged, so either side can update first. No database migration. Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v30.8.0 - 2026-11-25
 
 - The Tasks list runs the full width of the window, grouped by state with a count on each group. Each Task is one row: state, key, title and labels, then due date, assignee, priority and how long ago it was created, with the row's menu in place of the age on hover. The filter bar lines up with the rows, waits for Tasks to load, and has **Clear filters**.
