@@ -34,7 +34,7 @@ function attention(person: WorkerReportAttention['person']) {
         person,
         place: { kind: 'cursor' },
         pullRequests: [],
-        taskKey: 'SEC-12',
+        taskShortId: 'k3mq7xta',
         title: 'Pick a database',
         turnId: 'wkt_1',
         turnNumber: 1,
@@ -45,12 +45,12 @@ function attention(person: WorkerReportAttention['person']) {
 test('a Worker question for the Agent lists the questions once and says they are its to answer', () => {
     expect(formatWorkerReport(attention(null))).toBe(
         [
-            '[worker report · SEC-12 · needs-you · Worker on cursor (wkr_1) · turn 1]',
+            '[worker report · k3mq7xta · needs-you · Worker on cursor (wkr_1) · turn 1]',
             'Which database?',
             '  │ - Postgres',
             '  │ - SQLite',
             'The Worker asked these questions, and they are for you. Answer with a numbered list in one follow-up.',
-            'The report is already posted in SEC-12. Post only what it does not say. Answer the Worker with haus worker send --worker wkr_1, or start a narrower Worker.',
+            'The report is already posted in k3mq7xta. Post only what it does not say. Answer the Worker with haus worker send --worker wkr_1, or start a narrower Worker.',
         ].join('\n')
     );
 });

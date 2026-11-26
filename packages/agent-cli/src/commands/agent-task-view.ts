@@ -1,5 +1,5 @@
 import { indentContinuationLines } from '@haus/agent-prompt';
-import { formatTaskTarget, taskPriorities, taskStates } from '@haus/api';
+import { formatTaskTarget } from '@haus/api';
 import * as z from 'zod';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { formatUtcTime, shortMessageId } from '../agent-format.ts';
@@ -17,14 +17,10 @@ const actorSchema = z.object({
 });
 
 const taskRowSchema = z.object({
-    assignee: actorSchema.nullable(),
+    archivedAt: z.string().nullable(),
     createdAt: z.string(),
     createdBy: actorSchema,
-    dueOn: z.string().nullable(),
-    key: z.string(),
-    labels: z.array(z.string()),
-    priority: z.enum(taskPriorities),
-    state: z.enum(taskStates),
+    shortId: z.string(),
     title: z.string(),
     updatedAt: z.string(),
     version: z.number().int().positive(),
@@ -70,34 +66,29 @@ export const taskShowSchema = z.object({
 export type TaskRow = z.infer<typeof taskRowSchema>;
 type TaskActorRow = z.infer<typeof actorSchema>;
 
-export function describeTask(task: TaskRow): string {
-    const facts = [
-        ...(task.priority === 'none' ? [] : [`priority ${task.priority}`]),
-        task.assignee ? `assigned ${actorLabel(task.assignee)}` : 'unassigned',
-        ...(task.dueOn ? [`due ${task.dueOn}`] : []),
-        ...(task.labels.length > 0 ? [`labels ${task.labels.join(', ')}`] : []),
-    ];
+export function describeTask(task: TaskRow) {
     const title = task.title.replaceAll(/\s+/gu, ' ').trim();
-    return `${task.key} [${task.state}] "${title}" · ${facts.join(' · ')}`;
+    const archived = task.archivedAt ? ` · archived ${formatUtcTime(task.archivedAt)}` : '';
+    return `${task.shortId} "${title}" · started by ${actorLabel(task.createdBy)}${archived}`;
 }
 
-export function taskPlaceLine(key: string): string {
-    return `Task target: ${formatTaskTarget(key)}`;
+export function taskPlaceLine(shortId: string) {
+    return `Task target: ${formatTaskTarget(shortId)}`;
 }
 
-export function actorLabel(actor: TaskActorRow): string {
+export function actorLabel(actor: TaskActorRow) {
     if (actor.handle) {
         return `@${actor.handle}`;
     }
     return actor.type === 'agent' ? 'an Agent with no handle' : 'a person with no handle';
 }
 
-export function formatTaskDetail(detail: z.infer<typeof taskShowSchema>): string {
+export function formatTaskDetail(detail: z.infer<typeof taskShowSchema>) {
     const { description, mentions, reminders, task } = detail;
     const lines = [
         describeTask(task),
-        taskPlaceLine(task.key),
-        `Created by ${actorLabel(task.createdBy)} ${formatUtcTime(task.createdAt)}; updated ${formatUtcTime(task.updatedAt)}; version ${task.version}`,
+        taskPlaceLine(task.shortId),
+        `Created ${formatUtcTime(task.createdAt)}; updated ${formatUtcTime(task.updatedAt)}; version ${task.version}`,
     ];
     if (description) {
         lines.push('', 'Description:', indentContinuationLines(description));
@@ -111,11 +102,11 @@ export function formatTaskDetail(detail: z.infer<typeof taskShowSchema>): string
     return `${lines.join('\n')}\n`;
 }
 
-function mentionLine(mention: z.infer<typeof taskShowSchema>['mentions'][number]): string {
+function mentionLine(mention: z.infer<typeof taskShowSchema>['mentions'][number]) {
     return `- [target=${mention.target} msg=${shortMessageId(mention.messageId)} time=${formatUtcTime(mention.createdAt)}] ${mention.author}: ${clip(mention.excerpt)}`;
 }
 
-function reminderLine(reminder: z.infer<typeof taskShowSchema>['reminders'][number]): string {
+function reminderLine(reminder: z.infer<typeof taskShowSchema>['reminders'][number]) {
     const fire = reminder.nextFireAt ? formatUtcTime(reminder.nextFireAt) : 'none';
     const repeat = reminder.repeat ? ` (${reminder.repeat})` : '';
     return `- ${reminder.id} "${reminder.title}" next fire ${fire}${repeat}, anchored in ${reminder.anchorTarget}`;

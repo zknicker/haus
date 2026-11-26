@@ -42,11 +42,11 @@ test('a Computer start sends its place, runtime, model, and repo', async () => {
         repository: 'haus/haus',
         runtime: 'codex',
         startingRef: 'main',
-        task: 'SEC-12',
+        task: 'k3mq7xta',
         title: 'Fix the flaky delivery test',
     });
     expect(output.join('').split('\n')[0]).toBe(
-        `Worker ${work.id} started on mini (computer:cmp_1234567890abcdef) in codex for SEC-12: Fix the flaky delivery test (haus/haus@main).`
+        `Worker ${work.id} started on mini (computer:cmp_1234567890abcdef) in codex for k3mq7xta: Fix the flaky delivery test (haus/haus@main).`
     );
 });
 
@@ -88,7 +88,7 @@ test('a place refusal gains the step to list places', async () => {
         message: 'Workers cannot run on mini.',
         options: {
             nextAction:
-                'Run haus worker places --task <KEY-n> to see where Workers can run, then pick another place or ask a person to turn on Run Workers here for that Computer.',
+                'Run haus worker places --task <id> to see where Workers can run, then pick another place or ask a person to turn on Run Workers here for that Computer.',
         },
     });
 });
@@ -149,10 +149,10 @@ test('places lists every place with its access, switch, runtimes, repo folders, 
             },
             { freeSlots: 10, kind: 'cursor', limit: 10, projectDefault: false, ready: true },
         ],
-        task: 'SEC-12',
+        task: 'k3mq7xta',
     };
     await runWorkerPlaces(
-        { flags: {}, help: false, positionals: [], valueLists: {}, values: { '--task': 'SEC-12' } },
+        { flags: {}, help: false, positionals: [], valueLists: {}, values: { '--task': 'k3mq7xta' } },
         {
             ...deps(seen, output),
             client: {
@@ -164,16 +164,16 @@ test('places lists every place with its access, switch, runtimes, repo folders, 
         }
     );
 
-    expect(seen[0]?.query).toEqual({ path: '/api/agent/workers/places', task: 'SEC-12' });
+    expect(seen[0]?.query).toEqual({ path: '/api/agent/workers/places', task: 'k3mq7xta' });
     expect(output.join('')).toBe(
         [
-            'Places for SEC-12:',
+            'Places for k3mq7xta:',
             'computer:cmp_1234567890abcdef mini: ready, 3 of 4 slots free; runtimes claude-code, codex (Codex has no login on this Computer. Run codex login.); repo folders acme/app, acme/site [Project default]',
             'computer:cmp_abcdef1234567890 laptop: Run Workers here is Off',
             'computer:cmp_0000studio000000 studio: you have no access there',
             'cursor: ready, 10 of 10 slots free',
             '',
-            'Start one with haus worker start --task SEC-12 --on <place> --title <text>.',
+            'Start one with haus worker start --task k3mq7xta --on <place> --title <text>.',
             '',
         ].join('\n')
     );

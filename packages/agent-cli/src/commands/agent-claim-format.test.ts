@@ -15,14 +15,14 @@ test('a claim in a Task names the inline reply in that Task', () => {
                 number: 7,
                 outcome: 'claimed',
                 reason: null,
-                claim: claimRow('task:SEC-12'),
+                claim: claimRow('task:k3mq7xta'),
             },
         ],
-        'task:SEC-12'
+        'task:k3mq7xta'
     );
 
     expect(output).toBe(
-        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · inline reply --target "task:SEC-12" --reply-to 1a2b3c4d\n'
+        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · inline reply --target "task:k3mq7xta" --reply-to 1a2b3c4d\n'
     );
 });
 

@@ -1,7 +1,7 @@
 import { formatTaskTarget } from '@haus/api';
 import { AgentCliError } from '../agent-error.ts';
 import type { CliFlag, ParsedArgs } from '../parse.ts';
-import { taskKeyArgument } from './agent-command-utils.ts';
+import { taskShortIdArgument } from './agent-command-utils.ts';
 
 export const reminderAnchorFlags: CliFlag[] = [
     {
@@ -12,7 +12,7 @@ export const reminderAnchorFlags: CliFlag[] = [
     {
         description: 'Anchor on a Task instead, one-time only: it wakes you on that Task',
         name: '--target',
-        valueName: '<task:KEY-n>',
+        valueName: '<task:shortId>',
     },
 ];
 
@@ -27,23 +27,23 @@ export function reminderAnchor(args: ParsedArgs): ReminderAnchor {
     if (messageId && target) {
         throw new AgentCliError(
             'INVALID_ARG',
-            'Give one anchor: --message-id or --target task:KEY-n, not both.'
+            'Give one anchor: --message-id or --target task:<shortId>, not both.'
         );
     }
     if (target) {
-        const key = taskKeyArgument(target, '--target');
+        const shortId = taskShortIdArgument(target, '--target');
         if (args.values['--repeat']) {
-            throw taskRecurringReminder(`Task ${key} holds only one-time reminders.`);
+            throw taskRecurringReminder(`Task ${shortId} holds only one-time reminders.`);
         }
-        return { target: formatTaskTarget(key) };
+        return { target: formatTaskTarget(shortId) };
     }
     if (!messageId) {
         throw new AgentCliError(
             'INVALID_ARG',
-            'Provide --message-id with the anchor message, or --target task:KEY-n for a Task.',
+            'Provide --message-id with the anchor message, or --target task:<shortId> for a Task.',
             {
                 nextAction:
-                    'Use the msg= id from the message this follow-up is about, or the key of the Task you are working.',
+                    'Use the msg= id from the message this follow-up is about, or the short id of the Task you are working.',
             }
         );
     }

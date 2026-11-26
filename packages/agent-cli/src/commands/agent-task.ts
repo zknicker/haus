@@ -1,43 +1,17 @@
-import { taskStates } from '@haus/api';
 import { createAgentApiClient } from '../agent-api-client.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
-import { runTaskAssign, runTaskList, runTaskShow, runTaskUpdate } from './agent-task-actions.ts';
-import {
-    runTaskAttachPullRequest,
-    runTaskStart,
-    runTaskState,
-} from './agent-task-place-actions.ts';
+import { runTaskArchive, runTaskList, runTaskShow } from './agent-task-actions.ts';
+import { runTaskAttachPullRequest, runTaskStart } from './agent-task-place-actions.ts';
 import { TASK_UNFOLLOW_SUBCOMMAND } from './agent-task-unfollow.ts';
 import type { TaskDeps } from './agent-task-view.ts';
 
-const keyPositional = '<key>';
-const expectedVersionFlag = {
-    description: 'Apply only if the Task is still at this version (show prints it)',
-    name: '--expected-version',
-    valueName: '<n>',
-};
-const titleFlag = {
-    description: 'Title, up to 200 characters',
-    name: '--title',
-    valueName: '<text>',
-};
-const descriptionFlag = {
-    description: 'Markdown description, or - to read it from stdin',
-    name: '--description',
-    valueName: '<text|->',
-};
-const priorityFlag = {
-    description: 'none, urgent, high, medium, or low',
-    name: '--priority',
-    valueName: '<priority>',
-};
+const idPositional = '<id>';
 
 export const TASK_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
             'haus task start --target "#security" --from 1a2b3c4d --title "Rotate the signing key"',
-            'haus task start --target "#security" --from 1a2b3c4d --title "Audit the webhook secrets" --assignee @kit --state todo',
             'haus task start --target dm:@ada --from 5e6f7a8b --title "Patch the login bug" --project APP',
         ],
         flags: [
@@ -58,137 +32,84 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
                 name: '--project',
                 valueName: '<KEY>',
             },
-            titleFlag,
-            descriptionFlag,
+            { description: 'Title, up to 200 characters', name: '--title', valueName: '<text>' },
             {
-                description: 'me or an @handle; defaults to you',
-                name: '--assignee',
-                valueName: '<who>',
-            },
-            { description: 'open (default) or todo', name: '--state', valueName: '<todo|open>' },
-            priorityFlag,
-            {
-                description: 'Display-only due date, YYYY-MM-DD',
-                name: '--due',
-                valueName: '<date>',
+                description: 'Markdown description, or - to read it from stdin',
+                name: '--description',
+                valueName: '<text|->',
             },
         ],
         name: 'start',
         notes: [
-            "A Task starts from a message in a channel or DM and takes its Project's key. Several Tasks may start from one message.",
+            'A Task starts from a message in a channel or DM and gets a short id. Several Tasks may start from one message.',
             'You start Tasks only in your Project; elsewhere the Server refuses with TASK_PROJECT_NOT_HOME.',
             'Not idempotent: if a start goes unanswered, check haus task list before repeating it.',
         ],
         positionals: [],
         run: (args) => runTaskStart(args, defaultDeps()),
         summary: 'Start a Task from a message in a channel or DM',
-        usage: 'haus task start --target <#channel|dm:@handle> --from <messageId> --title <text> [--project <KEY>] [--description <text|->] [--assignee <me|@handle>] [--state <todo|open>] [--priority <priority>] [--due <date>]',
+        usage: 'haus task start --target <#channel|dm:@handle> --from <messageId> --title <text> [--project <KEY>] [--description <text|->]',
     },
     {
         examples: [
             'haus task list',
-            'haus task list --state done',
-            'haus task list --key SEC',
-            'haus task list --assignee @zero --state todo,open',
             'haus task list --all',
+            'haus task list --all --project SEC',
+            'haus task list --archived',
         ],
         flags: [
-            { description: "Every assignee's Tasks, not only yours", name: '--all' },
-            {
-                description: "One key's Tasks; lists every assignee unless --assignee narrows it",
-                name: '--key',
-                valueName: '<KEY>',
-            },
-            { description: 'me, none, or an @handle', name: '--assignee', valueName: '<who>' },
-            {
-                description: `Comma list of ${taskStates.join(', ')}`,
-                name: '--state',
-                valueName: '<states>',
-            },
+            { description: 'Every Task, not only the ones you started', name: '--all' },
+            { description: 'Archived Tasks instead of active ones', name: '--archived' },
+            { description: "One Project's Tasks, by its key", name: '--project', valueName: '<KEY>' },
         ],
         name: 'list',
         notes: [
-            'Lists your todo and open Tasks unless a flag widens it, most urgent then oldest first, at most 50 rows.',
+            'Lists the active Tasks you started unless a flag widens it, newest first, at most 50 rows.',
         ],
         positionals: [],
         run: (args) => runTaskList(args, defaultDeps()),
-        summary: 'List your unfinished Tasks',
-        usage: 'haus task list [--all] [--key <KEY>] [--assignee <me|none|@handle>] [--state <states>]',
+        summary: 'List the active Tasks you started',
+        usage: 'haus task list [--all] [--archived] [--project <KEY>]',
     },
     {
-        examples: ['haus task show SEC-12'],
+        examples: ['haus task show k3mq7xta'],
         flags: [],
         name: 'show',
         notes: [
-            'Prints the Task, its target, its description, the messages that mention it, and its Reminders. Read its conversation with haus message read --target task:SEC-12.',
+            'Prints the Task, its target, its description, the messages that mention it, and its Reminders. Read its conversation with haus message read --target task:k3mq7xta.',
         ],
-        positionals: [keyPositional],
+        positionals: [idPositional],
         run: (args) => runTaskShow(args, defaultDeps()),
         summary: 'Read one Task and what references it',
-        usage: 'haus task show <key>',
+        usage: 'haus task show <id>',
     },
     {
-        examples: ['haus task state SEC-12 open', 'haus task state SEC-12 done'],
-        flags: [expectedVersionFlag],
-        name: 'state',
-        notes: [
-            'done or canceled ends the Task and cancels its pending reminders; a post in it reopens it.',
+        examples: ['haus task archive k3mq7xta'],
+        flags: [
+            {
+                description: 'Apply only if the Task is still at this version (show prints it)',
+                name: '--expected-version',
+                valueName: '<n>',
+            },
         ],
-        positionals: [keyPositional, '<todo|open|done|canceled>'],
-        run: (args) => runTaskState(args, defaultDeps()),
-        summary: "Set a Task's state",
-        usage: 'haus task state <key> <todo|open|done|canceled> [--expected-version <n>]',
+        name: 'archive',
+        notes: ['Archiving cancels the Task\'s pending reminders; its chat stays readable.'],
+        positionals: [idPositional],
+        run: (args) => runTaskArchive(args, defaultDeps()),
+        summary: 'Archive a Task',
+        usage: 'haus task archive <id> [--expected-version <n>]',
     },
     {
-        examples: ['haus task attach-pr SEC-12 https://github.com/haus/haus/pull/12'],
+        examples: ['haus task attach-pr k3mq7xta https://github.com/haus/haus/pull/12'],
         flags: [],
         name: 'attach-pr',
         notes: [
             'A pull request a Worker opens for the Task attaches on its own; use this for one opened another way. Its changes wake you on the Task.',
         ],
-        positionals: [keyPositional, '<url>'],
+        positionals: [idPositional, '<url>'],
         run: (args) => runTaskAttachPullRequest(args, defaultDeps()),
         summary: 'Attach a GitHub pull request to a Task',
-        usage: 'haus task attach-pr <key> <url>',
-    },
-    {
-        examples: [
-            'haus task update SEC-12 --priority urgent',
-            'haus task update SEC-12 --due none --labels Security,Infra',
-        ],
-        flags: [
-            titleFlag,
-            descriptionFlag,
-            priorityFlag,
-            {
-                description: 'The whole label set, as a comma list, or none',
-                name: '--labels',
-                valueName: '<names>',
-            },
-            { description: 'YYYY-MM-DD, or none to clear it', name: '--due', valueName: '<date>' },
-            expectedVersionFlag,
-        ],
-        name: 'update',
-        positionals: [keyPositional],
-        run: (args) => runTaskUpdate(args, defaultDeps()),
-        summary: "Edit a Task's title, description, priority, labels, or due date",
-        usage: 'haus task update <key> [--title <text>] [--description <text|->] [--priority <priority>] [--labels <names|none>] [--due <date|none>] [--expected-version <n>]',
-    },
-    {
-        examples: [
-            'haus task assign SEC-12 @kit',
-            'haus task assign SEC-12 me',
-            'haus task assign SEC-12 none',
-        ],
-        flags: [expectedVersionFlag],
-        name: 'assign',
-        notes: [
-            'A person or an Agent can hold a Task, and the assignee follows it. An Agent you assign is woken.',
-        ],
-        positionals: [keyPositional, '<handle|me|none>'],
-        run: (args) => runTaskAssign(args, defaultDeps()),
-        summary: 'Assign a Task to a person or Agent, or unassign it',
-        usage: 'haus task assign <key> <handle|me|none> [--expected-version <n>]',
+        usage: 'haus task attach-pr <id> <url>',
     },
     TASK_UNFOLLOW_SUBCOMMAND,
 ];

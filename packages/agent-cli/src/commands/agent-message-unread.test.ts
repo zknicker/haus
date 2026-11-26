@@ -14,14 +14,14 @@ const baseHistory = {
     has_older: true,
     last_read: { after: 10, unread_after: 10 },
     messages: [] as AgentCliMessage[],
-    target: 'task:WG-7',
+    target: 'task:w9g7k2mn',
 };
 
 test('message read --unread asks the Server for unread and prints the same command to continue', async () => {
     const messages = [message('msg_three', 11), message('msg_four', 12)];
     const { output, queries } = await read(
         { ...baseHistory, has_newer: true, messages, read_through_seq: 12, unread_after_seq: 10 },
-        { '--target': 'task:WG-7' }
+        { '--target': 'task:w9g7k2mn' }
     );
     expect(queries[0]?.unread).toBe('true');
     expect(output).toBe(
@@ -31,8 +31,8 @@ test('message read --unread asks the Server for unread and prints the same comma
             formatHistoryLine(messages[0] as AgentCliMessage),
             formatHistoryLine(messages[1] as AgentCliMessage),
             '',
-            'Read position: seq 10 → 12. To re-read these: haus message read --target "task:WG-7" --after 10',
-            'More unread remain. Next: haus message read --target "task:WG-7" --unread',
+            'Read position: seq 10 → 12. To re-read these: haus message read --target "task:w9g7k2mn" --after 10',
+            'More unread remain. Next: haus message read --target "task:w9g7k2mn" --unread',
             '',
         ].join('\n')
     );

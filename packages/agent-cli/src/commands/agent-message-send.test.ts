@@ -105,11 +105,11 @@ test('a top-level send receipt states where it landed', async () => {
 
 test('a send accepts a Task target', async () => {
     const outputs: string[] = [];
-    await runSend(sendArgs({ '--target': 'task:SEC-12' }), {
+    await runSend(sendArgs({ '--target': 'task:k3mq7xta' }), {
         ...depsFor(capturingSendClient({}), outputs),
         readStdin: async () => 'The fix is in review.',
     });
-    expect(outputs.join('')).toStartWith('Message sent to task:SEC-12. Message ID: msg_sent\n');
+    expect(outputs.join('')).toStartWith('Message sent to task:k3mq7xta. Message ID: msg_sent\n');
 });
 
 test('saved drafts cannot be retargeted to a different inline parent', async () => {
@@ -167,7 +167,7 @@ test('send carries --cause in the --send-draft and --anyway modes', async () => 
     const anyway: CapturedSend = {};
     await runSend(
         sendArgs(
-            { '--target': 'task:SEC-12', '--cause': 'rmf_9a8b7c6d' },
+            { '--target': 'task:k3mq7xta', '--cause': 'rmf_9a8b7c6d' },
             { '--send-draft': true, '--anyway': true }
         ),
         depsFor(capturingSendClient(anyway), [])
@@ -177,7 +177,7 @@ test('send carries --cause in the --send-draft and --anyway modes', async () => 
         continueAnyway: true,
         nonce: 'nonce',
         sendDraft: true,
-        target: 'task:SEC-12',
+        target: 'task:k3mq7xta',
     });
 });
 
