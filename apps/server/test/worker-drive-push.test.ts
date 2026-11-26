@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import { randomShortId } from '../src/tasks/task-short-id.ts';
 import { drivePushFixture, expectOutcome } from './drive-push.fixture.ts';
 
 const push = drivePushFixture();
@@ -7,22 +8,15 @@ const { fixture } = push;
 
 async function seedWorkerTurn() {
     const db = fixture.harness.sql;
-    const [project] =
-        await db`select task_key_id from projects where chat_id = ${fixture.channelId}`;
     const taskId = createOpaqueId('tsk');
     const taskChatId = createOpaqueId('cht');
     const workerId = createOpaqueId('wkr');
     const turnId = createOpaqueId('wkt');
     await db`insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind)
         values (${taskChatId}, ${fixture.serverId}, 'task', ${fixture.channelId}, 'channel')`;
-    await db`with entry as (
-            update task_keys set next_number = next_number + 1
-            where id = ${project?.task_key_id} returning next_number - 1 as number
-        )
-        insert into tasks (id, server_id, key_id, number, title, chat_id, created_by_user_id, project_id)
-        select ${taskId}, ${fixture.serverId}, ${project?.task_key_id}, entry.number, 'Report',
-            ${taskChatId}, ${fixture.ownerUserId}, ${fixture.channelId}
-        from entry`;
+    await db`insert into tasks (id, server_id, short_id, title, chat_id, created_by_user_id, project_id)
+        values (${taskId}, ${fixture.serverId}, ${randomShortId()}, 'Report',
+            ${taskChatId}, ${fixture.ownerUserId}, ${fixture.channelId})`;
     await db`insert into workers (id, server_id, agent_id, carrier_computer_id, place, runtime,
             repository, task_id, title)
         values (${workerId}, ${fixture.serverId}, ${fixture.orbitAgentId}, ${fixture.computerId},

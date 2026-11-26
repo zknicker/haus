@@ -32,7 +32,7 @@ test('the first turn inlines the rule stack in order, and a later turn carries W
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const handle = await agentHandle(board);
     const haus = await publish(board, 'haus/AGENTS.md', 'Haus rules.');
-    const projectKey = board.task.key.split('-')[0];
+    const projectKey = 'GEN';
     const project = await publish(board, `projects/${projectKey}/AGENTS.md`, 'Project rules.');
     const workerMd = await publish(board, `agents/${handle}/WORKER.md`, 'Worker rules v1.');
     const scope = { computerId: board.seed.computerId, serverId: board.seed.serverId };

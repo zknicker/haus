@@ -200,9 +200,9 @@ async function resolveReminderAnchor(
     runner: ResolvedRunner,
     input: { messageId?: string; target?: string }
 ): Promise<{ anchorChatId: string; anchorMessageId: string }> {
-    const taskKey = input.target ? parseTaskTarget(input.target) : null;
-    if (taskKey) {
-        const task = await resolveTaskTargetChat(db, runner, taskKey);
+    const taskShortId = input.target ? parseTaskTarget(input.target) : null;
+    if (taskShortId) {
+        const task = await resolveTaskTargetChat(db, runner, taskShortId);
         if (!task) {
             throw new AgentTargetError();
         }

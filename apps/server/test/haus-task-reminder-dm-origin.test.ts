@@ -11,7 +11,7 @@ let bea: HausClient;
 let connection: HausConnection;
 let dmMessageId: string;
 let taskChatId: string;
-let taskKey: string;
+let taskShortId: string;
 
 async function agentPost(path: string, body: Record<string, unknown>) {
     const response = await fetch(new URL(path, fixture.harness.url), {
@@ -56,9 +56,9 @@ beforeAll(async () => {
         target: 'dm:@ada',
         title: 'Benchmark the offer',
     });
-    taskKey = started.body.task?.key ?? '';
+    taskShortId = started.body.task?.shortId ?? '';
     taskChatId =
-        (await owner.trpc.task.get.query({ key: taskKey, serverId })).chatId ?? 'missing task chat';
+        (await owner.trpc.task.get.query({ serverId, shortId: taskShortId })).chatId ?? 'missing task chat';
 });
 
 afterAll(async () => {
@@ -70,7 +70,7 @@ test('a reminder on a DM-origin Task with no messages is refused, not anchored o
     const scheduled = await agentPost('/api/agent/reminders/schedule', {
         commandId: 'task-reminder-empty-dm-origin',
         fireAt: '2099-01-01T00:00:00.000Z',
-        target: `task:${taskKey}`,
+        target: `task:${taskShortId}`,
         title: 'Check the offer',
     });
 
@@ -112,7 +112,7 @@ test('the fire context never shows a DM anchor to a Task reader outside the DM',
         cause: fire?.id,
         content: 'Checked the offer.',
         nonce: `task-reminder-answer-${fire?.id}`,
-        target: `task:${taskKey}`,
+        target: `task:${taskShortId}`,
     });
     const messageId = typeof sent.body.message === 'object' ? sent.body.message.id : '';
 

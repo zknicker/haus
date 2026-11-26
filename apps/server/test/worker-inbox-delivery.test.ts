@@ -47,7 +47,7 @@ test('a busy Agent hears a count of one Task reports, then gets the reports in i
     expect(notice?.inbox.filter((item) => item.workerReport)).toEqual([]);
     expect(notice?.workerReports).toEqual({
         ids: [`worker-report:${first}`, `worker-report:${second}`],
-        taskKey: board.task.key,
+        taskShortId: board.task.shortId,
         total: 2,
     });
     expect(JSON.stringify(notice)).not.toContain('First is done.');

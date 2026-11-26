@@ -158,13 +158,13 @@ test('reports from several Workers on one Task ride one Agent run, and another T
     const items = (frame?.inbox ?? []).map((item) => agentInboxItemSchema.parse(item));
     expect(
         items.map(({ workerReport }) => [
-            workerReport?.taskKey,
+            workerReport?.taskShortId,
             workerReport?.turnId,
             workerReport?.outcome.kind,
         ])
     ).toEqual([
-        [board.task.key, first, 'report'],
-        [board.task.key, second, 'report'],
+        [board.task.shortId, first, 'report'],
+        [board.task.shortId, second, 'report'],
     ]);
     expect(items.map((item) => [item.id, item.sequence, item.senderType])).toEqual([
         [`worker-report:${first}`, 0, 'system'],

@@ -166,13 +166,15 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const follows = await connection.db.select().from(taskFollowsTable);
     const tasks = await connection.db.select().from(tasksTable);
     const links = await connection.db.select().from(taskMessageLinksTable);
-    const states = byNumber(tasks).map((task) => `${task.number}:${task.state}`);
-    expect(states.join(' ')).toBe('1:open 2:todo 3:todo 4:todo 5:done');
+    expect(tasks).toHaveLength(5);
+    expect(tasks.filter((task) => task.archivedAt !== null).map((task) => task.title)).toEqual([
+        'Write the onboarding welcome copy',
+    ]);
     expect(tasks.every((task) => task.chatId !== null)).toBe(true);
-    const keys = links.map((link) => link.text).sort();
-    expect(keys.join(' ')).toBe('GEN-1 GEN-2 GEN-3 GEN-4 GEN-5');
+    expect(new Set(tasks.map((task) => task.shortId)).size).toBe(5);
+    expect(links).toEqual([]);
     const ledger = await connection.db.select().from(taskKeysTable);
-    expect(ledger.map((entry) => `${entry.key}:${entry.nextNumber}`).sort()).toEqual(['GEN:6']);
+    expect(ledger.map((entry) => `${entry.key}:${entry.nextNumber}`).sort()).toEqual(['GEN:1']);
     const productId = (await connection.db.select().from(chatsTable)).find(
         (chat) => chat.name === 'product'
     )?.id;
@@ -180,12 +182,14 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(projects.map((project) => project.chatId)).toEqual([productId]);
     expect(agents.every((agent) => agent.homeProjectId === productId)).toBe(true);
     expect(tasks.every((task) => task.projectId === productId)).toBe(true);
-    const ownerTasks = tasks.filter((task) => task.assigneeUserId !== null);
-    expect(ownerTasks.map((task) => task.number).sort()).toEqual([3, 4]);
     const followed = new Set(follows.map((follow) => follow.taskChatId));
-    const followedNumbers = tasks.filter((task) => followed.has(task.chatId ?? ''));
-    expect(followedNumbers.map((task) => task.number).sort()).toEqual([1, 3, 4, 5]);
-    const [open] = byNumber(tasks);
+    const followedTitles = tasks.filter((task) => followed.has(task.chatId ?? ''));
+    expect(followedTitles.map((task) => task.title).sort()).toEqual([
+        'Pick the upload size cap',
+        'Ship the avatar upload flow end to end',
+        'Write the onboarding welcome copy',
+    ]);
+    const open = tasks.find((task) => task.title === 'Ship the avatar upload flow end to end');
     expect(messages.filter((message) => message.chatId === open?.chatId)).toHaveLength(4);
     const works = await connection.db.select().from(workersTable);
     const openWork = works.filter((work) => work.taskId === open?.id);
@@ -193,12 +197,6 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(await connection.db.select().from(taskPullRequestsTable)).toMatchObject([
         { number: 512, repository: 'zknicker/haus', taskId: open?.id },
     ]);
-    const named = links
-        .filter((link) => /GEN-[34]/u.test(link.text))
-        .map((link) => messages.find((message) => message.id === link.messageId));
-    expect(named.every((message) => message && /GEN-[34]/u.test(message.content))).toBe(true);
-    const inTask = named.some((message) => tasks.some((task) => task.chatId === message?.chatId));
-    expect(inTask).toBe(false);
 
     // The Inbox seed's stalled claim is the only one in `#all`. The channel's
     // counter is past it, so promoting a message there does not collide with a
@@ -265,7 +263,3 @@ test('seeds #automations with live, archived, and replying automation causes', a
         messages.filter((message) => message.replyToMessageId && !causes.has(message.id))
     ).toHaveLength(1);
 });
-
-function byNumber<T extends { number: number }>(rows: T[]): T[] {
-    return [...rows].sort((left, right) => left.number - right.number);
-}

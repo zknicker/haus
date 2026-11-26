@@ -1,5 +1,5 @@
 import type { TaskLink } from '@haus/api';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     taskMessageLinksTable,
@@ -24,7 +24,7 @@ const maxLinkTextChars = 500;
 
 /**
  * Resolves the Task references in written content against one Server: a
- * `task://` id must name a Task on the Server. Unresolved candidates are
+ * `task://` link names a Task on the Server by id or short id. Unresolved candidates are
  * dropped and stay plain text; content is never rewritten. Every Task is
  * visible to every member and Agent, so no further access check applies.
  */
@@ -55,23 +55,23 @@ async function resolveTaskLinkRows(db: Reader, input: { content: string; serverI
     if (candidates.length === 0) {
         return [];
     }
+    const refs = candidates.map((candidate) => candidate.taskId);
     const rows = await db
         .select({ id: tasksTable.id, shortId: tasksTable.shortId })
         .from(tasksTable)
         .where(
             and(
                 eq(tasksTable.serverId, input.serverId),
-                inArray(
-                    tasksTable.id,
-                    candidates.map((candidate) => candidate.taskId)
-                )
+                or(inArray(tasksTable.id, refs), inArray(tasksTable.shortId, refs))
             )
         );
-    const shortIdById = new Map(rows.map((row) => [row.id, row.shortId]));
-    return candidates.flatMap((candidate) => {
-        const shortId = shortIdById.get(candidate.taskId);
-        return shortId ? [{ shortId, taskId: candidate.taskId, text: candidate.text }] : [];
-    }).map((link, ordinal) => ({ ...link, ordinal }));
+    const byRef = new Map(rows.flatMap((row) => [[row.id, row] as const, [row.shortId, row] as const]));
+    return candidates
+        .flatMap((candidate) => {
+            const task = byRef.get(candidate.taskId);
+            return task ? [{ shortId: task.shortId, taskId: task.id, text: candidate.text }] : [];
+        })
+        .map((link, ordinal) => ({ ...link, ordinal }));
 }
 
 /** Inserts one Message's Task links inside the transaction that inserts the Message. */

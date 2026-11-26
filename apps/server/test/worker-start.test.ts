@@ -3,7 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { chatMessagesTable, workersTable } from '../src/postgres/schema.ts';
 import { setProjectDefaultWorkerPlace } from '../src/projects/project-worker-defaults.ts';
-import { setTaskState } from '../src/tasks/task-set-state.ts';
+import { archiveTask } from '../src/tasks/task-archive.ts';
 import { startWorker } from '../src/workers/start-worker.ts';
 import {
     workerInstructionsMaxLength,
@@ -78,7 +78,7 @@ test('a start records the Worker and its brief, posts no Message, and dispatches
     });
     const handle = await agentHandle(board.seed.agentId);
     expect(frame?.frame.type === 'worker-turn-start' && frame.frame.input).toBe(
-        `${workerInstructions({ agentHandle: handle ?? '', place: 'cloud', taskKey: board.task.key })}\n\n## Brief from @${handle}\n\nMake it deterministic.`
+        `${workerInstructions({ agentHandle: handle ?? '', place: 'cloud', taskShortId: board.task.shortId })}\n\n## Brief from @${handle}\n\nMake it deterministic.`
     );
     expect(started.effects.events.map((event) => event.delivery.event)).toEqual([
         {
@@ -91,9 +91,9 @@ test('a start records the Worker and its brief, posts no Message, and dispatches
 });
 
 test('the Haus Worker instructions name the Task trailer and the final lines, within their cap', () => {
-    const text = workerInstructions({ agentHandle: 'forge', place: 'cloud', taskKey: 'ENG-41' });
+    const text = workerInstructions({ agentHandle: 'forge', place: 'cloud', taskShortId: 'k3mq7xta' });
     expect(text.length).toBeLessThanOrEqual(workerInstructionsMaxLength);
-    expect(text).toContain('`Haus-Task: ENG-41`');
+    expect(text).toContain('`Haus-Task: k3mq7xta`');
     expect(text).toContain('Haus-Outcome: done, needs-you, or failed');
     expect(text).toContain('Haus-Person: @handle');
     expect(text).toContain('pull request, put its URL in your final message');
@@ -124,7 +124,7 @@ test('a start without a usable Task or place is refused before anything is writt
         startWorker(connection.db, board.runner, startInput(board, overrides));
 
     await expect(refuse({ task: undefined })).rejects.toThrow('A Worker needs a Task.');
-    await expect(refuse({ task: 'ZZZ-404' })).rejects.toThrow('Task ZZZ-404 does not exist');
+    await expect(refuse({ task: 'zzzz0404' })).rejects.toThrow('Task zzzz0404 does not exist');
     await expect(refuse({ place: undefined })).rejects.toThrow(
         "This Task's Project has no default place for Workers, so say where the Worker runs with --on. Ready places: claude."
     );
@@ -143,13 +143,14 @@ test('a start without a usable Task or place is refused before anything is writt
     );
     await setReadyPlaces(connection.db, board.seed.serverId, board.seed.computerId, ['claude']);
     const { version = 1 } = (await readTaskState(connection.db, board.task.id)) ?? {};
-    await setTaskState(connection.db, { kind: 'user', userId: board.seed.userId }, delivery, {
+    await archiveTask(connection.db, { kind: 'user', userId: board.seed.userId }, delivery, {
         expectedVersion: version,
         serverId: board.seed.serverId,
-        state: 'done',
         taskId: board.task.id,
     });
-    await expect(refuse({ place: 'claude' })).rejects.toThrow(`Task ${board.task.key} is closed.`);
+    await expect(refuse({ place: 'claude' })).rejects.toThrow(
+        `Task ${board.task.shortId} is archived.`
+    );
     expect(await countWorkers(board.seed.serverId)).toBe(0);
 });
 

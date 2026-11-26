@@ -72,7 +72,6 @@ test('archiving then deleting a Project deletes its Tasks and their Chats; cloud
         serverId,
         title: 'Done before the Channel goes',
     });
-    await harness.sql`update tasks set state = 'open' where id = ${open.id}`;
     const progress = await owner.trpc.chat.send.mutate({
         chatId: open.chatId,
         content: 'Progress inside the Task',
@@ -104,10 +103,9 @@ test('archiving then deleting a Project deletes its Tasks and their Chats; cloud
         insert into task_pull_requests (server_id, task_id, repository, number)
         values (${serverId}, ${open.id}, 'acme/api', 7)
     `;
-    await owner.trpc.task.setState.mutate({
+    await owner.trpc.task.archive.mutate({
         expectedVersion: (await owner.trpc.task.get.query({ serverId, taskId: done.id })).version,
         serverId,
-        state: 'done',
         taskId: done.id,
     });
 

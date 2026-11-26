@@ -99,7 +99,7 @@ test('PostgreSQL search returns only authorized Server messages', async () => {
         chatId,
         content: 'Durable search needle.',
         serverId,
-        taskKey: null,
+        taskShortId: null,
     });
 
     const plan = await harness.sql.begin(async (tx) => {

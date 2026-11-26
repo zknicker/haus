@@ -19,7 +19,7 @@ let target: string;
 
 beforeAll(async () => {
     connection = await connectHausDatabase(fixture.harness.databaseUrl);
-    target = `task:${fixture.task.key}`;
+    target = `task:${fixture.task.shortId}`;
     novaId = (
         await createHomedAgent(fixture.owner, {
             computerId: fixture.computerId,
@@ -36,7 +36,7 @@ afterAll(async () => {
     await connection?.close();
 });
 
-test('task: resolves for send and read; an unknown key is refused', async () => {
+test('task: resolves for send and read; an unknown short id is refused', async () => {
     const runner = await fixture.mintRunner('run_task_target');
     const sent = await agentPost(runner, '/api/agent/messages/send', {
         content: 'Starting on the flaky test.',
@@ -58,7 +58,7 @@ test('task: resolves for send and read; an unknown key is refused', async () => 
     const unknown = await agentPost(runner, '/api/agent/messages/send', {
         content: 'Nowhere.',
         nonce: 'task-target-unknown',
-        target: 'task:ZZZ-999',
+        target: 'task:zzzzzzzz',
     });
     expect(unknown).toMatchObject({ body: { code: 'INVALID_TARGET' }, status: 404 });
 });
@@ -162,7 +162,7 @@ test('a reminder on a Task with no posts is refused until someone posts in the T
         agentPost(runner, '/api/agent/reminders/schedule', {
             commandId,
             fireAt: new Date(Date.now() + 7_200_000).toISOString(),
-            target: `task:${empty.key}`,
+            target: `task:${empty.shortId}`,
             title: 'Check back on the empty Task',
         });
     expect(await schedule('task-reminder-empty')).toMatchObject({
@@ -173,11 +173,11 @@ test('a reminder on a Task with no posts is refused until someone posts in the T
     const posted = await agentPost(runner, '/api/agent/messages/send', {
         content: 'Picking this up.',
         nonce: 'task-reminder-empty-post',
-        target: `task:${empty.key}`,
+        target: `task:${empty.shortId}`,
     });
     expect(posted.status).toBe(200);
     expect(await schedule('task-reminder-empty-posted')).toMatchObject({
-        body: { reminder: { anchorTarget: `task:${empty.key}` } },
+        body: { reminder: { anchorTarget: `task:${empty.shortId}` } },
         status: 200,
     });
     expect(
@@ -193,7 +193,7 @@ test('a reminder on a Task with no posts is refused until someone posts in the T
     ]);
 });
 
-test('closing a Task cancels a pending reminder on it', async () => {
+test('archiving a Task cancels a pending reminder on it', async () => {
     const task = await startTestTask(fixture.harness, fixture.owner, {
         channelId: fixture.channelId,
         serverId: fixture.serverId,
@@ -203,22 +203,21 @@ test('closing a Task cancels a pending reminder on it', async () => {
     await agentPost(runner, '/api/agent/messages/send', {
         content: 'Watching this one.',
         nonce: 'task-reminder-close-post',
-        target: `task:${task.key}`,
+        target: `task:${task.shortId}`,
     });
     const scheduled = await agentPost(runner, '/api/agent/reminders/schedule', {
         commandId: 'task-reminder-close',
         fireAt: new Date(Date.now() + 3_600_000).toISOString(),
-        target: `task:${task.key}`,
-        title: 'Canceled by closing',
+        target: `task:${task.shortId}`,
+        title: 'Canceled by archiving',
     });
     expect(scheduled.status).toBe(200);
-    const closed = await agentPost(runner, '/api/agent/tasks/state', {
-        key: task.key,
-        state: 'done',
+    const closed = await agentPost(runner, '/api/agent/tasks/archive', {
+        task: task.shortId,
     });
     expect(closed.status).toBe(200);
     expect(
-        await fixture.harness.sql`select status from reminders where title = 'Canceled by closing'`
+        await fixture.harness.sql`select status from reminders where title = 'Canceled by archiving'`
     ).toEqual([{ status: 'canceled' }]);
 });
 
