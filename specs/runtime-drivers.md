@@ -90,7 +90,7 @@ process needs no new slot. A turn that needs a new process and finds every slot 
 least recently used warm process first; when none is warm it waits in a first-come queue, and each
 process that parks while turns wait is closed in turn to admit the next. The Claude Agent SDK's
 30-second initialize timeout starts only once the turn holds a slot, so a waiting turn never times
-out; a Stop or reset leaves the queue. The Server shows the waiting turn as starting work. The
+out; a Stop or reset leaves the queue and settles the turn as interrupted. The Server shows the waiting turn as starting work. The
 runner logs each wait, and the turn span carries it as `haus.turn.slot_wait_ms`. Pi sessions run
 in the runner process and take no slot.
 

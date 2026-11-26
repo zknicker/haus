@@ -61,7 +61,7 @@ export class CompactingPool<Process extends IdleCompactable> {
     }
 
     evictOldest() {
-        return this.closed(this.pool.evictOldest());
+        return this.closed(this.pool.evictOldest((process) => process.alive));
     }
 
     expire(now: number) {

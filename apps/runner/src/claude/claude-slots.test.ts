@@ -39,6 +39,21 @@ test('a turn evicts the least recently used warm process before it waits on a li
     expect(runner.pool.size).toBe(1);
 });
 
+test('a parked process that already exited does not strand a waiting turn', async () => {
+    const runner = admission(2);
+    await runner.start('p1');
+    await runner.start('p2');
+    runner.park('p1');
+    runner.park('p2');
+    runner.exit('p1');
+    await runner.start('p3');
+
+    const fourth = runner.start('p4');
+    expect(runner.slots.waiting).toBe(0);
+    expect(runner.evicted).toEqual(['p1', 'p2']);
+    await fourth;
+});
+
 test('a process that parks while turns wait is evicted to admit the next one', async () => {
     const runner = admission(1);
     await runner.start('p1');
@@ -75,10 +90,11 @@ function admission(limit: number) {
     const time = manualClock();
     const pool = new WarmPool<string>({ idleMs: warmIdleMs, maxWarm: 16 });
     const held = new Map<string, ClaudeSlot>();
+    const exited = new Set<string>();
     const evicted: string[] = [];
     const slots = new ClaudeSlots({
         evict: () => {
-            for (const process of pool.evictOldest()) {
+            for (const process of pool.evictOldest((candidate) => !exited.has(candidate))) {
                 evicted.push(process);
                 held.get(process)?.release();
             }
@@ -88,7 +104,10 @@ function admission(limit: number) {
     });
     return {
         evicted,
-        exit: (process: string) => held.get(process)?.release(),
+        exit: (process: string) => {
+            exited.add(process);
+            held.get(process)?.release();
+        },
         park: (process: string) => {
             pool.park(
                 process,

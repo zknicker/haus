@@ -2,8 +2,16 @@ import type { DispatchLedger } from '../dispatch/ledger.ts';
 import type { RunnerLink, RunStart } from '../run-context.ts';
 import { inboxStore } from './inbox-store.ts';
 import type { runRecords } from './run-records.ts';
+import type { RunTurnResult } from './run-turn.ts';
 import { RunnerCrashedError } from './turn-failure.ts';
 import { turnSummary } from './turn-summary.ts';
+
+export function thrownRunResult(failure: unknown, signal: AbortSignal) {
+    const result: RunTurnResult = signal.aborted
+        ? { failure: null, status: 'interrupted', tokenUsage: null }
+        : { failure, status: 'failed', tokenUsage: null };
+    return result;
+}
 
 export async function crashedRunSummary(
     start: RunStart['start'],

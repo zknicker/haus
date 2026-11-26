@@ -21,7 +21,7 @@ import { idleCompactionGate } from './idle-compaction-gate.ts';
 import { inboxStore } from './inbox-store.ts';
 import { recoverDispatches } from './recovered-dispatches.ts';
 import { createRunActivity } from './run-activity.ts';
-import { crashedRunSummary, skipReplacedRun } from './run-endings.ts';
+import { crashedRunSummary, skipReplacedRun, thrownRunResult } from './run-endings.ts';
 import { runRecords } from './run-records.ts';
 import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
@@ -188,7 +188,7 @@ export function createTurnHostWith(input: {
                 tools: run.tools,
             });
         } catch (error) {
-            result = { failure: error, status: 'failed', tokenUsage: null };
+            result = thrownRunResult(error, current.controller.signal);
         }
         await finishTurn(
             { activity, connection, journal, records, result, run, startedAt, store, timings },
