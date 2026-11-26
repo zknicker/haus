@@ -1,4 +1,4 @@
-import { type RuleFile, ruleLayerPaths } from '@haus/agent-prompt';
+import type { RuleFile } from '@haus/agent-prompt';
 import type { RunAuthority } from '../run-context.ts';
 import { readAgentProfile, readDriveText, readSkillListing } from './agent-drive.ts';
 import { readManagedSkillNotice } from './managed-skill-notice.ts';
@@ -8,21 +8,24 @@ interface ContextReader {
     readonly log: (line: string) => void;
 }
 
+/** The turn's Drive context, read from the paths the session policy names. */
 export async function readAgentContext(input: ContextReader) {
     const profile = await readAgentProfile(input.authority).catch((error: unknown) => {
         input.log(`Runner could not read the Agent's profile: ${String(error)}`);
         return null;
     });
     if (!profile) {
-        return { memory: null, rules: [], skillNotice: null, skills: [] };
+        return { memory: null, policy: null, rules: [], skillNotice: null, skills: [] };
     }
-    const { handle } = profile;
+    const { handle, session } = profile;
     const [memory, rules, skills, skillNotice] = await Promise.all([
-        readDriveText(input.authority, `agents/${handle}/MEMORY.md`).catch((error: unknown) => {
-            input.log(`Runner could not read ${handle}'s MEMORY.md: ${String(error)}`);
-            return null;
-        }),
-        readRuleFiles(input, ruleLayerPaths(profile)),
+        session.memoryPath === null
+            ? null
+            : readDriveText(input.authority, session.memoryPath).catch((error: unknown) => {
+                  input.log(`Runner could not read ${session.memoryPath}: ${String(error)}`);
+                  return null;
+              }),
+        readRuleFiles(input, session.rulePaths),
         readSkillListing(input.authority, handle).catch((error: unknown) => {
             input.log(`Runner could not list ${handle}'s skills: ${String(error)}`);
             return [];
@@ -32,7 +35,7 @@ export async function readAgentContext(input: ContextReader) {
             return null;
         }),
     ]);
-    return { memory, rules, skillNotice, skills };
+    return { memory, policy: session, rules, skillNotice, skills };
 }
 
 async function readRuleFiles(input: ContextReader, paths: readonly string[]) {

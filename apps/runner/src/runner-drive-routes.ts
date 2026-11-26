@@ -1,9 +1,11 @@
+import { captainWarmIdleMs, type RunnerSessionPolicy } from '@haus/api';
 import type { StandInRoutes } from './runner-test-server.ts';
 
 export function driveRoutes(
     handle: string,
     files: Map<string, string>,
-    projectKey: string | null = null
+    projectKey: string | null = null,
+    session: RunnerSessionPolicy = captainSession(handle, projectKey)
 ) {
     const ids = new Map([...files.keys()].map((path, index) => [path, `art_${index}`]));
     const routes: StandInRoutes = {
@@ -15,7 +17,7 @@ export function driveRoutes(
                 : Response.json({ code: 'NOT_FOUND', message: path }, { status: 404 });
         },
         '/api/agent/managed-skills/notice': () => Response.json({ pending: {} }),
-        '/api/agent/profile': () => Response.json({ profile: { handle, projectKey } }),
+        '/api/agent/profile': () => Response.json({ profile: { handle, projectKey }, session }),
     };
     for (const [path, id] of ids) {
         routes[`/api/agent/artifacts/${id}/download`] = (_body, url) =>
@@ -23,4 +25,20 @@ export function driveRoutes(
         routes[`/drive-bytes/${id}`] = () => new Response(files.get(path) ?? '');
     }
     return routes;
+}
+
+/** The policy the Server names for a Captain, as `agent-session-policy.ts` builds it. */
+export function captainSession(handle: string, projectKey: string | null) {
+    const session: RunnerSessionPolicy = {
+        idleCompaction: true,
+        kind: 'captain',
+        memoryPath: `agents/${handle}/MEMORY.md`,
+        rulePaths: [
+            'haus/AGENTS.md',
+            ...(projectKey === null ? [] : [`projects/${projectKey}/AGENTS.md`]),
+            `agents/${handle}/AGENTS.md`,
+        ],
+        warmIdleMs: captainWarmIdleMs,
+    };
+    return session;
 }

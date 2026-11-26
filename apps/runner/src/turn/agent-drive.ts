@@ -1,13 +1,11 @@
 import type { SkillListingEntry } from '@haus/agent-prompt';
-import { artifactListPageMax } from '@haus/api';
+import { artifactListPageMax, runnerSessionPolicySchema } from '@haus/api';
 import * as z from 'zod';
 import type { RunAuthority } from '../run-context.ts';
 
 const profileSchema = z.object({
-    profile: z.object({
-        handle: z.string().min(1),
-        projectKey: z.string().min(1).nullable().default(null),
-    }),
+    profile: z.object({ handle: z.string().min(1) }),
+    session: runnerSessionPolicySchema,
 });
 const artifactSchema = z.object({ artifact_id: z.string().min(1), path: z.string().min(1) });
 const byPathSchema = z.object({ artifact: artifactSchema });
@@ -21,9 +19,12 @@ export class AgentDriveReadError extends Error {
     }
 }
 
+/** The agent's handle and the session policy the Server names for its runs. */
 export async function readAgentProfile(authority: RunAuthority) {
-    return profileSchema.parse(await agentGet(authority, '/api/agent/profile', 'the profile'))
-        .profile;
+    const { profile, session } = profileSchema.parse(
+        await agentGet(authority, '/api/agent/profile', 'the profile')
+    );
+    return { handle: profile.handle, session };
 }
 
 export async function readDriveText(authority: RunAuthority, path: string) {

@@ -130,7 +130,8 @@ export function createPiHarness(options: {
                                     nativeSessionId: parked.sessionId,
                                 },
                                 parked,
-                                Date.now()
+                                Date.now(),
+                                launch.policy?.warmIdleMs
                             )
                         ),
                 });

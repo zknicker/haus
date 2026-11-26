@@ -34,9 +34,17 @@ export class CompactingPool<Process extends IdleCompactable> {
         this.scheduler.setGate(gate, this.pool.closingTimes());
     }
 
-    park(agentId: string, identity: WarmIdentity, process: Process, now: number) {
-        const closing = this.pool.park(agentId, identity, process, now);
-        this.scheduler.arm(agentId, process, now + this.options.idleMs);
+    park(
+        agentId: string,
+        identity: WarmIdentity,
+        process: Process,
+        now: number,
+        session = { idleCompaction: true, idleMs: this.options.idleMs }
+    ) {
+        const closing = this.pool.park(agentId, identity, process, now, session.idleMs);
+        if (session.idleCompaction) {
+            this.scheduler.arm(agentId, process, now + session.idleMs);
+        }
         return this.closed(closing);
     }
 
