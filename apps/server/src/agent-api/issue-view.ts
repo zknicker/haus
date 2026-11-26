@@ -1,4 +1,12 @@
-import type { Issue, IssueComment, IssueDetail, IssueEvent } from '@haus/api';
+import {
+    formatIssueCode,
+    type Issue,
+    type IssueChange,
+    type IssueComment,
+    type IssueDetail,
+    type IssueEvent,
+} from '@haus/api';
+import { issueActorLabel } from '../issues/issue-actor-names.ts';
 import { and, eq, inArray } from 'drizzle-orm';
 import { nameIssueActors } from '../issues/issue-actor-names.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -14,7 +22,7 @@ export async function toAgentIssueRows(db: Reader, serverId: string, issues: rea
         serverId,
         issues.flatMap((issue) => [issue.assignee, issue.creator])
     );
-    const labels = await labelNames(db, serverId, issues);
+    const labels = await labelNames(db, serverId, issues.flatMap((issue) => issue.labelIds));
     const parents = await parentCodes(db, serverId, issues);
     return issues.map((issue) => ({
         assignee: issue.assignee ? name(issue.assignee) : null,
@@ -48,13 +56,15 @@ export async function toAgentIssueShow(db: Reader, detail: IssueDetail) {
     const activity = detail.events.slice(-activityLimit);
     const name = await nameIssueActors(db, serverId, [
         ...detail.comments.map((comment) => comment.author),
-        ...activity.map((event) => event.actor),
+        ...activity.flatMap((event) => [event.actor, ...assigneesOf(event)]),
     ]);
+    const labels = await labelNames(db, serverId, activity.flatMap(labelIdsOf));
     return {
-        activity: activity.map((event: IssueEvent) => ({
+        activity: activity.map((event) => ({
             actor: event.actor ? name(event.actor) : null,
-            change: event.change,
             createdAt: event.createdAt,
+            kind: event.change.kind,
+            ...changeValues(event.change, name, labels),
         })),
         comments: detail.comments.map((comment) => toAgentComment(comment, name)),
         description: detail.issue.description,
@@ -82,8 +92,8 @@ export function toAgentComment(
     };
 }
 
-async function labelNames(db: Reader, serverId: string, issues: readonly Issue[]) {
-    const ids = [...new Set(issues.flatMap((issue) => issue.labelIds))];
+async function labelNames(db: Reader, serverId: string, labelIds: readonly string[]) {
+    const ids = [...new Set(labelIds)];
     if (ids.length === 0) {
         return new Map<string, string>();
     }
@@ -110,5 +120,44 @@ async function parentCodes(db: Reader, serverId: string, issues: readonly Issue[
             )
         )
         .where(and(eq(issuesTable.serverId, serverId), inArray(issuesTable.id, ids)));
-    return new Map(rows.map((row) => [row.id, `${row.key}-${row.number}`]));
+    return new Map(rows.map((row) => [row.id, formatIssueCode(row.key, row.number)]));
+}
+
+type ActorNames = Awaited<ReturnType<typeof nameIssueActors>>;
+
+function changeValues(change: IssueChange, name: ActorNames, labels: Map<string, string>) {
+    switch (change.kind) {
+        case 'created':
+        case 'description_edited':
+            return { from: null, to: null };
+        case 'sub_issue_added':
+            return { from: null, to: change.issue };
+        case 'sub_issue_removed':
+            return { from: change.issue, to: null };
+        case 'linked':
+            return { from: null, to: `task:${change.taskId}` };
+        case 'unlinked':
+            return { from: `task:${change.taskId}`, to: null };
+        case 'assignee_changed':
+            return {
+                from: issueActorLabel(change.from && name(change.from)),
+                to: issueActorLabel(change.to && name(change.to)),
+            };
+        case 'labels_changed':
+            return { from: labelList(change.from, labels), to: labelList(change.to, labels) };
+        default:
+            return { from: change.from, to: change.to };
+    }
+}
+
+function labelList(ids: readonly string[], labels: Map<string, string>) {
+    return ids.length === 0 ? 'none' : ids.map((id) => labels.get(id) ?? id).join(', ');
+}
+
+function assigneesOf(event: IssueEvent) {
+    return event.change.kind === 'assignee_changed' ? [event.change.from, event.change.to] : [];
+}
+
+function labelIdsOf(event: IssueEvent) {
+    return event.change.kind === 'labels_changed' ? [...event.change.from, ...event.change.to] : [];
 }

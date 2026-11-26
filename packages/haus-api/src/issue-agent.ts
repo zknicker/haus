@@ -8,7 +8,7 @@ import {
     issueStateSchema,
     issueTitleSchema,
 } from './issue.ts';
-import { issueChangeSchema, issueCommentBodySchema } from './issue-timeline.ts';
+import { issueCommentBodySchema, issueEventKinds } from './issue-timeline.ts';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 import { workerPullRequestStates } from './worker-pull-request.ts';
 
@@ -124,8 +124,10 @@ export const agentIssueCommentRowSchema = z
 export const agentIssueActivityRowSchema = z
     .object({
         actor: agentIssueActorSchema.nullable(),
-        change: issueChangeSchema,
         createdAt: timestampSchema,
+        from: z.string().nullable(),
+        kind: z.enum(issueEventKinds),
+        to: z.string().nullable(),
     })
     .strict();
 

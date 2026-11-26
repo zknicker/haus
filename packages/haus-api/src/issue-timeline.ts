@@ -62,6 +62,22 @@ export const issueChangeSchema = z.discriminatedUnion('kind', [
 export type IssueChange = z.infer<typeof issueChangeSchema>;
 export type IssueEventKind = IssueChange['kind'];
 
+export const issueEventKinds = [
+    'created',
+    'state_changed',
+    'priority_changed',
+    'assignee_changed',
+    'title_changed',
+    'description_edited',
+    'parent_set',
+    'sub_issue_added',
+    'sub_issue_removed',
+    'linked',
+    'unlinked',
+    'due_changed',
+    'labels_changed',
+] as const satisfies readonly IssueEventKind[];
+
 export const issueEventSchema = z
     .object({
         actor: issueActorSchema.nullable(),
