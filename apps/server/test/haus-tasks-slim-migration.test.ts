@@ -6,7 +6,7 @@ import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 
-test('0159 gives every existing Task a short id and drops its backlog fields', async () => {
+test('0161 gives every existing Task a short id and drops its backlog fields', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tasks-slim-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -19,13 +19,13 @@ test('0159 gives every existing Task a short id and drops its backlog fields', a
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(157));
+        await writeFile(journalPath, through(159));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedBacklogTasks(database);
 
-        await writeFile(journalPath, through(158));
+        await writeFile(journalPath, through(160));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0159_tasks-slim',
+            '0161_tasks-slim',
         ]);
         const tasks = (await database`
             SELECT id, short_id, archived_at FROM tasks ORDER BY id

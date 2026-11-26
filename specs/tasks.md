@@ -81,7 +81,7 @@ Wire shapes live in `packages/haus-api/src/task.ts`. The tRPC surface is
   `createOpaqueId` mints it (`apps/server/src/postgres/opaque-id.ts:9`); `@haus/api` validates Task
   ids only as strings, so nothing there changes. Lowercase keeps it safe in macOS git refs, which
   ignore case, and fits the agent handle grammar
-  (`apps/server/src/postgres/schema/agents.ts:173-174`). Migration 0159 gives existing Tasks
+  (`apps/server/src/postgres/schema/agents.ts:173-174`). Migration 0161 gives existing Tasks
   short ids through a random column default it drops in the same statement batch; a collision
   fails the migration rather than retrying.
 - The short id is the Task's handle: `haus task show k3mq7xta`, the URL `/tasks/k3mq7xta`, the
