@@ -4,6 +4,12 @@ import { Label, ListBox } from '@heroui/react';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { useHomePromptFocusRequests } from './home-prompt-focus.ts';
+import {
+    HomeMachinePicker,
+    HomeModelPicker,
+    useHomeMachines,
+    useHomeModels,
+} from './home-session-pickers.tsx';
 import { useHomeSend } from './use-home-send.ts';
 
 type HomeProject = Pick<Chat, 'color' | 'icon' | 'id' | 'name'>;
@@ -19,9 +25,12 @@ export function HomeComposer({
     serverId: string;
     slug: string;
 }) {
-    const sendHome = useHomeSend(serverId, slug);
+    const sendHome = useHomeSend(slug);
     const [text, setText] = React.useState('');
     const [projectId, setProjectId] = React.useState(initialProjectId);
+    const [machineId, setMachineId] = React.useState<null | string>(null);
+    const [modelId, setModelId] = React.useState<null | string>(null);
+    const [requestId, setRequestId] = React.useState(() => crypto.randomUUID());
     const composerRef = React.useRef<HTMLDivElement>(null);
     const focusPrompt = React.useCallback(
         () =>
@@ -33,9 +42,20 @@ export function HomeComposer({
     useHomePromptFocusRequests(focusPrompt);
 
     const project = projects.find((entry) => entry.id === projectId) ?? projects[0];
+    const { fallback: projectMachine, machines } = useHomeMachines(serverId, project?.id);
+    const { fallback: firstModel, models } = useHomeModels(serverId);
+    const machine = machines.find((entry) => entry.id === machineId) ?? projectMachine;
+    const model = models.find((entry) => entry.id === modelId) ?? firstModel;
     const ask =
-        project && text.trim().length > 0 && !sendHome.isPending
-            ? { projectChatId: project.id, text }
+        project && machine && model && text.trim().length > 0 && !sendHome.isPending
+            ? {
+                  computerId: machine.id,
+                  model: model.id,
+                  projectChatId: project.id,
+                  requestId,
+                  serverId,
+                  text,
+              }
             : null;
 
     return (
@@ -47,7 +67,10 @@ export function HomeComposer({
                 size="sm"
                 onSubmit={() => {
                     if (ask) {
-                        sendHome.send(ask, () => setText(''));
+                        sendHome.send(ask, () => {
+                            setText('');
+                            setRequestId(crypto.randomUUID());
+                        });
                     }
                 }}
                 onValueChange={setText}
@@ -69,6 +92,14 @@ export function HomeComposer({
                             }
                         }}
                     >
+                        <PromptInput.ToolbarStart>
+                            <HomeMachinePicker
+                                machine={machine}
+                                machines={machines}
+                                onChange={setMachineId}
+                            />
+                            <HomeModelPicker model={model} models={models} onChange={setModelId} />
+                        </PromptInput.ToolbarStart>
                         <PromptInput.ToolbarEnd>
                             <PromptInput.Send aria-label="Send" isDisabled={!ask} />
                         </PromptInput.ToolbarEnd>

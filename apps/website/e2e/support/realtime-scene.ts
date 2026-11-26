@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { workerObservationFrame, seedWorker } from './agent-worker.ts';
 import { createChannelAgent } from './channel-agent.ts';
-import { sendBootstrap, socketMessage, socketOpen } from './computer-socket.ts';
+import { bootstrapAnswer, sendBootstrap, socketOpen } from './computer-socket.ts';
 import { installDesktopBrowserStub, openDesktopWindow } from './desktop-browser-stub.ts';
 import { createProjectWithAgents } from './project.ts';
 import { createClient, createTestServer, openChannel } from './server.ts';
@@ -61,7 +61,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
     await expect(tabs(page)).toHaveCount(2);
     await showTab(page, 'product');
     await visibleSurface(page)
-        .getByRole('button', { name: new RegExp(`^Open task ${work.taskKey},`, 'u') })
+        .getByRole('button', { name: /^Open task Rebuild the search index,/u })
         .click({ modifiers: ['Meta'] });
     await expect(tabs(page)).toHaveCount(3);
     await showTab(page, 'all');
@@ -91,7 +91,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
                 `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
             );
             await socketOpen(computer);
-            const accepted = socketMessage(computer);
+            const accepted = bootstrapAnswer(computer);
             sendBootstrap(computer, computerCredential, 'complete');
             expect(await accepted).toMatchObject({ mode: 'ordinary' });
             computer.send(
@@ -154,7 +154,7 @@ export async function expectConverged(
         }
     );
     await tabs(page)
-        .getByRole('button', { name: new RegExp(scene.work.taskKey, 'u') })
+        .getByRole('button', { name: new RegExp(scene.work.taskShortId, 'u') })
         .click();
     await expect(
         page

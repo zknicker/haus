@@ -7,6 +7,7 @@ describe('app route tab', () => {
             { id: 'search', label: 'Search', path: '/search' },
             { id: 'chat', label: 'Chat', path: '/chats' },
             { id: 'activity', label: 'Activity', path: '/activity' },
+            { id: 'issues', label: 'Issues', path: '/issues' },
             { id: 'tasks', label: 'Tasks', path: '/tasks' },
             { id: 'artifacts', label: 'Drive', path: '/artifacts' },
             { id: 'members', label: 'Members', path: '/settings/members' },

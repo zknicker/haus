@@ -7,7 +7,7 @@ export interface SeededWorker {
     chatId: string;
     computerId: string;
     turnId: string;
-    taskKey: string;
+    taskShortId: string;
     workerId: string;
 }
 
@@ -53,6 +53,11 @@ export async function seedWorker(input: {
         `update computers set reported_inventory = '${JSON.stringify(inventory)}'::jsonb, health = 'healthy'
          where id = '${attached.computerId}'`
     );
+    runPsql(
+        input.databaseUrl,
+        `update projects set default_worker_place = 'computer', default_worker_computer_id = '${attached.computerId}'
+         where chat_id = '${chatId}'`
+    );
 
     const created = await createHomedAgent(owner, {
         computerId: attached.computerId,
@@ -84,7 +89,7 @@ export async function seedWorker(input: {
         chatId,
         computerId: attached.computerId,
         turnId: receipt.turnId,
-        taskKey: receipt.taskKey,
+        taskShortId: receipt.taskShortId,
         workerId: receipt.worker.id,
     };
 }
@@ -99,7 +104,7 @@ export async function startWorker(input: {
     startingRef?: null | string;
     target: string;
     title: string;
-}): Promise<{ turnId: string; taskKey: string; worker: { id: string } }> {
+}): Promise<{ turnId: string; taskShortId: string; worker: { id: string } }> {
     const runnerToken = await mintAgentRunner({
         agentId: input.agentId,
         chatId: input.chatId,
@@ -114,7 +119,7 @@ export async function startWorker(input: {
             },
             method: 'POST',
         });
-    const taskKey = await startLaunchTask(agentPost, input);
+    const taskShortId = await startLaunchTask(agentPost, input);
     const launch = async () => {
         const response = await agentPost('/api/agent/workers', {
             brief: input.brief,
@@ -122,7 +127,7 @@ export async function startWorker(input: {
             place: 'cursor',
             repository: input.repository,
             startingRef: input.startingRef ?? null,
-            task: taskKey,
+            task: taskShortId,
             title: input.title,
         });
         const receipt = (await response.json()) as {
@@ -144,7 +149,7 @@ export async function startWorker(input: {
         );
     }
 
-    return { taskKey, turnId, worker: receipt.worker };
+    return { taskShortId, turnId, worker: receipt.worker };
 }
 
 type AgentPost = (path: string, body: unknown) => Promise<Response>;
@@ -171,18 +176,26 @@ async function startLaunchTask(
             `The Worker fixture could not post its origin Message: ${status} ${JSON.stringify(payload)}`
         );
     }
-    const response = await agentPost('/api/agent/tasks/start', {
-        from: payload.message.id,
-        target: input.target,
-        title: input.title,
-    });
-    const started = (await response.json()) as { task?: { key: string } };
-    if (response.status !== 200 || !started.task) {
+    const start = async () => {
+        const response = await agentPost('/api/agent/tasks/start', {
+            brief: input.title,
+            from: payload.message?.id,
+            target: input.target,
+            title: input.title,
+        });
+        const started = (await response.json()) as { state?: string; task?: { shortId: string } };
+        return { started, status: response.status };
+    };
+    let { started, status: startStatus } = await start();
+    if (startStatus === 200 && started.state === 'held') {
+        ({ started, status: startStatus } = await start());
+    }
+    if (startStatus !== 200 || !started.task) {
         throw new Error(
-            `The Worker fixture could not start its Task: ${response.status} ${JSON.stringify(started)}`
+            `The Worker fixture could not start its Task: ${startStatus} ${JSON.stringify(started)}`
         );
     }
-    return started.task.key;
+    return started.task.shortId;
 }
 
 /** One bounded observation, the frame a Computer sends over its attachment. */

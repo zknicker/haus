@@ -69,10 +69,13 @@ archived.
 
 ## The Tasks page
 
-One flat page lists Tasks, with no boards and no columns: active Tasks first, newest first, then
-archived ones by archive time. One State filter (active or archived) lives in the URL
-(`?state=`), so a link, a reload, and Back keep it. A person can archive or unarchive a Task here,
-but not create one. Nothing paints until the list answers.
+One flat page lists Tasks under three tabs, as Capy's Threads: **My tasks** (the Tasks you
+started), **All tasks**, and **Archived**, newest first. The tab lives in the URL (`?view=`), and
+the tabs stay up on an empty tab, so Archived is always one click away. A row shows the title, the
+code of each Issue linked to it, its Machine and model, its activity (Working, Waiting, Idle,
+Failed, or Needs you), and its age. A person can archive or unarchive a Task from a row's menu;
+Tasks start from Home. "Copy reference" escapes brackets in the title, so `[Bug] Crash` still
+pastes as one `task://` link. Nothing paints until the list answers.
 
 ## Following and unread
 

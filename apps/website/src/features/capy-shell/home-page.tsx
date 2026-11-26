@@ -1,5 +1,6 @@
 import type { Agent, Chat } from '@haus/api';
 import * as React from 'react';
+import { useProjects } from '../../hooks/projects/use-projects.ts';
 import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
@@ -38,7 +39,17 @@ export function CapyHomePage({
         (chats: Chat[]) => homeProjects(chats, storedChannelOrder(serverId)),
         [serverId]
     );
-    const projects = useChatListSelection(serverId, selectProjects);
+    const channels = useChatListSelection(serverId, selectProjects);
+    const projectRecords = useProjects(serverId).data;
+    const projects = React.useMemo(
+        () =>
+            channels && projectRecords
+                ? channels.filter((channel) =>
+                      projectRecords.some((project) => project.chatId === channel.id)
+                  )
+                : undefined,
+        [channels, projectRecords]
+    );
     const state = homeState({
         captains,
         deviceCount,

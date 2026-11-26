@@ -3,6 +3,8 @@ import { cn } from '../../lib/utils.ts';
 import type { ClaimStatus } from '../claims/claim-presentation.ts';
 import './task-status-disc.css';
 
+export type StatusDiscKind = ClaimStatus | 'planned';
+
 // A literal size, not a spacing step: menus tighten their spacing scale, and
 // a status glyph should not shrink just because the row around it did.
 const glyphSize = 'size-[15px]';
@@ -14,10 +16,16 @@ const glyphSize = 'size-[15px]';
  * pie grows on, or the old mark shrinks out as the new one draws in. The
  * status it mounts with is drawn still, so lists don't animate on load.
  */
-export function TaskStatusDisc({ className, status }: { className?: string; status: ClaimStatus }) {
+export function TaskStatusDisc({
+    className,
+    status,
+}: {
+    className?: string;
+    status: StatusDiscKind;
+}) {
     const [shown, setShown] = React.useState<{
-        current: ClaimStatus;
-        previous: ClaimStatus | null;
+        current: StatusDiscKind;
+        previous: StatusDiscKind | null;
     }>({ current: status, previous: null });
 
     if (shown.current !== status) {
@@ -70,7 +78,7 @@ export function TaskStatusDisc({ className, status }: { className?: string; stat
     );
 }
 
-function statusChange(previous: ClaimStatus | null, status: ClaimStatus) {
+function statusChange(previous: StatusDiscKind | null, status: StatusDiscKind) {
     if (previous === null) {
         return null;
     }
@@ -98,19 +106,21 @@ type StatusMark =
     | { kind: 'none' }
     | { fraction: number; kind: 'pie' };
 
-const statusRings: Record<ClaimStatus, RingKind> = {
+const statusRings: Record<StatusDiscKind, RingKind> = {
     closed: 'dashed',
     done: 'solid',
     in_progress: 'solid',
     in_review: 'solid',
+    planned: 'solid',
     todo: 'dashed',
 };
 
-const statusMarks: Record<ClaimStatus, StatusMark> = {
+const statusMarks: Record<StatusDiscKind, StatusMark> = {
     closed: { kind: 'cross' },
     done: { kind: 'check' },
     in_progress: { fraction: 0.5, kind: 'pie' },
     in_review: { fraction: 0.75, kind: 'pie' },
+    planned: { kind: 'none' },
     todo: { kind: 'none' },
 };
 

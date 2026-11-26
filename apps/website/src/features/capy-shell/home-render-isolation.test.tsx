@@ -37,6 +37,9 @@ const person = (unreadCount: number) =>
 test('a message anywhere on the Server leaves Home and its composer unrendered', async () => {
     const harness = createTranscriptHarness();
     harness.setChats([project(), person(0)]);
+    harness.utils.project.list.setData({ serverId: 'srv_render' }, [
+        { chatId: 'cht_eng', name: 'eng' },
+    ] as never);
     const server = { id: 'srv_render', role: 'member', slug: 'render' };
     const view = await harness.mount(
         <Routes>

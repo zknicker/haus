@@ -97,7 +97,7 @@ test('panes: a Task opens in the right pane, Move to right pane splits, and an e
         token: session.accessToken,
     });
     const originId = await agent.send('Pane task origin', 'pane-task-origin');
-    const { key } = await agent.startTask({ from: originId, title: 'Pane task' });
+    const { shortId: key } = await agent.startTask({ from: originId, title: 'Pane task' });
     await openDesktopWindow(page, `/s/${server.slug}/chats/${agent.chatId}`);
     const left = tabRow(page, 'Left pane tabs').locator('.workspace-tab');
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');

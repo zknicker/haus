@@ -9,6 +9,10 @@ import { useCloudAgentSettingsStream } from '../../hooks/realtime/use-cloud-agen
 import { useComputerUpdateStream } from '../../hooks/realtime/use-computer-update-stream.ts';
 import { useImageGenerationStream } from '../../hooks/realtime/use-image-generation-stream.ts';
 import { useInvitationUpdateStream } from '../../hooks/realtime/use-invitation-update-stream.ts';
+import { useIssueCommentedStream } from '../../hooks/realtime/use-issue-commented-stream.ts';
+import { useIssueCreatedStream } from '../../hooks/realtime/use-issue-created-stream.ts';
+import { useIssueSubscriptionStream } from '../../hooks/realtime/use-issue-subscription-stream.ts';
+import { useIssueUpdatedStream } from '../../hooks/realtime/use-issue-updated-stream.ts';
 import { useMcpUpdateStream } from '../../hooks/realtime/use-mcp-update-stream.ts';
 import { useMessageReactionStream } from '../../hooks/realtime/use-message-reaction-stream.ts';
 import { useModelConnectionsStream } from '../../hooks/realtime/use-model-connections-stream.ts';
@@ -48,6 +52,10 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <TaskCreatedStream serverId={serverId} />
             <TaskUpdatedStream serverId={serverId} />
             <TaskFollowStream serverId={serverId} />
+            <IssueCreatedStream serverId={serverId} />
+            <IssueUpdatedStream serverId={serverId} />
+            <IssueCommentedStream serverId={serverId} />
+            <IssueSubscriptionStream serverId={serverId} />
             <WorkerStream serverId={serverId} />
             <ImageGenerationStream serverId={serverId} />
             <AgentUpdateStream server={server} />
@@ -104,6 +112,26 @@ function TaskUpdatedStream({ serverId }: StreamProps) {
 
 function TaskFollowStream({ serverId }: StreamProps) {
     useTaskFollowStream(serverId);
+    return null;
+}
+
+function IssueCreatedStream({ serverId }: StreamProps) {
+    useIssueCreatedStream(serverId);
+    return null;
+}
+
+function IssueUpdatedStream({ serverId }: StreamProps) {
+    useIssueUpdatedStream(serverId);
+    return null;
+}
+
+function IssueCommentedStream({ serverId }: StreamProps) {
+    useIssueCommentedStream(serverId);
+    return null;
+}
+
+function IssueSubscriptionStream({ serverId }: StreamProps) {
+    useIssueSubscriptionStream(serverId);
     return null;
 }
 

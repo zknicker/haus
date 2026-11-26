@@ -6,9 +6,6 @@ import { cn } from '../../lib/utils.ts';
 
 export const anyFilter = 'any';
 
-const filterNames = ['state'] as const;
-export type TasksFilterName = (typeof filterNames)[number];
-
 export function FilterSelect({
     children,
     label,
@@ -19,7 +16,7 @@ export function FilterSelect({
     children: React.ReactNode;
     label: string;
     onChange: (next: null | string) => void;
-    selected: string;
+    selected: React.ReactNode;
     value: null | string;
 }) {
     return (
@@ -51,7 +48,13 @@ export function AnyItem() {
     );
 }
 
-export function ClearFiltersButton({ variant = 'ghost' }: { variant?: 'ghost' | 'secondary' }) {
+export function ClearFiltersButton({
+    names,
+    variant = 'ghost',
+}: {
+    names: readonly string[];
+    variant?: 'ghost' | 'secondary';
+}) {
     const [, setParams] = useSearchParams();
     return (
         <Button
@@ -59,7 +62,7 @@ export function ClearFiltersButton({ variant = 'ghost' }: { variant?: 'ghost' | 
                 setParams(
                     (params) => {
                         const next = new URLSearchParams(params);
-                        for (const name of filterNames) {
+                        for (const name of names) {
                             next.delete(name);
                         }
                         return next;
@@ -75,9 +78,9 @@ export function ClearFiltersButton({ variant = 'ghost' }: { variant?: 'ghost' | 
     );
 }
 
-export function useSetFilter() {
+export function useSetSearchParam() {
     const [, setParams] = useSearchParams();
-    return (name: TasksFilterName, value: null | string) =>
+    return (name: string, value: null | string) =>
         setParams(
             (params) => {
                 const next = new URLSearchParams(params);

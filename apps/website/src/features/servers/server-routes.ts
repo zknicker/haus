@@ -45,6 +45,14 @@ export function taskRoute(slug: string, shortId: string) {
     return `${tasksRoute(slug)}/${encodeURIComponent(shortId)}`;
 }
 
+export function issuesRoute(slug: string) {
+    return `${serverRoute(slug)}/issues`;
+}
+
+export function issueRoute(slug: string, code: string) {
+    return `${issuesRoute(slug)}/${encodeURIComponent(code)}`;
+}
+
 export function workerRoute(slug: string, workerId: string) {
     return `${serverRoute(slug)}/workers/${encodeURIComponent(workerId)}`;
 }

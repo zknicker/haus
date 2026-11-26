@@ -180,6 +180,7 @@ describe('Server command groups', () => {
         expect(navigation()).toEqual([
             'Search',
             'Home',
+            'Issues',
             'Tasks',
             'Activity',
             'Members',
