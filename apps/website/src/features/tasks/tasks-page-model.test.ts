@@ -2,34 +2,52 @@ import { expect, test } from 'bun:test';
 import type { Task } from '@haus/api';
 import { isTaskState, taskStateLabels, taskStateOf, taskStateOrder } from './task-state.ts';
 import {
-    groupTasksByState,
-    isFiltered,
     orderTasksForPage,
-    readTasksPageFilters,
+    readTaskView,
     taskAge,
     taskListFilters,
+    tasksForView,
 } from './tasks-page-model.ts';
 
-const task = (shortId: string, createdAt: string, archivedAt: null | string = null) =>
-    ({ archivedAt, createdAt, shortId }) as unknown as Task;
+const task = (
+    shortId: string,
+    createdAt: string,
+    archivedAt: null | string = null,
+    createdBy: Task['createdBy'] = { kind: 'user', userId: 'usr_ada' }
+) => ({ archivedAt, createdAt, createdBy, shortId }) as unknown as Task;
 
 test('a Task is active or archived, and nothing else passes for a state', () => {
     expect(taskStateOrder.map((state) => taskStateLabels[state])).toEqual(['Active', 'Archived']);
     expect(isTaskState('archived')).toBe(true);
     expect(isTaskState('open')).toBe(false);
-    expect(isTaskState(null)).toBe(false);
     expect(taskStateOf({ archivedAt: null })).toBe('active');
     expect(taskStateOf({ archivedAt: '2026-11-10T00:00:00Z' })).toBe('archived');
 });
 
-test('the URL filter reads back into the task.list input', () => {
-    const archived = readTasksPageFilters(new URLSearchParams('state=archived&key=SEC'));
-    expect(archived).toEqual({ state: 'archived' });
-    expect(isFiltered(archived)).toBe(true);
-    expect(taskListFilters(archived)).toEqual({ archived: true });
-    expect(isFiltered(readTasksPageFilters(new URLSearchParams()))).toBe(false);
-    expect(taskListFilters(readTasksPageFilters(new URLSearchParams('state=active')))).toEqual({});
-    expect(readTasksPageFilters(new URLSearchParams('state=done'))).toEqual({ state: null });
+test('the view tab reads back from the URL into the task.list input', () => {
+    expect(readTaskView(new URLSearchParams())).toBe('mine');
+    expect(readTaskView(new URLSearchParams('view=all'))).toBe('all');
+    expect(readTaskView(new URLSearchParams('view=archived'))).toBe('archived');
+    expect(readTaskView(new URLSearchParams('view=done'))).toBe('mine');
+    expect(taskListFilters('archived')).toEqual({ archived: true });
+    expect(taskListFilters('mine')).toEqual({});
+    expect(taskListFilters('all')).toEqual({});
+});
+
+test('My tasks keeps the Tasks the reader started; All keeps every one', () => {
+    const tasks = [
+        task('aaaa0001', '2026-11-01T00:00:00Z'),
+        task('aaaa0002', '2026-11-02T00:00:00Z', null, { agentId: 'agt_orbit', kind: 'agent' }),
+        task('aaaa0003', '2026-11-03T00:00:00Z', null, { kind: 'user', userId: 'usr_kit' }),
+    ];
+    expect(tasksForView(tasks, 'mine', 'usr_ada').map((entry) => entry.shortId)).toEqual([
+        'aaaa0001',
+    ]);
+    expect(tasksForView(tasks, 'all', 'usr_ada').map((entry) => entry.shortId)).toEqual([
+        'aaaa0003',
+        'aaaa0002',
+        'aaaa0001',
+    ]);
 });
 
 test('the flat list is newest first, by archive time once archived', () => {
@@ -48,21 +66,6 @@ test('Tasks made at the same moment fall back to short id order', () => {
             (entry) => entry.shortId
         )
     ).toEqual(['aaaa0009', 'bbbb0002']);
-});
-
-test('the ordered list splits into one run per state, in order', () => {
-    const groups = groupTasksByState([
-        task('aaaa0005', '2026-11-05T00:00:00Z'),
-        task('aaaa0003', '2026-11-03T00:00:00Z'),
-        task('aaaa0001', '2026-11-01T00:00:00Z', '2026-11-02T00:00:00Z'),
-    ]);
-    expect(groups.map((group) => [group.state, group.tasks.map((entry) => entry.shortId)])).toEqual(
-        [
-            ['active', ['aaaa0005', 'aaaa0003']],
-            ['archived', ['aaaa0001']],
-        ]
-    );
-    expect(groupTasksByState([])).toEqual([]);
 });
 
 test('a row ages in the largest whole unit', () => {

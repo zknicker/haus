@@ -35,6 +35,18 @@ export function socketMessage(socket: AttachmentSocket) {
     });
 }
 
+/** The bootstrap answer, past the session fences a Server sends a Computer first. */
+export function bootstrapAnswer(socket: AttachmentSocket) {
+    return new Promise<unknown>((resolve) => {
+        socket.addEventListener('message', (event) => {
+            const frame = JSON.parse(String(event.data)) as { mode?: unknown };
+            if (frame.mode !== undefined) {
+                resolve(frame);
+            }
+        });
+    });
+}
+
 /**
  * `idle` bootstraps a Computer that still needs an update, so Server answers
  * `update-required` and refuses its ordinary frames; `complete` bootstraps one

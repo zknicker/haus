@@ -57,7 +57,7 @@ test('a Worker opens from its Task, and a chat link to it reads as its title', a
     await expect(forgedRow).toContainText('Forged job');
     await expect(forgedRow.getByTestId('worker-row')).toHaveCount(0);
 
-    await page.goto(`/s/${slug}/tasks/${seeded.taskKey}`);
+    await page.goto(`/s/${slug}/tasks/${seeded.taskShortId}`);
     await page.getByRole('grid', { name: 'Workers' }).getByTestId('worker-row').click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/workers/${seeded.workerId}$`, 'u'));
     await expect(page.getByText(brief)).toBeVisible();

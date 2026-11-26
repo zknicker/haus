@@ -3939,6 +3939,191 @@
         }
     }
 
+    .task-list__key {
+        flex-shrink: 0;
+        min-width: 3.5rem;
+        font-size: var(--text-sm);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .task-list__labels {
+        display: none;
+        flex-shrink: 0;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+    }
+
+    .task-list__session {
+        display: none;
+        max-width: 16rem;
+        overflow: hidden;
+        font-size: var(--text-xs);
+        color: var(--muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    @container (min-width: 40rem) {
+        .task-list__labels {
+            display: flex;
+        }
+
+        .task-list__session {
+            display: block;
+        }
+    }
+
+    /*
+     * The Issues list stacks one collapsible group per state. Each group's
+     * Disclosure trigger is the Tasks list's quiet bar, full width, with the
+     * chevron at its end.
+     */
+    .issue-list {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 3);
+    }
+
+    .issue-list__group .disclosure__trigger {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+        min-height: calc(var(--spacing) * 7);
+        margin-block-end: calc(var(--spacing) * 0.5);
+        padding-inline: calc(var(--spacing) * 4) calc(var(--spacing) * 3);
+        border-radius: calc(var(--radius) * 1.5);
+        background: color-mix(in oklab, var(--foreground) 4%, transparent);
+        font-size: var(--text-sm);
+        font-weight: 500;
+        color: var(--foreground);
+        text-align: start;
+    }
+
+    /* A list page's view tabs (Capy's For you…All) start at the left edge, each as wide as its label. */
+    .view-tabs .tabs__tab {
+        width: auto;
+        white-space: nowrap;
+    }
+
+    .issue-board {
+        padding-block-end: calc(var(--spacing) * 4);
+    }
+
+    /*
+     * The Issue page: meta line, title, then the property chips in one
+     * wrapping row; sections below read as quiet headings over their rows.
+     */
+    .issue-page {
+        gap: calc(var(--spacing) * 6);
+    }
+
+    .issue-header {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 2);
+    }
+
+    .issue-header__meta {
+        font-size: var(--text-sm);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .issue-header__title {
+        font-size: var(--text-2xl);
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+    }
+
+    .issue-properties {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: calc(var(--spacing) * 1);
+        margin-inline-start: calc(var(--spacing) * -1);
+    }
+
+    .issue-description {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 2);
+    }
+
+    .issue-section {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 2);
+    }
+
+    .issue-section__title {
+        display: flex;
+        align-items: baseline;
+        gap: calc(var(--spacing) * 2);
+        font-size: var(--text-base);
+        font-weight: 600;
+    }
+
+    .issue-section__count {
+        font-size: var(--text-sm);
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .issue-section__plain {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 1);
+    }
+
+    .issue-activity {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 3);
+    }
+
+    .issue-activity__event {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: calc(var(--spacing) * 3);
+        padding-inline-start: calc(var(--spacing) * 8);
+        font-size: var(--text-sm);
+        color: var(--muted);
+    }
+
+    .issue-activity__comment {
+        display: flex;
+        align-items: flex-start;
+        gap: calc(var(--spacing) * 2);
+
+        &[data-reply] {
+            padding-inline-start: calc(var(--spacing) * 8);
+        }
+    }
+
+    .issue-activity__byline {
+        display: flex;
+        align-items: baseline;
+        gap: calc(var(--spacing) * 2);
+        font-size: var(--text-sm);
+    }
+
+    .issue-activity__time {
+        flex-shrink: 0;
+        font-size: var(--text-xs);
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .issue-comment-box {
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--spacing) * 2);
+    }
+
     /*
      * Search results, Capy's palette list: the Tasks list's quiet group bar
      * over single-line 36px rows. A row reads author and the snippet around

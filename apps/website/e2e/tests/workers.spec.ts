@@ -36,10 +36,10 @@ test('a Worker lives on its Task, and its report lands in the Task chat', async 
     const happeningNow = await openHappeningNow(page);
     const inboxRow = happeningNow.getByRole('button', { name: new RegExp(workTitle, 'u') });
     await expect(inboxRow).toContainText('Starting');
-    await expect(inboxRow).toContainText(seeded.taskKey);
+    await expect(inboxRow).toContainText(seeded.taskShortId);
     await expect(inboxRow).toContainText('Orbit');
     await inboxRow.click();
-    await expect(page).toHaveURL(new RegExp(`/s/worker/tasks/${seeded.taskKey}$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/s/worker/tasks/${seeded.taskShortId}$`, 'u'));
 
     const workers = page.getByRole('grid', { name: 'Workers' });
     const row = workers.getByTestId('worker-row');

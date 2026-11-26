@@ -22,6 +22,8 @@ export const issueListInputSchema = z
         parentId: idSchema.optional(),
         projectId: idSchema.optional(),
         query: z.string().trim().min(1).max(200).optional(),
+        /** The reader's own lens: Issues they subscribe to, or whose text @mentions them. */
+        reader: z.enum(['subscribed', 'mentioned']).optional(),
         serverId: idSchema,
         states: z.array(issueStateSchema).min(1).optional(),
     })

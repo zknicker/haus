@@ -55,9 +55,10 @@ Inbox page in J4; there is no flag.
   unread state, so ADR 0038's unread-only rule still holds.
 - **Home.** The Server's default route renders Home: a Project chip, left-aligned
   above a compact stock `PromptInput` (size `sm`, a `max-w-xl` measure) placed a little above the
-  middle, as in Capy. The placeholder is "Start a Task", and the bottom row holds only
-  Send: `task.create` carries no files, so there is no attachment action, and there is no model
-  picker or mic. A Task has no assignee, so there is no Captain chip. Behind the composer sits the
+  middle, as in Capy. The placeholder is "Start a Task". The bottom row holds a Machine picker
+  (the Server's attached Computers; no Cloud in v1), a model picker (the runner's catalog, connected
+  providers first) and Send. There is no attachment action or mic. The Project chip lists only real
+  Projects (`project.list`), and the Machine defaults to that Project's default Machine. Behind the composer sits the
   theme's Home background, a built-in pattern or an uploaded image picked in Settings >
   Appearance > Background (see [Appearance](appearance.md#home-backgrounds)); the content area
   is a positioned, isolated layer above it. A Device's low-disk warning, which the Inbox carried,
@@ -93,10 +94,12 @@ projects its own entry through `features/capy-shell/sidebar-model.ts` from a nar
 
 ## Home's send path
 
-Sending creates a Task with `task.create` in the chosen Project; it wakes nobody. The first line of the ask is the title (cut to 200 characters) and the rest is the
-description (`planHomeTask` in `features/capy-shell/home-send.ts`). `useHomeSend` creates the
-Task and then opens its page. While the create is in flight the composer shows its submitted
-state, and a failed create keeps the text and shows the error under the composer.
+Sending starts a Task with `task.start` in the chosen Project, on the picked Machine and model,
+with the ask as its first message; the Server titles it (`planHomeTask` in
+`features/capy-shell/home-send.ts`). Each ask carries a `requestId`, kept until a start succeeds,
+so a retried send answers the same Task. `useHomeSend` starts the Task and then opens
+`/tasks/<shortId>`. While the start is in flight the composer shows its submitted state, and a
+failed start keeps the text and shows the error under the composer.
 
 ## Activity strip
 

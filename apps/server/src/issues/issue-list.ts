@@ -18,6 +18,7 @@ import {
 import { actorFromColumns, requireIssueActor } from './issue-actor.ts';
 import { listIssueComments } from './issue-comments.ts';
 import { findIssueByCode, readIssue, readIssues } from './issue-read.ts';
+import { issueReaderFilter } from './issue-reader-filter.ts';
 import { isSubscribed } from './issue-subscriptions.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
@@ -26,7 +27,8 @@ const priorityRank = new Map(issuePriorities.map((priority, rank) => [priority, 
 
 export async function listIssues(db: Reader, actor: IssueActor, input: IssueListInput) {
     await requireIssueActor(db, input.serverId, actor);
-    const issues = await readIssues(db, input.serverId, and(...listFilters(input)));
+    const reader = await issueReaderFilter(db, actor, input);
+    const issues = await readIssues(db, input.serverId, and(...listFilters(input), reader));
     return [...issues].sort(byPriorityThenAge);
 }
 

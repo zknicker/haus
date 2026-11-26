@@ -3,6 +3,7 @@ import {
     Activity03Icon,
     CheckListIcon,
     Folder01Icon,
+    TaskDone01Icon,
     WorkflowSquare10Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
@@ -19,12 +20,18 @@ import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.t
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { preloadServerSection } from '../../routes/app/server-route-modules.ts';
-import { activityRoute, tasksRoute } from '../servers/server-routes.ts';
+import { activityRoute, issuesRoute, tasksRoute } from '../servers/server-routes.ts';
 
 export function CapyFooterSections({ serverId, slug }: { serverId: string; slug: string }) {
     const preloadActivity = usePreloadActivity(serverId);
     return (
         <nav aria-label="Sections" className="flex items-center">
+            <FooterLink
+                href={issuesRoute(slug)}
+                icon={TaskDone01Icon}
+                label="Issues"
+                onPreload={preloadIssues}
+            />
             <FooterLink
                 href={tasksRoute(slug)}
                 icon={CheckListIcon}
@@ -133,6 +140,10 @@ function usePreloadActivity(serverId: string) {
         preloadServerSection('activity');
         void utils.stats.live.prefetch({ serverId }, queryPolicy.syncedSnapshot);
     }, [serverId, utils]);
+}
+
+function preloadIssues() {
+    preloadServerSection('issues');
 }
 
 function preloadTasks() {

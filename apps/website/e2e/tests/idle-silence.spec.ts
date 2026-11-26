@@ -47,7 +47,7 @@ const focusRefetchAllowance: Record<string, { max: number; reason: string }> = {
     'trpc server.bySlug': { max: 1, reason: 'the open Server' },
     'trpc server.list': { max: 1, reason: 'the Server switcher' },
     'trpc chat.unreadPreviews': { max: 1, reason: 'the followed Tasks behind the Inbox badge' },
-    'trpc task.listOpen': { max: 1, reason: 'the sidebar open Tasks' },
+    'trpc task.listActive': { max: 1, reason: 'the sidebar active Tasks' },
 };
 
 const idleMinutes = 10;

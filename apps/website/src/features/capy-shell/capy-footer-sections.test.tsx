@@ -29,7 +29,12 @@ test('the footer sections are links a modified click can open in a new tab', () 
     const links = [...render('/s/render').matchAll(/<a [^>]*href="([^"]+)"/gu)].map(
         (match) => match[1]
     );
-    expect(links).toEqual(['/s/render/tasks', '/s/render/artifacts', '/s/render/activity']);
+    expect(links).toEqual([
+        '/s/render/issues',
+        '/s/render/tasks',
+        '/s/render/artifacts',
+        '/s/render/activity',
+    ]);
 });
 
 test('the section you are on is the current page', () => {

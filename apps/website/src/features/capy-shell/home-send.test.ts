@@ -1,30 +1,30 @@
 import { expect, test } from 'bun:test';
 import { planHomeTask } from './home-send.ts';
 
-test('a Home ask becomes a Task in its Project, first line as title', () => {
+const ask = {
+    computerId: 'cmp_mini',
+    model: 'claude-opus-5-5',
+    projectChatId: 'cht_eng',
+    requestId: 'req_1',
+    serverId: 'srv_haus',
+};
+
+test('a Home ask starts a Task in its Project with the prompt as its first message', () => {
     expect(
-        planHomeTask({
-            projectChatId: 'cht_eng',
-            text: ' Fix composer fonts \nThey fall back to Arial on Windows. ',
-        })
+        planHomeTask({ ...ask, text: ' Fix composer fonts \nThey fall back to Arial. ' })
     ).toEqual({
-        description: 'They fall back to Arial on Windows.',
+        computerId: 'cmp_mini',
+        model: 'claude-opus-5-5',
         projectId: 'cht_eng',
-        title: 'Fix composer fonts',
+        prompt: 'Fix composer fonts \nThey fall back to Arial.',
+        requestId: 'req_1',
+        serverId: 'srv_haus',
     });
 });
 
-test('a one-line ask has no description, and an empty ask plans nothing', () => {
-    expect(planHomeTask({ projectChatId: 'cht_eng', text: 'Ship it' })).toEqual({
-        projectId: 'cht_eng',
-        title: 'Ship it',
-    });
-    expect(planHomeTask({ projectChatId: 'cht_eng', text: ' \n ' })).toBeNull();
-});
-
-test('a first line longer than a title keeps the whole ask as the description', () => {
-    const long = 'x'.repeat(250);
-    const plan = planHomeTask({ projectChatId: 'cht_eng', text: long });
-    expect(plan?.title.length).toBe(200);
-    expect(plan?.description).toBe(long);
+test('with no Machine picked the Project default applies, and an empty ask plans nothing', () => {
+    expect(planHomeTask({ ...ask, computerId: null, text: 'Ship it' })).not.toHaveProperty(
+        'computerId'
+    );
+    expect(planHomeTask({ ...ask, text: ' \n ' })).toBeNull();
 });

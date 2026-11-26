@@ -1,28 +1,25 @@
-import { TASK_TITLE_MAX_CHARS } from '@haus/api';
+import type { TaskStartInput } from '@haus/api';
 
 export interface HomeAsk {
+    computerId: null | string;
+    model: string;
     projectChatId: string;
+    requestId: string;
+    serverId: string;
     text: string;
 }
 
-export interface HomeTaskInput {
-    description?: string;
-    projectId: string;
-    title: string;
-}
-
 export function planHomeTask(ask: HomeAsk) {
-    const text = ask.text.trim();
-    if (text.length === 0) {
+    const prompt = ask.text.trim();
+    if (prompt.length === 0) {
         return null;
     }
-    const [firstLine = '', ...rest] = text.split('\n');
-    const lead = firstLine.trim();
-    const fits = lead.length <= TASK_TITLE_MAX_CHARS;
-    const description = fits ? rest.join('\n').trim() : text;
     return {
-        ...(description ? { description } : {}),
+        ...(ask.computerId ? { computerId: ask.computerId } : {}),
+        model: ask.model,
         projectId: ask.projectChatId,
-        title: fits ? lead : `${lead.slice(0, TASK_TITLE_MAX_CHARS - 1)}…`,
-    } satisfies HomeTaskInput;
+        prompt,
+        requestId: ask.requestId,
+        serverId: ask.serverId,
+    } satisfies TaskStartInput;
 }

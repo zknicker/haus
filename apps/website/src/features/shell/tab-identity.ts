@@ -38,6 +38,7 @@ export type TabPage =
     | { kind: 'dm'; agentId: string }
     | { kind: 'files'; chatId: string }
     | { kind: 'home' }
+    | { code: string; kind: 'issue' }
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
     | { kind: 'settings'; page: string }
@@ -78,6 +79,8 @@ export function parseTabPage(location: TabLocation): TabPage {
             return first
                 ? artifactPage(first, new URLSearchParams(search))
                 : sectionPage(pathname, slug);
+        case 'issues':
+            return first && !second ? { code: first, kind: 'issue' } : sectionPage(pathname, slug);
         case 'tasks':
             return tasksPage(first, second) ?? sectionPage(pathname, slug);
         case 'settings':
@@ -145,6 +148,8 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
                 mark: { kind: 'glyph', glyph: 'settings' },
                 place: null,
             };
+        case 'issue':
+            return { label: page.code, mark: { kind: 'glyph', glyph: 'issues' }, place: null };
         case 'task':
             return { label: page.shortId, mark: { kind: 'glyph', glyph: 'task' }, place: null };
         case 'worker':
@@ -201,6 +206,7 @@ const sectionLabels: Record<AppSection, string> = {
     activity: 'Activity',
     agent: 'Captain',
     chat: 'Chat',
+    issues: 'Issues',
     search: 'Search',
     settings: 'Settings',
     tasks: 'Tasks',

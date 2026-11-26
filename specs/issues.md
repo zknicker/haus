@@ -247,11 +247,14 @@ page shows All, Comments, and Agents filters over comments plus events.
 
 ## Where Issues show
 
-The App surfaces are step 6: the Project's Issues list (For you, Assigned to me, Created by me,
-Mentioned, All) grouped by state, the board by state, the Issue page (code, title, linked Task
-chip, state, priority, assignee, due date, labels, description, sub-issues, activity, and its
-comment box), and the sidebar. A person's assigned open Issues show in their lists; there is no
-attention tier ([ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)).
+The App surfaces are step 6 ([docs/features/issues.md](../docs/features/issues.md)): the Issues
+list (For you, Assigned to me, Created by me, Mentioned, All) grouped by state, the board by
+state, the Issue page (code, title, state, priority, assignee, due date, labels, description,
+linked Tasks, sub-issues, activity, and its comment box), and the sidebar. For you is the Issues
+the reader subscribes to, and Mentioned the ones whose description or a comment carries the
+reader's `@handle`: `issue.list` takes `reader: 'subscribed' | 'mentioned'` for both, and the
+lens matches nothing for an agent. A person's assigned open Issues show in their lists; there is
+no attention tier ([ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)).
 
 ## CLI and Agent routes
 
