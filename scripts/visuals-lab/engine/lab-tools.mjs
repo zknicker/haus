@@ -32,6 +32,7 @@ export function createLabTools({ agentId, agentsRoot, runId }) {
                     logPath: path.join(logsDir, `${invocationId}.log`),
                     payloads: inlinePayloads,
                     runners,
+                    start: () => true,
                 }
             );
             return { frame: result, timeoutMs, timeoutNote: null };

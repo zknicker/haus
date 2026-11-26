@@ -836,7 +836,8 @@ so exactly one of them answers the runner.
 
 **A call never starts after `unknown`.** Every `invoke` carries `notAfter`, the request time plus
 the timeout plus the grace, so a reconnect resend keeps the original deadline. The Computer checks
-it right before it executes, after the offline hold, the per-Agent queue, and the Drive hold. A
+it, and marks the call started, right before it dispatches the operation, after the per-Agent
+queue, the Drive hold, the offline hold, environment setup, and any worktree cleanup wait. A
 call past it settles `cancelled` with "Cancelled before it started." and never runs. When the
 grace turns a call `unknown`, the Server also sends `invoke-cancel` with `dropIfNotStarted` to a
 connected Computer: a call still waiting is cancelled the same way, and a call already running

@@ -105,15 +105,19 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
         const id = command.invocationId;
         const { controller } = entry;
         await offline.released(controller.signal);
-        const expired = Date.now() >= Date.parse(command.notAfter);
-        entry.started = !(controller.signal.aborted || expired);
-        const result = entry.started
+        const startable = () =>
+            !(controller.signal.aborted || Date.now() >= Date.parse(command.notAfter));
+        const result = startable()
             ? await executeInvocation(command, {
                   agentsRoot: input.agentsRoot,
                   controller,
                   logPath: ledger.logPath(command.agentId, id),
                   payloads: input.payloadsFor(id),
                   runners: input.runners,
+                  start: () => {
+                      entry.started = startable();
+                      return entry.started;
+                  },
               })
             : cancelledBeforeStart(id);
         try {

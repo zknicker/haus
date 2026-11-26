@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, watch, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { InvokeResult } from '@haus/api';
+import { withAgentCleanup } from '../repos/agent-use.ts';
 import { handlerInput } from './handler-host.test-support.ts';
 import { createInvocationHandler } from './handler.ts';
 
@@ -86,6 +87,59 @@ test('the expiry cancel drops a queued call and leaves a running one to report l
     ]);
     expect(await Bun.file(counter).exists()).toBe(false);
 });
+
+test('a call past its deadline while it waits on worktree cleanup never runs', async () => {
+    const { counter, frames, handler, releaseCleanup } = await callWaitingOnCleanup();
+
+    setSystemTime(pastDeadline);
+    releaseCleanup();
+    await handler.settled();
+
+    expect(outcomes(frames)).toEqual([
+        { invocationId: 'inv-1', outcome: 'cancelled', text: notStarted },
+    ]);
+    expect(await Bun.file(counter).exists()).toBe(false);
+});
+
+test('the expiry cancel drops a call that waits on worktree cleanup', async () => {
+    const { counter, frames, handler, releaseCleanup } = await callWaitingOnCleanup();
+
+    handler.receive({ dropIfNotStarted: true, invocationId: 'inv-1', type: 'invoke-cancel' });
+    releaseCleanup();
+    await handler.settled();
+
+    expect(outcomes(frames)).toEqual([
+        { invocationId: 'inv-1', outcome: 'cancelled', text: notStarted },
+    ]);
+    expect(await Bun.file(counter).exists()).toBe(false);
+});
+
+async function callWaitingOnCleanup() {
+    const counter = join(root, 'counter');
+    const agentRoot = join(agentsRoot, agentId);
+    await mkdir(agentRoot, { recursive: true });
+    const frames: unknown[] = [];
+    const handler = await createInvocationHandler(handlerInput(agentsRoot, frames));
+    const cleanup = Promise.withResolvers<void>();
+    const cleaning = withAgentCleanup(agentId, () => cleanup.promise);
+    const preparing = watch(agentRoot);
+
+    handler.receive(invoke('inv-1', `printf ran >> ${counter}`));
+    for await (const change of preparing) {
+        if (change.filename === 'home') {
+            break;
+        }
+    }
+    return {
+        counter,
+        frames,
+        handler,
+        releaseCleanup: () => {
+            cleanup.resolve();
+            return cleaning;
+        },
+    };
+}
 
 function invoke(invocationId: string, command: string) {
     return {
