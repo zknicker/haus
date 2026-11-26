@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
+import { issueCommentBodySchema, issueEventKinds } from './issue-timeline.ts';
 import {
     issueCodeSchema,
     issueDescriptionSchema,
@@ -8,7 +9,6 @@ import {
     issueStateSchema,
     issueTitleSchema,
 } from './issue.ts';
-import { issueCommentBodySchema, issueEventKinds } from './issue-timeline.ts';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 import { workerPullRequestStates } from './worker-pull-request.ts';
 

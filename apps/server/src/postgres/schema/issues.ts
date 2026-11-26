@@ -115,7 +115,10 @@ export const issuesTable = pgTable(
             'issues_creator_shape',
             sql`num_nonnulls(${table.creatorUserId}, ${table.creatorAgentId}, ${table.creatorTaskId}) = 1`
         ),
-        check('issues_parent_not_self', sql`${table.parentId} is null or ${table.parentId} <> ${table.id}`),
+        check(
+            'issues_parent_not_self',
+            sql`${table.parentId} is null or ${table.parentId} <> ${table.id}`
+        ),
         check('issues_title_length', sql`char_length(${table.title}) between 1 and 500`),
         check('issues_description_length', sql`char_length(${table.description}) <= 20000`),
         check('issues_positive_number', sql`${table.number} > 0`),

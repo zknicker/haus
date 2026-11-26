@@ -31,7 +31,12 @@ import {
     resolveProjectKey,
 } from './issue-refs.ts';
 import { agentIssueRead, agentIssueWrite, withImplicitIssueVersion } from './issue-route-shell.ts';
-import { toAgentComment, toAgentIssueRow, toAgentIssueRows, toAgentIssueShow } from './issue-view.ts';
+import {
+    toAgentComment,
+    toAgentIssueRow,
+    toAgentIssueRows,
+    toAgentIssueShow,
+} from './issue-view.ts';
 
 const listLimit = 50;
 
@@ -41,8 +46,11 @@ export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase)
         return { issue: await toAgentIssueRow(db, runner.serverId, result.issue) };
     };
 
-    agentIssueRead(app, db, { path: '/api/agent/issues', query: agentIssueListQuerySchema }, (runner, query) =>
-        listAgentIssues(db, runner, query)
+    agentIssueRead(
+        app,
+        db,
+        { path: '/api/agent/issues', query: agentIssueListQuerySchema },
+        (runner, query) => listAgentIssues(db, runner, query)
     );
 
     agentIssueRead(
@@ -52,7 +60,10 @@ export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase)
         async (runner, { code }) =>
             toAgentIssueShow(
                 db,
-                await getIssueDetail(db, agentIssueActor(runner), { code, serverId: runner.serverId })
+                await getIssueDetail(db, agentIssueActor(runner), {
+                    code,
+                    serverId: runner.serverId,
+                })
             )
     );
 
@@ -125,23 +136,28 @@ export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase)
         ['/api/agent/issues/link', linkIssueTask],
         ['/api/agent/issues/unlink', unlinkIssueTask],
     ] as const) {
-        agentIssueWrite(app, db, { body: agentIssueLinkInputSchema, path }, async (runner, input) => {
-            const { serverId } = runner;
-            const issue = await findIssueByCode(db, serverId, input.code);
-            await requireIssueWriter(db, runner, issue);
-            const result = await withImplicitIssueVersion(
-                undefined,
-                issueVersion(serverId, input.code),
-                (expectedVersion) =>
-                    write(db, agentIssueActor(runner), {
-                        expectedVersion,
-                        issueId: issue.id,
-                        serverId,
-                        taskId: input.taskId,
-                    })
-            );
-            return await commit(runner, result);
-        });
+        agentIssueWrite(
+            app,
+            db,
+            { body: agentIssueLinkInputSchema, path },
+            async (runner, input) => {
+                const { serverId } = runner;
+                const issue = await findIssueByCode(db, serverId, input.code);
+                await requireIssueWriter(db, runner, issue);
+                const result = await withImplicitIssueVersion(
+                    undefined,
+                    issueVersion(serverId, input.code),
+                    (expectedVersion) =>
+                        write(db, agentIssueActor(runner), {
+                            expectedVersion,
+                            issueId: issue.id,
+                            serverId,
+                            taskId: input.taskId,
+                        })
+                );
+                return await commit(runner, result);
+            }
+        );
     }
 
     function issueVersion(serverId: string, code: string) {
@@ -149,7 +165,11 @@ export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase)
     }
 }
 
-async function listAgentIssues(db: HausDatabase, runner: ResolvedRunner, query: AgentIssueListQuery) {
+async function listAgentIssues(
+    db: HausDatabase,
+    runner: ResolvedRunner,
+    query: AgentIssueListQuery
+) {
     const { serverId } = runner;
     const assignee =
         query.assignee === undefined || query.assignee === 'none'
@@ -157,8 +177,12 @@ async function listAgentIssues(db: HausDatabase, runner: ResolvedRunner, query: 
             : await resolveIssueActorRef(db, runner, query.assignee);
     const issues = await listIssues(db, agentIssueActor(runner), {
         ...(assignee ? { assignee } : {}),
-        ...(query.parent ? { parentId: (await findIssueByCode(db, serverId, query.parent)).id } : {}),
-        ...(query.project ? { projectId: await resolveProjectKey(db, serverId, query.project) } : {}),
+        ...(query.parent
+            ? { parentId: (await findIssueByCode(db, serverId, query.parent)).id }
+            : {}),
+        ...(query.project
+            ? { projectId: await resolveProjectKey(db, serverId, query.project) }
+            : {}),
         ...(query.query ? { query: query.query } : {}),
         serverId,
         states: query.state ?? [...openIssueStates],
@@ -180,13 +204,21 @@ async function resolvePatch(
     const patch: IssuePatch = {
         ...(assignee === undefined
             ? {}
-            : { assignee: assignee === null ? null : await resolveIssueActorRef(db, runner, assignee) }),
+            : {
+                  assignee:
+                      assignee === null ? null : await resolveIssueActorRef(db, runner, assignee),
+              }),
         ...(description === undefined ? {} : { description }),
         ...(dueOn === undefined ? {} : { dueOn }),
-        ...(labels === undefined ? {} : { labelIds: await resolveIssueLabels(db, serverId, labels) }),
+        ...(labels === undefined
+            ? {}
+            : { labelIds: await resolveIssueLabels(db, serverId, labels) }),
         ...(parent === undefined
             ? {}
-            : { parentId: parent === null ? null : (await findIssueByCode(db, serverId, parent)).id }),
+            : {
+                  parentId:
+                      parent === null ? null : (await findIssueByCode(db, serverId, parent)).id,
+              }),
         ...(priority === undefined ? {} : { priority }),
         ...(state === undefined ? {} : { state }),
         ...(title === undefined ? {} : { title }),

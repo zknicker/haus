@@ -2,7 +2,6 @@ import type { Issue, IssueActor, IssueChange } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { issueEventsTable } from '../postgres/schema.ts';
-import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { issueCreatedTopic, issueUpdatedTopic } from '../realtime/topics.ts';
 import { actorColumns } from './issue-actor.ts';
 
@@ -37,11 +36,11 @@ export async function appendIssueEvents(
     return recorded;
 }
 
-export function prepareIssueCreatedEvent(issue: Issue): PreparedRealtimeEvent {
+export function prepareIssueCreatedEvent(issue: Issue) {
     return issueCreatedTopic.prepare(issueRef(issue));
 }
 
-export function prepareIssueUpdatedEvent(issue: Issue): PreparedRealtimeEvent {
+export function prepareIssueUpdatedEvent(issue: Issue) {
     return issueUpdatedTopic.prepare(issueRef(issue));
 }
 

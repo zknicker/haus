@@ -11,8 +11,8 @@ import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { issuesTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { actorColumns, requireIssueActor, requireIssueAssignee } from './issue-actor.ts';
 import { issueActorLabel, nameIssueActors } from './issue-actor-names.ts';
+import { actorColumns, requireIssueActor, requireIssueAssignee } from './issue-actor.ts';
 import { IssueTakenError, requireIssueVersion } from './issue-errors.ts';
 import { appendIssueEvents, prepareIssueUpdatedEvent } from './issue-events.ts';
 import { requireIssueParent, subscribeToIssue, writeIssueLabels } from './issue-fields.ts';
@@ -20,11 +20,7 @@ import { lockIssue, readIssue } from './issue-read.ts';
 import { deriveIssueWrite, deriveSubIssuesClosed } from './issue-wakes.ts';
 import { insertIssueTaskLink, type IssueTx, type IssueWriteResult } from './issue-write.ts';
 
-export async function updateIssue(
-    db: HausDatabase,
-    actor: IssueActor,
-    input: IssueUpdateInput
-): Promise<IssueWriteResult> {
+export async function updateIssue(db: HausDatabase, actor: IssueActor, input: IssueUpdateInput) {
     return await db.transaction(async (tx) => {
         const { serverId } = input;
         await lockServerRow(tx, serverId);
@@ -36,7 +32,7 @@ export async function updateIssue(
         }
         const changes = await applyPatch(tx, actor, current, input.patch);
         if (changes.length === 0) {
-            return { events: [], issue: current, wakes: [] };
+            return { events: [], issue: current, wakes: [] } satisfies IssueWriteResult;
         }
         await tx
             .update(issuesTable)
@@ -79,6 +75,33 @@ async function applyPatch(
     patch: IssueUpdateInput['patch']
 ) {
     const { serverId } = current;
+    const { changes, columns } = scalarPatch(current, patch);
+    if (patch.labelIds !== undefined && !sameSet(patch.labelIds, current.labelIds)) {
+        await writeIssueLabels(tx, { issueId: current.id, labelIds: patch.labelIds, serverId });
+        changes.push({ from: current.labelIds, kind: 'labels_changed', to: [...patch.labelIds] });
+    }
+    if (patch.assignee !== undefined && !sameIssueActor(patch.assignee, current.assignee)) {
+        changes.push(...(await changeAssignee(tx, actor, current, patch.assignee)));
+        const assigned = actorColumns(patch.assignee);
+        columns.assigneeAgentId = assigned.agentId;
+        columns.assigneeTaskId = assigned.taskId;
+        columns.assigneeUserId = assigned.userId;
+    }
+    if (patch.parentId !== undefined && patch.parentId !== current.parentId) {
+        const parent = await changeParent(tx, current, patch.parentId);
+        columns.parentId = parent.id;
+        changes.push({ from: parent.from, kind: 'parent_set', to: parent.to });
+    }
+    if (Object.keys(columns).length > 0) {
+        await tx
+            .update(issuesTable)
+            .set(columns)
+            .where(and(eq(issuesTable.serverId, serverId), eq(issuesTable.id, current.id)));
+    }
+    return changes;
+}
+
+function scalarPatch(current: Issue, patch: IssueUpdateInput['patch']) {
     const changes: IssueChange[] = [];
     const columns: PgUpdateSetSource<typeof issuesTable> = {};
     if (patch.title !== undefined && patch.title !== current.title) {
@@ -102,38 +125,22 @@ async function applyPatch(
         columns.dueOn = patch.dueOn;
         changes.push({ from: current.dueOn, kind: 'due_changed', to: patch.dueOn });
     }
-    if (patch.labelIds !== undefined && !sameSet(patch.labelIds, current.labelIds)) {
-        await writeIssueLabels(tx, { issueId: current.id, labelIds: patch.labelIds, serverId });
-        changes.push({ from: current.labelIds, kind: 'labels_changed', to: [...patch.labelIds] });
-    }
-    if (patch.assignee !== undefined && !sameIssueActor(patch.assignee, current.assignee)) {
-        changes.push(...(await changeAssignee(tx, actor, current, patch.assignee)));
-        const assigned = actorColumns(patch.assignee);
-        columns.assigneeAgentId = assigned.agentId;
-        columns.assigneeTaskId = assigned.taskId;
-        columns.assigneeUserId = assigned.userId;
-    }
-    if (patch.parentId !== undefined && patch.parentId !== current.parentId) {
-        const parent = patch.parentId
-            ? await requireIssueParent(tx, {
-                  code: current.code,
-                  issueId: current.id,
-                  parentId: patch.parentId,
-                  projectId: current.projectId,
-                  serverId,
-              })
-            : null;
-        columns.parentId = parent?.id ?? null;
-        const from = current.parentId ? (await readIssue(tx, serverId, current.parentId)).code : null;
-        changes.push({ from, kind: 'parent_set', to: parent?.code ?? null });
-    }
-    if (Object.keys(columns).length > 0) {
-        await tx
-            .update(issuesTable)
-            .set(columns)
-            .where(and(eq(issuesTable.serverId, serverId), eq(issuesTable.id, current.id)));
-    }
-    return changes;
+    return { changes, columns };
+}
+
+async function changeParent(tx: IssueTx, current: Issue, parentId: string | null) {
+    const { serverId } = current;
+    const parent = parentId
+        ? await requireIssueParent(tx, {
+              code: current.code,
+              issueId: current.id,
+              parentId,
+              projectId: current.projectId,
+              serverId,
+          })
+        : null;
+    const from = current.parentId ? (await readIssue(tx, serverId, current.parentId)).code : null;
+    return { from, id: parent?.id ?? null, to: parent?.code ?? null };
 }
 
 async function changeAssignee(

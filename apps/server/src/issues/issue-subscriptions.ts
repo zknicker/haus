@@ -32,7 +32,9 @@ export async function setIssueSubscription(
         }
         const receipt = { issueId: issue.id, serverId, subscribed: input.subscribed };
         return {
-            events: [issueSubscriptionUpdatedTopic.prepare(receipt, { audienceUserId: actor.userId })],
+            events: [
+                issueSubscriptionUpdatedTopic.prepare(receipt, { audienceUserId: actor.userId }),
+            ],
             receipt,
         };
     });

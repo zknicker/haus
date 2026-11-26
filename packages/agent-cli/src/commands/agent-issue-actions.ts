@@ -86,17 +86,23 @@ export async function runIssueList(args: ParsedArgs, deps: IssueDeps) {
     const heading = `${total} ${total === 1 ? 'Issue' : 'Issues'}${mine ? ' assigned to you' : ''}, by priority then age:`;
     const more =
         omitted > 0
-            ? [`Truncated: ${omitted} more. Narrow with --project, --assignee, --state, or --query.`]
+            ? [
+                  `Truncated: ${omitted} more. Narrow with --project, --assignee, --state, or --query.`,
+              ]
             : [];
     deps.write(`${[heading, ...issues.map(describeIssue), ...more].join('\n')}\n`);
     return 0;
 }
 
 export async function runIssueShow(args: ParsedArgs, deps: IssueDeps) {
-    const detail = await deps.client.request('/api/agent/issues/show', agentIssueShowResponseSchema, {
-        method: 'GET',
-        query: { code: codeArgument(args) },
-    });
+    const detail = await deps.client.request(
+        '/api/agent/issues/show',
+        agentIssueShowResponseSchema,
+        {
+            method: 'GET',
+            query: { code: codeArgument(args) },
+        }
+    );
     deps.write(formatIssueDetail(detail));
     return 0;
 }
@@ -110,7 +116,10 @@ export async function runIssueComment(args: ParsedArgs, deps: IssueDeps) {
     const { comment } = await deps.client.request(
         '/api/agent/issues/comment',
         agentIssueCommentResponseSchema,
-        { body: { body, code: codeArgument(args), ...(replyTo ? { replyTo } : {}) }, method: 'POST' }
+        {
+            body: { body, code: codeArgument(args), ...(replyTo ? { replyTo } : {}) },
+            method: 'POST',
+        }
     );
     deps.write(`Commented on ${codeArgument(args)}:\n${commentLine(comment)}\n`);
     return 0;
@@ -123,7 +132,9 @@ export async function runIssueLink(args: ParsedArgs, deps: IssueDeps, verb: 'lin
         agentIssueSingleResponseSchema,
         { body: { code: codeArgument(args), taskId }, method: 'POST' }
     );
-    deps.write(`${verb === 'link' ? 'Linked' : 'Unlinked'} task:${taskId} ${verb === 'link' ? 'to' : 'from'} ${issue.code}.\n`);
+    deps.write(
+        `${verb === 'link' ? 'Linked' : 'Unlinked'} task:${taskId} ${verb === 'link' ? 'to' : 'from'} ${issue.code}.\n`
+    );
     return 0;
 }
 
@@ -151,9 +162,11 @@ function listQuery(args: ParsedArgs) {
         throw new AgentCliError('INVALID_ARG', 'Use --all or --assignee, not both.');
     }
     const states = commaList(args, '--state').map(stateValue);
-    const widened = [args.values['--project'], args.values['--parent'], args.values['--query']].some(
-        (value) => value !== undefined
-    );
+    const widened = [
+        args.values['--project'],
+        args.values['--parent'],
+        args.values['--query'],
+    ].some((value) => value !== undefined);
     return {
         assignee: assignee ? assigneeRef(assignee) : defaultAssignee(all || widened),
         parent: args.values['--parent'],

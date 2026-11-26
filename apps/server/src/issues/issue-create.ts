@@ -1,4 +1,9 @@
-import { type IssueActor, type IssueChange, type IssueCreateInput, issueStateType } from '@haus/api';
+import {
+    type IssueActor,
+    type IssueChange,
+    type IssueCreateInput,
+    issueStateType,
+} from '@haus/api';
 import { sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -6,7 +11,11 @@ import { issuesTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { allocateIssueNumber } from '../tasks/task-key-ledger.ts';
 import { actorColumns, requireIssueActor, requireIssueAssignee } from './issue-actor.ts';
-import { appendIssueEvents, prepareIssueCreatedEvent, prepareIssueUpdatedEvent } from './issue-events.ts';
+import {
+    appendIssueEvents,
+    prepareIssueCreatedEvent,
+    prepareIssueUpdatedEvent,
+} from './issue-events.ts';
 import {
     requireIssueParent,
     requireIssueProject,
@@ -17,11 +26,7 @@ import { readIssue } from './issue-read.ts';
 import { deriveIssueWrite } from './issue-wakes.ts';
 import { insertIssueTaskLink, type IssueWriteResult } from './issue-write.ts';
 
-export async function createIssue(
-    db: HausDatabase,
-    actor: IssueActor,
-    input: IssueCreateInput
-): Promise<IssueWriteResult> {
+export async function createIssue(db: HausDatabase, actor: IssueActor, input: IssueCreateInput) {
     return await db.transaction(async (tx) => {
         const { serverId } = input;
         await lockServerRow(tx, serverId);
@@ -70,7 +75,12 @@ export async function createIssue(
         }
         const changes: IssueChange[] = [{ kind: 'created' }];
         if (assignee?.kind === 'task') {
-            await insertIssueTaskLink(tx, { actor, issueId: id, serverId, taskId: assignee.taskId });
+            await insertIssueTaskLink(tx, {
+                actor,
+                issueId: id,
+                serverId,
+                taskId: assignee.taskId,
+            });
             changes.push({ kind: 'linked', taskId: assignee.taskId });
         }
         if (parent) {
@@ -97,6 +107,6 @@ export async function createIssue(
             events,
             issue,
             wakes: deriveIssueWrite({ actor, after: issue, before: null, events: recorded }),
-        };
+        } satisfies IssueWriteResult;
     });
 }

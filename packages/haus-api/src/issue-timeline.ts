@@ -27,10 +27,13 @@ export const issueCommentSchema = z
         replyToCommentId: idSchema.nullable(),
     })
     .strict()
-    .refine((comment) => (comment.parentCommentId === null) === (comment.replyToCommentId === null), {
-        message: 'A reply names both its top-level comment and the comment it answers.',
-        path: ['replyToCommentId'],
-    });
+    .refine(
+        (comment) => (comment.parentCommentId === null) === (comment.replyToCommentId === null),
+        {
+            message: 'A reply names both its top-level comment and the comment it answers.',
+            path: ['replyToCommentId'],
+        }
+    );
 
 export type IssueComment = z.infer<typeof issueCommentSchema>;
 

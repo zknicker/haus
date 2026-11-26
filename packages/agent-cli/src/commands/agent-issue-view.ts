@@ -82,6 +82,7 @@ export function commentLine(comment: AgentIssueCommentRow) {
 
 function activityLine(row: AgentIssueActivityRow) {
     const who = row.actor ? issueActorLabel(row.actor) : 'Haus';
-    const values = row.from === null && row.to === null ? '' : `: ${row.from ?? 'none'} → ${row.to ?? 'none'}`;
+    const values =
+        row.from === null && row.to === null ? '' : `: ${row.from ?? 'none'} → ${row.to ?? 'none'}`;
     return `- ${formatUtcTime(row.createdAt)} ${who} ${row.kind.replaceAll('_', ' ')}${values}`;
 }

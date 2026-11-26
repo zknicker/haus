@@ -1,7 +1,11 @@
 import { type Issue, type IssueActor, sameIssueActor } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import { IssueInvariantError, IssueNotFoundError, IssueProjectNotHomeError } from '../issues/issue-errors.ts';
+import {
+    IssueInvariantError,
+    IssueNotFoundError,
+    IssueProjectNotHomeError,
+} from '../issues/issue-errors.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
@@ -19,11 +23,7 @@ export function agentIssueActor(runner: Pick<ResolvedRunner, 'agentId'>) {
     return { agentId: runner.agentId, kind: 'captain' as const };
 }
 
-export async function resolveIssueActorRef(
-    db: Reader,
-    runner: ResolvedRunner,
-    ref: string
-): Promise<IssueActor> {
+export async function resolveIssueActorRef(db: Reader, runner: ResolvedRunner, ref: string) {
     if (ref === 'me') {
         return agentIssueActor(runner);
     }
@@ -57,10 +57,10 @@ export async function resolveIssueActorRef(
         throw new IssueInvariantError(`@${handle} names both a person and a Captain.`);
     }
     if (agent) {
-        return { agentId: agent.agentId, kind: 'captain' };
+        return { agentId: agent.agentId, kind: 'captain' } satisfies IssueActor;
     }
     if (human) {
-        return { kind: 'user', userId: human.userId };
+        return { kind: 'user', userId: human.userId } satisfies IssueActor;
     }
     throw new IssueInvariantError(`Nobody on this Server has the handle @${handle}.`);
 }
@@ -127,7 +127,7 @@ export async function resolveProjectKey(db: Reader, serverId: string, key: strin
     return project.projectId;
 }
 
-async function resolveTaskRef(db: Reader, serverId: string, taskId: string): Promise<IssueActor> {
+async function resolveTaskRef(db: Reader, serverId: string, taskId: string) {
     const [task] = await db
         .select({ id: tasksTable.id })
         .from(tasksTable)
@@ -136,5 +136,5 @@ async function resolveTaskRef(db: Reader, serverId: string, taskId: string): Pro
     if (!task) {
         throw new IssueNotFoundError(`No Task ${taskId} exists on this Server.`);
     }
-    return { kind: 'task', taskId: task.id };
+    return { kind: 'task', taskId: task.id } satisfies IssueActor;
 }

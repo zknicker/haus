@@ -6,9 +6,8 @@ import {
     type IssueDetail,
     type IssueEvent,
 } from '@haus/api';
-import { issueActorLabel } from '../issues/issue-actor-names.ts';
 import { and, eq, inArray } from 'drizzle-orm';
-import { nameIssueActors } from '../issues/issue-actor-names.ts';
+import { issueActorLabel, nameIssueActors } from '../issues/issue-actor-names.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { issuesTable, taskKeysTable, taskLabelsTable } from '../postgres/schema.ts';
 
@@ -22,7 +21,11 @@ export async function toAgentIssueRows(db: Reader, serverId: string, issues: rea
         serverId,
         issues.flatMap((issue) => [issue.assignee, issue.creator])
     );
-    const labels = await labelNames(db, serverId, issues.flatMap((issue) => issue.labelIds));
+    const labels = await labelNames(
+        db,
+        serverId,
+        issues.flatMap((issue) => issue.labelIds)
+    );
     const parents = await parentCodes(db, serverId, issues);
     return issues.map((issue) => ({
         assignee: issue.assignee ? name(issue.assignee) : null,

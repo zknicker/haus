@@ -9,7 +9,11 @@ import { appendIssueEvents, prepareIssueUpdatedEvent } from './issue-events.ts';
 import { lockIssue, readIssue } from './issue-read.ts';
 import { insertIssueTaskLink, type IssueTx, type IssueWriteResult } from './issue-write.ts';
 
-export async function linkIssueTask(db: HausDatabase, actor: IssueActor, input: IssueTaskLinkInput) {
+export async function linkIssueTask(
+    db: HausDatabase,
+    actor: IssueActor,
+    input: IssueTaskLinkInput
+) {
     return await writeLink(db, actor, input, async (tx) => {
         await requireTask(tx, input.serverId, input.taskId);
         return await insertIssueTaskLink(tx, {
@@ -51,7 +55,7 @@ async function writeLink(
     actor: IssueActor,
     input: IssueTaskLinkInput,
     change: (tx: IssueTx, issue: Awaited<ReturnType<typeof lockIssue>>) => Promise<boolean>
-): Promise<IssueWriteResult> {
+) {
     return await db.transaction(async (tx) => {
         const { serverId } = input;
         await lockServerRow(tx, serverId);
@@ -60,7 +64,7 @@ async function writeLink(
         requireIssueVersion(current.version, input.expectedVersion);
         const wasLinked = current.taskIds.includes(input.taskId);
         if (!(await change(tx, current))) {
-            return { events: [], issue: current, wakes: [] };
+            return { events: [], issue: current, wakes: [] } satisfies IssueWriteResult;
         }
         await tx
             .update(issuesTable)
@@ -73,7 +77,11 @@ async function writeLink(
             serverId,
         });
         const issue = await readIssue(tx, serverId, current.id);
-        return { events: [prepareIssueUpdatedEvent(issue)], issue, wakes: [] };
+        return {
+            events: [prepareIssueUpdatedEvent(issue)],
+            issue,
+            wakes: [],
+        } satisfies IssueWriteResult;
     });
 }
 

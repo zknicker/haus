@@ -37,8 +37,10 @@ export const openIssueStates = [
 
 export type IssueStateType = 'open' | 'closed';
 
-export function issueStateType(state: IssueState): IssueStateType {
-    return (closedIssueStates as readonly IssueState[]).includes(state) ? 'closed' : 'open';
+export function issueStateType(state: IssueState) {
+    return (
+        (closedIssueStates as readonly IssueState[]).includes(state) ? 'closed' : 'open'
+    ) satisfies IssueStateType;
 }
 
 export const issueStateRefSchema = z

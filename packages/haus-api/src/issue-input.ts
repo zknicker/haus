@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { issueCommentBodySchema } from './issue-timeline.ts';
 import {
     issueActorSchema,
     issueAssigneeSchema,
@@ -11,7 +12,6 @@ import {
     issueStateSchema,
     issueTitleSchema,
 } from './issue.ts';
-import { issueCommentBodySchema } from './issue-timeline.ts';
 
 const expectedVersionSchema = z.number().int().positive();
 
@@ -43,7 +43,12 @@ const issueFieldsInput = {
 };
 
 export const issueCreateInputSchema = z
-    .object({ ...issueFieldsInput, projectId: idSchema, serverId: idSchema, title: issueTitleSchema })
+    .object({
+        ...issueFieldsInput,
+        projectId: idSchema,
+        serverId: idSchema,
+        title: issueTitleSchema,
+    })
     .strict();
 
 export const issuePatchSchema = z

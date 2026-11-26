@@ -1,7 +1,12 @@
 import type { IssueActor } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, serverMembershipsTable, serversTable, tasksTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    serverMembershipsTable,
+    serversTable,
+    tasksTable,
+} from '../postgres/schema.ts';
 import { requireServerMembership, ServerAccessDeniedError } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { IssueInvariantError } from './issue-errors.ts';
@@ -39,28 +44,28 @@ export async function requireIssueAssignee(db: Reader, serverId: string, assigne
     }
 }
 
-export function actorColumns(actor: IssueActor | null): ActorColumns {
+export function actorColumns(actor: IssueActor | null) {
     return {
         agentId: actor?.kind === 'captain' ? actor.agentId : null,
         taskId: actor?.kind === 'task' ? actor.taskId : null,
         userId: actor?.kind === 'user' ? actor.userId : null,
-    };
+    } satisfies ActorColumns;
 }
 
-export function actorFromColumns(columns: ActorColumns): IssueActor | null {
+export function actorFromColumns(columns: ActorColumns) {
     if (columns.userId !== null) {
-        return { kind: 'user', userId: columns.userId };
+        return { kind: 'user', userId: columns.userId } satisfies IssueActor;
     }
     if (columns.agentId !== null) {
-        return { agentId: columns.agentId, kind: 'captain' };
+        return { agentId: columns.agentId, kind: 'captain' } satisfies IssueActor;
     }
     if (columns.taskId !== null) {
-        return { kind: 'task', taskId: columns.taskId };
+        return { kind: 'task', taskId: columns.taskId } satisfies IssueActor;
     }
     return null;
 }
 
-export function requiredActorFromColumns(columns: ActorColumns): IssueActor {
+export function requiredActorFromColumns(columns: ActorColumns) {
     const actor = actorFromColumns(columns);
     if (!actor) {
         throw new Error('An Issue actor row names neither a person, a Captain, nor a Task.');

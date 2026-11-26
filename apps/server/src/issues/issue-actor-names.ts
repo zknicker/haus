@@ -18,7 +18,10 @@ export async function nameIssueActors(
         userIds.length === 0
             ? []
             : await db
-                  .select({ handle: serverMembershipsTable.handle, id: serverMembershipsTable.userId })
+                  .select({
+                      handle: serverMembershipsTable.handle,
+                      id: serverMembershipsTable.userId,
+                  })
                   .from(serverMembershipsTable)
                   .where(
                       and(
@@ -32,7 +35,9 @@ export async function nameIssueActors(
             : await db
                   .select({ handle: agentsTable.handle, id: agentsTable.id })
                   .from(agentsTable)
-                  .where(and(eq(agentsTable.serverId, serverId), inArray(agentsTable.id, agentIds)));
+                  .where(
+                      and(eq(agentsTable.serverId, serverId), inArray(agentsTable.id, agentIds))
+                  );
     const tasks =
         taskIds.length === 0
             ? []
@@ -42,14 +47,24 @@ export async function nameIssueActors(
                   .where(and(eq(tasksTable.serverId, serverId), inArray(tasksTable.id, taskIds)));
     const handles = new Map([...users, ...agents].map((row) => [row.id, row.handle]));
     const titles = new Map(tasks.map((row) => [row.id, row.title]));
-    return (actor: IssueActor): AgentIssueActor => {
+    return (actor: IssueActor) => {
         switch (actor.kind) {
             case 'user':
-                return { handle: handles.get(actor.userId) ?? null, kind: 'user' };
+                return {
+                    handle: handles.get(actor.userId) ?? null,
+                    kind: 'user',
+                } satisfies AgentIssueActor;
             case 'captain':
-                return { handle: handles.get(actor.agentId) ?? null, kind: 'captain' };
+                return {
+                    handle: handles.get(actor.agentId) ?? null,
+                    kind: 'captain',
+                } satisfies AgentIssueActor;
             case 'task':
-                return { kind: 'task', taskId: actor.taskId, title: titles.get(actor.taskId) ?? '' };
+                return {
+                    kind: 'task',
+                    taskId: actor.taskId,
+                    title: titles.get(actor.taskId) ?? '',
+                } satisfies AgentIssueActor;
         }
     };
 }

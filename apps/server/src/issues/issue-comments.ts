@@ -20,7 +20,11 @@ import { deriveIssueComment } from './issue-wakes.ts';
 type Reader = Pick<HausDatabase, 'select'>;
 type CommentRow = typeof issueCommentsTable.$inferSelect;
 
-export async function addIssueComment(db: HausDatabase, actor: IssueActor, input: IssueCommentInput) {
+export async function addIssueComment(
+    db: HausDatabase,
+    actor: IssueActor,
+    input: IssueCommentInput
+) {
     return await db.transaction(async (tx) => {
         const { serverId } = input;
         await lockServerRow(tx, serverId);
@@ -74,7 +78,10 @@ export async function editIssueComment(
             .update(issueCommentsTable)
             .set({ body: input.body, editedAt: sql`now()` })
             .where(
-                and(eq(issueCommentsTable.serverId, serverId), eq(issueCommentsTable.id, current.id))
+                and(
+                    eq(issueCommentsTable.serverId, serverId),
+                    eq(issueCommentsTable.id, current.id)
+                )
             );
         return {
             comment: await readComment(tx, serverId, current.id),
@@ -93,7 +100,9 @@ export async function listIssueComments(db: Reader, serverId: string, issueId: s
     const rows = await db
         .select()
         .from(issueCommentsTable)
-        .where(and(eq(issueCommentsTable.serverId, serverId), eq(issueCommentsTable.issueId, issueId)))
+        .where(
+            and(eq(issueCommentsTable.serverId, serverId), eq(issueCommentsTable.issueId, issueId))
+        )
         .orderBy(asc(issueCommentsTable.createdAt), asc(issueCommentsTable.id));
     return rows.map(toComment);
 }

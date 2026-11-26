@@ -1,4 +1,4 @@
-import { formatIssueCode, type Issue, issueSchema, issueStateType, parseIssueCode } from '@haus/api';
+import { formatIssueCode, issueSchema, issueStateType, parseIssueCode } from '@haus/api';
 import { and, eq, type SQL, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { issuesTable, taskKeysTable } from '../postgres/schema.ts';
@@ -113,7 +113,7 @@ function selectIssueRows(db: Reader, serverId: string, where: SQL | undefined) {
         .orderBy(issuesTable.createdAt, issuesTable.id);
 }
 
-function toIssue(row: IssueRow): Issue {
+function toIssue(row: IssueRow) {
     return issueSchema.parse({
         assignee: actorFromColumns({
             agentId: row.assigneeAgentId,

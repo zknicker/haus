@@ -28,7 +28,11 @@ const fieldFlags = [
     },
     { description: 'The parent Issue code, or none', name: '--parent', valueName: '<code>' },
 ];
-const titleFlag = { description: 'Title, up to 500 characters', name: '--title', valueName: '<text>' };
+const titleFlag = {
+    description: 'Title, up to 500 characters',
+    name: '--title',
+    valueName: '<text>',
+};
 
 export const ISSUE_SUBCOMMANDS: SubCommand[] = [
     {
@@ -39,7 +43,7 @@ export const ISSUE_SUBCOMMANDS: SubCommand[] = [
         flags: [titleFlag, ...fieldFlags],
         name: 'create',
         notes: [
-            "Files the Issue in your Project with the description piped on stdin. It starts todo and unassigned unless a flag says otherwise.",
+            'Files the Issue in your Project with the description piped on stdin. It starts todo and unassigned unless a flag says otherwise.',
         ],
         positionals: [],
         run: (args) => runIssueCreate(args, defaultDeps()),
@@ -60,7 +64,8 @@ export const ISSUE_SUBCOMMANDS: SubCommand[] = [
             },
             ...fieldFlags,
             {
-                description: 'Write only if the assignee is still this: none, me, an @handle, or task:<id>',
+                description:
+                    'Write only if the assignee is still this: none, me, an @handle, or task:<id>',
                 name: '--expect-assignee',
                 valueName: '<who>',
             },
@@ -88,11 +93,23 @@ export const ISSUE_SUBCOMMANDS: SubCommand[] = [
         ],
         flags: [
             { description: "Every assignee's Issues, not only yours", name: '--all' },
-            { description: 'me, none, an @handle, or task:<id>', name: '--assignee', valueName: '<who>' },
-            { description: `Comma list of ${issueStates.join(', ')}`, name: '--state', valueName: '<states>' },
+            {
+                description: 'me, none, an @handle, or task:<id>',
+                name: '--assignee',
+                valueName: '<who>',
+            },
+            {
+                description: `Comma list of ${issueStates.join(', ')}`,
+                name: '--state',
+                valueName: '<states>',
+            },
             { description: "One Project's Issues, by key", name: '--project', valueName: '<KEY>' },
             { description: 'Sub-issues of one Issue', name: '--parent', valueName: '<code>' },
-            { description: 'Words in the title or description', name: '--query', valueName: '<text>' },
+            {
+                description: 'Words in the title or description',
+                name: '--query',
+                valueName: '<text>',
+            },
         ],
         name: 'list',
         notes: [
@@ -107,7 +124,9 @@ export const ISSUE_SUBCOMMANDS: SubCommand[] = [
         examples: ['haus issue show GEN-12'],
         flags: [],
         name: 'show',
-        notes: ['Prints the Issue, its description, sub-issues, pull requests, comments, and newest activity.'],
+        notes: [
+            'Prints the Issue, its description, sub-issues, pull requests, comments, and newest activity.',
+        ],
         positionals: [codePositional],
         run: (args) => runIssueShow(args, defaultDeps()),
         summary: 'Read one Issue',
@@ -119,10 +138,16 @@ export const ISSUE_SUBCOMMANDS: SubCommand[] = [
             'printf "Agreed." | haus issue comment GEN-12 --reply-to icm_abc',
         ],
         flags: [
-            { description: 'The comment id this answers', name: '--reply-to', valueName: '<commentId>' },
+            {
+                description: 'The comment id this answers',
+                name: '--reply-to',
+                valueName: '<commentId>',
+            },
         ],
         name: 'comment',
-        notes: ['Reads the comment from stdin. A comment wakes the agent the Issue is assigned to.'],
+        notes: [
+            'Reads the comment from stdin. A comment wakes the agent the Issue is assigned to.',
+        ],
         positionals: [codePositional],
         run: (args) => runIssueComment(args, defaultDeps()),
         summary: 'Comment on an Issue',

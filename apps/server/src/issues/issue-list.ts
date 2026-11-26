@@ -101,7 +101,12 @@ async function listIssuePullRequests(db: Reader, serverId: string, issueId: stri
                 eq(pullRequestReadingsTable.number, taskPullRequestsTable.number)
             )
         )
-        .where(and(eq(issueTaskLinksTable.serverId, serverId), eq(issueTaskLinksTable.issueId, issueId)))
+        .where(
+            and(
+                eq(issueTaskLinksTable.serverId, serverId),
+                eq(issueTaskLinksTable.issueId, issueId)
+            )
+        )
         .orderBy(asc(taskPullRequestsTable.createdAt));
 }
 
@@ -118,7 +123,9 @@ function listFilters(input: IssueListInput) {
     }
     if (input.query) {
         const pattern = `%${input.query.replaceAll(/[\\%_]/gu, (match) => `\\${match}`)}%`;
-        filters.push(or(ilike(issuesTable.title, pattern), ilike(issuesTable.description, pattern)));
+        filters.push(
+            or(ilike(issuesTable.title, pattern), ilike(issuesTable.description, pattern))
+        );
     }
     if (input.assignee === 'none') {
         filters.push(

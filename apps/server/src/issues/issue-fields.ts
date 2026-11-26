@@ -30,7 +30,13 @@ export async function requireIssueProject(db: Reader, serverId: string, projectI
 
 export async function requireIssueParent(
     db: Pick<HausDatabase, 'execute' | 'select'>,
-    input: { code: string | null; issueId: string | null; parentId: string; projectId: string; serverId: string }
+    input: {
+        code: string | null;
+        issueId: string | null;
+        parentId: string;
+        projectId: string;
+        serverId: string;
+    }
 ) {
     const parent = await readIssue(db, input.serverId, input.parentId);
     if (parent.projectId !== input.projectId) {
@@ -72,7 +78,9 @@ export async function writeIssueLabels(
                 )
             );
         if (found.length !== labelIds.length) {
-            throw new IssueInvariantError('Every Issue label must be in this Server’s label catalog.');
+            throw new IssueInvariantError(
+                'Every Issue label must be in this Server’s label catalog.'
+            );
         }
     }
     await tx
