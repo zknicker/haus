@@ -60,14 +60,15 @@ branches that outlived their reason.
 2. **A Task has no backlog fields.** No state, priority, due date, labels, assignee or code. It is
    `active` or `archived`. Its activity status is Capy's: `working`, `waiting`, `idle` or `failed`,
    plus a `needsYou` flag. Its handle is its title plus a short id, the 8-character prefix of its
-   `tsk_` id, unique per Server. The short id names it in the CLI, in URLs (`/tasks/<shortId>`), in
+   `tsk_` id, lowercase base32 and unique per Server. The short id names it in the CLI, in URLs (`/tasks/<shortId>`), in
    branches (`haus/<shortId>-<slug>`) and in commit trailers (`Haus-Task: <shortId>`, plus
    `Haus-Issue: GEN-12` when it works an Issue).
 
 3. **A Task is a hidden agent.** Its engine is an `agents` row of kind `task`, keyed one to one to
    its `tasks` row, so the runner session, inbox, invocation ledger, working folder and worktrees
-   all key on that agent id unchanged. Task agents never appear in people lists, mention pickers,
-   rosters, greetings, hearing candidates or Computer access lists. The Server scopes a Task's
+   all key on that agent id unchanged. Task agents never appear in people lists, rosters,
+   greetings, hearing candidates or Computer access lists; the @ picker lists Tasks by title as
+   `task://` links, never their agents. The Server scopes a Task's
    credentials to its own chat and its Issue.
 
 4. **A Captain stays its own kind on the same base.** Existing agents become kind `captain`. A

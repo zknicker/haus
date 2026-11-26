@@ -72,11 +72,14 @@ Wire shapes live in `packages/haus-api/src/task.ts`. The tRPC surface is
 ### Identity
 
 - The Server mints the `tsk_` id and its **short id**, the first 8 characters of the id body,
-  unique per Server (`tasks_short_id_key`). A mint whose prefix is taken mints again, so a short
-  id never becomes ambiguous later (new, step 2).
-- The short id is the Task's handle: `haus task show 3f9a1c2e`, the agent target
-  `task:3f9a1c2e`, the URL `/tasks/3f9a1c2e`, the branch `haus/3f9a1c2e-<slug>`, and the
-  trailer `Haus-Task: 3f9a1c2e`. Full ids resolve everywhere a short id does.
+  stored as `tasks.short_id`, unique per Server (`tasks_short_id_key`). A mint whose prefix is
+  taken mints again, so a short id never becomes ambiguous later (new, step 2).
+- Task id bodies are lowercase base32 (`[a-z2-7]`), not the base64url of `createOpaqueId`
+  (`apps/server/src/postgres/opaque-id.ts:9`), because the short id lands in git branch names,
+  and macOS stores refs case-insensitively, so two ids differing only in case would collide.
+- The short id is the Task's handle: `haus task show k3mq7xta`, the agent target
+  `task:k3mq7xta`, the URL `/tasks/k3mq7xta`, the branch `haus/k3mq7xta-<slug>`, and the
+  trailer `Haus-Task: k3mq7xta`. Full ids resolve everywhere a short id does.
 - People refer to a Task by title. The @ picker searches active Tasks by title, shows each with
   its Project, age and activity, and inserts a `task://<taskId>` link
   (`apps/server/src/tasks/task-reference-links.ts:33`). A crew Task working one Issue displays as

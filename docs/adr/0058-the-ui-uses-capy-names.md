@@ -1,11 +1,12 @@
 ---
 status: accepted
-summary: The Haus App and iPhone app call an Agent a Captain, a channel a Project, and a Computer a Device. Only user-visible copy changes; the backend, API fields, routes, wire names, package names, env vars, Agent-facing text, and contract docs keep their nouns. Accepted 2026-11-19. Amended 2026-11-23: a Captain's default Device is its Machine, the UI never says "home" for a Device, and the Device page says "Captains using this device by default".
+summary: The Haus App and iPhone app call an Agent a Captain, a channel a Project, and a Computer a Device. Only user-visible copy changes; the backend, API fields, routes, wire names, package names, env vars, Agent-facing text, and contract docs keep their nouns. Accepted 2026-11-19. Amended 2026-11-23: a Captain's default Device is its Machine, the UI never says "home" for a Device, and the Device page says "Captains using this device by default". Amended 2026-11-26 by ADR 0062: the UI says Task, Issue and Captain chat, and Worker leaves the UI.
 read_when:
   - writing or reviewing user-visible copy in the Haus App or iPhone app
   - naming a UI label, heading, button, empty state, toast, or aria-label that mentions an Agent, channel, or Computer
   - deciding whether a doc or spec should use the UI name or the backend noun
   - labeling a Captain's Machine, or Device page copy about which Captains use or may use a Device
+  - labeling Tasks, Issues, the Captain chat, crew, or Task activity in the UI
 ---
 
 # ADR 0058: The UI Uses Capy Names
@@ -15,6 +16,7 @@ read_when:
 Accepted 2026-11-19. Amended 2026-11-23 with
 [the Machine names](#amendment-2026-11-23-machine), after
 [ADR 0057's Machine amendment](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer).
+Amended 2026-11-26 with [Task, Issue and the Captain chat](#amendment-2026-11-26-task-issue-and-the-captain-chat).
 
 ## Decision
 
@@ -65,6 +67,22 @@ The UI never says "home" for a Device. A Captain belongs only to its Project.
 
 "Continue on" is reserved for a later transfer that carries a Captain's branch and uncommitted
 work.
+
+## Amendment 2026-11-26: Task, Issue and the Captain chat
+
+From [ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md). These names match the
+backend nouns, so they are names, not translations:
+
+| UI name | Backend noun | Notes |
+| --- | --- | --- |
+| Task | task | Capy calls it a thread. A Task is one agent session; the UI never says "thread" |
+| Issue | issue | The backlog card, with its code (GEN-12) |
+| Captain chat | `captain` chat | Replaces "your DM" with a Captain. "DM" stays for person-to-person DMs |
+| Machine | `computerId` | Also a Task's field: "Runs on MacBook" |
+
+- "Worker" leaves the UI with Workers. "Crew" names a Captain's Tasks.
+- Activity reads Working, Waiting, Idle, Failed, and Needs you, as in Capy.
+- The Tasks list tabs are **My tasks**, **All tasks**, and **Archived**.
 
 ## Consequences
 

@@ -1,6 +1,6 @@
 ---
-status: accepted
-summary: Agents run Workers, scoped parallel runs attached to a Task, on any Computer that allows them or on Cursor or Claude in the cloud. Workers replace cloud agents. Each one gets the rule stack plus its Agent's WORKER.md at launch and on change, uses its machine's own logins, stays quiet while working, and ends with a typed report (done, needs-you, failed). People send a Worker follow-ups between turns and can stop it while it runs. PRs attach through reports, and commits carry a Haus-Task trailer for tracing. Agents coordinate only in the open, and there are no forks. Accepted 2026-11-19, not yet implemented. Amended 2026-11-23: an Agent starts a Worker on a Computer only where that Computer's Agent access allows it.
+status: superseded
+summary: Superseded by ADR 0062, where parallel work is a Task, an agent session with its own chat, and Workers and the cloud hand-off are deleted. Historical decision. Agents run Workers, scoped parallel runs attached to a Task, on any Computer that allows them or on Cursor or Claude in the cloud. Workers replace cloud agents. Each one gets the rule stack plus its Agent's WORKER.md at launch and on change, uses its machine's own logins, stays quiet while working, and ends with a typed report (done, needs-you, failed). People send a Worker follow-ups between turns and can stop it while it runs. PRs attach through reports, and commits carry a Haus-Task trailer for tracing. Agents coordinate only in the open, and there are no forks. Accepted 2026-11-19, not yet implemented. Amended 2026-11-23: an Agent starts a Worker on a Computer only where that Computer's Agent access allows it.
 read_when:
   - changing cloud agents, Workers, Runs, or `haus cloud-agent` / `haus worker`
   - changing where delegated work runs, the Project default place, or per-Computer Worker access
@@ -14,7 +14,14 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-19. Not yet implemented. Amended 2026-11-23 in decision 6 by
+Superseded 2026-11-26 by
+[ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md): a Task is its own agent
+session that people talk to directly, crew report through `haus task report`, and Workers, the
+native Worker drivers and the Cursor and Claude cloud places are deleted in its step 7. What
+survives (the rule stack and `WORKER.md` receipts, typed reports, the trailer, pull requests
+through reports, coordination in the open) is in [specs/tasks.md](../../specs/tasks.md).
+
+Accepted 2026-11-19. Workers shipped in W1 to W4. Amended 2026-11-23 in decision 6 by
 [ADR 0057's Machine amendment](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer):
 [Workers honor Agent access](#amendment-2026-11-23-workers-honor-agent-access), implemented 2026-11-23. Proposed to be
 amended 2026-11-22 by

@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: Humans create Projects, and each Project is its channel; there are no freestanding channels. A Project carries one key, repos, rules, its Agents, and the default place for Workers. Every Task belongs to one Project explicitly. Each Agent belongs to one Project, hears everything there and in the team room `#all`, and only @mentions elsewhere. `#all` is the only channel that is not a Project. Humans can file a Task assigned to an Agent. Amends ADR 0053. Accepted 2026-11-19, not yet implemented.
+summary: Humans create Projects, and each Project is its channel; there are no freestanding channels. A Project carries one key, repos, rules, its Agents, and the default place for Workers. Every Task belongs to one Project explicitly. Each Agent belongs to one Project, hears everything there and in the team room `#all`, and only @mentions elsewhere. `#all` is the only channel that is not a Project. Humans can file a Task assigned to an Agent. Amends ADR 0053. Accepted 2026-11-19, not yet implemented. Amended 2026-11-26 by ADR 0062: the Project key prefixes Issues, not Tasks; home Captains stop hearing the Project's Tasks ambiently; the Captain tile opens the shared Captain chat instead of a DM; and the default place for Workers becomes the default Machine for Tasks.
 read_when:
   - creating, configuring, or listing channels or Projects, or changing Project keys
   - deciding which Project a Task belongs to, or who can create a Task
@@ -32,6 +32,9 @@ decision 9 no longer places it in the Haus project, and a new Server's Haus proj
 Amended 2026-11-20 by [ADR 0059](0059-haus-starts-empty-without-cove.md) after a council review:
 `#all` stays the everyone channel and is not a Project (decision 1), and generalists are withdrawn
 (decision 9). An existing Server's Haus project becomes an ordinary `#general` Project.
+
+Amended 2026-11-26 by [ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md); see
+[the amendment](#amendment-2026-11-26-projects-own-issues).
 
 ## Context
 
@@ -102,6 +105,24 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
 11. **The Agent page** is your DM on the left and an Overview on the right: Working (its open Tasks
     with their Workers, places and PR state), Drive (its folder), and Rules (links to the rule
     files that load for it). A Tasks tab lists every Task assigned to it.
+
+## Amendment 2026-11-26: Projects own Issues
+
+[ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md) changes these decisions:
+
+- **Decisions 2 and 3.** A Project's settings name its default Machine for Tasks instead of a
+  default Worker place. Its one key prefixes its Issue codes (GEN-12); its Tasks take no number.
+  Each Project has an Issue list and board.
+- **Decisions 4 and 5.** A Task still belongs to one Project. A person starts a Task in any
+  Project; a Captain starts crew only in its home Project. Filing work for someone is filing an
+  Issue and assigning it.
+- **Decision 7.** A Captain hears its Project's channel, but not its Tasks: it hears a Task only
+  when @mentioned, when it follows it, or through its crew's reports. Its own Captain chat always
+  reaches it. Captain DMs go.
+- **Decision 8.** Work that belongs elsewhere can also be handed off as an unassigned Backlog Issue
+  filed in that Project.
+- **Decisions 10 and 11.** A Captain tile opens the Captain chat, the Captain page is that chat
+  plus its side panel, and its Tasks tab becomes its crew and its Issues.
 
 ## Considered and rejected
 

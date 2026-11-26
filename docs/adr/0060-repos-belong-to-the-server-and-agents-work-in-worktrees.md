@@ -1,6 +1,6 @@
 ---
 status: proposed
-summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Implemented 2026-11-22; Agent pushes, pull requests and commit identity (slice C) 2026-11-23. Amended 2026-11-23: when an Agent's Machine changes, its worktrees and uncommitted work stay on the old Mac.
+summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Implemented 2026-11-22; Agent pushes, pull requests and commit identity (slice C) 2026-11-23. Amended 2026-11-23: when an Agent's Machine changes, its worktrees and uncommitted work stay on the old Mac. Amended 2026-11-26 by ADR 0062: Task agents work in worktrees keyed by their agent id on `haus/<shortId>-<slug>`, and archive removes clean ones at once.
 read_when:
   - changing where repos are recorded, how a Computer finds or clones a repo, or repo folders
   - changing Project creation or Project settings that mention repos
@@ -37,6 +37,9 @@ Amended 2026-11-23 by
 [ADR 0057's Machine amendment](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer):
 [worktrees stay on the old Mac](#amendment-2026-11-23-worktrees-stay-on-the-old-mac) when an
 Agent's Machine changes.
+
+Amended 2026-11-26 by [ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md):
+[Task agents work in worktrees](#amendment-2026-11-26-task-agents-work-in-worktrees).
 
 ## Context
 
@@ -279,6 +282,22 @@ Machine change moves none of them.
   never removes unpushed work.
 - **Carrying work across** (Capy's "Continue on", which moves the branch and uncommitted work and
   ends the turn) is deferred.
+
+## Amendment 2026-11-26: Task agents work in worktrees
+
+[ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md) replaces Workers with Task
+agents. Decisions 4 to 6 apply to a Task as to an Agent, because a Task is a hidden agent:
+
+- **Path.** A Task's worktrees sit at `worktrees/<task-agent-id>/<owner>/<name>/`, keyed by its
+  agent id like any Agent's (`apps/computer/src/invocations/worktree-use.ts`).
+- **Branch.** `haus/<shortId>-<slug>`, from the Task's short id and title. Commits carry
+  `Haus-Task: <shortId>` and `Haus-Issue: <code>` trailers.
+- **One Machine.** A Task's worktrees are on its one Machine, which never changes.
+- **Cleanup at archive.** Archive removes each clean worktree at once instead of waiting 7 days,
+  and keeps unpushed ones, which the Device page lists with their Task
+  ([specs/tasks.md](../../specs/tasks.md#archive)).
+- Decision 5's Worker rule (one repo per Worker, cloned on demand) and decision 8 (cloud Workers)
+  retire with Workers in step 7. A Task may check out several repos.
 
 ## Considered and rejected
 

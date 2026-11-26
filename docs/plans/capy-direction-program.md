@@ -1,6 +1,7 @@
 ---
-summary: Implementation plan for the Capy-direction program (ADRs 0054 to 0057). Phases, PRs in order, the invariants every PR keeps, how each phase is run and verified, and the gates between phases.
+summary: Implementation plan for the Capy-direction program (ADRs 0054 to 0057, and ADR 0062's Tasks and Issues phase T1 to T7, which supersedes the Workers phase). Phases, PRs in order, the invariants every PR keeps, how each phase is run and verified, and the gates between phases.
 read_when:
+  - starting or running any step of ADR 0062 (Issues, Task agents, the Captain chat, deleting Workers)
   - starting or running any phase of the Drive, Agents-on-the-Server, Projects, Workers, or computer-use work
   - writing a phase brief, a PR description, or a fidelity review for that work
   - checking which ADR decision or invariant a change must satisfy
@@ -204,7 +205,10 @@ describe it in the same PR. Existing Coves and `#onboarding-owner` channels stay
 
 ## Turn cloud agents into Workers (W1 to W4)
 
-ADR 0056 decisions 1 to 12.
+ADR 0056 decisions 1 to 12. Superseded by
+[ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md): Workers are replaced
+by Task agents ([Tasks and Issues](#make-tasks-agent-sessions-and-add-issues-t1-to-t7)), and T7
+deletes them.
 
 - [ ] **W1. Write the Workers contract.** Rewrite `specs/cloud-agents.md` as Workers, and reconcile `specs/workers.md`.
 - [ ] **W2. Rename cloud agents to Workers.** `haus worker`, typed reports as inbox items, the `Haus-Task` trailer, PRs attached through reports, and supervision. Delete the cloud-agent noun in the same PR.
@@ -219,6 +223,21 @@ ADR 0056 decisions 1 to 12.
 
 - [ ] **C1. Relay agent-desktop.** Built into every Computer behind `execute`, with the per-Computer "Computer use allowed" switch.
 - [ ] **C2. Show what loads before the first message.** The token breakdown on the Agent page. Review-gated.
+
+## Make Tasks agent sessions and add Issues (T1 to T7)
+
+[ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md), contracts in
+[specs/tasks.md](../../specs/tasks.md) and [specs/issues.md](../../specs/issues.md). No
+migration or compatibility code: one-off production scripts run with Zach's yes, outside the
+product code. Each step ships on its own.
+
+- [ ] **T1. Land ADR 0062 and its specs.**
+- [ ] **T2. Issues.** The record, codes on the ledger, comments, activity, sub-issues, CLI, API and UI. Tasks get short ids and lose state, priority, due date and labels.
+- [ ] **T3. Captains work from Issues.** `issue_assignment`, no ambient Task hearing, crew-report batching, with prompt and Manual changes gated by baseline evals.
+- [ ] **T4. Mac side.** Per-session keying, the per-Computer concurrency cap, the desktop lease, background processes that wake on exit.
+- [ ] **T5. Task agents and the Captain chat.** The `task` agent kind, crew briefs and reports, `haus task send` with delivery modes, Machine access, archive as retire, and the shared Captain chat replacing Captain DMs.
+- [ ] **T6. App.** Home composer to Task, the Task page and side panel, the Tasks list, the Captain page, Issues list, board and page, the sidebar.
+- [ ] **T7. Delete Workers and the Cursor and Claude cloud hand-off**, once Task agents work end to end.
 
 ## Close the program
 
