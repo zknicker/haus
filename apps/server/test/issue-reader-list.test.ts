@@ -48,9 +48,7 @@ describe('the reader lens on issue.list', () => {
         const lookalike = await agentFile('Not Ada', 'Ping @adam and mail ada@haus.test.');
 
         expect(await readerCodes('subscribed')).toEqual([filed.code]);
-        expect(await readerCodes('mentioned')).toEqual(
-            [described.code, commented.code].sort()
-        );
+        expect(await readerCodes('mentioned')).toEqual([described.code, commented.code].sort());
         expect(await readerCodes('mentioned')).not.toContain(lookalike.code);
     });
 });
