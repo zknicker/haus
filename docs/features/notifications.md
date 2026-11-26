@@ -43,9 +43,9 @@ stops the next notification; only a message already read is not notified.
   (`chat.unreadChatCount`), so a badge never shrinks when the app opens. Pushes group by conversation and collapse by message id, and a
   tap opens the conversation. The human's own messages, Chats they cannot see, and
   archived Chats never push. The Server sends only when an APNs key is configured; see
-  [iPhone Push](../operations/ios-push.md). A Task someone else assigned the human pushes too,
-  titled `<assigner> assigned you SEC-12`, unless they read it within the same wait. Several
-  assignments landing inside that wait are one push, `Zero assigned you 6 tasks`.
+  [iPhone Push](../operations/ios-push.md). An Issue someone else assigned the human pushes too,
+  titled `<assigner> assigned you GEN-12`, unless it went to someone else within the same wait, and
+  a comment on an Issue they subscribe to pushes as `<author> commented on GEN-12`. The iPhone app does not route Issue pushes yet.
 - **iPhone Focus**: a push tells iOS why it addresses the human. A DM breaks through a Focus when
   its sender is an allowed person; in a Channel or Task, only a mention of the human or a reply
   to their message does (for an allowed sender). Haus never marks pushes Time Sensitive.

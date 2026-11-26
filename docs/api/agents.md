@@ -151,7 +151,7 @@ lost launch settled, so the summary spans the whole run rather than its tail.
 `accepted`, `served`, `seen`), `turnId`, and the per-state timestamps `createdAt`,
 `acceptedAt`, `servedAt`, and `seenAt`. `workId` is the durable identity for
 every kind of work; `messageId` is null for non-Chat work, and `chatId` is null for chatless work
-(a sub-agent wake or a Task assignment). Rows are retained after
+(a sub-agent wake, Drive conflict, process exit, or Issue item). Rows are retained after
 settlement rather than deleted, so
 "never delivered" and "delivered and answered with silence" read differently.
 `turnId` is the run that consumed the row; it stays null when the seen cursor
@@ -366,8 +366,7 @@ Tasks by key. `/attach-pr` takes `{ key, url }` and answers `{ task, pullRequest
 Omitting `expectedVersion` means the last write wins: a write that lost a race retries on the
 current version, a bounded number of times. A named `expectedVersion` that is stale, or a race still
 lost after those retries, answers `409 TASK_CONFLICT`, a name that resolves to nothing or a write to a
-chatless history Task `400 INVALID_ARG`, and a missing Task `404 TASK_NOT_FOUND`. Assigning another Agent delivers a chatless
-`task_assignment` inbox item, which needs Computer protocol 33.
+chatless history Task `400 INVALID_ARG`, and a missing Task `404 TASK_NOT_FOUND`.
 
 ### Reminder routes
 

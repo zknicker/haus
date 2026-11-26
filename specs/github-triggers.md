@@ -283,9 +283,9 @@ Today `chain-budget.ts` counts only `agent:` rows, so any Trigger wake resets th
 Agent that writes to GitHub can wake itself forever. The budget changes for every Trigger kind:
 
 - `isAutomationAuthored(row)` is true for `agent:*`, `trigger`, and `trigger_problem` rows, and for
-  a `task_assignment` an Agent made, so two Agents assigning each other stop at the ceiling. A drain
+  an Issue item an agent caused, so two agents assigning each other stop at the ceiling. A drain
   made only of such rows increments `agent_chain_turns`; any other row (human message, reminder,
-  claim assignment, a person's Task assignment) resets it to 0, as today.
+  claim assignment, a person's Issue change) resets it to 0, as today.
 - At `maxAgentChainTurns` (16) the drain holds: rows stay queued and human input releases them, as
   today.
 - Below the ceiling, a drain that starts more than 30 minutes after `agent_chain_advanced_at`
@@ -296,7 +296,7 @@ Agent that writes to GitHub can wake itself forever. The budget changes for ever
 - Admission judges the drain that will actually run, never the whole queue. A concrete Trigger row
   leads its own run, so when a person releases a held chain (their arrival resets the count) the
   queued fire drains first (counting 1) and the person's message drains next (resetting to 0). A
-  Reminder, claim assignment, or a person's Task assignment does not reset on arrival: at the
+  Reminder, claim assignment, or a person's Issue change does not reset on arrival: at the
   ceiling it leads instead of the held fire, resets the chain on settlement, and the fire drains
   after it from 0.
 
