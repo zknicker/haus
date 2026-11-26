@@ -11,7 +11,7 @@ export class ProjectRefusalError extends Error {
 }
 
 const keyMessages = {
-    PROJECT_KEY_FIXED: () => 'Tasks already carry this Project’s key, so it can no longer change.',
+    PROJECT_KEY_FIXED: () => 'Issues already carry this Project’s key, so it can no longer change.',
     TASK_KEY_TAKEN: (key: string) =>
         `${key} is already another Project’s key or held by its Tasks.`,
 };

@@ -49,11 +49,7 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
             ), '{}')`,
             isHaus: chatsTable.isAll,
             key: taskKeysTable.key,
-            keyEditable: sql<boolean>`not exists (
-                select 1 from tasks
-                where tasks.server_id = ${projectsTable.serverId}
-                    and tasks.key_id = ${projectsTable.taskKeyId}
-            )`,
+            keyEditable: sql<boolean>`${taskKeysTable.nextNumber} = 1`,
             name: chatsTable.name,
             serverId: projectsTable.serverId,
             taskKeyId: projectsTable.taskKeyId,

@@ -2,8 +2,8 @@ import { suffixProjectKey, suggestProjectKey } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
-import { taskKeysTable, tasksTable } from '../postgres/schema.ts';
-import { insertTaskKeyEntry } from '../tasks/task-key-ledger.ts';
+import { taskKeysTable } from '../postgres/schema.ts';
+import { insertTaskKeyEntry, keyHasNumbered } from '../tasks/task-key-ledger.ts';
 import { ProjectKeyError } from './project-errors.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
@@ -39,12 +39,7 @@ export async function renameProjectKey(
     tx: Pick<HausDatabase, 'select' | 'update'>,
     input: { key: string; serverId: string; taskKeyId: string }
 ) {
-    const [held] = await tx
-        .select({ id: tasksTable.id })
-        .from(tasksTable)
-        .where(and(eq(tasksTable.serverId, input.serverId), eq(tasksTable.keyId, input.taskKeyId)))
-        .limit(1);
-    if (held) {
+    if (await keyHasNumbered(tx, { keyId: input.taskKeyId, serverId: input.serverId })) {
         throw new ProjectKeyError('PROJECT_KEY_FIXED', input.key);
     }
     try {
