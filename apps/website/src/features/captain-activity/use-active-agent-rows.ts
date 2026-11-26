@@ -81,8 +81,8 @@ export function useOpenActiveAgent(): (agent: Agent) => void {
     const navigate = useNavigate();
     const openAgentProfile = useOpenAgentProfile();
     return (agent) => {
-        if (agent.dmChatId) {
-            navigate(serverChatRoute(server.slug, agent.dmChatId));
+        if (agent.captainChatId) {
+            navigate(serverChatRoute(server.slug, agent.captainChatId));
             return;
         }
         openAgentProfile(agent.id);

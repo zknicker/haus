@@ -18,7 +18,7 @@ export const messageCreatedEventSchema = z
     .object({
         authorUserId: idSchema.nullable(),
         chatId: idSchema,
-        conversationKind: z.enum(['channel', 'dm']),
+        conversationKind: z.enum(['channel', 'dm', 'captain']),
         mentionedUserIds: z.array(idSchema),
         messageId: idSchema,
         replyToAuthorUserId: idSchema.nullable(),

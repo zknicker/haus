@@ -70,6 +70,7 @@ export async function replayAgentMessage(
     return {
         activities: [],
         events: [],
+        interrupts: [],
         message: toAgentCliMessage(existing, {
             ...agent,
             agentId: input.agentId,

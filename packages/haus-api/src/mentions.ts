@@ -10,7 +10,7 @@ const mentionOptionsBaseSchema = z
 
 export const mentionOptionsInputSchema = z.union([
     mentionOptionsBaseSchema.extend({ chatId: idSchema }),
-    mentionOptionsBaseSchema.extend({ agentId: idSchema, targetKind: z.literal('agent-dm') }),
+    mentionOptionsBaseSchema.extend({ agentId: idSchema, targetKind: z.literal('captain') }),
 ]);
 
 export const mentionOptionSchema = z

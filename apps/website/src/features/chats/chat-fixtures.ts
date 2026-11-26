@@ -10,6 +10,7 @@ export function testChat(overrides: Partial<Chat> = {}): Chat {
     return {
         archivedAt: null,
         archivedByUserId: null,
+        captainChat: null,
         color: null,
         createdAt: '2026-07-29T12:00:00.000Z',
         description: null,

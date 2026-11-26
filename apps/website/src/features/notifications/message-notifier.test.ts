@@ -74,6 +74,7 @@ function notifier() {
         },
         isBackground: () => background,
         isEnabled: () => enabled,
+        isSubscribed: (chatId) => chatId === 'cht_captain_subscribed',
         notificationApi: FakeNotification as unknown as NotificationApi,
         onOpen: (path) => opened.push(path),
         viewerUserId: () => 'usr_ada',
@@ -103,6 +104,18 @@ test('a Channel message notifies only for a mention or a reply to my message', a
         await subject.messageCreated(event);
     }
     expect(described).toEqual(['message_3', 'message_4']);
+});
+
+test('a Captain chat message notifies only while I am subscribed to that chat', async () => {
+    const subject = notifier();
+    await subject.messageCreated(
+        messageEvent(1, 'cht_captain_subscribed', { conversationKind: 'captain' })
+    );
+    await subject.messageCreated(
+        messageEvent(2, 'cht_captain_other', { conversationKind: 'captain' })
+    );
+    expect(described).toEqual(['message_1']);
+    expect(opened).toEqual([]);
 });
 
 test('my own messages never notify', async () => {
@@ -165,6 +178,7 @@ test('a read arriving while the message text is fetched cancels its notification
         },
         isBackground: () => true,
         isEnabled: () => true,
+        isSubscribed: () => false,
         notificationApi: FakeNotification as unknown as NotificationApi,
         onOpen: () => {},
         viewerUserId: () => 'usr_ada',

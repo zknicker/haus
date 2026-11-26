@@ -36,14 +36,18 @@ afterAll(async () => {
     await connection?.close();
 });
 
-test('task: resolves for send and read; an unknown short id is refused', async () => {
+test('task: resolves for read; a Captain messages a Task only with task send', async () => {
     const runner = await fixture.mintRunner('run_task_target');
-    const sent = await agentPost(runner, '/api/agent/messages/send', {
+    const refused = await agentPost(runner, '/api/agent/messages/send', {
         content: 'Starting on the flaky test.',
-        nonce: 'task-target-send',
+        nonce: 'task-target-refused',
         target,
     });
-    expect(sent.status).toBe(200);
+    expect(refused).toMatchObject({
+        body: { code: 'INVALID_TARGET', message: expect.stringContaining('haus task send') },
+        status: 404,
+    });
+    await post('Starting on the flaky test.', 'task-target-send');
     expect(await messageChat('task-target-send')).toBe(fixture.task.chatId);
 
     const history = await fetch(
@@ -64,15 +68,10 @@ test('task: resolves for send and read; an unknown short id is refused', async (
 });
 
 test('a Task delivers to its followers and mentions', async () => {
-    const runner = await fixture.mintRunner('run_task_recipients');
-    await fixture.readTarget(runner, target);
-    const send = (content: string, nonce: string) =>
-        agentPost(runner, '/api/agent/messages/send', { content, nonce, target });
-
-    expect((await send('Quiet progress note.', 'task-quiet')).status).toBe(200);
+    await post('Quiet progress note.', 'task-quiet');
     expect(await novaItems()).toEqual([]);
 
-    expect((await send('@nova can you check the retry path?', 'task-mention')).status).toBe(200);
+    await post('@nova can you check the retry path?', 'task-mention');
     expect(await novaItems()).toEqual([{ chat_id: fixture.task.chatId, mentioned: true }]);
     const [follow] = (await fixture.harness.sql`
         select followed, task_chat_kind from agent_task_follows
@@ -80,7 +79,7 @@ test('a Task delivers to its followers and mentions', async () => {
     `) as { followed: boolean; task_chat_kind: string }[];
     expect(follow).toEqual({ followed: true, task_chat_kind: 'task' });
 
-    expect((await send('Retry path fixed.', 'task-followed')).status).toBe(200);
+    await post('Retry path fixed.', 'task-followed');
     expect(await novaItems()).toHaveLength(2);
     expect(await itemTargets(novaId, 'run_task_nova')).toEqual([target, target]);
 });
@@ -170,12 +169,7 @@ test('a reminder on a Task with no posts is refused until someone posts in the T
         status: 409,
     });
 
-    const posted = await agentPost(runner, '/api/agent/messages/send', {
-        content: 'Picking this up.',
-        nonce: 'task-reminder-empty-post',
-        target: `task:${empty.shortId}`,
-    });
-    expect(posted.status).toBe(200);
+    await post('Picking this up.', 'task-reminder-empty-post', empty.chatId);
     expect(await schedule('task-reminder-empty-posted')).toMatchObject({
         body: { reminder: { anchorTarget: `task:${empty.shortId}` } },
         status: 200,
@@ -200,11 +194,7 @@ test('archiving a Task cancels a pending reminder on it', async () => {
         title: 'Closes with a reminder',
     });
     const runner = await fixture.mintRunner('run_task_reminder_close');
-    await agentPost(runner, '/api/agent/messages/send', {
-        content: 'Watching this one.',
-        nonce: 'task-reminder-close-post',
-        target: `task:${task.shortId}`,
-    });
+    await post('Watching this one.', 'task-reminder-close-post', task.chatId);
     const scheduled = await agentPost(runner, '/api/agent/reminders/schedule', {
         commandId: 'task-reminder-close',
         fireAt: new Date(Date.now() + 3_600_000).toISOString(),
@@ -222,16 +212,15 @@ test('archiving a Task cancels a pending reminder on it', async () => {
     ).toEqual([{ status: 'canceled' }]);
 });
 
-test('a Task takes inline replies from Agents and people, like a Channel', async () => {
-    const runner = await fixture.mintRunner('run_task_inline_reply');
+test('a Task takes inline replies, like a Channel', async () => {
     const parentId = await messageId('task-target-send');
-    const agentReply = await agentPost(runner, '/api/agent/messages/send', {
+    await fixture.owner.trpc.chat.send.mutate({
+        chatId: fixture.task.chatId,
         content: 'Replying inline inside the Task.',
         nonce: 'task-inline-agent',
         replyToMessageId: parentId,
-        target,
+        serverId: fixture.serverId,
     });
-    expect(agentReply.status).toBe(200);
     const human = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.task.chatId,
         content: 'And a person replies to that reply.',
@@ -270,6 +259,15 @@ async function itemTargets(agentId: string, runId: string) {
         runId,
     });
     return (await buildInboxItems(connection.db, items)).map((item) => item.target);
+}
+
+async function post(content: string, nonce: string, chatId = fixture.task.chatId) {
+    await fixture.owner.trpc.chat.send.mutate({
+        chatId,
+        content,
+        nonce,
+        serverId: fixture.serverId,
+    });
 }
 
 async function messageChat(nonce: string) {

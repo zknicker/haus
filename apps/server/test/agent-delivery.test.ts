@@ -29,6 +29,7 @@ import {
 } from '../src/postgres/schema.ts';
 import { configureAgent } from '../src/server-agents/configure-agent.ts';
 import { testAgentHome } from './agent-home.ts';
+import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { RecordingRunner } from './recording-runner.ts';
 
@@ -115,11 +116,9 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
         serverId,
     });
     await db.insert(chatsTable).values({
-        dmAgentId: agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
+        captainAgentId: agentId,
         id: chatId,
-        kind: 'dm',
+        kind: 'captain',
         serverId,
     });
     return { agentHandle, agentId, chatId, computerId, serverId, userId };
@@ -252,11 +251,9 @@ async function addDmChat(seed: Seed): Promise<string> {
         userId,
     });
     await db.insert(chatsTable).values({
-        dmAgentId: seed.agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
         id: chatId,
-        kind: 'dm',
+        kind: 'channel',
+        name: `room-${randomBytes(4).toString('hex')}`,
         serverId: seed.serverId,
     });
     return chatId;
@@ -269,11 +266,11 @@ test('offers ordinary Chat work as a notice and does not loop when it is deferre
     const lifecycle = subscribeToAgentLifecycle(lifecycleController.signal)[Symbol.asyncIterator]();
     const working = lifecycle.next();
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'hello there',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
 
@@ -318,11 +315,11 @@ test('offers ordinary Chat work as a notice and does not loop when it is deferre
             runId,
         },
     });
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'new identity',
-        dedupeKey: 'msg-2',
+        dedupeKey: `msg_2_${seed.serverId}`,
         serverId: seed.serverId,
     });
     expect(runner.starts()).toHaveLength(2);
@@ -336,11 +333,11 @@ test('preserves direct-attention metadata independently through wire replay', as
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: '@ada please inspect this.',
-        dedupeKey: 'msg-mentioned-replay',
+        dedupeKey: `msg_mentioned-replay_${seed.serverId}`,
         mentioned: true,
         serverId: seed.serverId,
         taskFollowReactivated: true,
@@ -395,7 +392,7 @@ test('keeps a queued message bound to its retired author after handle reuse', as
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'Historical work',
@@ -416,7 +413,7 @@ test('projects a trigger fire as its own sender type from @trigger', async () =>
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: '⚡ Trigger: Sentry alerts',
@@ -436,11 +433,11 @@ test('resends an unacknowledged delivery idempotently on the retry sweep', async
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'ping',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const runId = runner.starts()[0]?.runId;
@@ -459,18 +456,18 @@ test('ignores a duplicate delivery of the same message', async () => {
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     // Offline, so work stays queued and the dedupe is observable as a count.
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'once',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'once',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
     // The second delivery deduped: only one inbox row ever existed (already
@@ -536,7 +533,7 @@ test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) =
     const firstMessageId = await insertHumanMessage(seed, 'first', 1);
     const secondMessageId = await insertHumanMessage(seed, 'second', 2);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'first',
@@ -547,7 +544,7 @@ test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) =
     const firstRun = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: firstRun });
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'second',
@@ -585,7 +582,7 @@ test('settles explicitly pulled busy work with the active run without a second t
     const { delivery, runner } = attachedDelivery(seed);
     const firstMessageId = await insertHumanMessage(seed, 'first', 1);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'first',
@@ -596,7 +593,7 @@ test('settles explicitly pulled busy work with the active run without a second t
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const followUpMessageId = await insertHumanMessage(seed, 'follow up', 2);
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'follow up',
@@ -629,7 +626,7 @@ test('settles exact Computer-local visibility carried by the turn summary', asyn
     const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'local cache body', 1);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'local cache body',
@@ -656,7 +653,7 @@ test('settlement tolerates valid visibility whose pending row was already remove
     const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'removed after visibility', 1);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'removed after visibility',
@@ -680,21 +677,21 @@ test('a bounded notice window always contains the newly unnoticed identity', asy
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'initial',
-        dedupeKey: 'msg-initial',
+        dedupeKey: `msg_initial_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     for (let index = 0; index < 50; index += 1) {
-        await delivery.deliver({
+        await deliverHumanMessage(connection.db, delivery, {
             agentId: seed.agentId,
             chatId: seed.chatId,
             content: `backlog ${index}`,
-            dedupeKey: `msg-backlog-${index}`,
+            dedupeKey: `msg_backlog-${index}`,
             serverId: seed.serverId,
         });
     }
@@ -705,11 +702,11 @@ test('a bounded notice window always contains the newly unnoticed identity', asy
         runId,
     });
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'newest',
-        dedupeKey: 'msg-newest',
+        dedupeKey: `msg_newest_${seed.serverId}`,
         serverId: seed.serverId,
     });
 
@@ -718,18 +715,18 @@ test('a bounded notice window always contains the newly unnoticed identity', asy
             .framesOfType('notice')
             .at(-1)
             ?.inbox.map((item) => item.id)
-    ).toContain('msg-newest');
+    ).toContain(`msg_newest_${seed.serverId}`);
 
     await delivery.onComputerReconnect(seed.computerId);
     const resentStart = runner.starts().at(-1);
-    expect(resentStart?.inbox.map((item) => item.id)).toEqual(['msg-initial']);
+    expect(resentStart?.inbox.map((item) => item.id)).toEqual([`msg_initial_${seed.serverId}`]);
     await delivery.onAck({ agentId: seed.agentId, runId });
     expect(
         runner
             .framesOfType('notice')
             .at(-1)
             ?.inbox.map((item) => item.id)
-    ).toContain('msg-newest');
+    ).toContain(`msg_newest_${seed.serverId}`);
 });
 
 test('accepts a repeated Computer-local visibility receipt after a committed receipt crash', async () => {
@@ -738,7 +735,7 @@ test('accepts a repeated Computer-local visibility receipt after a committed rec
     const messageId = await insertHumanMessage(seed, 'local cache retry', 1);
     const oldHistoryId = await insertHumanMessage(seed, 'old history', 2);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'local cache retry',
@@ -836,7 +833,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
         },
     ]);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'claim anchor one',
@@ -893,7 +890,7 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
     const { delivery, runner } = attachedDelivery(seed);
     const firstMessageId = await insertHumanMessage(seed, 'first', 1);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'first',
@@ -915,7 +912,7 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
         serverId: seed.serverId,
         status: 'in_progress',
     });
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'pull then crash',
@@ -957,11 +954,11 @@ test('Stop persists across a restart, suppresses wakes, and keeps accumulating',
         .from(agentsTable)
         .where(eq(agentsTable.id, seed.agentId));
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'live work',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const runId = runner.starts()[0]?.runId ?? '';
@@ -976,11 +973,11 @@ test('Stop persists across a restart, suppresses wakes, and keeps accumulating',
     expect(stopped?.activeRunId).toBeNull();
 
     // Stopped: new work accumulates and never dispatches.
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'while stopped',
-        dedupeKey: 'msg-2',
+        dedupeKey: `msg_2_${seed.serverId}`,
         serverId: seed.serverId,
     });
     expect(runner.starts()).toHaveLength(1);
@@ -1006,11 +1003,11 @@ test('queues while the Computer is offline and redelivers on reconnect', async (
     const runner = new RecordingRunner();
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'buffered',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
     // Offline: work stays queued; a run is created only once a Computer can
@@ -1036,11 +1033,11 @@ test('repeated reconnects settle one durable result for one delivery', async () 
     const runner = new RecordingRunner();
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'buffered once',
-        dedupeKey: 'msg-reconnect-once',
+        dedupeKey: `msg_reconnect-once_${seed.serverId}`,
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
@@ -1070,11 +1067,11 @@ test('records a duplicate turn summary exactly once', async () => {
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'work',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const runId = runner.starts()[0]?.runId ?? '';
@@ -1091,11 +1088,11 @@ test('reconnect resends an acknowledged in-flight run (Computer lost its turn)',
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'work',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const runId = runner.starts()[0]?.runId ?? '';
@@ -1116,11 +1113,11 @@ test('a failed turn backs off instead of tight-looping', async () => {
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'work',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const runId = runner.starts()[0]?.runId ?? '';
@@ -1143,11 +1140,11 @@ test('an expired backoff redrives and settles the queued work once', async () =>
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'retry me',
-        dedupeKey: 'msg-backoff-expiry',
+        dedupeKey: `msg_backoff-expiry_${seed.serverId}`,
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
@@ -1186,11 +1183,11 @@ test('an operator-action failure pauses immediately instead of spending retries'
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'work',
-        dedupeKey: 'msg-auth',
+        dedupeKey: `msg_auth_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const runId = runner.starts()[0]?.runId ?? '';
@@ -1217,18 +1214,18 @@ test('a floating-session run drains queued work across every target', async () =
     const runner = new RecordingRunner();
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'from chat A',
-        dedupeKey: 'a-1',
+        dedupeKey: `msg_a1_${seed.serverId}`,
         serverId: seed.serverId,
     });
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: chatB,
         content: 'from chat B',
-        dedupeKey: 'b-1',
+        dedupeKey: `msg_b1_${seed.serverId}`,
         serverId: seed.serverId,
     });
 
@@ -1246,11 +1243,11 @@ test('Stop revokes the run credential so it holds even without the socket', asyn
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'work',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
@@ -1281,11 +1278,11 @@ test('Restart preserves the session generation and immediately redrives pending 
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'restart me',
-        dedupeKey: 'msg-restart',
+        dedupeKey: `msg_restart_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const first = runner.starts()[0];
@@ -1309,14 +1306,13 @@ test('Restart preserves the session generation and immediately redrives pending 
 
 test('Restart resumes a stopped Agent and redrives its preserved inbox in the same session', async () => {
     const seed = await seedAgent();
-    await insertHumanMessage(seed, 'restart me', 1);
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'restart me',
-        dedupeKey: 'msg-restart',
+        dedupeKey: `msg_restart_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const first = runner.starts()[0];
@@ -1366,11 +1362,11 @@ test('Restart keeps a stopped Agent paused when the Computer disconnects before 
     runner.attach(seed.agentId);
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'restart me',
-        dedupeKey: 'msg-restart-disconnected',
+        dedupeKey: `msg_restart-disconnected_${seed.serverId}`,
         serverId: seed.serverId,
     });
 
@@ -1379,7 +1375,10 @@ test('Restart keeps a stopped Agent paused when the Computer disconnects before 
     ).rejects.toThrow('disconnected before the Agent could restart');
     expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(true);
     expect(await readDeliveryLedger(seed.agentId)).toEqual([
-        expect.objectContaining({ dedupeKey: 'msg-restart-disconnected', state: 'queued' }),
+        expect.objectContaining({
+            dedupeKey: `msg_restart-disconnected_${seed.serverId}`,
+            state: 'queued',
+        }),
     ]);
 });
 
@@ -1387,11 +1386,11 @@ test('Reset rotates the session and tells the assigned Computer to clear local s
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'reset me',
-        dedupeKey: 'msg-reset',
+        dedupeKey: `msg_reset_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const first = runner.starts()[0];
@@ -1433,7 +1432,7 @@ test('Reset rotates the session and tells the assigned Computer to clear local s
     expect(credential?.revokedAt).not.toBeNull();
     // The reset is recorded as an Agent fact; the transcript stays untouched.
     expect(await readRotations(seed.agentId)).toEqual([{ generation: 2, reason: 'session' }]);
-    expect(await readChatMessageContents(seed.chatId)).toEqual([]);
+    expect(await readChatMessageContents(seed.chatId)).toEqual([{ content: 'reset me' }]);
 });
 
 test('offline reset reconnects with authoritative configuration before redelivery', async () => {
@@ -1442,11 +1441,11 @@ test('offline reset reconnects with authoritative configuration before redeliver
     const runner = new RecordingRunner();
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'resume after reset',
-        dedupeKey: 'msg-offline-reset',
+        dedupeKey: `msg_offline-reset_${seed.serverId}`,
         serverId: seed.serverId,
     });
     await delivery.reset({ ...seed, kind: 'full', resetBy: `user:${seed.userId}` });
@@ -1476,11 +1475,11 @@ test('resume rejection rotates on the Server and retries from a fresh session', 
     const seed = await seedAgent();
     const { delivery, runner, transport } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'continue this work',
-        dedupeKey: 'msg-resume-rejected',
+        dedupeKey: `msg_resume-rejected_${seed.serverId}`,
         serverId: seed.serverId,
     });
     const firstRunId = runner.starts()[0]?.runId ?? '';
@@ -1567,7 +1566,7 @@ test('agent-only chain ceiling preserves work until human intent arrives', async
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'agent ping',
-        dedupeKey: 'msg-agent-chain',
+        dedupeKey: `msg_agent-chain_${seed.serverId}`,
         id: createOpaqueId('inb'),
         serverId: seed.serverId,
         source: 'agent:wren',
@@ -1577,11 +1576,11 @@ test('agent-only chain ceiling preserves work until human intent arrives', async
     expect(runner.starts()).toHaveLength(0);
     expect(await countUnsettledPending(seed.agentId)).toBe(1);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'human reset',
-        dedupeKey: 'msg-human-reset',
+        dedupeKey: `msg_human-reset_${seed.serverId}`,
         serverId: seed.serverId,
     });
     expect(runner.starts()).toHaveLength(1);
@@ -1591,11 +1590,11 @@ test('agent-only chain ceiling preserves work until human intent arrives', async
 test('an output sent from agent-authored notice metadata still spends chain budget', async () => {
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'agent ping',
-        dedupeKey: 'msg-agent-notice-output',
+        dedupeKey: `msg_agent-notice-output_${seed.serverId}`,
         serverId: seed.serverId,
         source: 'agent:wren',
     });
@@ -1615,11 +1614,11 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'work',
-        dedupeKey: 'msg-1',
+        dedupeKey: `msg_1_${seed.serverId}`,
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
@@ -1642,11 +1641,11 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
         seed.computerId,
         turnSummary(seed.agentId, first?.runId ?? '', 'completed')
     );
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'next work',
-        dedupeKey: 'msg-2',
+        dedupeKey: `msg_2_${seed.serverId}`,
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
@@ -1686,7 +1685,7 @@ test('defers a public Agent configuration change until the active run settles', 
         })
         .where(eq(computersTable.id, seed.computerId));
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'finish this before switching models',
@@ -1795,7 +1794,7 @@ test('defers a public Agent configuration change until the active run settles', 
     expect(rotated?.sessionGeneration).toBe(2);
     expect(await readRotations(seed.agentId)).toEqual([{ generation: 2, reason: 'configuration' }]);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'use the new model for this',
@@ -1839,7 +1838,7 @@ test.each(['fake', 'grok-build'])(
             })
             .where(eq(computersTable.id, seed.computerId));
 
-        await delivery.deliver({
+        await deliverHumanMessage(connection.db, delivery, {
             agentId: seed.agentId,
             chatId: seed.chatId,
             content: 'finish this before changing effort',
@@ -1917,7 +1916,7 @@ test('applies deferred configuration at Stop without auto-starting, then starts 
         })
         .where(eq(computersTable.id, seed.computerId));
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'finish before stopping',
@@ -2001,7 +2000,7 @@ test('applies deferred configuration before Restart redrives pending work', asyn
         })
         .where(eq(computersTable.id, seed.computerId));
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'finish before restarting',
@@ -2083,7 +2082,7 @@ test('applies deferred configuration with one strongest Reset generation', async
         })
         .where(eq(computersTable.id, seed.computerId));
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'finish before resetting',
@@ -2154,7 +2153,7 @@ test('rotates deferred configuration when an empty notice run is retired', async
     const { delivery, runner, transport } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'notice to retire', 2);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'notice to retire',
@@ -2194,11 +2193,11 @@ test('rotates deferred configuration when an empty notice run is retired', async
     expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
     expect(await readRotations(seed.agentId)).toEqual([{ generation: 2, reason: 'configuration' }]);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'next after empty notice',
-        dedupeKey: 'after-empty-notice',
+        dedupeKey: `msg_after_${seed.serverId}`,
         serverId: seed.serverId,
     });
 
@@ -2232,7 +2231,7 @@ test('bounds one drain and carries the overflow in a later run', async () => {
             agentId: seed.agentId,
             chatId: seed.chatId,
             content: `msg-${index}-${padding}`,
-            dedupeKey: `msg-${index}`,
+            dedupeKey: `msg_${index}`,
             id: createOpaqueId('inb'),
             serverId: seed.serverId,
             source: 'delivery_problem',
@@ -2260,7 +2259,7 @@ test('retains a settled delivery as proof the Agent read an FYI and answered not
     const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'fyi, the deploy finished', 1);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'fyi, the deploy finished',
@@ -2318,7 +2317,7 @@ test('exact visibility does not consume an unseen message across a gap', async (
     const secondMessageId = await insertHumanMessage(seed, 'later note', 2);
 
     for (const [index, messageId] of [firstMessageId, secondMessageId].entries()) {
-        await delivery.deliver({
+        await deliverHumanMessage(connection.db, delivery, {
             agentId: seed.agentId,
             chatId: seed.chatId,
             content: index === 0 ? 'earlier note' : 'later note',
@@ -2368,7 +2367,7 @@ test('wakes an idle Agent with the Trigger fire envelope already in its frame', 
     const fireId = createOpaqueId('trf');
     const envelope = `\u26a1 Trigger: nightly\nfire=${fireId}`;
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: envelope,
@@ -2423,7 +2422,7 @@ test('wakes an idle Agent with the Trigger fire envelope already in its frame', 
 
     // The next wake carries only the new work; a settled fire is never re-offered.
     const messageId = await insertHumanMessage(seed, 'anything new?', 1);
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'anything new?',
@@ -2447,7 +2446,7 @@ test('wakes an idle Agent concretely for a Reminder fire and a claim assignment'
     const fireId = createOpaqueId('rmf');
     const assignmentKey = 'claim-assign:msg_assignment_concrete:1';
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: `\ud83d\udd14 Reminder: Stand-up\nfire=${fireId}`,
@@ -2469,7 +2468,7 @@ test('wakes an idle Agent concretely for a Reminder fire and a claim assignment'
     await delivery.onAck({ agentId: seed.agentId, runId: reminderRun });
 
     // A second concrete kind never shares the fire's drain; it earns its own wake.
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'Assigned to you: #4 Ship the upload flow',
@@ -2510,7 +2509,7 @@ test('re-drives a Trigger fire that arrived while the Agent was busy', async () 
     const seed = await seedAgent();
     const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'look into the deploy', 1);
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'look into the deploy',
@@ -2522,7 +2521,7 @@ test('re-drives a Trigger fire that arrived while the Agent was busy', async () 
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const fireId = createOpaqueId('trf');
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: `\u26a1 Trigger: deploy\nfire=${fireId}`,

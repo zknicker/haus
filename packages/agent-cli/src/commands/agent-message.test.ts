@@ -52,7 +52,7 @@ test('message check drains and aggregates multiple pages in one invocation', asy
             more: true,
         },
         {
-            messages: [{ message: message('msg_second', 2), target: 'dm:@operator' }],
+            messages: [{ message: message('msg_second', 2), target: 'captain:@orbit' }],
             more: false,
         },
     ];
@@ -136,7 +136,7 @@ test('message check renders an automations-only pull instead of an empty inbox',
                         id: 'rmf_9a8b7c6d',
                         senderHandle: 'reminder',
                         senderType: 'system',
-                        target: 'dm:@operator',
+                        target: 'captain:@orbit',
                     },
                 ],
                 messages: [],

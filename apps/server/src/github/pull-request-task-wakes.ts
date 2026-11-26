@@ -12,7 +12,7 @@ export async function readUnworkedTaskWakes(
     pull: { number: number; repository: string; serverId: string }
 ): Promise<UnworkedTaskWake[]> {
     const rows = await db
-        .select({ agentId: tasksTable.createdByAgentId, chatId: tasksTable.chatId })
+        .select({ agentId: tasksTable.agentId, chatId: tasksTable.chatId })
         .from(taskPullRequestsTable)
         .innerJoin(
             tasksTable,
@@ -28,7 +28,7 @@ export async function readUnworkedTaskWakes(
                 eq(taskPullRequestsTable.number, pull.number),
                 isNull(tasksTable.archivedAt),
                 isNotNull(tasksTable.chatId),
-                isNotNull(tasksTable.createdByAgentId),
+                isNotNull(tasksTable.agentId),
                 notExists(
                     db
                         .select({ id: workersTable.id })

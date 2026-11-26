@@ -54,7 +54,7 @@ test('#ops is home to its own Agent only', async () => {
     ).toEqual([{ id: opsAgentId }]);
 });
 
-test('an Agent outside #ops reads a filed Task there, posts in it, and archives it', async () => {
+test('an Agent outside #ops reads a filed Task there, sets a reminder on it, and archives it', async () => {
     const { owner, serverId } = fixture;
     const { task } = await owner.trpc.task.create.mutate({
         projectId: opsId,
@@ -64,17 +64,17 @@ test('an Agent outside #ops reads a filed Task there, posts in it, and archives 
     const target = `task:${task.shortId}`;
     const peer = await fixture.mintRunner('run_open_access_peer', fixture.peerAgentId);
 
-    const sent = await agentCall(peer, '/api/agent/messages/send', {
+    const refused = await agentCall(peer, '/api/agent/messages/send', {
         content: 'Picking this up now.',
         nonce: 'open-access-peer-send',
         target,
     });
-    expect(sent).toMatchObject({ body: { state: 'sent' }, status: 200 });
+    expect(refused).toMatchObject({ body: { code: 'INVALID_TARGET' }, status: 404 });
     const reply = await humanSend(task.chatId ?? '', 'The old key expires Friday.');
-    expect(await inboxAgentsFor(reply.message.id)).toEqual([fixture.peerAgentId]);
+    expect(await inboxAgentsFor(reply.message.id)).toEqual([]);
 
     expect(await historyContents(peer, target)).toEqual({
-        contents: ['Picking this up now.', 'The old key expires Friday.'],
+        contents: ['The old key expires Friday.'],
         status: 200,
     });
     expect(await agentCall(peer, `/api/agent/messages/${reply.message.id}`)).toMatchObject({
@@ -98,7 +98,7 @@ test('an Agent outside #ops reads a filed Task there, posts in it, and archives 
     expect((archived.body.task as { archivedAt: string | null }).archivedAt).not.toBeNull();
 });
 
-test('an Agent outside #ops that posts in a Task there hears it, and posts in #ops', async () => {
+test('an Agent outside #ops that messages a Task there hears it, and posts in #ops', async () => {
     const opsy = await fixture.mintRunner('run_open_access_opsy', opsAgentId, opsId);
     const orbit = await fixture.mintRunner('run_open_access_orbit');
     const origin = await humanSend(fixture.channelId, 'The ops dashboard is down');
@@ -116,21 +116,17 @@ test('an Agent outside #ops that posts in a Task there hears it, and posts in #o
     const target = started.body.target as string;
     const { shortId } = started.body.task as { shortId: string };
     expect(target).toBe(`task:${shortId}`);
-    const post = {
-        content: 'Looking at the dashboard host.',
-        nonce: 'open-access-orbit-send',
-        target,
-    };
-    expect(await agentCall(orbit, '/api/agent/messages/send', post)).toMatchObject({
-        body: { shownMessages: [{ content: 'Restore the ops dashboard.' }], state: 'held' },
-    });
-    expect(await agentCall(orbit, '/api/agent/messages/send', post)).toMatchObject({
-        body: { state: 'sent' },
-        status: 200,
-    });
+    expect(
+        await agentCall(orbit, '/api/agent/tasks/send', {
+            body: 'Looking at the dashboard host.',
+            task: shortId,
+        })
+    ).toMatchObject({ body: { task: { shortId } }, status: 200 });
     const task = await fixture.owner.trpc.task.get.query({ serverId: fixture.serverId, shortId });
     const reply = await humanSend(task.chatId ?? '', 'It went down at noon.');
-    expect(await inboxAgentsFor(reply.message.id)).toEqual([fixture.orbitAgentId]);
+    expect((await inboxAgentsFor(reply.message.id)).sort()).toEqual(
+        [fixture.orbitAgentId, task.agentId ?? ''].sort()
+    );
     const inbox = await agentCall(orbit, '/api/agent/inbox/conversations');
     expect((inbox.body.items as { target: string }[]).map((item) => item.target)).toEqual([
         target,

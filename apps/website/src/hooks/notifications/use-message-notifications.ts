@@ -60,6 +60,9 @@ export function useMessageNotifications(
         createMessageNotifier({
             ...surface,
             describe: (event, reason) => describeMessage(event, reason, latest.current),
+            isSubscribed: (chatId) =>
+                latest.current.names.chats.find((chat) => chat.id === chatId)?.captainChat
+                    ?.subscribed === true,
             viewerUserId: () => latest.current.viewerUserId,
         })
     );

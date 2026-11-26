@@ -7,6 +7,7 @@ import {
     startInvocationHarness,
 } from './agent-invocations.fixture.ts';
 import { closeFlush, nextAfter, runnerBarrier, settledTurn } from './agent-machine.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient } from './haus-client.ts';
 import {
     connectRunner,
@@ -51,7 +52,7 @@ test('a change from an offline Machine waits for it and holds no turns meanwhile
         change: { computerId: laptopId, fromLastSynced: false, waitingFor: 'machine' },
         computerId: setup.computerId,
     });
-    const chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    const chatId = (await openCaptainChat(owner, { agentId, serverId })).id;
     const started = nextAfter(runner, (frame) => frame.type === 'runner-start');
     await owner.trpc.chat.send.mutate({
         chatId,
@@ -74,7 +75,7 @@ test('a turn admitted while the old Mac is offline voids its earlier flush, so a
         update agent_machine_changes set flush_id = 'flush_before_offline', flush_sent_at = now()
         where agent_id = ${agentId}
     `;
-    const chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    const chatId = (await openCaptainChat(owner, { agentId, serverId })).id;
     const started = nextAfter(runner, (frame) => frame.type === 'runner-start');
     await owner.trpc.chat.send.mutate({ chatId, content: 'Again?', nonce: 'offline_2', serverId });
     const runId = ((await started).start as { runId: string }).runId;

@@ -32,6 +32,8 @@ export interface MessageNotifierOptions {
     isBackground: () => boolean;
     /** True while the Settings toggle is on and this tab leads for the Server. */
     isEnabled: () => boolean;
+    /** True when the reader is a subscribed member of this Captain chat. */
+    isSubscribed: (chatId: string) => boolean;
     notificationApi: NotificationApi | undefined;
     onOpen: (path: string) => void;
     /** The signed-in human, once the member list has said who that is. */
@@ -71,7 +73,9 @@ export function createMessageNotifier(options: MessageNotifierOptions) {
         if (isRead(event) || !viewerUserId || !canNotify(options)) {
             return null;
         }
-        return messageNotificationReason(event, viewerUserId);
+        return messageNotificationReason(event, viewerUserId, {
+            subscribed: event.conversationKind === 'captain' && options.isSubscribed(event.chatId),
+        });
     };
 
     return {

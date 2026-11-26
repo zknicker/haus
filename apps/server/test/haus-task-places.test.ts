@@ -109,7 +109,7 @@ describe('start', () => {
             content: 'Can you look into the deploy?',
             nonce: 'task_places_dm',
             serverId: fixture.serverId,
-            targetKind: 'agent-dm',
+            targetKind: 'captain',
         });
         const refused = await call('/api/agent/tasks/start', {
             brief: 'Wrong place.',
@@ -244,17 +244,17 @@ describe('sidebar, archive, and reminders', () => {
         expect(byId.get(daily)?.status).toBe('scheduled');
     });
 
-    test('posting in an archived Task leaves it archived and its reminders canceled', async () => {
+    test('a person posting in an archived Task unarchives it; its reminders stay canceled', async () => {
         await send(fixture.owner, second.chatId, 'One more thing.');
         const after = await fixture.owner.trpc.task.get.query({
             serverId: fixture.serverId,
             taskId: second.taskId,
         });
-        expect(after.archivedAt).not.toBeNull();
+        expect(after.archivedAt).toBeNull();
         const active = (
             await fixture.owner.trpc.task.listActive.query({ serverId: fixture.serverId })
         ).map((task) => task.shortId);
-        expect(active).toEqual([first.shortId]);
+        expect(active.sort()).toEqual([first.shortId, second.shortId].sort());
         const canceled = await fixture.harness.sql`
             select count(*)::integer as count from reminders
             where anchor_chat_id = ${second.chatId} and status = 'canceled'

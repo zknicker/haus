@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import type { AgentCommand, AgentTurnSummary } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
+    channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -21,6 +23,7 @@ import {
 import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import { testAgentHome } from './agent-home.ts';
+import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { RecordingRunner } from './recording-runner.ts';
 
@@ -68,7 +71,7 @@ test('a failed turn still names and quotes the human message that woke it', asyn
     runner.attach(seed.agentId);
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'set up tinylink',
@@ -114,7 +117,7 @@ test('a running turn names its trigger before it settles, gated like agent.turns
     runner.attach(seed.agentId);
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'draft the launch post',
@@ -126,6 +129,9 @@ test('a running turn names its trigger before it settles, gated like agent.turns
 
     const input = { agentId: seed.agentId, runId, serverId: seed.serverId };
     expect(await listAgentTurns(connection.db, seed.owner, { ...input, limit: 1 })).toEqual([]);
+    await connection.db
+        .delete(chatMessagesTable)
+        .where(eq(chatMessagesTable.id, 'msg_triggerrunning01'));
     // No stored message behind the trigger: it is named, with nothing to quote.
     expect(await readAgentRunTrigger(connection.db, seed.owner, input)).toEqual({
         trigger: {
@@ -258,14 +264,14 @@ async function seedAgent() {
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
+    // A channel only its participants read, so a non-participant sees the trigger as private.
     await db.insert(chatsTable).values({
-        dmAgentId: agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
         id: chatId,
-        kind: 'dm',
+        kind: 'channel',
+        name: `room-${randomBytes(4).toString('hex')}`,
         serverId,
     });
+    await db.insert(channelParticipantsTable).values({ chatId, serverId, userId });
     return { agentId, chatId, computerId, owner: { id: userId } as HausUser, serverId };
 }
 

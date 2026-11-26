@@ -7,6 +7,7 @@ import {
     runTaskShow,
     runTaskUnarchive,
 } from './agent-task-actions.ts';
+import { TASK_REPORT_SUBCOMMAND, TASK_SEND_SUBCOMMAND } from './agent-task-messages.ts';
 import { runTaskAttachPullRequest, runTaskStart } from './agent-task-place-actions.ts';
 import { TASK_UNFOLLOW_SUBCOMMAND } from './agent-task-unfollow.ts';
 import type { TaskDeps } from './agent-task-view.ts';
@@ -23,7 +24,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
             {
                 description: 'The chat you are answering in; a newer message there holds the start',
                 name: '--target',
-                valueName: '<#channel|dm:@handle>',
+                valueName: '<#channel|captain:@handle>',
             },
             {
                 description: 'A message in --target that becomes the Task’s origin',
@@ -52,6 +53,16 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<code>',
             },
             {
+                description: 'A Server repo the Task checks out before anything else',
+                name: '--repo',
+                valueName: '<owner/name>',
+            },
+            {
+                description: 'The ref it checks --repo out at',
+                name: '--ref',
+                valueName: '<ref>',
+            },
+            {
                 description: 'Your own id for this start; repeating it returns the same Task',
                 name: '--request-id',
                 valueName: '<id>',
@@ -66,8 +77,10 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         positionals: [],
         run: (args) => runTaskStart(args, defaultDeps()),
         summary: 'Start a crew Task with a brief',
-        usage: 'haus task start [--title <text>] [--target <chat>] [--from <messageId>] [--machine <name>] [--model <id>] [--issue <code>] [--request-id <id>] < brief',
+        usage: 'haus task start [--title <text>] [--target <chat>] [--from <messageId>] [--repo <owner/name>] [--ref <ref>] [--machine <name>] [--model <id>] [--issue <code>] [--request-id <id>] < brief',
     },
+    TASK_SEND_SUBCOMMAND,
+    TASK_REPORT_SUBCOMMAND,
     {
         examples: [
             'haus task list',

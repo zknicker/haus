@@ -36,7 +36,7 @@ afterAll(() => {
 });
 
 const blippyDm = chat('cht_dm_blippy', {
-    kind: 'dm',
+    kind: 'captain',
     name: null,
     peerAgentDisplayName: 'Blippy',
     peerAgentId: 'agt_blippy',

@@ -59,10 +59,11 @@ test('the Agent Task list shows active or archived Tasks, mine or all, and one P
 
 test('a reminder set on a Task shows on it, naming the Agent that set it', async () => {
     const runner = await fixture.mintRunner('run_task_reminder_setby');
-    await agentPost(runner, '/api/agent/messages/send', {
+    await fixture.owner.trpc.chat.send.mutate({
+        chatId: fixture.task.chatId,
         content: 'Watching the flaky test.',
         nonce: 'surfaces-reminder-post',
-        target: `task:${fixture.task.shortId}`,
+        serverId: fixture.serverId,
     });
     const scheduled = await agentPost(runner, '/api/agent/reminders/schedule', {
         commandId: 'surfaces-reminder',

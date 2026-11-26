@@ -69,7 +69,7 @@ export async function runTurn(input: RunTurnInput) {
     const { start } = input;
     const context = await readAgentContext(input);
     const harness = harnessFor(start.modelId);
-    const composed = composeInstructions(start, context.skills, harness);
+    const composed = composeInstructions(start, context.skills, harness, context.policy);
     const assigned = {
         generation: start.sessionGeneration,
         harness,

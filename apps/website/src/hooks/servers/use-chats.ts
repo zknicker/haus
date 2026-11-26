@@ -108,7 +108,7 @@ export function useAgentDmEntry(serverId: string, agentId: string): AgentDmEntry
     const select = React.useCallback(
         (chats: Chat[]): AgentDmEntry | null => {
             const chat = chats.find(
-                (entry) => entry.kind === 'dm' && entry.peerAgentId === agentId
+                (entry) => entry.kind === 'captain' && entry.peerAgentId === agentId
             );
             return chat ? { id: chat.id, unreadCount: chat.unreadCount } : null;
         },
@@ -151,7 +151,7 @@ function selectNavigationLayout(chats: Chat[]): ChatNavigationLayout {
     const agentDmChatIds: Record<string, string> = {};
     for (const chat of chats) {
         // The first DM per Agent, as its row's `useAgentDmEntry` finds it.
-        if (chat.kind === 'dm' && chat.peerAgentId && !(chat.peerAgentId in agentDmChatIds)) {
+        if (chat.kind === 'captain' && chat.peerAgentId && !(chat.peerAgentId in agentDmChatIds)) {
             agentDmChatIds[chat.peerAgentId] = chat.id;
         }
     }

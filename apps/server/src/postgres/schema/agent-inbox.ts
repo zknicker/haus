@@ -1,4 +1,4 @@
-import type { AddressedReason } from '@haus/api';
+import type { AddressedReason, TaskDeliveryMode } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,
@@ -179,6 +179,12 @@ export const agentInboxTable = pgTable(
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
+        /**
+         * How a message reaches a Task agent (ADR 0062): `steer` at its next tool boundary,
+         * `interrupt` aborting the live turn, or `queue` after the turn settles. Every other
+         * row is `steer`, which is today's busy notice.
+         */
+        delivery: text('delivery').notNull().default('steer').$type<TaskDeliveryMode>(),
         id: text('id').primaryKey(),
         /** Whether this Agent was personally named when the immutable message was planned. */
         mentioned: boolean('mentioned').notNull().default(false),
@@ -251,12 +257,13 @@ export const agentInboxTable = pgTable(
         check(
             'agent_inbox_addressed_reason',
             sql`${table.addressedReason} is null
-                or ${table.addressedReason} in ('dm', 'mention', 'routing', 'sole')`
+                or ${table.addressedReason} in ('captain_chat', 'task_chat', 'mention', 'routing', 'sole')`
         ),
         check(
             'agent_inbox_chat',
-            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event'))`
+            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event', 'crew_report'))`
         ),
+        check('agent_inbox_delivery', sql`${table.delivery} in ('steer', 'interrupt', 'queue')`),
         check(
             'agent_inbox_undelivered_shape',
             sql`${table.undeliveredReason} is null or (${table.state} = 'seen'

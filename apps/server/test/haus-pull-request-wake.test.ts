@@ -12,6 +12,7 @@ import { createFakeGithub } from './github-fake.ts';
 import { type GithubTriggerWorld, seedGithubTriggerWorld } from './github-trigger-seed.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { type PullRequestWakeReading, respondAsGithub } from './pull-request-wake-github.ts';
+import { seedTaskAgent } from './task-agent.fixture.ts';
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
 const url = 'https://github.com/Acme/Api/pull/1423';
@@ -168,16 +169,19 @@ test('attaching an unread pull request seeds its reading with one GitHub read', 
     ]);
 });
 
-test('a pull request on an active Task with no cloud work wakes the Agent that started it', async () => {
-    const bare = await startTestTask(harness, world.owner, {
+test('a pull request on an active crew Task with no cloud work wakes the Task’s own agent', async () => {
+    const place = await startTestTask(harness, world.owner, {
         channelId: world.channelId,
         serverId: world.serverId,
         title: 'Review the vendor patch',
     });
-    await harness.sql`
-        update tasks set created_by_agent_id = ${world.agentId}, created_by_user_id = null
-        where id = ${bare.id}
-    `;
+    const crew = await seedTaskAgent(harness, {
+        captainId: world.agentId,
+        computerId: world.computerId,
+        projectId: place.projectId,
+        serverId: world.serverId,
+    });
+    const bare = { chatId: crew.chatId, id: crew.taskId, shortId: crew.shortId };
     pull.draft = true;
     pull.checks = 'pending';
     await attachPullRequestToTask(
@@ -188,14 +192,14 @@ test('a pull request on an active Task with no cloud work wakes the Agent that s
     await markAndRefresh();
     const key = `acme/api#1500:ready_for_review:${headSha}`;
     const rows = await listInboxItemsByDedupeKeys(connection.db, {
-        agentId: world.agentId,
+        agentId: crew.agentId,
         dedupeKeys: [key],
         runId: 'run_unused',
     });
     expect(rows.map((row) => ({ chatId: row.chatId, runId: row.workerTurnId }))).toEqual([
         { chatId: bare.chatId, runId: null },
     ]);
-    expect(wakes).toContainEqual({ agentId: world.agentId, serverId: world.serverId });
+    expect(wakes).toContainEqual({ agentId: crew.agentId, serverId: world.serverId });
     const [item] = await buildInboxItems(connection.db, rows);
     expect(item).toMatchObject({
         content: `Pull request acme/api#1500 is ready for review (head ${headSha.slice(0, 7)}).`,

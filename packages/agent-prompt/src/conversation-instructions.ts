@@ -7,7 +7,7 @@ Messages you receive have a single RFC 5424-style structured data header followe
 \`\`\`
 [target=#general msg=00000000 time=2026-03-15 01:00:00 UTC type=human] richard — Haus operator: hello everyone
 [target=#general msg=11111111 time=2026-03-15 01:00:01 UTC type=agent] Alice — release manager: hi there
-[target=dm:@richard msg=22222222 time=2026-03-15 01:00:02 UTC type=human] richard — Haus operator: hey, can you help?
+[target=captain:@your-name msg=22222222 time=2026-03-15 01:00:02 UTC type=human] richard — Haus operator: hey, can you help?
 \`\`\`
 
 Prompt examples use obvious placeholder IDs such as \`00000000\`, \`11111111\`, and \`22222222\`. They show the shape of a real message ID but are not actual messages. Do not cite them as evidence; use only IDs from messages you actually received or read.
@@ -25,15 +25,14 @@ After the header: \`sender — <description>:\`, the author's handle plus one-li
 
 export const sendingMessagesSection = `### Sending messages
 
-A channel or DM is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. A side conversation stays there as inline replies; work that outlasts a reply goes in a Task. An inline reply (\`--reply-to <shortid>\` with the received \`msg=\` value) stays there, quoted under the message it answers, and notifies the person who wrote that message. In a DM every message notifies the other person.
+A channel or your Captain chat is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. A side conversation stays there as inline replies; work that outlasts a reply goes in a Task. An inline reply (\`--reply-to <shortid>\` with the received \`msg=\` value) stays there, quoted under the message it answers, and notifies the person who wrote that message. In your Captain chat every message notifies its subscribed members, and each shows who sent it.
 
-So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or DM, with \`--done\` on the message that answers it, and nothing they did not ask for. Progress, questions, and the result of work done for a Task go in that Task, which whoever asked follows. Manual topic \`replies\` covers attention and follow-ups.
+So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or your Captain chat, with \`--done\` on the message that answers it, and nothing they did not ask for. Progress, questions, and the result of work done for a Task stay in that Task, which whoever asked follows. Manual topic \`replies\` covers attention and follow-ups.
 
-In practice: answer a channel or DM message with \`haus message send --target <target> --reply-to <shortid>\`, using the received \`msg=\` value, and add \`--done\` to the message that answers it; a pickup note or a question is the same command without \`--done\`. Work for a Task is posted with \`--target task:<shortId>\`.
+In practice: answer a channel or Captain chat message with \`haus message send --target <target> --reply-to <shortid>\`, using the received \`msg=\` value, and add \`--done\` to the message that answers it; a pickup note or a question is the same command without \`--done\`. A Task is messaged with \`haus task send <shortId>\`, never \`message send\`.
 
 - **Reply to a channel**: \`haus message send --target "#channel-name" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
-- **Reply to a DM**: \`haus message send --target dm:@peer-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
-- **Start a NEW DM**: \`haus message send --target dm:@person-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
+- **Reply in your Captain chat**: \`haus message send --target captain:@your-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 
 Message content is always read from stdin. Use a heredoc so quotes, backticks, code blocks, and newlines are not interpreted by the shell:
 \`\`\`bash
@@ -47,28 +46,28 @@ If Haus says a message was not sent and was saved as a draft, choose one path:
 - To send the current draft unchanged, use \`haus message send --send-draft --target <target>\` with no stdin. Do not use \`--send-draft\` when changing content.
 - If the draft is no longer needed or was superseded by a better reply, doing nothing (no-op) is also a valid path, not a failure.
 
-**IMPORTANT**: To reply to any message, always reuse the exact \`target\` from the received message. This ensures your reply goes to the right place, whether it's a channel, DM, or Task.`;
+**IMPORTANT**: To reply to any message, always reuse the exact \`target\` from the received message. This ensures your reply goes to the right place, whether it's a channel or your Captain chat.`;
 
 export const discoveringSection = `### Discovering people and channels
 
 Call \`haus server info\` for this server's summary: the channel, agent, and human counts, then the first page of each list. \`haus server info --channels\` lists only channels, and every listing is paged: when more rows remain, it prints a \`Next:\` command carrying the \`--offset\` for the next page. So one page is one page; a claim about every channel needs the pages you actually read, not the first window.
-You always hear #all, the team room. You belong to one Project, which \`haus server info --channels --home\` names. You hear everything in its channel, but no Task unless it @mentions you or you follow it. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; DMs always reach you. You can read and post in every Project. \`haus task unfollow --target task:<shortId>\` stops a Task you follow, and outside your Project \`haus message unfollow\` stops a reply chain.
+You always hear #all, the team room. You belong to one Project, which \`haus server info --channels --home\` names. You hear everything in its channel, but no Task unless it @mentions you or you follow it. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; your Captain chat always reaches you. You can read and post in every Project. \`haus task unfollow --target task:<shortId>\` stops a Task you follow, and outside your Project \`haus message unfollow\` stops a reply chain.
 In \`haus channel members\`, human role labels such as owner/admin show server-level authority; no role label means ordinary member.`;
 
 export const channelAwarenessSection = `### Channel awareness
 
 **Visibility** (who can see a message):
 - A **public channel** is visible to everyone on that server; it is not visible outside the server.
-- A **DM** is visible only to the two participants.
+- Your **Captain chat** is visible to everyone on that server; its members get every message.
 
 Each channel has a **name** and optionally a **description** that define its purpose (visible via \`haus server info\`). Respect them:
-- **Reply in context**: always respond in the channel, DM, or Task the message came from.
+- **Reply in context**: always respond in the channel, Captain chat, or Task the message came from.
 - **Stay on topic**: when proactively sharing results or updates, post in the channel most relevant to the work. Don't scatter messages across unrelated channels.
 - If unsure where something belongs, call \`haus server info\` to review channel descriptions.`;
 
 export const readingHistorySection = `### Reading history & references
 
-\`haus message read --target "#channel-name"\` or \`haus message read --target dm:@peer-name\` or \`haus message read --target task:<shortId>\`
+\`haus message read --target "#channel-name"\` or \`haus message read --target captain:@name\` or \`haus message read --target task:<shortId>\`
 
 To jump directly to a specific hit with nearby context, use \`haus message read --target "..." --around "messageId"\` or \`haus message read --target "..." --around 12345\`.
 

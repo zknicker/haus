@@ -32,13 +32,13 @@ export class ChatArchivedError extends Error {
 
 export interface AccessibleChat {
     archivedAt: Date | null;
-    dmAgentId: string | null;
+    captainAgentId: string | null;
     dmMemberOneStint: number | null;
     dmMemberOneUserId: string | null;
     dmMemberTwoStint: number | null;
     dmMemberTwoUserId: string | null;
     id: string;
-    kind: 'channel' | 'dm' | 'task';
+    kind: 'captain' | 'channel' | 'dm' | 'task';
     lastMessageSequence: number;
     parentArchivedAt: Date | null;
     parentChatId: string | null;
@@ -131,7 +131,7 @@ export async function findChatAccess(
     const [chat] = await db
         .select({
             archivedAt: chatsTable.archivedAt,
-            dmAgentId: chatsTable.dmAgentId,
+            captainAgentId: chatsTable.captainAgentId,
             dmMemberOneStint: chatsTable.dmMemberOneStint,
             dmMemberOneUserId: chatsTable.dmMemberOneUserId,
             dmMemberTwoStint: chatsTable.dmMemberTwoStint,
@@ -165,7 +165,7 @@ export async function findChatAccess(
     return chat
         ? {
               archivedAt: chat.archivedAt,
-              dmAgentId: chat.dmAgentId,
+              captainAgentId: chat.captainAgentId,
               dmMemberOneStint: chat.dmMemberOneStint,
               dmMemberOneUserId: chat.dmMemberOneUserId,
               dmMemberTwoStint: chat.dmMemberTwoStint,

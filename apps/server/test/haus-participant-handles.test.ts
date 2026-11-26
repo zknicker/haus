@@ -6,6 +6,7 @@ import { resolveAgentTarget } from '../src/agent-api/resolve-target.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { chatMessagesTable } from '../src/postgres/schema.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -15,7 +16,7 @@ let owner: HausClient;
 let serverId: string;
 let ownerUserId: string;
 let agentId: string;
-let dmChatId: string;
+let captainChatId: string;
 
 const computerId = 'cmp_handle_namespace';
 
@@ -71,7 +72,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    captainChatId = (await openCaptainChat(owner, { agentId, serverId })).id;
 });
 
 afterAll(async () => {
@@ -116,12 +117,12 @@ test('rejects human-Agent collisions case-insensitively in both claim directions
     ).rejects.toThrow(/already taken/i);
 });
 
-test('projects the real human handle into Agent-facing messages and DM targets', async () => {
+test('projects the real human handle into Agent-facing messages and Captain targets', async () => {
     const [message] = await connection.db
         .insert(chatMessagesTable)
         .values({
             authorUserId: ownerUserId,
-            chatId: dmChatId,
+            chatId: captainChatId,
             content: 'Use my real handle.',
             id: 'msg_real_human_handle',
             nonce: 'real-human-handle',
@@ -139,17 +140,17 @@ test('projects the real human handle into Agent-facing messages and DM targets',
             type: 'human',
         },
     });
-    expect(await targetForChat(connection.db, serverId, dmChatId)).toBe('dm:@ada-lovelace');
+    expect(await targetForChat(connection.db, serverId, captainChatId)).toBe('captain:@wren');
     const runner = {
         agentId,
         capabilities: [],
-        chatId: dmChatId,
+        chatId: captainChatId,
         computerId,
         runId: 'run_handle_projection',
         runnerId: 'arc_handle_projection',
         serverId,
     };
-    expect(await resolveAgentTarget(connection.db, runner, 'dm:@ADA-LOVELACE')).toBe(dmChatId);
+    expect(await resolveAgentTarget(connection.db, runner, 'captain:@WREN')).toBe(captainChatId);
     expect(
         await readAgentServerDirectory(connection.db, runner, {
             agents: false,
@@ -166,39 +167,24 @@ test('projects the real human handle into Agent-facing messages and DM targets',
     });
 });
 
-test('an Agent send target materializes the addressed human pair by handle', async () => {
-    const targetUserId = 'usr_handle_target';
-    await harness.sql`
-        insert into users (id, auth_subject, display_name)
-        values (${targetUserId}, 'user_handle_target', 'Grace Hopper')
-    `;
-    await harness.sql`
-        insert into server_memberships (id, server_id, user_id, role, handle)
-        values ('mem_handle_target', ${serverId}, ${targetUserId}, 'member', 'grace-hopper')
-    `;
+test('an Agent has no DM target: a human handle resolves to nothing', async () => {
     const runner = {
         agentId,
         capabilities: [],
-        chatId: dmChatId,
+        chatId: captainChatId,
         computerId,
-        runId: 'run_handle_materialize',
-        runnerId: 'arc_handle_materialize',
+        runId: 'run_handle_no_dm',
+        runnerId: 'arc_handle_no_dm',
         serverId,
     };
-
-    const chatId = await connection.db.transaction((tx) =>
-        resolveAgentSendTarget(tx, runner, 'dm:@GRACE-HOPPER')
-    );
-    const rows = await harness.sql`
-        select dm_agent_id, dm_member_one_user_id from chats
-        where server_id = ${serverId} and id = ${chatId}
-    `;
-    expect(rows).toEqual([{ dm_agent_id: agentId, dm_member_one_user_id: targetUserId }]);
+    await expect(
+        connection.db.transaction((tx) => resolveAgentSendTarget(tx, runner, 'dm:@ada-lovelace'))
+    ).rejects.toThrow('That target does not exist.');
 });
 
 test('human autocomplete addresses the immutable user id while exposing handle search metadata', async () => {
     const options = await owner.trpc.chat.mentionOptions.query({
-        chatId: dmChatId,
+        chatId: captainChatId,
         serverId,
     });
 
@@ -217,7 +203,7 @@ test('human autocomplete addresses the immutable user id while exposing handle s
 
 test('channel autocomplete offers visible channels with chat-reference metadata', async () => {
     const options = await owner.trpc.chat.mentionOptions.query({
-        chatId: dmChatId,
+        chatId: captainChatId,
         serverId,
     });
 

@@ -118,7 +118,8 @@ comes. Archive is separate from activity: an archived Task shows its last activi
 The Server reads activity from the Task agent's delivery state
 (`apps/server/src/tasks/task-activity.ts`): an active run is `working`; queued work is `working`
 while the Machine is online and `waiting` while it is offline; a last turn that failed is
-`failed`; anything else is `idle`. Until crew reports land (step 5b), `needsYou` is always false.
+`failed`; anything else is `idle`. `needsYou` is true while the Task's newest report
+(`task_reports`) is `needs-you` and no person has posted in its chat since; it then reads `waiting`.
 
 ## Captains and the Captain chat
 
@@ -347,7 +348,9 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   `<dataRoot>/servers/<serverId>/worktrees/<task-agent-id>/<owner>/<name>/`, keyed by its agent
   id as Captain worktrees are today (`apps/computer/src/invocations/worktree-use.ts`), through
   `haus repo checkout` ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)).
-  `haus task start --repo` checks the repo out before the first turn.
+  `haus task start --repo [--ref]` records the repo on the Task (`tasks.repo`, `tasks.repo_ref`),
+  and the Task prompt opens with checking it out through `haus repo checkout`; the Server cannot
+  run a checkout on the Computer before the first turn.
 - Its branch is `haus/<shortId>-<slug>`, the slug from the title, lower-cased and at most 40
   characters, fixed at the first checkout.
 - Every commit ends with `Haus-Task: <shortId>`, plus `Haus-Issue: <code>` for each linked Issue.
@@ -359,8 +362,8 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   `haus task attach-pr`. A change after the turn settled reaches the active Task that attached it
   first through the existing `pull_request` item, once per change and head commit
   (`apps/server/src/github/pull-request-task-wakes.ts`, re-pointed from Task state to
-  `archived_at is null`); [issues.md](issues.md#links-and-pull-requests) has the fallback. Until
-  Task agents (step 5), the wake goes to the Agent that started that Task.
+  `archived_at is null`); [issues.md](issues.md#links-and-pull-requests) has the fallback. The wake
+  goes to the Task agent itself.
 - **Change summary.** At each turn boundary the Computer reports a `--stat` summary of each
   worktree the turn touched, with its Computer and repo. The side panel shows the newest one.
 

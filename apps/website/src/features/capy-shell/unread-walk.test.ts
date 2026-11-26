@@ -14,7 +14,7 @@ const chat = (fields: Partial<Chat> & Pick<Chat, 'id' | 'kind'>) =>
     }) as Chat;
 
 const chats = [
-    chat({ id: 'dm-forge', kind: 'dm', peerAgentId: 'forge', unreadCount: 2 }),
+    chat({ id: 'dm-forge', kind: 'captain', peerAgentId: 'forge', unreadCount: 2 }),
     chat({ id: 'eng', kind: 'channel' }),
     chat({ id: 'sec', kind: 'channel', unreadCount: 4 }),
     chat({ id: 'dm-ada', kind: 'dm', peerUserId: 'ada', unreadCount: 1 }),

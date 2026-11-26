@@ -4,6 +4,7 @@ import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/del
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { RecordingRunner } from './recording-runner.ts';
@@ -383,8 +384,8 @@ test('answers the fire context for a Reminder-caused message and refuses the res
     ).rejects.toThrow(/member/i);
 });
 
-test('hides the fire context from a member who cannot read the Chat', async () => {
-    const dm = await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId });
+test('a fire answered in a Captain chat shows its context to every member', async () => {
+    const dm = await openCaptainChat(owner, { agentId, serverId });
     const dmAnchor = await owner.trpc.chat.send.mutate({
         chatId: dm.id,
         content: 'Watch the private queue',
@@ -405,20 +406,16 @@ test('hides the fire context from a member who cannot read the Chat', async () =
         cause: fireId,
         content: 'Queue is clear.',
         nonce: `provenance-dm-${fireId}`,
-        target: 'dm:@prov-owner',
+        target: 'captain:@sage',
     });
     const messageId = sent.body.message?.id ?? '';
 
-    // The DM participant reads the context; another Server member cannot.
     await expect(
         owner.trpc.automation.fireContext.query({ messageId, serverId })
     ).resolves.toMatchObject({ anchorChatId: dm.id });
-    const denied = await bystander.trpc.automation.fireContext
-        .query({ messageId, serverId })
-        .then(() => null)
-        .catch((cause: { data?: { code?: string }; message?: string }) => cause);
-    expect(denied?.data?.code).toBe('FORBIDDEN');
-    expect(denied?.message).toMatch(/not a participant/i);
+    await expect(
+        bystander.trpc.automation.fireContext.query({ messageId, serverId })
+    ).resolves.toMatchObject({ anchorChatId: dm.id });
 });
 
 test('infers the cause when the sole served inbox item was one fire', async () => {

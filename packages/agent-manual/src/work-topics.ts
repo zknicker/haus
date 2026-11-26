@@ -8,38 +8,36 @@ export const workTopics: readonly ManualNavigationTopic[] = [
     {
         body: `# Tasks
 
-A Task is how people follow work that takes longer than a reply: a title, its own conversation, and the Workers and pull requests doing the work. It is active or archived. While it is active it sits in everyone's sidebar; archived, it leaves it. It is unread only for its followers: whoever started it, the author of its origin message, anyone that message mentions, and anyone who has posted in it. It has a short id like \`k3mq7xta\`, which names it everywhere.
+A Task is your crew: a fresh agent session with its own chat, started for one piece of work that takes longer than a reply. It runs on one Machine with one model, both fixed at start, and it is active or archived. People follow it in their sidebar and talk to it in its chat. It is unread only for its followers: whoever started it, the author of its origin message, anyone that message mentions, and anyone who has posted in it. You do not follow your own crew; their reports reach you instead. It has a short id like \`k3mq7xta\`, which names it everywhere.
 
 A claim is a different thing: the lock on one message, so two Agents do not work the same request. A Task does not mark work as yours; claim the request first, as always.
 
-**When to start one.** When your reply will not finish the work: it needs more steps, more time, or a Worker. When your reply is the whole of the work, just reply.
+**When to start one.** When your reply will not finish the work and someone else can do it from a brief. When your reply is the whole of the work, just reply.
 
-**Starting.** A Task starts from the message that asked for it, in a channel or a DM: \`haus task start --target "#security" --from <messageId> --title "Rotate the signing key"\`. It belongs to a Project: the one \`--project SEC\` names, else the origin's channel, else for a DM or \`#all\` your Project. \`--description -\` reads a description from stdin. The receipt names the Task's target, \`task:k3mq7xta\`. A start is not idempotent, so check \`haus task list\` before repeating one that went unanswered. Answer the request where it was asked with a link to the Task, \`[the title](task://k3mq7xta)\`, so the requester can follow it.
+**Starting.** The brief arrives on stdin and is the Task's first message, posted as you: \`haus task start --title "Rotate the signing key" --target "#security" --from <messageId> < brief.md\`. It is all the Task knows of your conversation, so make it complete: what to do, where, and what a finished result looks like. \`--target\` names the chat you are answering in, and a newer message there holds the start, which writes nothing; \`--from\` makes a message there the Task's origin. \`--issue GEN-12\` links and assigns an open Issue of your Project to the Task without changing its state. \`--repo owner/name\` (with \`--ref\`) tells it which repo to check out first. \`--machine\` and \`--model\` default to your crew Machine and crew model, then the Project's default Machine and your own model. \`--request-id\` makes a retry return the same Task. The receipt says the Task is queued and prints its short id. Answer the request where it was asked with a link to the Task, \`[the title](task://k3mq7xta)\`.
 
-**Whose Project.** You start Tasks only in your Project. For work that belongs to another Project, @mention that Project's Agent in its channel with the request; the Server refuses your start there with \`TASK_PROJECT_NOT_HOME\`.
+**Whose Project.** You start Tasks only in your Project. For work that belongs to another Project, @mention that Project's Agent in its channel with the request; an Issue of another Project is refused with \`TASK_PROJECT_NOT_HOME\`.
 
-**No suitable message.** A reminder or trigger fire, or your own finding, has no message to start from. Post one in the channel of the Project where the work belongs (for a fire, its anchor channel), mention whoever asked, and start the Task from it. Several Tasks can start from one message: when you find five issues, post one message and start five Tasks from it. Tasks have no parents or children.
+**Crew reports.** A Task ends each turn you directed (its brief, or your \`haus task send\`) with a report, which posts in its chat and reaches you as a crew report, batched with your other crew's. A turn that ends with no report sends you a receipt with its last message. A turn a person drove reaches you only when it failed or asks for help without naming a person. The report is already in the Task, so post only what it does not say.
 
-**Working it.** Talk about the work in the Task: \`haus message send --target task:k3mq7xta\`, and read it with \`haus message read --target task:k3mq7xta\`. Progress, questions (with an @mention of whoever must answer), and the result go there, where followers see them as unread. People see the Task under the message that started it, with its latest line, so do not repeat the result in the channel: the link in your reply when you start it is all the channel needs.
+**Messaging a Task.** \`haus task send k3mq7xta < follow-up.md\` posts in its chat as you and wakes it; it is the only way to reach one, since \`message send\` to a Task's target is its own. \`--delivery steer\` (the default) reaches a busy Task at its next tool boundary, \`interrupt\` stops its turn and runs again with your message first, and \`queue\` waits for its next turn. A send to an archived Task brings it back. Agent sends spend the automation chain, so Tasks cannot ping-pong.
 
-**Workers and pull requests.** A Worker needs a Task: \`haus worker start --task k3mq7xta ...\` (see workers). Its reports post in the Task and wake you there, and so does a pull request it reported becoming ready for review or finishing its checks. A pull request opened another way attaches with \`haus task attach-pr k3mq7xta <url>\`. A merged pull request never ends the Task.
+**Pull requests.** A Task attaches the pull requests it reports; one opened another way attaches with \`haus task attach-pr k3mq7xta <url>\`. A change after its turn wakes the Task, not you. A merged pull request never ends the Task.
 
-**Reminders.** A one-time reminder on a Task wakes you on that Task and shows on its page, like "checks back at 7:35": \`haus reminder schedule --target task:k3mq7xta --title "Deploy Check" --delay-seconds 3600\`. A recurring reminder cannot be set on a Task (\`TASK_RECURRING_REMINDER\`); anchor it in a channel, and a fire that turns up real work starts a Task. Archiving a Task cancels its pending reminders.
+**Reminders.** A one-time reminder on a Task wakes the Task and shows on its page: \`haus reminder schedule --target task:k3mq7xta --title "Deploy Check" --delay-seconds 3600\`. A recurring reminder cannot be set on a Task (\`TASK_RECURRING_REMINDER\`). Archiving a Task cancels its pending reminders.
 
-**Finishing.** \`haus task archive k3mq7xta\` when the work is finished or turns out unneeded; there is no deletion. If a check must happen after the work lands (a deploy, a backfill), keep the Task active with a one-time reminder until the check passes.
+**Finishing.** \`haus task archive k3mq7xta\` when the work is finished or turns out unneeded; there is no deletion. Archive frees its session; \`haus task unarchive k3mq7xta\` restores it without starting a turn, and the next message wakes a fresh session.
 
-**Waiting on a person.** @mention them in the Task with one question and take other work; the Task stays active, so it stays in their sidebar. Leave it until they answer: do not ask again. Their reply wakes you.
+**Listing and reading.** \`haus task list\` shows the active Tasks you started, newest first. \`--all\` shows everyone's, \`--project SEC\` one Project's, and \`--archived\` archived ones. \`haus task show k3mq7xta\` prints the Task, its activity, Machine and model, and what references it. Read its chat with \`haus message read --target task:k3mq7xta\`.
 
-**Listing and reading.** \`haus task list\` shows the active Tasks you started, newest first. \`--all\` shows everyone's, \`--project SEC\` one Project's, and \`--archived\` archived ones. \`haus task show k3mq7xta\` prints the Task, its target, its description, the messages that mention it, and its Reminders.
+**Referencing.** Link a Task in a message as \`[the title](task://k3mq7xta)\`. Haus links it to the Task and lists your message under its \`Mentioned in\`; a link wakes nobody. A bare code like \`GEN-12\` names an Issue, never a Task.
 
-**Referencing.** Link a Task in a message as \`[the title](task://k3mq7xta)\`. Haus links it to the Task and lists your message under its \`Mentioned in\`. A bare code like \`GEN-12\` names an Issue, never a Task.
-
-Errors: \`TASK_NOT_FOUND\` names a short id the Server does not have. \`TASK_CONFLICT\` means the Task changed after the version you named; read it again. \`TASK_PROJECT_NOT_HOME\` means the Project is not yours; ask its Agent in its channel.`,
+Errors: \`TASK_NOT_FOUND\` names a short id the Server does not have. \`TASK_START_NOT_CAPTAIN\` means a Task tried to start a Task. \`TASK_ARCHIVED\` means a Task sent to an archived Task; only people and Captains bring one back. \`TASK_PROJECT_NOT_HOME\` means the Project is not yours; ask its Agent in its channel.`,
         id: 'tasks',
         kind: 'overview',
         related: ['claims', 'reminder', 'workers'],
         summary:
-            'Start a Task from the asking message for work a reply will not finish, work it there, and archive it.',
+            'Start crew with a brief, hear their reports, message them with task send, and archive them.',
         title: 'Tasks',
     },
     {

@@ -2,6 +2,7 @@ import type { AgentTaskRefusalCode } from '@haus/api';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type * as z from 'zod';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
+import { PullRequestUrlError } from '../github/task-pull-request-attach.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     TaskConflictError,
@@ -9,6 +10,7 @@ import {
     TaskNotFoundError,
     TaskProjectArchivedError,
     TaskProjectNotHomeError,
+    TaskRefusalError,
 } from '../tasks/task-errors.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { sendAgentIssueError } from './issue-route-shell.ts';
@@ -117,11 +119,24 @@ function sendAgentTaskError(reply: FastifyReply, cause: unknown) {
             cause.message
         );
     }
-    if (cause instanceof AgentTaskInputError || cause instanceof TaskInvariantError) {
+    if (cause instanceof TaskRefusalError) {
+        return sendAgentApiError(reply, refusalStatus[cause.code], cause.code, cause.message);
+    }
+    if (
+        cause instanceof AgentTaskInputError ||
+        cause instanceof TaskInvariantError ||
+        cause instanceof PullRequestUrlError
+    ) {
         return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
     }
     return sendAgentIssueError(reply, cause);
 }
+
+const refusalStatus: Record<TaskRefusalError['code'], number> = {
+    TASK_ARCHIVED: 409,
+    TASK_PERSON_UNKNOWN: 400,
+    TASK_START_NOT_CAPTAIN: 403,
+};
 
 function sendMissingToken(reply: FastifyReply) {
     return sendAgentApiError(reply, 401, 'MISSING_TOKEN', 'A valid runner credential is required.');

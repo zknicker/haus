@@ -18,6 +18,7 @@ import * as receiptContracts from './chat-message-receipts.ts';
 import { messageClaimSchema } from './claim-shared.ts';
 import { driveCitationSchema } from './drive.ts';
 import { imageGenerationSchema } from './image-generation.ts';
+import { taskDeliveryModeSchema } from './task-delivery.ts';
 import { taskPreviewSchema } from './task-preview.ts';
 import { taskLinkSchema } from './task-short-id.ts';
 import { chatMessageAuthoredContentMaxLength, chatMessageContentMaxLength } from './worker-link.ts';
@@ -75,6 +76,8 @@ const chatSendBaseSchema = z
     .object({
         attachmentIds: z.array(idSchema).default([]),
         content: z.string().trim().max(chatMessageAuthoredContentMaxLength),
+        /** How the message reaches a Task's agent; only a Task chat reads it (ADR 0062). */
+        delivery: taskDeliveryModeSchema.default('steer'),
         nonce: z.string().trim().min(1).max(128),
         /** The direct parent of an inline reply; the Server derives its root. */
         replyToMessageId: idSchema.optional(),
@@ -89,7 +92,7 @@ export const chatSendInputSchema = z
         }),
         chatSendBaseSchema.extend({
             agentId: idSchema,
-            targetKind: z.literal('agent-dm'),
+            targetKind: z.literal('captain'),
         }),
     ])
     .superRefine((input, context) => {
@@ -116,13 +119,15 @@ export const chatSchema = z
     .object({
         archivedAt: timestampSchema.nullable(),
         archivedByUserId: idSchema.nullable(),
+        /** The reader's flags on a Captain chat; null for every other kind. */
+        captainChat: z.object({ member: z.boolean(), subscribed: z.boolean() }).strict().nullable(),
         color: channelColorSchema.nullable(),
         createdAt: timestampSchema,
         description: channelDescriptionSchema.nullable(),
         icon: channelIconSchema.nullable(),
         id: idSchema,
         isAll: z.boolean(),
-        kind: z.enum(['channel', 'dm']),
+        kind: z.enum(['channel', 'dm', 'captain']),
         lastActivityAt: timestampSchema.nullable(),
         lastMessage: chatLastMessageSchema.nullable(),
         lastMessageSequence: z.number().int().nonnegative(),
@@ -149,12 +154,24 @@ export const ensureDmInputSchema = z
     })
     .strict();
 
-export const ensureAgentDmInputSchema = z
+/**
+ * `chat.setCaptainChatMembership`: join or leave a Captain chat, or subscribe or unsubscribe.
+ * Leaving unsubscribes; subscribing joins.
+ */
+export const captainChatMembershipInputSchema = z
     .object({
-        agentId: idSchema,
+        chatId: idSchema,
+        member: z.boolean().optional(),
         serverId: idSchema,
+        subscribed: z.boolean().optional(),
     })
-    .strict();
+    .strict()
+    .refine((input) => input.member !== undefined || input.subscribed !== undefined, {
+        message: 'Set member or subscribed.',
+        path: ['member'],
+    });
+
+export type CaptainChatMembershipInput = z.infer<typeof captainChatMembershipInputSchema>;
 
 export const chatListInputSchema = z.object({ serverId: idSchema }).strict();
 

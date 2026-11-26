@@ -14,8 +14,10 @@ import { createMcpConnection, disconnectMcpConnection } from '../src/server-mcp/
 import { listMcpConnections, setMcpGrant } from '../src/server-mcp/state.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { deliverHumanMessage } from './human-message.fixture.ts';
 import { invokeMcp } from './mcp-client.ts';
 import { createMcpFixture } from './mcp-fixture.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -29,7 +31,7 @@ let connection: HausConnection;
 let serverId: string;
 let ownerUserId: string;
 let agentId: string;
-let dmChatId: string;
+let captainChatId: string;
 const makeConnections = registerTestConnections();
 const serverEffectRuntime = registerServerRuntime();
 const mcpIconResolver = makeMcpIconResolver(serverEffectRuntime);
@@ -66,7 +68,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    captainChatId = (await openCaptainChat(owner, { agentId, serverId })).id;
     await harness.sql`
         update computers
         set reported_inventory = ${{
@@ -98,7 +100,7 @@ afterAll(async () => {
 test('chat mention options expose the DM Agent, active humans, visible channels, and skills', async () => {
     const result = await owner.trpc.chat.mentionOptions.query({
         agentIds: [agentId],
-        chatId: dmChatId,
+        chatId: captainChatId,
         serverId,
     });
 
@@ -137,7 +139,7 @@ test('chat mention options expose the DM Agent, active humans, visible channels,
     ]);
 });
 test('mints a scoped runner credential and records a durable Agent-authored message', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_send_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_send_1' });
     expect(minted.runnerToken).toMatch(/^grtr_/u);
     const lifecycleController = new AbortController();
     const lifecycle = subscribeToAgentLifecycle(lifecycleController.signal)[Symbol.asyncIterator]();
@@ -147,11 +149,11 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         compositionId: 'cmp_send_1',
         content: 'Hello from the Agent.',
         nonce: 'agent_nonce_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(sent.status).toBe(200);
     expect(sent.body.message).toMatchObject({
-        chat_id: dmChatId,
+        chat_id: captainChatId,
         content: 'Hello from the Agent.',
         sender: { handle: 'sage', type: 'agent' },
     });
@@ -159,7 +161,7 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
         done: false,
         value: {
             agentId,
-            chatId: dmChatId,
+            chatId: captainChatId,
             compositionId: 'cmp_send_1',
             phase: 'sending',
             runId: 'run_send_1',
@@ -168,14 +170,14 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     });
     expect(await lifecycle.next()).toMatchObject({
         done: false,
-        value: { agentId, chatId: dmChatId, phase: 'working', runId: 'run_send_1' },
+        value: { agentId, chatId: captainChatId, phase: 'working', runId: 'run_send_1' },
     });
     lifecycleController.abort();
 
     const rows = (await harness.sql`
         select author_agent_id, author_user_id, content, run_id, session_generation
         from chat_messages
-        where server_id = ${serverId} and chat_id = ${dmChatId} and nonce = 'agent_nonce_1'
+        where server_id = ${serverId} and chat_id = ${captainChatId} and nonce = 'agent_nonce_1'
     `) as {
         author_agent_id: string;
         author_user_id: string | null;
@@ -197,18 +199,18 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     const again = await agentSend(minted.runnerToken, {
         content: 'Hello from the Agent.',
         nonce: 'agent_nonce_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(again.body.message?.id).toBe(sent.body.message?.id);
     const dupCount = (await harness.sql`
         select count(*)::int as n from chat_messages
-        where server_id = ${serverId} and chat_id = ${dmChatId} and nonce = 'agent_nonce_1'
+        where server_id = ${serverId} and chat_id = ${captainChatId} and nonce = 'agent_nonce_1'
     `) as { n: number }[];
     expect(dupCount[0]?.n).toBe(1);
 
     // The durable message reads back through the ordinary Server surface with
     // an Agent author, not a human one.
-    const page = await owner.trpc.chat.messages.query({ chatId: dmChatId, serverId });
+    const page = await owner.trpc.chat.messages.query({ chatId: captainChatId, serverId });
     const agentMessage = page.messages.find((message) => message.nonce === 'agent_nonce_1');
     expect(agentMessage).toMatchObject({
         author: { agentId, kind: 'agent' },
@@ -217,11 +219,11 @@ test('mints a scoped runner credential and records a durable Agent-authored mess
     });
 });
 test('Agent sends remove terminal whitespace while preserving leading and internal whitespace', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_send_whitespace_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_send_whitespace_1' });
     const sent = await agentSend(minted.runnerToken, {
         content: '  Leading indentation\n\n    internal code  \n\nFinal line \t\n',
         nonce: 'agent_send_whitespace_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
 
     expect(sent).toMatchObject({
@@ -235,7 +237,7 @@ test('Agent sends remove terminal whitespace while preserving leading and intern
     });
     const rows = (await harness.sql`
         select content from chat_messages
-        where server_id = ${serverId} and chat_id = ${dmChatId} and nonce = 'agent_send_whitespace_1'
+        where server_id = ${serverId} and chat_id = ${captainChatId} and nonce = 'agent_send_whitespace_1'
     `) as { content: string }[];
     expect(rows).toEqual([
         { content: '  Leading indentation\n\n    internal code  \n\nFinal line' },
@@ -274,7 +276,7 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${unjoinedChannelId}, ${ownerUserId})
     `;
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reference_canonicalization' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_reference_canonical' });
     const inputContent =
         'Coordinate @blippy, @tiny, @ada, and unknown @future in #unjoined-product and #canonical-product.';
     const sent = await agentSend(minted.runnerToken, {
@@ -339,21 +341,21 @@ test('Agent message references persist as stable Agent and Chat links', async ()
     });
 });
 test('Agent reference expansion cannot exceed the durable message limit', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reference_length' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_reference_length' });
     const content = `${'x'.repeat(31_990)} @sage`;
     expect(content.length).toBeLessThanOrEqual(32_000);
 
     const sent = await agentSend(minted.runnerToken, {
         content,
         nonce: 'agent_reference_length_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
 
     expect(sent).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
     const rows = (await harness.sql`
         select id from chat_messages
         where server_id = ${serverId}
-          and chat_id = ${dmChatId}
+          and chat_id = ${captainChatId}
           and nonce = 'agent_reference_length_1'
     `) as { id: string }[];
     expect(rows).toEqual([]);
@@ -368,7 +370,7 @@ test('an Agent send resolves its target instead of writing into the launch chat'
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${channelId}, ${ownerUserId})
     `;
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_target_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_target_1' });
 
     const sent = await agentSend(minted.runnerToken, {
         content: 'This belongs in dispatch.',
@@ -394,7 +396,7 @@ test('an Agent send resolves its target instead of writing into the launch chat'
 });
 test('As Claim enters the Agent inbox with canonical unassigned claim metadata', async () => {
     const created = await owner.trpc.claim.create.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Prepare the weekly launch brief.',
         nonce: 'claim_delivery_fixture',
         serverId,
@@ -413,9 +415,9 @@ test('As Claim enters the Agent inbox with canonical unassigned claim metadata',
     `) as Array<{ dedupe_key: string }>;
     expect(pending).toEqual([{ dedupe_key: created.claim.messageId }]);
 
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claim_projection' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_claim_projection' });
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(
         history.body.messages?.find((message) => message.id === created.claim.messageId)?.claim
@@ -636,7 +638,7 @@ test('history visibility across an unheard gap prevents a duplicate freshness ho
 });
 test('a channel send holds a durable draft until the Agent catches up', async () => {
     const channelId = 'cht_targetchannel01';
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_hold_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_hold_1' });
     await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: '@sage new peer context before the reply.',
@@ -700,7 +702,7 @@ test('a channel send holds a durable draft until the Agent catches up', async ()
 
 test('send hold counts exact Agent handle mentions, never opaque ids or handle prefixes', async () => {
     const channelId = 'cht_targetchannel01';
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_hold_mentions_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_hold_mentions_1' });
     for (const [index, content] of [
         `Opaque ids are not mentions: @${agentId}`,
         'Handle prefixes are not mentions: @sage-ish',
@@ -726,11 +728,11 @@ test('send hold counts exact Agent handle mentions, never opaque ids or handle p
 });
 
 test('the ported Agent CLI read surface can read, search, and resolve visible messages', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_read_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_read_1' });
     const sent = await agentSend(minted.runnerToken, {
         content: 'Distinctive telescope release note.',
         nonce: 'agent_read_nonce_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(sent.status).toBe(200);
     const messageId = sent.body.message?.id;
@@ -738,13 +740,13 @@ test('the ported Agent CLI read surface can read, search, and resolve visible me
 
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
         limit: '10',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(history.status).toBe(200);
     expect(history.body.messages).toEqual(
         expect.arrayContaining([
             expect.objectContaining({
-                chat_id: dmChatId,
+                chat_id: captainChatId,
                 content: 'Distinctive telescope release note.',
             }),
         ])
@@ -755,9 +757,7 @@ test('the ported Agent CLI read surface can read, search, and resolve visible me
         sort: 'recent',
     });
     expect(search.status).toBe(200);
-    expect(search.body.messages).toEqual(
-        expect.arrayContaining([expect.objectContaining({ id: messageId, target: 'dm:@ada' })])
-    );
+    expect(search.body.messages?.find((row) => row.id === messageId)?.target).toBe('captain:@sage');
 
     const resolved = await agentGet(
         minted.runnerToken,
@@ -769,7 +769,7 @@ test('the ported Agent CLI read surface can read, search, and resolve visible me
 });
 
 test('an Agent uploads, sends, reads, and downloads its own attachment', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_attachment_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_attachment_1' });
     const upload = await agentPost(minted.runnerToken, '/api/agent/attachments/upload', {
         // No declared type: the Server resolves it (bytes, then the .txt extension).
         dataBase64: Buffer.from('agent attachment bytes').toString('base64'),
@@ -787,7 +787,7 @@ test('an Agent uploads, sends, reads, and downloads its own attachment', async (
         attachmentIds: [attachmentId],
         content: 'The notes are attached.',
         nonce: 'agent_attachment_nonce_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(sent.status).toBe(200);
     expect(sent.body.message?.attachments).toEqual([
@@ -796,7 +796,7 @@ test('an Agent uploads, sends, reads, and downloads its own attachment', async (
 
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
         limit: '10',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(
         history.body.messages?.find((message) => message.id === sent.body.message?.id)?.attachments
@@ -810,11 +810,11 @@ test('an Agent uploads, sends, reads, and downloads its own attachment', async (
 });
 
 test('an Agent adds and removes its own canonical message reaction', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reaction_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_reaction_1' });
     const sent = await agentSend(minted.runnerToken, {
         content: 'React to this canonical message.',
         nonce: 'agent_reaction_nonce_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     const messageId = String(sent.body.message?.id);
 
@@ -838,7 +838,7 @@ test('an Agent adds and removes its own canonical message reaction', async () =>
 
 test('the ported Agent directory reports each channel as a Project with its home Agents', async () => {
     await createTestProject(owner, { agentIds: [], key: 'RES', name: 'research', serverId });
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_directory_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_directory_1' });
 
     const info = await agentGet(minted.runnerToken, '/api/agent/channels/info', {
         target: '#research',
@@ -873,7 +873,7 @@ test('the ported Agent directory reports each channel as a Project with its home
 
 test('the ported Agent claim flow creates, claims, updates, and releases its own work', async () => {
     const realtime = captureAllTopics();
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claims_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_claims_1' });
     const created = await agentPost(minted.runnerToken, '/api/agent/claims/create', {
         nonce: 'agent_claims_create_1',
         target: '#dispatch',
@@ -1182,11 +1182,11 @@ test('runner claim access fails closed after its parent Channel is deleted', asy
 });
 
 test('claim status updates wait for a newer inline reply to the claimed message', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claim_freshness' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_claim_freshness' });
     const created = await agentPost(minted.runnerToken, '/api/agent/claims/create', {
         assignee: '@sage',
         nonce: 'agent_claim_freshness',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
         titles: ['Incorporate every late correction.'],
     });
     const claim = created.body.claims[0] as {
@@ -1195,7 +1195,7 @@ test('claim status updates wait for a newer inline reply to the claimed message'
         version: number;
     };
     const correction = await owner.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Late correction: include the hostname.',
         nonce: 'claim_freshness_correction',
         replyToMessageId: claim.message.id,
@@ -1205,7 +1205,7 @@ test('claim status updates wait for a newer inline reply to the claimed message'
     const held = await agentPost(minted.runnerToken, '/api/agent/claims/update', {
         number: claim.number,
         status: 'in_review',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(held).toMatchObject({
         body: {
@@ -1224,7 +1224,7 @@ test('claim status updates wait for a newer inline reply to the claimed message'
     const updated = await agentPost(minted.runnerToken, '/api/agent/claims/update', {
         number: claim.number,
         status: 'in_review',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(updated).toMatchObject({
         body: { claim: { status: 'in_review' } },
@@ -1250,7 +1250,7 @@ test('Agent claim creation is replay-safe and directly wakes an assigned peer', 
         runtimeId: 'codex',
         serverId,
     });
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claim_peer_assignment' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_claim_peer_assignment' });
     const body = {
         assignee: '@scout',
         nonce: 'agent_claim_peer_assignment',
@@ -1434,7 +1434,7 @@ test('Agent claim creation is replay-safe and directly wakes an assigned peer', 
 });
 
 test('an Agent owns its profile description and that description rides its messages', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_profile_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_profile_1' });
     const updated = await agentPost(minted.runnerToken, '/api/agent/profile/update', {
         description: 'Resident systems investigator',
     });
@@ -1459,7 +1459,7 @@ test('an Agent owns its profile description and that description rides its messa
     const sent = await agentSend(minted.runnerToken, {
         content: 'Profile descriptions should travel.',
         nonce: 'agent_profile_nonce_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(sent.body.message?.sender).toEqual({
         description: 'Resident systems investigator',
@@ -1469,11 +1469,11 @@ test('an Agent owns its profile description and that description rides its messa
 });
 
 test('the ported Agent reminder flow schedules against a DM message and can manage it', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_reminder_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_reminder_1' });
     const anchor = await agentSend(minted.runnerToken, {
         content: 'Remember this exact DM.',
         nonce: 'agent_reminder_anchor_1',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(anchor.status).toBe(200);
 
@@ -1486,7 +1486,7 @@ test('the ported Agent reminder flow schedules against a DM message and can mana
     });
     expect(scheduled.status).toBe(200);
     expect(scheduled.body.reminder).toMatchObject({
-        anchorTarget: 'dm:@ada',
+        anchorTarget: 'captain:@sage',
         script: false,
         status: 'scheduled',
         title: 'Follow up on the DM',
@@ -1534,7 +1534,7 @@ test('the ported Agent reminder flow schedules against a DM message and can mana
 });
 
 test('a revoked runner token can no longer speak as the Agent', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_revoke_1' });
+    const minted = await mintRunner({ chatId: captainChatId, runId: 'run_revoke_1' });
     const revoke = await fetch(new URL('/computer/runner/revoke', harness.url), {
         body: JSON.stringify({ credentialHash, runnerId: minted.runnerId }),
         headers: { 'content-type': 'application/json' },
@@ -1545,7 +1545,7 @@ test('a revoked runner token can no longer speak as the Agent', async () => {
     const blocked = await agentSend(minted.runnerToken, {
         content: 'Should not land.',
         nonce: 'agent_nonce_revoked',
-        target: 'dm:@ada',
+        target: 'captain:@sage',
     });
     expect(blocked.status).toBe(401);
     expect(blocked.body.code).toBe('MISSING_TOKEN');
@@ -1555,7 +1555,7 @@ test('rejects a runner mint for an Agent on another Computer', async () => {
     const response = await fetch(new URL('/computer/runner/mint', harness.url), {
         body: JSON.stringify({
             agentId,
-            chatId: dmChatId,
+            chatId: captainChatId,
             credentialHash: 'e'.repeat(64),
             runId: 'run_wrong_computer',
         }),
@@ -1570,11 +1570,11 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
     const delivery = new AgentDelivery(connection.db, makeConnections(), undefined, runner);
 
     // Offline: the message is queued durably but nothing reaches the wire.
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId,
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'first',
-        dedupeKey: 'run_deliver_1',
+        dedupeKey: 'msg_run_deliver_1',
         serverId,
     });
     expect(runner.sent).toHaveLength(0);
@@ -1593,11 +1593,11 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
     await delivery.onAck({ agentId, runId });
 
     // Busy: a second message queues and notices, never a second concurrent start.
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId,
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'second',
-        dedupeKey: 'run_deliver_2',
+        dedupeKey: 'msg_run_deliver_2',
         serverId,
     });
     expect(starts()).toHaveLength(1);
@@ -1705,7 +1705,7 @@ test('a human DM send enqueues durable pending work atomically with the message'
     `) as { n: number }[];
 
     await owner.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Durable delivery, please.',
         nonce: 'human_wake_1',
         serverId,
@@ -2031,7 +2031,7 @@ test('MCP invocation distinguishes revoked access, timeout, and upstream auth', 
             code: 'MCP_AUTH_REQUIRED',
         });
 
-        const runner = await mintRunner({ chatId: dmChatId, runId: 'run_mcp_errors' });
+        const runner = await mintRunner({ chatId: captainChatId, runId: 'run_mcp_errors' });
         const deniedResponse = await invokeAgentMcp(runner.runnerToken, {
             args: {},
             toolName: modelToolName('mcp_notgranted0000', 'missing'),

@@ -34,7 +34,7 @@ test('a busy Agent hears a count of one Task reports, then gets the reports in i
     const { delivery, runner, transport } = offlineDelivery(connection.db, board.seed);
     transport.online.add(board.seed.computerId);
     runner.attach(board.seed.agentId);
-    await deliverHuman(connection.db, delivery, board.seed, { chatId: board.seed.dmChatId });
+    await deliverHuman(connection.db, delivery, board.seed, { chatId: board.seed.captainChatId });
     const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: board.seed.agentId, runId });
 

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { ExecutionJournalUploadRecord } from '@haus/api';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import {
@@ -53,9 +54,9 @@ beforeAll(async () => {
             serverId,
         })
     ).agent.id;
-    const dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    const captainChatId = (await openCaptainChat(owner, { agentId, serverId })).id;
     await owner.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'What changed?',
         nonce: 'journal_dm_first',
         serverId,

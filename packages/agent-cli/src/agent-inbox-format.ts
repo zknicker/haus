@@ -88,7 +88,7 @@ function formatHeader(input: InboxCheckInput, extraPending: number): string {
     if (totals.conversations === 0 && extraPending === 0) {
         return 'Inbox: nothing unread.';
     }
-    return `Inbox: ${plural(totals.conversations, 'unread conversation')} (${plural(totals.dms, 'DM')}, ${totals.mentions} with mentions).`;
+    return `Inbox: ${plural(totals.conversations, 'unread conversation')} (${totals.mentions} with mentions).`;
 }
 
 function formatTrailer(input: InboxCheckInput, first: RenderedRow | undefined): string {

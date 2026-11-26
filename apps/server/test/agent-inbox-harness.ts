@@ -39,10 +39,11 @@ export class FakeTransport implements DeliveryTransport {
 }
 
 export interface Seed {
+    agentHandle: string;
     agentId: string;
     channelId: string;
     computerId: string;
-    dmChatId: string;
+    captainChatId: string;
     humanHandle: string;
     serverId: string;
     userId: string;
@@ -50,10 +51,11 @@ export interface Seed {
 
 export async function seedAgent(db: HausDatabase): Promise<Seed> {
     const seed: Seed = {
+        agentHandle: `ada-${randomBytes(4).toString('hex')}`,
         agentId: createOpaqueId('agt'),
         channelId: createOpaqueId('cht'),
         computerId: createOpaqueId('cmp'),
-        dmChatId: createOpaqueId('cht'),
+        captainChatId: createOpaqueId('cht'),
         humanHandle: `human-${randomBytes(4).toString('hex')}`,
         serverId: createOpaqueId('srv'),
         userId: createOpaqueId('usr'),
@@ -80,18 +82,16 @@ export async function seedAgent(db: HausDatabase): Promise<Seed> {
         desiredModelId: 'fake-model',
         desiredRuntimeId: 'fake',
         displayName: 'Ada',
-        handle: `ada-${randomBytes(4).toString('hex')}`,
+        handle: seed.agentHandle,
         homeTimezone: 'UTC',
         id: seed.agentId,
         homeProjectId: await testAgentHome(db, seed.serverId),
         serverId: seed.serverId,
     });
     await db.insert(chatsTable).values({
-        dmAgentId: seed.agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: seed.userId,
-        id: seed.dmChatId,
-        kind: 'dm',
+        captainAgentId: seed.agentId,
+        id: seed.captainChatId,
+        kind: 'captain',
         serverId: seed.serverId,
     });
     await db.insert(chatsTable).values({

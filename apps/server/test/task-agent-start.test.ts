@@ -214,27 +214,27 @@ describe('a Captain starts crew', () => {
         expect(again.agentId).toBe(first.agentId);
     });
 
-    test('a DM origin starts in the home Project, shown only to that DM’s readers', async () => {
+    test('a Captain chat origin starts in the home Project, shown to every member', async () => {
         const { owner, serverId } = fixture;
-        const dm = await owner.trpc.chat.send.mutate({
+        const asked = await owner.trpc.chat.send.mutate({
             agentId: fixture.orbitAgentId,
             content: 'Can you look into the deploy?',
-            nonce: 'task_start_dm',
+            nonce: 'task_start_captain_chat',
             serverId,
-            targetKind: 'agent-dm',
+            targetKind: 'captain',
         });
         const task = await startedTask({
             brief: 'Look into the deploy.',
-            from: dm.message.id,
-            target: 'dm:@ada',
+            from: asked.message.id,
+            target: 'captain:@orbit',
         });
         expect(task).toMatchObject({
-            origin: { chatId: dm.message.chatId, messageId: dm.message.id },
+            origin: { chatId: asked.message.chatId, messageId: asked.message.id },
             projectId: fixture.channelId,
         });
         expect(
             (await bea.trpc.task.get.query({ serverId, shortId: task.shortId })).origin
-        ).toBeNull();
+        ).toMatchObject({ messageId: asked.message.id });
     });
 
     test('--issue links and assigns an open Issue without changing its state', async () => {
@@ -282,7 +282,7 @@ describe('a Captain starts crew', () => {
             false
         );
         const nested = await start({ brief: 'Help me.' }, taskRunner);
-        expect(nested).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
+        expect(nested).toMatchObject({ body: { code: 'TASK_START_NOT_CAPTAIN' }, status: 403 });
         expect(nested.body.message).toContain('Tasks never start Tasks');
 
         const noMachine = await call(orbit, '/api/agent/tasks/start', { brief: 'Anything.' });

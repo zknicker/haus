@@ -12,15 +12,17 @@
  *
  * The caller owns access: the rule assumes the human can see the Chat. A DM
  * is only visible to its members, so a DM message seen by a human is theirs.
+ * A Captain chat is visible to everyone, so only its subscribed members hear
+ * every message (`subscribed`); the Server adds them from the chat itself.
  */
-export const messageNotificationReasons = ['dm', 'mention', 'reply'] as const;
+export const messageNotificationReasons = ['dm', 'mention', 'reply', 'subscribed'] as const;
 
 export type MessageNotificationReason = (typeof messageNotificationReasons)[number];
 
 /** The addressing facts `message.created` carries for a new message. */
 export interface MessageNotificationFacts {
     authorUserId: string | null;
-    conversationKind: 'channel' | 'dm';
+    conversationKind: 'channel' | 'dm' | 'captain';
     mentionedUserIds: readonly string[];
     /** The human author of the message this one inline-replies to. */
     replyToAuthorUserId: string | null;
@@ -30,11 +32,14 @@ export interface MessageNotificationFacts {
 
 /**
  * Why `message` notifies `userId`, or null when it does not. A DM is always
- * `dm`; elsewhere a mention wins over a reply when one message is both.
+ * `dm`; elsewhere a mention wins over a reply when one message is both, and
+ * either wins over `subscribed`, which only a Captain chat's subscribed member
+ * (`viewer.subscribed`) hears.
  */
 export function messageNotificationReason(
     message: MessageNotificationFacts,
-    userId: string
+    userId: string,
+    viewer: { subscribed?: boolean } = {}
 ): MessageNotificationReason | null {
     if (message.authorUserId === userId) {
         return null;
@@ -48,7 +53,7 @@ export function messageNotificationReason(
     if (message.replyToAuthorUserId === userId || message.taskOriginAuthorUserId === userId) {
         return 'reply';
     }
-    return null;
+    return message.conversationKind === 'captain' && viewer.subscribed ? 'subscribed' : null;
 }
 
 /**

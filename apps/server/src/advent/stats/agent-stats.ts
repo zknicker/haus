@@ -27,11 +27,11 @@ export const thanksPattern =
  */
 export function addressedCte(scope: AdventScope): SQL {
     return sql`addressed as materialized (
-        select source.id as message_id, room.dm_agent_id as agent_id,
+        select source.id as message_id, room.captain_agent_id as agent_id,
             source.content ~* ${thanksPattern} as thanked
         from mine source
         join chats room on room.server_id = ${scope.serverId} and room.id = source.room_id
-        where room.dm_agent_id is not null
+        where room.captain_agent_id is not null
         union
         select source.id as message_id, mention[1] as agent_id,
             source.content ~* ${thanksPattern} as thanked

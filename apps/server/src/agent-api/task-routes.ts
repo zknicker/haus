@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
+import type { GithubApp } from '../github/github-app.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
@@ -16,6 +17,7 @@ import { findTaskByRef, getTask, listTasks } from '../tasks/task-list.ts';
 import { readProjectByKey } from '../tasks/task-project.ts';
 import { announceTaskSessions, type TaskSessionWire } from '../tasks/task-session.ts';
 import type { TaskWriteResult } from '../tasks/task-write-result.ts';
+import { registerAgentTaskMessageRoutes } from './task-message-routes.ts';
 import { registerAgentTaskPlaceRoutes } from './task-place-routes.ts';
 import { agentActor } from './task-refs.ts';
 import { agentTaskRead } from './task-route-shell.ts';
@@ -31,6 +33,7 @@ export function registerAgentTaskRoutes(
         catalog: AgentModelCatalog;
         computers: Pick<ComputerConnections, 'send'>;
         db: HausDatabase;
+        githubApp: GithubApp | null;
         postCommitWork: ServerPostCommitWork;
         sessions: TaskSessionWire;
     }
@@ -48,6 +51,7 @@ export function registerAgentTaskRoutes(
         return await taskRow(db, runner, result.task);
     };
     registerAgentTaskPlaceRoutes(app, { agentDelivery, catalog: options.catalog, commit, db });
+    registerAgentTaskMessageRoutes(app, options);
 
     agentTaskRead(
         app,

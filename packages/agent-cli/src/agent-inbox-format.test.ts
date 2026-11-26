@@ -11,7 +11,7 @@ const dmRow = {
     latestAt: '2026-09-25T11:48:00.000Z',
     latestSenderHandle: 'richard',
     mentions: 0,
-    target: 'dm:@richard',
+    target: 'captain:@orbit',
     unread: 3,
 };
 const taskRow = {
@@ -41,20 +41,20 @@ test('a page with more renders open commands, the More trailer, and exactly one 
             hasMore: true,
             items: [dmRow, taskRow],
             nextBefore: 'MTE5MA',
-            totals: { conversations: 43, dms: 2, mentions: 5 },
+            totals: { conversations: 43, mentions: 5 },
         }),
     });
     expect(output).toBe(
         [
-            'Inbox: 43 unread conversations (2 DMs, 5 with mentions). Newest activity first.',
+            'Inbox: 43 unread conversations (5 with mentions). Newest activity first.',
             '',
-            'dm:@richard · 3 unread · latest @richard 12m ago',
-            '  open: haus message read --target "dm:@richard" --after 1200',
+            'captain:@orbit · 3 unread · latest @richard 12m ago',
+            '  open: haus message read --target "captain:@orbit" --after 1200',
             'task:k3mq7xta · 1 unread · mentions you · latest @alice 1h ago',
             '  open: haus message read --target "task:k3mq7xta" --after 1180',
             '',
             'More: haus inbox check --before MTE5MA',
-            'Next: open the first conversation above: haus message read --target "dm:@richard" --after 1200',
+            'Next: open the first conversation above: haus message read --target "captain:@orbit" --after 1200',
         ].join('\n')
     );
     expect(output.match(/^Next:/gmu)?.length).toBe(1);
@@ -64,11 +64,11 @@ test('a singular count, repeat mentions, and old activity read naturally', () =>
     const output = render({
         list: list({
             items: [{ ...taskRow, latestAt: '2026-09-21T12:00:00.000Z', mentions: 3 }],
-            totals: { conversations: 1, dms: 1, mentions: 0 },
+            totals: { conversations: 1, mentions: 0 },
         }),
     });
     expect(output.split('\n').slice(0, 3)).toEqual([
-        'Inbox: 1 unread conversation (1 DM, 0 with mentions). Newest activity first.',
+        'Inbox: 1 unread conversation (0 with mentions). Newest activity first.',
         '',
         'task:k3mq7xta · 1 unread · mentions you 3x · latest @alice 4d ago',
     ]);
@@ -88,12 +88,12 @@ test('the last page has no More line and names its seq window', () => {
                     target: '#random',
                 },
             ],
-            totals: { conversations: 43, dms: 2, mentions: 5 },
+            totals: { conversations: 43, mentions: 5 },
         }),
     });
     expect(output).toBe(
         [
-            'Inbox: 43 unread conversations (2 DMs, 5 with mentions). Older activity, newest first.',
+            'Inbox: 43 unread conversations (5 with mentions). Older activity, newest first.',
             '',
             '#random · 3 unread',
             '  open: haus message read --target "#random"',
@@ -105,10 +105,10 @@ test('the last page has no More line and names its seq window', () => {
 
 test('a page past the end points back to the newest page', () => {
     expect(
-        render({ before: 'NQ', list: list({ totals: { conversations: 3, dms: 0, mentions: 0 } }) })
+        render({ before: 'NQ', list: list({ totals: { conversations: 3, mentions: 0 } }) })
     ).toBe(
         [
-            'Inbox: 3 unread conversations (0 DMs, 0 with mentions).',
+            'Inbox: 3 unread conversations (0 with mentions).',
             '',
             'Next: no older unread conversations; run haus inbox check for the newest.',
         ].join('\n')
@@ -121,7 +121,7 @@ test('mentions view has a mentions header and keeps the view on the More line', 
             hasMore: true,
             items: [taskRow],
             nextBefore: 'MTE5MA',
-            totals: { conversations: 43, dms: 2, mentions: 5 },
+            totals: { conversations: 43, mentions: 5 },
             view: 'mentions',
         }),
         view: 'mentions',
@@ -133,7 +133,7 @@ test('mentions view has a mentions header and keeps the view on the More line', 
 
     expect(
         render({
-            list: list({ totals: { conversations: 4, dms: 1, mentions: 0 }, view: 'mentions' }),
+            list: list({ totals: { conversations: 4, mentions: 0 }, view: 'mentions' }),
             view: 'mentions',
         })
     ).toBe(
@@ -146,7 +146,7 @@ test('mentions view has a mentions header and keeps the view on the More line', 
     expect(
         render({
             before: 'OQ',
-            list: list({ totals: { conversations: 4, dms: 1, mentions: 2 }, view: 'mentions' }),
+            list: list({ totals: { conversations: 4, mentions: 2 }, view: 'mentions' }),
             view: 'mentions',
         })
     ).toEndWith('Next: no older mentions; run haus inbox check --view mentions for the newest.');
@@ -154,20 +154,20 @@ test('mentions view has a mentions header and keeps the view on the More line', 
 
 test('pending rows annotate listed targets and lead the first page when the list lags', () => {
     const output = render({
-        list: list({ items: [dmRow], totals: { conversations: 1, dms: 1, mentions: 0 } }),
+        list: list({ items: [dmRow], totals: { conversations: 1, mentions: 0 } }),
         pendingRows: [
-            pending({ chatId: 'cht_richard', pendingCount: 2, target: 'dm:@richard' }),
+            pending({ chatId: 'cht_richard', pendingCount: 2, target: 'captain:@orbit' }),
             pending({ firstSequence: 1300, latestSender: 'bob', mentioned: true }),
         ],
     });
     expect(output).toBe(
         [
-            'Inbox: 1 unread conversation (1 DM, 0 with mentions). Newest activity first.',
+            'Inbox: 1 unread conversation (0 with mentions). Newest activity first.',
             '',
             '#ops · 1 new, not yet delivered · mentions you · latest @bob',
             '  open: haus message read --target "#ops" --after 1299',
-            'dm:@richard · 3 unread · 2 new, not yet delivered · latest @richard 12m ago',
-            '  open: haus message read --target "dm:@richard" --after 1200',
+            'captain:@orbit · 3 unread · 2 new, not yet delivered · latest @richard 12m ago',
+            '  open: haus message read --target "captain:@orbit" --after 1200',
             '',
             'Next: open the first conversation above: haus message read --target "#ops" --after 1299',
         ].join('\n')
@@ -176,7 +176,7 @@ test('pending rows annotate listed targets and lead the first page when the list
     // Pending-only rows belong to the newest page, not to older pages.
     const older = render({
         before: 'OTAw',
-        list: list({ items: [dmRow], totals: { conversations: 1, dms: 1, mentions: 0 } }),
+        list: list({ items: [dmRow], totals: { conversations: 1, mentions: 0 } }),
         pendingRows: [pending({})],
     });
     expect(older).not.toContain('#ops');
@@ -189,7 +189,7 @@ test('pending rows annotate listed targets and lead the first page when the list
 
 test('the mentions view leads only with mentioned pending rows', () => {
     const output = render({
-        list: list({ totals: { conversations: 1, dms: 0, mentions: 0 }, view: 'mentions' }),
+        list: list({ totals: { conversations: 1, mentions: 0 }, view: 'mentions' }),
         pendingRows: [
             pending({ chatId: 'cht_quiet', target: '#quiet' }),
             pending({ mentioned: true }),
@@ -202,24 +202,24 @@ test('the mentions view leads only with mentioned pending rows', () => {
 
 test('Worker results fold into one row that points at message check', () => {
     const output = render({
-        list: list({ items: [dmRow], totals: { conversations: 1, dms: 1, mentions: 0 } }),
+        list: list({ items: [dmRow], totals: { conversations: 1, mentions: 0 } }),
         pendingRows: [
             pending({ workerResult: true, latestSender: 'haus', pendingCount: 2 }),
             pending({
                 chatId: 'cht_richard',
                 workerResult: true,
                 latestSender: 'haus',
-                target: 'dm:@richard',
+                target: 'captain:@orbit',
             }),
         ],
     });
     expect(output).toBe(
         [
-            'Inbox: 1 unread conversation (1 DM, 0 with mentions). Newest activity first.',
+            'Inbox: 1 unread conversation (0 with mentions). Newest activity first.',
             '',
             'Worker results · 3 pending · fetch with haus message check',
-            'dm:@richard · 3 unread · latest @richard 12m ago',
-            '  open: haus message read --target "dm:@richard" --after 1200',
+            'captain:@orbit · 3 unread · latest @richard 12m ago',
+            '  open: haus message read --target "captain:@orbit" --after 1200',
             '',
             'Next: fetch the Worker results above: haus message check',
         ].join('\n')
@@ -228,13 +228,13 @@ test('Worker results fold into one row that points at message check', () => {
 
 test('a failed pending snapshot still lists conversations and says what is missing', () => {
     const output = render({
-        list: list({ items: [dmRow], totals: { conversations: 1, dms: 1, mentions: 0 } }),
+        list: list({ items: [dmRow], totals: { conversations: 1, mentions: 0 } }),
         pendingError: 'The Haus server is unavailable.',
     });
     expect(output).toEndWith(
         '\n\nPending queue unavailable (The Haus server is unavailable.); not-yet-delivered counts are not shown.'
     );
-    expect(output).toContain('dm:@richard · 3 unread · latest @richard 12m ago');
+    expect(output).toContain('captain:@orbit · 3 unread · latest @richard 12m ago');
 });
 
 function render(input: Partial<InboxCheckInput> & Pick<InboxCheckInput, 'list'>): string {
@@ -246,7 +246,7 @@ function list(overrides: Partial<AgentInboxConversations> = {}): AgentInboxConve
         hasMore: false,
         items: [],
         nextBefore: null,
-        totals: { conversations: 0, dms: 0, mentions: 0 },
+        totals: { conversations: 0, mentions: 0 },
         view: 'unread',
         ...overrides,
     };

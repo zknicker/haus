@@ -60,11 +60,17 @@ export const workerAttentionSchema = z
 export type WorkerAttention = z.infer<typeof workerAttentionSchema>;
 
 /**
- * Why an item is addressed to this Agent personally rather than ambiently: a DM,
- * an @mention, a committed Jev routing, or `sole` — the Agent is the only
- * eligible one in a channel whose only human member sent the message.
+ * Why an item is addressed to this Agent personally rather than ambiently: its own Captain
+ * chat, its own Task chat, an @mention, a committed Jev routing, or `sole` — the Agent is the
+ * only eligible one in a channel whose only human member sent the message.
  */
-export const addressedReasonSchema = z.enum(['dm', 'mention', 'routing', 'sole']);
+export const addressedReasonSchema = z.enum([
+    'captain_chat',
+    'task_chat',
+    'mention',
+    'routing',
+    'sole',
+]);
 
 export type AddressedReason = z.infer<typeof addressedReasonSchema>;
 

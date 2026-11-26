@@ -34,7 +34,11 @@ export async function findInboxSeedContext(
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, input.serverId), isNull(agentsTable.retiredAt)));
     const chats = await tx
-        .select({ dmAgentId: chatsTable.dmAgentId, id: chatsTable.id, name: chatsTable.name })
+        .select({
+            captainAgentId: chatsTable.captainAgentId,
+            id: chatsTable.id,
+            name: chatsTable.name,
+        })
         .from(chatsTable)
         .where(eq(chatsTable.serverId, input.serverId));
     const computer = await findDevelopmentComputer(tx, input.serverId);
@@ -45,7 +49,7 @@ export async function findInboxSeedContext(
         chats.flatMap((chat) => (chat.name ? [[chat.name, chat.id]] : []))
     );
     const chatIdByDmAgentId = new Map(
-        chats.flatMap((chat) => (chat.dmAgentId ? [[chat.dmAgentId, chat.id]] : []))
+        chats.flatMap((chat) => (chat.captainAgentId ? [[chat.captainAgentId, chat.id]] : []))
     );
 
     const allChatId = chatIdByName.get('all');

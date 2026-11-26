@@ -1,8 +1,8 @@
 import type { AddressedReason } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import { ensureInlineReplyParticipants, mentionedAgentIds } from '../chats/reply-subscriptions.ts';
+import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, agentTaskFollowsTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable, agentTaskFollowsTable, chatsTable, tasksTable } from '../postgres/schema.ts';
 import {
     type HearingPlace,
     hearersOf,
@@ -15,9 +15,9 @@ import { followMentionedIntoTask } from './task-recipients.ts';
 
 export interface AgentMessageRecipientPlan {
     /**
-     * Why this delivery names the Agent personally: a DM, an @mention, a
-     * committed Jev routing, or the sole Agent of a one-human channel. Null is an
-     * ordinary ambient delivery.
+     * Why this delivery names the Agent personally: its own Captain or Task chat, an @mention, a
+     * committed Jev routing, or the sole Agent of a one-human channel. Null is an ordinary
+     * ambient delivery.
      */
     addressedReason: AddressedReason | null;
     agentId: string;
@@ -39,22 +39,25 @@ export async function planAgentMessageRecipients(
 ): Promise<AgentMessageRecipientPlan[]> {
     const [chat] = await db
         .select({
-            dmAgentId: chatsTable.dmAgentId,
+            captainAgentId: chatsTable.captainAgentId,
             kind: chatsTable.kind,
             parentChatId: chatsTable.parentChatId,
         })
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
         .limit(1);
-    if (!chat) {
+    if (!chat || chat.kind === 'dm') {
         return [];
     }
-    if (chat.kind === 'dm') {
-        if (input.messageId) {
-            await ensureInlineReplyParticipants(db, { ...input, messageId: input.messageId });
-        }
-        return chat.dmAgentId && chat.dmAgentId !== input.authorAgentId
-            ? await activeDmRecipient(db, input.serverId, chat.dmAgentId)
+    if (chat.kind === 'captain') {
+        // A Captain chat reaches its own Captain and no other agent, even one @mentioned there.
+        return chat.captainAgentId && chat.captainAgentId !== input.authorAgentId
+            ? await activeAddressedRecipient(
+                  db,
+                  input.serverId,
+                  chat.captainAgentId,
+                  'captain_chat'
+              )
             : [];
     }
     const projectId = chat.kind === 'task' ? chat.parentChatId : input.chatId;
@@ -73,7 +76,8 @@ export async function planAgentMessageRecipients(
         chat.kind === 'task'
             ? await readTaskFollows(db, input, candidates, mentioned)
             : await readChannelPlace(db, input);
-    return candidates.flatMap((agent) => {
+    const taskAgent = chat.kind === 'task' ? await readTaskAgentRecipient(db, input) : [];
+    const heardAgents = candidates.flatMap((agent) => {
         const hearer = {
             ambient: hearerIds.has(agent.id),
             follows: heard.follows.get(agent.id) === true,
@@ -91,6 +95,25 @@ export async function planAgentMessageRecipients(
             },
         ];
     });
+    return [...taskAgent, ...heardAgents];
+}
+
+/** Every message in a Task's chat reaches its own Task agent, addressed (ADR 0062). */
+async function readTaskAgentRecipient(db: HausDatabase, input: PlanInput) {
+    const [task] = await db
+        .select({ agentId: tasksTable.agentId })
+        .from(tasksTable)
+        .where(
+            and(
+                eq(tasksTable.serverId, input.serverId),
+                eq(tasksTable.chatId, input.chatId),
+                isNull(tasksTable.archivedAt)
+            )
+        )
+        .limit(1);
+    return task?.agentId && task.agentId !== input.authorAgentId
+        ? await activeAddressedRecipient(db, input.serverId, task.agentId, 'task_chat')
+        : [];
 }
 
 interface HeardPlace {
@@ -141,13 +164,14 @@ async function readTaskFollows(
 }
 
 /**
- * A retired Agent keeps its durable DM history but can never receive new work,
- * so a DM resolves a recipient only while the Agent is active.
+ * A retired agent keeps its chat as history but never receives new work, so its own chat
+ * resolves a recipient only while the agent is active.
  */
-async function activeDmRecipient(
+async function activeAddressedRecipient(
     db: HausDatabase,
     serverId: string,
-    agentId: string
+    agentId: string,
+    addressedReason: 'captain_chat' | 'task_chat'
 ): Promise<AgentMessageRecipientPlan[]> {
     const [agent] = await db
         .select({ id: agentsTable.id })
@@ -161,6 +185,6 @@ async function activeDmRecipient(
         )
         .limit(1);
     return agent
-        ? [{ addressedReason: 'dm', agentId, mentioned: false, taskFollowReactivated: false }]
+        ? [{ addressedReason, agentId, mentioned: false, taskFollowReactivated: false }]
         : [];
 }

@@ -56,10 +56,27 @@ export class ServerPostCommitWork {
     }
 
     wakeAgents(delivery: Pick<AgentDelivery, 'dispatchAgent'>, wakes: readonly AgentWake[]) {
+        return this.dispatchAll(wakes, (wake) =>
+            delivery.dispatchAgent(wake.agentId, wake.serverId)
+        );
+    }
+
+    /** Wakes a send's recipients; a Task sent `interrupt` has its live turn aborted first. */
+    wakeRecipients(
+        delivery: Pick<AgentDelivery, 'dispatchAgent' | 'interrupt'>,
+        sent: { interrupts: readonly AgentWake[]; wakes: readonly AgentWake[] }
+    ) {
+        const interrupted = new Set(sent.interrupts.map((wake) => wake.agentId));
+        return this.dispatchAll(sent.wakes, (wake) =>
+            interrupted.has(wake.agentId)
+                ? delivery.interrupt(wake)
+                : delivery.dispatchAgent(wake.agentId, wake.serverId)
+        );
+    }
+
+    private dispatchAll(wakes: readonly AgentWake[], dispatch: (wake: AgentWake) => Promise<void>) {
         return this.run('agent.dispatch-after-commit', async () => {
-            const results = await Promise.allSettled(
-                wakes.map((wake) => delivery.dispatchAgent(wake.agentId, wake.serverId))
-            );
+            const results = await Promise.allSettled(wakes.map(dispatch));
             const failure = results.find(
                 (result): result is PromiseRejectedResult => result.status === 'rejected'
             );

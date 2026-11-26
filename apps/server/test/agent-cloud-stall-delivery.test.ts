@@ -43,7 +43,9 @@ test('a deleted Run takes its queued notice with it, so the message behind it is
     const { delivery, wake } = offlineDelivery(connection.db, seed);
     const turnId = await seedRun(seed);
     await queueNotice(delivery, seed, turnId, turnId);
-    const messageId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    const messageId = await deliverHuman(connection.db, delivery, seed, {
+        chatId: seed.captainChatId,
+    });
     await connection.db.delete(workerTurnsTable).where(eq(workerTurnsTable.id, turnId));
 
     const frame = await wake();
@@ -59,7 +61,7 @@ async function queueNotice(
 ) {
     await delivery.deliver({
         agentId: seed.agentId,
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         workerTurnId: turnId,
         content: '',
         dedupeKey,
@@ -77,7 +79,7 @@ async function seedRun(seed: Seed): Promise<string> {
         closedAt: new Date(),
         id: workerId,
         launchMessageId: createOpaqueId('msg'),
-        originChatId: seed.dmChatId,
+        originChatId: seed.captainChatId,
         place: 'claude',
         repository: 'haus/haus',
         serverId: seed.serverId,

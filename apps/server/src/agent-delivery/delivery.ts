@@ -68,7 +68,7 @@ import * as failureHold from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { inboxWork } from './inbox-work.ts';
-import { interruptActiveRun } from './interrupt-active-run.ts';
+import { killActiveRun } from './kill-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import {
     type AgentLoopHost,
@@ -208,10 +208,7 @@ export class AgentDelivery {
      * Agent left running between turns (their queued wakes retire with them).
      */
     async stop(input: { agentId: string; serverId: string }): Promise<void> {
-        const kill = await interruptActiveRun(this.db, input, { stop: true });
-        if (kill) {
-            this.announceKilledRun(input, kill);
-        }
+        await this.killActiveRun(input, { stop: true });
         const config = await readAgentDispatchConfig(this.db, input.agentId);
         if (config?.computerId) {
             this.transport.send(config.computerId, {
@@ -220,6 +217,12 @@ export class AgentDelivery {
             });
         }
         await this.advanceMachineChange(input.agentId);
+    }
+
+    /** A Task message sent with `interrupt` (ADR 0062): kill the live turn and run again. */
+    async interrupt(input: { agentId: string; serverId: string }): Promise<void> {
+        await this.killActiveRun(input);
+        await this.dispatchAgent(input.agentId, input.serverId);
     }
 
     /** Human Start: clear the flag and any backoff, then drain the pending inbox. */
@@ -241,10 +244,7 @@ export class AgentDelivery {
         if (!(host && this.route.isOnline(host))) {
             throw new Error('The runner must be online to restart this Agent.');
         }
-        const interrupted = await interruptActiveRun(this.db, input);
-        if (interrupted) {
-            this.announceKilledRun(input, interrupted);
-        }
+        await this.killActiveRun(input);
         if (!this.route.send(host, { agentId: input.agentId, type: 'agent-restart' })) {
             throw new Error('The runner disconnected before the Agent could restart.');
         }
@@ -428,6 +428,9 @@ export class AgentDelivery {
             serverId,
         });
         this.emit(settlement.plan);
+        if (settlement.crewReport) {
+            await this.dispatchAgent(settlement.crewReport.agentId, settlement.crewReport.serverId);
+        }
         await this.advanceMachineChange(summary.agentId);
     }
 
@@ -753,31 +756,15 @@ export class AgentDelivery {
         }
     }
 
-    /** Tells the live run's Computer and every viewer that a run was killed. */
-    private announceKilledRun(
+    private async killActiveRun(
         input: { agentId: string; serverId: string },
-        kill: NonNullable<Awaited<ReturnType<typeof interruptActiveRun>>>
+        options?: { stop: boolean }
     ) {
-        publishRealtime(kill.claimEvents);
-        if (kill.activity) {
-            publishCommittedAgentActivity(kill.activity);
-        }
-        publishAgentLifecycle({
-            agentId: input.agentId,
-            chatId: kill.chatId,
-            outcome: 'stopped',
-            phase: 'settled',
-            runId: kill.runId,
-            serverId: input.serverId,
-        });
-        this.route.send(this.route.hostOf(kill.computerId), {
-            agentId: input.agentId,
-            runId: kill.runId,
-            type: 'stop',
-        });
-        if (kill.configuration) {
-            sendDeferredConfiguration(this.transport, input.agentId, kill.configuration);
-        }
+        await killActiveRun(
+            { db: this.db, route: this.route, transport: this.transport },
+            input,
+            options
+        );
     }
 
     private async holdsNewRun(tx: HausDatabase, state: store.AgentDeliveryRow) {

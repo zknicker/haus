@@ -36,6 +36,8 @@ export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<nu
             issue: args.values['--issue'],
             machine: args.values['--machine'],
             model: args.values['--model'],
+            ref: args.values['--ref'],
+            repo: args.values['--repo'],
             requestId: args.values['--request-id'],
             target,
             title: args.values['--title'],

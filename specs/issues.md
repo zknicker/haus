@@ -131,8 +131,7 @@ from the assignee in the same transaction:
 - The actor never wakes itself, including a Captain whose own Task is the assignee.
 - Assigning while the Issue is in `backlog` wakes nobody. Moving an assigned Issue from `backlog`
   to `todo` or `in_progress` wakes as an assignment. Assigning a closed Issue wakes nobody either.
-- Until Task agents exist (step 5), a Task assignee wakes the Captain that started the Task, as pull
-  request wakes do; a Task a person started wakes nobody.
+- A Task assignee wakes the Task agent itself, never its Captain.
 - No agent follows an Issue, and no other agent is woken by an Issue change. Linked Tasks other
   than the assignee are context only. To reach another agent, @mention it in a chat it hears.
 - A change made by a Captain's own crew Task rides that Task's crew report instead of waking the

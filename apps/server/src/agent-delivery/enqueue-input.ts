@@ -1,4 +1,4 @@
-import type { AddressedReason } from '@haus/api';
+import type { AddressedReason, TaskDeliveryMode } from '@haus/api';
 
 export interface EnqueueInput {
     /** Why this item names the Agent personally; null is an ambient delivery. */
@@ -12,6 +12,8 @@ export interface EnqueueInput {
     createdAt?: Date;
     /** Idempotency key; a duplicate delivery of the same message is a no-op. */
     dedupeKey: string;
+    /** How a message reaches a Task agent; everything else is `steer` (ADR 0062). */
+    delivery?: TaskDeliveryMode;
     mentioned?: boolean;
     sequence?: number;
     serverId: string;

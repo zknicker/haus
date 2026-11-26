@@ -9,6 +9,7 @@ import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -57,7 +58,7 @@ beforeAll(async () => {
         serverId: server.id,
     });
     agentId = agent.id;
-    const chat = await owner.trpc.chat.ensureAgentDm.mutate({
+    const chat = await openCaptainChat(owner, {
         agentId: agent.id,
         serverId: server.id,
     });
@@ -81,7 +82,7 @@ beforeAll(async () => {
         runtimeId: 'codex',
         serverId,
     });
-    const otherChat = await owner.trpc.chat.ensureAgentDm.mutate({ agentId: other.id, serverId });
+    const otherChat = await openCaptainChat(owner, { agentId: other.id, serverId });
     const otherMinted = await fetch(new URL('/computer/runner/mint', harness.url), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

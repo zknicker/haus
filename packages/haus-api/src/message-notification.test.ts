@@ -41,6 +41,23 @@ test('a Channel message notifies only the humans it mentions or answers', () => 
     );
 });
 
+test('a Captain chat message notifies its subscribed members, and others only when named', () => {
+    const captain = { ...channel, conversationKind: 'captain' } as const;
+    expect(messageNotificationReason(captain, 'usr_ada', { subscribed: true })).toBe('subscribed');
+    expect(messageNotificationReason(captain, 'usr_ada')).toBeNull();
+    expect(
+        messageNotificationReason({ ...captain, mentionedUserIds: ['usr_ada'] }, 'usr_ada', {
+            subscribed: true,
+        })
+    ).toBe('mention');
+    expect(
+        messageNotificationReason({ ...captain, authorUserId: 'usr_ada' }, 'usr_ada', {
+            subscribed: true,
+        })
+    ).toBeNull();
+    expect(messageNotificationReason(channel, 'usr_ada', { subscribed: true })).toBeNull();
+});
+
 test('a message in a Task notifies the author of its origin Message without a mention', () => {
     const inTask = { ...channel, taskOriginAuthorUserId: 'usr_ada' };
     expect(messageNotificationReason(inTask, 'usr_ada')).toBe('reply');

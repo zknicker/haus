@@ -18,6 +18,7 @@ import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readMessageReactions } from './message-reactions.ts';
 import { agentMessageBodies } from './message-view-bodies.ts';
+import { formatCaptainTarget } from './resolve-target.ts';
 
 export interface MessageRow {
     authorAgentId: string | null;
@@ -183,7 +184,7 @@ export async function targetForChat(
     const [chat] = await db
         .select({
             kind: chatsTable.kind,
-            dmMemberOneUserId: chatsTable.dmMemberOneUserId,
+            captainAgentId: chatsTable.captainAgentId,
             name: chatsTable.name,
             parentChatId: chatsTable.parentChatId,
         })
@@ -193,23 +194,20 @@ export async function targetForChat(
     if (!chat) {
         return '#unknown';
     }
-    if (chat.kind === 'dm') {
-        const [human] = chat.dmMemberOneUserId
+    if (chat.kind === 'captain') {
+        const [captain] = chat.captainAgentId
             ? await db
-                  .select({ handle: serverMembershipsTable.handle })
-                  .from(serverMembershipsTable)
+                  .select({ handle: agentsTable.handle })
+                  .from(agentsTable)
                   .where(
                       and(
-                          eq(serverMembershipsTable.serverId, serverId),
-                          eq(serverMembershipsTable.userId, chat.dmMemberOneUserId)
+                          eq(agentsTable.serverId, serverId),
+                          eq(agentsTable.id, chat.captainAgentId)
                       )
                   )
                   .limit(1)
             : [];
-        if (!human?.handle) {
-            throw new Error('This DM human does not have an active Server handle.');
-        }
-        return `dm:@${human.handle}`;
+        return captain ? formatCaptainTarget(captain.handle) : '#unknown';
     }
     if (chat.kind === 'channel') {
         return `#${chat.name}`;
@@ -221,7 +219,7 @@ export function visibleChatSql(runner: Pick<ResolvedRunner, 'agentId' | 'serverI
     return sql`(
         ${chatsTable.serverId} = ${runner.serverId}
         and ${chatsTable.deletedAt} is null
-        and (${chatsTable.kind} <> 'dm' or ${chatsTable.dmAgentId} = ${runner.agentId})
+        and ${chatsTable.kind} <> 'dm'
     )`;
 }
 

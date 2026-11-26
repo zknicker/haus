@@ -8,9 +8,6 @@ import type {
 import { and, eq } from 'drizzle-orm';
 import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
 import type { AvatarBytes } from '../avatars/avatar-bytes.ts';
-import { resolveAgentDmOwnerUserId } from '../chats/agent-dm-owner.ts';
-import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
-import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
@@ -20,7 +17,7 @@ import { suggestAvailableParticipantHandle } from '../servers/participant-handle
 import { lockServerRow } from '../servers/server-lock.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
 import { type AgentModelCatalog, inheritedModel } from './agent-model-catalog.ts';
-import { createAgentInTransaction } from './create-agent.ts';
+import { captainChatCreatedEvents, createAgentInTransaction } from './create-agent.ts';
 import { requireAgentCreationGuidance } from './creation-guidance.ts';
 import {
     agentCreationRequestHash,
@@ -113,26 +110,6 @@ export async function createAgentFromAgent(
             catalog
         );
 
-        // No human created this Agent, so nothing else can name the human its
-        // Owner DM belongs to. Materialize that DM record here — it carries no
-        // message, so the DM still becomes a visible Chat on its first one, and
-        // the human has a place to talk to the new Agent from the start.
-        const dmOwnerUserId = await resolveAgentDmOwnerUserId(tx, {
-            contextChatId: plan.chatId,
-            creatorAgentId: runner.agentId,
-            serverId: runner.serverId,
-        });
-        const dm = dmOwnerUserId
-            ? await ensureAgentDmRecord(tx, {
-                  agentId: created.agent.id,
-                  serverId: runner.serverId,
-                  userId: dmOwnerUserId,
-              })
-            : null;
-        const dmCreatedEvent = dm?.created
-            ? prepareLifecycleEvent({ chatId: dm.id, serverId: runner.serverId }, 'created')
-            : null;
-
         const summary = await readCreatedAgent(tx, runner.serverId, created.agent.id);
         if (!summary) {
             throw new Error('The created Agent could not be projected after creation.');
@@ -149,7 +126,7 @@ export async function createAgentFromAgent(
                 runtimeId: execution.runtimeId,
             },
             events: [
-                ...(dmCreatedEvent ? [dmCreatedEvent] : []),
+                ...captainChatCreatedEvents(runner.serverId, created.agent.captainChatId),
                 ...homeChangeEvents(runner.serverId, [created.homeProjectId]),
                 ...created.driveEvents,
             ],

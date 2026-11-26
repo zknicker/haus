@@ -56,27 +56,6 @@ test('a ready generated image loads exactly where its generation is visible', as
     expect((await humanDownload(owner, attachmentId)).status).toBe(403);
     expect((await humanDownload(peer, attachmentId)).status).toBe(403);
 
-    // A link in the Owner's private DM with Orbit: the Owner sees it; the peer and Nova still cannot.
-    await owner.trpc.chat.send.mutate({
-        agentId: orbitAgentId,
-        content: 'Make me a fox.',
-        nonce: 'vis-open-dm',
-        serverId,
-        targetKind: 'agent-dm',
-    });
-    await readTargetAsAgent(harness, { agentId: orbitAgentId, serverId }, orbit, 'dm:@ada');
-    const dmSend = await fixture.agentCall(orbit, 'POST', '/api/agent/messages/send', {
-        content: `Here ${formatImageGenerationLink(generationId)}`,
-        nonce: 'vis-dm',
-        target: 'dm:@ada',
-    });
-    expect(dmSend.status).toBe(200);
-    const ownerDownload = await humanDownload(owner, attachmentId);
-    expect(ownerDownload.status).toBe(200);
-    expect(ownerDownload.headers.get('content-type')).toBe('image/png');
-    expect((await humanDownload(peer, attachmentId)).status).toBe(403);
-    expect((await agentView(nova, attachmentId)).status).toBe(403);
-
     // A link in a Chat Nova reads lets Nova view it, and so use it as a reference.
     await readTargetAsAgent(harness, { agentId: orbitAgentId, serverId }, orbit, '#shared');
     const shared = await fixture.agentCall(orbit, 'POST', '/api/agent/messages/send', {
@@ -94,9 +73,27 @@ test('a ready generated image loads exactly where its generation is visible', as
         referenceAttachmentIds: [attachmentId],
     });
     expect(reference.status).toBe(200);
-    // The peer is still outside every Chat that links it.
     expect(channelId).not.toBe(sharedId);
     expect((await humanDownload(peer, attachmentId)).status).toBe(403);
+
+    await owner.trpc.chat.send.mutate({
+        agentId: orbitAgentId,
+        content: 'Make me a fox.',
+        nonce: 'vis-open-captain-chat',
+        serverId,
+        targetKind: 'captain',
+    });
+    await readTargetAsAgent(harness, { agentId: orbitAgentId, serverId }, orbit, 'captain:@orbit');
+    const captainSend = await fixture.agentCall(orbit, 'POST', '/api/agent/messages/send', {
+        content: `Here ${formatImageGenerationLink(generationId)}`,
+        nonce: 'vis-captain-chat',
+        target: 'captain:@orbit',
+    });
+    expect(captainSend.status).toBe(200);
+    const ownerDownload = await humanDownload(owner, attachmentId);
+    expect(ownerDownload.status).toBe(200);
+    expect(ownerDownload.headers.get('content-type')).toBe('image/png');
+    expect((await humanDownload(peer, attachmentId)).status).toBe(200);
 });
 
 function agentView(runner: { token: string }, attachmentId: string) {

@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
+import { agentsTable, chatsTable } from '../postgres/schema.ts';
 import { parseTaskTarget, resolveTaskTargetChat } from './resolve-task-target.ts';
 
 export async function resolveAgentTarget(
@@ -39,36 +39,37 @@ export async function resolveAgentTarget(
         throw new AgentTargetError();
     }
 
-    if (target.startsWith('dm:@')) {
-        const [peer, messageShortId, ...extra] = target.slice('dm:@'.length).split(':');
-        if (!peer || extra.length > 0) {
+    if (target.startsWith(captainTargetPrefix)) {
+        const [handle, messageShortId, ...extra] = target
+            .slice(captainTargetPrefix.length)
+            .split(':');
+        if (!handle || extra.length > 0) {
             throw new AgentTargetError();
         }
         if (messageShortId) {
-            throw new MessageTargetRefusedError(`dm:@${peer}`, messageShortId);
+            throw new MessageTargetRefusedError(`${captainTargetPrefix}${handle}`, messageShortId);
         }
-        const chats = await db
+        const [chat] = await db
             .select({ id: chatsTable.id })
             .from(chatsTable)
             .innerJoin(
-                serverMembershipsTable,
+                agentsTable,
                 and(
-                    eq(serverMembershipsTable.serverId, chatsTable.serverId),
-                    eq(serverMembershipsTable.userId, chatsTable.dmMemberOneUserId)
+                    eq(agentsTable.serverId, chatsTable.serverId),
+                    eq(agentsTable.id, chatsTable.captainAgentId)
                 )
             )
             .where(
                 and(
                     eq(chatsTable.serverId, runner.serverId),
-                    eq(chatsTable.kind, 'dm'),
-                    eq(chatsTable.dmAgentId, runner.agentId),
-                    sql`lower(${serverMembershipsTable.handle}) = lower(${peer})`,
-                    isNull(serverMembershipsTable.revokedAt)
+                    eq(chatsTable.kind, 'captain'),
+                    sql`lower(${agentsTable.handle}) = lower(${handle})`,
+                    isNull(agentsTable.retiredAt)
                 )
             )
-            .limit(2);
-        if (chats.length === 1) {
-            return chats[0].id;
+            .limit(1);
+        if (chat) {
+            return chat.id;
         }
     }
 
@@ -81,6 +82,12 @@ async function requireTaskTarget(db: HausDatabase, runner: ResolvedRunner, taskS
         throw new AgentTargetError();
     }
     return task.chatId;
+}
+
+export const captainTargetPrefix = 'captain:@';
+
+export function formatCaptainTarget(handle: string) {
+    return `${captainTargetPrefix}${handle}`;
 }
 
 export class AgentTargetError extends Error {

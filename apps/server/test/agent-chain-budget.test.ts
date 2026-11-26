@@ -16,6 +16,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { testAgentHome } from './agent-home.ts';
+import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // The automation chain budget through real delivery: Trigger wakes spend it,
@@ -64,11 +65,11 @@ test('Trigger drains spend the chain and hold at the ceiling until a human speak
     await fire(delivery, seed, 'trf_two');
     expect(wire.starts).toHaveLength(1);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'are you there?',
-        dedupeKey: 'msg-human',
+        dedupeKey: `msg_human_${seed.serverId}`,
         serverId: seed.serverId,
     });
     // Human intent resets the chain on arrival and releases the held fire,
@@ -89,7 +90,7 @@ for (const source of ['reminder', 'claim_assignment'] as const) {
         await fire(delivery, seed, `trf_held_${source}`);
         expect(wire.starts).toHaveLength(0);
 
-        await delivery.deliver({
+        await deliverHumanMessage(connection.db, delivery, {
             agentId: seed.agentId,
             chatId: seed.chatId,
             content: `${source} work`,
@@ -120,7 +121,7 @@ test('a Reminder behind more held fires than the drain windows hold still resets
     }
     expect(wire.starts).toHaveLength(0);
 
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'reminder work',
@@ -177,7 +178,7 @@ interface Seed {
 }
 
 async function fire(delivery: AgentDelivery, seed: Seed, fireId: string) {
-    await delivery.deliver({
+    await deliverHumanMessage(connection.db, delivery, {
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: `⚡ Trigger: CI failed (${fireId})`,
@@ -228,11 +229,9 @@ async function seedAgent(chain: { advancedAt: Date; turns: number }): Promise<Se
         serverId,
     });
     await db.insert(chatsTable).values({
-        dmAgentId: agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
+        captainAgentId: agentId,
         id: chatId,
-        kind: 'dm',
+        kind: 'captain',
         serverId,
     });
     await db.insert(agentDeliveryTable).values({

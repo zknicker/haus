@@ -12,6 +12,7 @@ import {
     type InvocationHarness,
     startInvocationHarness,
 } from './agent-invocations.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import {
     connectRunner,
     frameOfType,
@@ -35,7 +36,7 @@ beforeAll(async () => {
     await runner.next(frameOfType('runner-hello-accepted'));
     computer = await connectComputer(setup.harness, setup.computerCredential);
     chatId = (
-        await setup.owner.trpc.chat.ensureAgentDm.mutate({
+        await openCaptainChat(setup.owner, {
             agentId: setup.agentId,
             serverId: setup.serverId,
         })

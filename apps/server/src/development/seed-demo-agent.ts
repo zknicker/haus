@@ -34,6 +34,7 @@ export function demoAgent(agent: {
         homeProjectId: agent.homeProjectId,
         homeTimezone: 'America/New_York',
         id: agent.id,
+        ownerUserId: agent.createdByUserId,
         serverId: agent.serverId,
     };
 }

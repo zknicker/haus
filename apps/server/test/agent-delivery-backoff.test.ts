@@ -34,7 +34,7 @@ test('a human message queues behind an active backoff instead of cutting it shor
 
     await delivery.deliver({
         agentId: seed.agentId,
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         content: 'are you there?',
         dedupeKey: 'msg-during-backoff',
         serverId: seed.serverId,
@@ -51,7 +51,7 @@ test('repeated rate limits keep backing off and redriving without pausing', asyn
     const { delivery, runner, seed } = await onlineAgent();
     await delivery.deliver({
         agentId: seed.agentId,
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         content: 'wait out the limit',
         dedupeKey: 'msg-rate-limit',
         serverId: seed.serverId,
@@ -89,7 +89,7 @@ test('a failed turn that produced output counts without requeueing its work', as
     const { delivery, runner, seed } = await onlineAgent();
     await delivery.deliver({
         agentId: seed.agentId,
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         content: 'do a thing',
         dedupeKey: 'msg-progress',
         serverId: seed.serverId,

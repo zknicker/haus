@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import {
     addClaudeConnection,
@@ -90,9 +91,7 @@ test('a runner attaching receives every connection opened, and a write sends a n
 
 test('runner-start carries the chosen connection, else the default, else null', async () => {
     for (const [handle, agentId] of Object.entries(agents)) {
-        const chatId = (
-            await seed.owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId: seed.serverId })
-        ).id;
+        const chatId = (await openCaptainChat(seed.owner, { agentId, serverId: seed.serverId })).id;
         await seed.owner.trpc.chat.send.mutate({
             chatId,
             content: 'Are you there?',

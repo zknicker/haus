@@ -7,6 +7,7 @@ import { deleteExpiredReminderHistory } from '../src/reminders/retention-sweep.t
 import { getTask } from '../src/tasks/task-list.ts';
 import { findUserById } from '../src/users/haus-user.ts';
 import { ensureCaptainsProject } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { captureTopic, settleRealtime, type TopicCapture } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
@@ -85,21 +86,27 @@ async function announced(run: () => Promise<unknown>) {
     return updates.events.slice(seen).map(({ taskId, version }) => ({ taskId, version }));
 }
 
-test('a Reminder anchored in a DM stays out of the Task for anyone who cannot read that DM', async () => {
+test('a Reminder anchored in a Captain chat shows on the Task to every member', async () => {
     const { orbitAgentId, owner, peer, scoutAgentId, serverId } = fixture;
     const task = await createTask('Shared Task');
-    const dm = await owner.trpc.chat.ensureAgentDm.mutate({ agentId: orbitAgentId, serverId });
-    const reminder = await schedule(orbitAgentId, dm.id, `Private note on [it](task://${task.id})`);
+    const captainChat = await openCaptainChat(owner, { agentId: orbitAgentId, serverId });
+    const reminder = await schedule(
+        orbitAgentId,
+        captainChat.id,
+        `Note on [it](task://${task.id})`
+    );
 
     const input = { serverId, taskId: task.id };
     const owners = await owner.trpc.task.get.query(input);
     expect(owners.reminders.map((row) => row.reminderId)).toEqual([reminder.id]);
-    expect((await peer.trpc.task.get.query(input)).reminders).toEqual([]);
+    expect((await peer.trpc.task.get.query(input)).reminders.map((row) => row.reminderId)).toEqual([
+        reminder.id,
+    ]);
 
     const asAgent = (agentId: string) =>
         getTask(fixture.database.db, { agentId, kind: 'agent' }, input);
     expect((await asAgent(orbitAgentId)).reminders).toHaveLength(1);
-    expect((await asAgent(scoutAgentId)).reminders).toEqual([]);
+    expect((await asAgent(scoutAgentId)).reminders).toHaveLength(1);
 });
 
 test('a Reminder in a Channel reaches its members, and leaves with a deleted Channel', async () => {

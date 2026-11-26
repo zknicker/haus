@@ -1,6 +1,7 @@
 import type { ChatMessageReceipt, ChatSendInput, MessageBody } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { enqueueMessageRecipients } from '../agent-delivery/enqueue-recipients.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import {
     associateMessageAttachments,
@@ -18,11 +19,12 @@ import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
+import { restoreTaskForMessage } from '../tasks/task-restore-on-message.ts';
+import type { TaskSessionReset } from '../tasks/task-session.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { readLinkedWorker } from '../workers/linked-worker.ts';
-import { requireActiveDmPeer } from './active-dm-peer.ts';
-import { requireChatWriteAccess } from './chat-access.ts';
-import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
+import { readCaptainChatId, requireActiveCaptain } from './captain-chat.ts';
+import { ChatNotFoundError, requireChatWriteAccess } from './chat-access.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from './message-created-event.ts';
 import {
@@ -45,7 +47,11 @@ export class ChatNonceConflictError extends Error {
 export interface SendChatMessageResult {
     /** Realtime events to publish once the send commits. */
     events: PreparedRealtimeEvent[];
+    /** Task agents whose live turn this send interrupts (`delivery: 'interrupt'`). */
+    interrupts: Array<{ agentId: string; serverId: string }>;
     receipt: ChatMessageReceipt;
+    /** A Task session the send restored from archive, announced after commit. */
+    sessions: TaskSessionReset[];
     /** Agents whose durable pending inbox this send enqueued. */
     wakes: Array<{ agentId: string; serverId: string }>;
 }
@@ -78,15 +84,7 @@ export async function sendChatMessage(
         }
 
         const targetChatId =
-            'agentId' in input
-                ? (
-                      await ensureAgentDmRecord(tx, {
-                          agentId: input.agentId,
-                          serverId: input.serverId,
-                          userId: member.id,
-                      })
-                  ).id
-                : input.chatId;
+            'agentId' in input ? await requireCaptainChat(tx, input) : input.chatId;
         const writeChatId = targetChatId;
 
         const writeChat = await requireChatWriteAccess(tx, member, {
@@ -118,7 +116,11 @@ export async function sendChatMessage(
                 () => new ChatNonceConflictError()
             );
         }
-        await requireActiveDmPeer(tx, writeChat);
+        await requireActiveCaptain(tx, writeChat);
+        const restored = await restoreTaskForMessage(tx, {
+            chatId: writeChatId,
+            serverId: input.serverId,
+        });
 
         const attachments = await requireMessageAttachments(tx, member, {
             attachmentIds: input.attachmentIds,
@@ -215,26 +217,25 @@ export async function sendChatMessage(
             messageId: message.id,
             recipients: plannedRecipients,
         });
-        for (const recipient of recipients) {
-            await agentDelivery.enqueue(tx, {
-                addressedReason: recipient.addressedReason,
-                agentId: recipient.agentId,
-                chatId: writeChatId,
-                content,
-                dedupeKey: message.id,
-                mentioned: recipient.mentioned,
-                sequence: message.sequence,
-                serverId: input.serverId,
-                source: 'human',
-                taskFollowReactivated: recipient.taskFollowReactivated,
-            });
-        }
+        const interrupts = await enqueueMessageRecipients(tx, agentDelivery, {
+            chatId: writeChatId,
+            content,
+            delivery: input.delivery,
+            messageId: message.id,
+            recipients,
+            sequence: message.sequence,
+            serverId: input.serverId,
+            source: 'human',
+        });
 
         return {
             events: [
+                ...restored.events,
                 created,
                 ...(await prepareMessageLinkEvents(tx, { ...linked, serverId: input.serverId })),
             ],
+            interrupts,
+            sessions: restored.sessions,
             receipt: {
                 idempotent: false,
                 message: toChatMessage(message, {
@@ -257,4 +258,12 @@ export async function sendChatMessage(
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };
     });
+}
+
+async function requireCaptainChat(tx: HausDatabase, input: { agentId: string; serverId: string }) {
+    const chatId = await readCaptainChatId(tx, input);
+    if (!chatId) {
+        throw new ChatNotFoundError();
+    }
+    return chatId;
 }

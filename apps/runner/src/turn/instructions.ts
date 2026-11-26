@@ -5,38 +5,52 @@ import {
     type planRulesDelivery,
     renderAgentInstructions,
     renderSkillListing,
+    renderTaskInstructions,
     runnerMachineFacts,
     runnerRuntimeVersions,
     type SkillListingEntry,
 } from '@haus/agent-prompt';
-import type { AgentStartCommand } from '@haus/api';
+import type { AgentStartCommand, RunnerSessionPolicy } from '@haus/api';
 import type { HarnessId } from './runtime-driver.ts';
 import type { AgentSessionRecord } from './session-file.ts';
 
 export function composeInstructions(
     start: AgentStartCommand,
     skills: readonly SkillListingEntry[],
-    harness: HarnessId
+    harness: HarnessId,
+    policy: RunnerSessionPolicy | null = null
 ) {
     const skillListing = renderSkillListing(skills);
+    const task = policy?.kind === 'task' ? policy.task : null;
     const instructions = [
-        renderAgentInstructions({
-            ...runnerMachineFacts,
-            runtimeVersion: runnerRuntimeVersions[harness],
-            agentId: start.agentId,
-            agentName: start.agentName,
-            connectionChips: start.connectionChips,
-            conversationStyle: start.agentConversationStyle ?? null,
-            homeTimezone: start.homeTimezone ?? 'UTC',
-            initialRole: start.agentDescription ?? null,
-            signatureEmoji: start.agentSignatureEmoji,
-            supportsSubagents: false,
-        }).trimEnd(),
+        task
+            ? renderTaskInstructions({
+                  ...runnerMachineFacts,
+                  agentId: start.agentId,
+                  runtimeVersion: runnerRuntimeVersions[harness],
+                  task,
+              }).trimEnd()
+            : renderCaptainInstructions(start, harness),
         skillListing,
     ]
         .filter(Boolean)
         .join('\n\n');
     return { fingerprint: sha256(instructions), instructions: `${instructions}\n`, skillListing };
+}
+
+function renderCaptainInstructions(start: AgentStartCommand, harness: HarnessId) {
+    return renderAgentInstructions({
+        ...runnerMachineFacts,
+        runtimeVersion: runnerRuntimeVersions[harness],
+        agentId: start.agentId,
+        agentName: start.agentName,
+        connectionChips: start.connectionChips,
+        conversationStyle: start.agentConversationStyle ?? null,
+        homeTimezone: start.homeTimezone ?? 'UTC',
+        initialRole: start.agentDescription ?? null,
+        signatureEmoji: start.agentSignatureEmoji,
+        supportsSubagents: false,
+    }).trimEnd();
 }
 
 export type InstructionsPlan =

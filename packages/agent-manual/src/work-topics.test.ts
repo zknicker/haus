@@ -1,58 +1,61 @@
 import { expect, test } from 'bun:test';
 import { getManualTopic, manualTopics, searchManualTopics } from './index.ts';
 
-test('the tasks topic says what a Task is and when to start one (ADR 0053)', () => {
+test('the tasks topic says a Task is crew with its own chat (ADR 0062)', () => {
     const body = getManualTopic('tasks')?.body ?? '';
-    expect(body).toContain('A Task is how people follow work that takes longer than a reply');
+    expect(body).toContain('A Task is your crew: a fresh agent session with its own chat');
     expect(body).toContain('When your reply is the whole of the work, just reply.');
     expect(body).toContain('A Task does not mark work as yours; claim the request first');
     expect(body).toContain('It is unread only for its followers');
+    expect(body).toContain('You do not follow your own crew; their reports reach you instead.');
 });
 
-test('a Task starts from the asking message in a channel or DM, in a Project; a fire posts one first', () => {
+test('a Task starts with its brief on stdin, in the home Project', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain(
-        '`haus task start --target "#security" --from <messageId> --title "Rotate the signing key"`'
+        '`haus task start --title "Rotate the signing key" --target "#security" --from <messageId> < brief.md`'
     );
-    expect(body).toContain('in a channel or a DM');
+    expect(body).toContain('a newer message there holds the start, which writes nothing');
+    expect(body).toContain('`--repo owner/name` (with `--ref`)');
+    expect(body).toContain('`--request-id` makes a retry return the same Task.');
     expect(body).toContain(
-        "the one `--project SEC` names, else the origin's channel, else for a DM or `#all` your Project"
+        "@mention that Project's Agent in its channel with the request; an Issue of another Project is refused with `TASK_PROJECT_NOT_HOME`."
     );
-    expect(body).toContain(
-        "@mention that Project's Agent in its channel with the request; the Server refuses your start there with `TASK_PROJECT_NOT_HOME`."
-    );
-    expect(body).toContain(
-        'Post one in the channel of the Project where the work belongs (for a fire, its anchor channel), mention whoever asked, and start the Task from it.'
-    );
-    expect(body).not.toContain('TASK_ORIGIN_DM');
-    expect(body).toContain('post one message and start five Tasks from it');
+    for (const removed of ['--project SEC` names', '--description -', 'in a channel or a DM']) {
+        expect(body).not.toContain(removed);
+    }
 });
 
-test('work reports in the Task, pull requests and Workers attach to it, and it ends archived', () => {
+test('crew report back, and task send is the one way to message a Task', () => {
     const body = getManualTopic('tasks')?.body ?? '';
-    expect(body).toContain('`haus message send --target task:k3mq7xta`');
+    expect(body).toContain('reaches you as a crew report, batched with your other crew');
+    expect(body).toContain(
+        'A turn that ends with no report sends you a receipt with its last message.'
+    );
+    expect(body).toContain('`haus task send k3mq7xta < follow-up.md`');
+    expect(body).toContain('`--delivery steer` (the default)');
+    expect(body).toContain('A send to an archived Task brings it back.');
+    expect(body).not.toContain('`haus message send --target task:k3mq7xta`');
+});
+
+test('pull requests, reminders and archive work on the Task', () => {
+    const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain('`haus task attach-pr k3mq7xta <url>`');
     expect(body).toContain('A merged pull request never ends the Task.');
     expect(body).toContain('`haus task archive k3mq7xta`');
-    expect(body).toContain('keep the Task active with a one-time reminder until the check passes');
+    expect(body).toContain('`haus task unarchive k3mq7xta` restores it without starting a turn');
     expect(body).toContain('`TASK_RECURRING_REMINDER`');
     expect(body).toContain('`haus reminder schedule --target task:k3mq7xta');
-    expect(body).not.toContain('post a line in the Task and anchor the reminder on it');
     expect(body).toContain('Archiving a Task cancels its pending reminders');
     expect(getManualTopic('reminder')?.body).toContain('pass `--target task:k3mq7xta` instead');
-    expect(body).toContain(
-        '**Waiting on a person.** @mention them in the Task with one question and take other work; the Task stays active, so it stays in their sidebar.'
-    );
     for (const removed of ['haus task state', 'haus task assign', 'haus task update']) {
         expect(body).not.toContain(removed);
     }
 });
 
-test('the result stays in the Task, and a bare code names an Issue', () => {
+test('a Task link wakes nobody, and a bare code names an Issue', () => {
     const body = getManualTopic('tasks')?.body ?? '';
-    expect(body).toContain(
-        'People see the Task under the message that started it, with its latest line, so do not repeat the result in the channel'
-    );
+    expect(body).toContain('a link wakes nobody');
     expect(body).toContain('A bare code like `GEN-12` names an Issue, never a Task.');
 });
 

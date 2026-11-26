@@ -33,6 +33,7 @@ export async function createVoiceAgentBridge(
             {
                 ...scope,
                 content: request.text,
+                delivery: 'steer',
                 nonce: `voice:${request.id}`,
                 attachmentIds: [],
             },

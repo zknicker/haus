@@ -565,9 +565,7 @@ Built in step 3 (`apps/server/src/issues/issue-inbox.ts`):
   title, `by` (`@handle`, `task:<shortId>`, or null for the Server), `byAgent`, and for an
   assignment its priority and state, for an event its change. A comment event carries the comment's
   first 2,000 characters and whether it was cut.
-- Until Task agents exist (step 5), a wake whose recipient is a Task goes to the Captain that
-  started the Task, as pull request wakes do. A Task a person started, or an archived one, queues
-  nothing.
+- A wake whose recipient is a Task goes to the Task agent itself. An archived Task queues nothing.
 - The formatter (`packages/agent-prompt/src/inbox-issue-format.ts`) prints one line per item and its
   own guidance, so no standing prompt text teaches the item:
 

@@ -18,12 +18,12 @@ const listBody = {
             latestAt: '2026-09-25T11:48:00.000Z',
             latestSenderHandle: 'richard',
             mentions: 0,
-            target: 'dm:@richard',
+            target: 'captain:@orbit',
             unread: 3,
         },
     ],
     nextBefore: null,
-    totals: { conversations: 1, dms: 1, mentions: 0 },
+    totals: { conversations: 1, mentions: 0 },
     view: 'unread',
 };
 const pendingBody = {
@@ -37,7 +37,7 @@ const pendingBody = {
             latestShortId: 'first',
             mentioned: false,
             pendingCount: 2,
-            target: 'dm:@richard',
+            target: 'captain:@orbit',
             claimNumber: null,
         },
     ],
@@ -54,12 +54,12 @@ test('inbox check reads the Server list and the pending snapshot together', asyn
     ]);
     expect(output).toBe(
         [
-            'Inbox: 1 unread conversation (1 DM, 0 with mentions). Older activity, newest first.',
+            'Inbox: 1 unread conversation (0 with mentions). Older activity, newest first.',
             '',
-            'dm:@richard · 3 unread · 2 new, not yet delivered · latest @richard 12m ago',
-            '  open: haus message read --target "dm:@richard" --after 1200',
+            'captain:@orbit · 3 unread · 2 new, not yet delivered · latest @richard 12m ago',
+            '  open: haus message read --target "captain:@orbit" --after 1200',
             '',
-            'Next: open the first conversation above: haus message read --target "dm:@richard" --after 1200',
+            'Next: open the first conversation above: haus message read --target "captain:@orbit" --after 1200',
             '',
         ].join('\n')
     );
@@ -79,7 +79,7 @@ test('inbox check still lists conversations when the pending snapshot fails', as
         pending: new AgentCliError('SERVER_5XX', 'The Haus server is unavailable.'),
     });
     const output = await inboxCheck(routed.client, {});
-    expect(output).toContain('dm:@richard · 3 unread · latest @richard 12m ago');
+    expect(output).toContain('captain:@orbit · 3 unread · latest @richard 12m ago');
     expect(output).toEndWith(
         'Pending queue unavailable (The Haus server is unavailable.); not-yet-delivered counts are not shown.\n'
     );

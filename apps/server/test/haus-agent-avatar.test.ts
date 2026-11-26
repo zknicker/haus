@@ -6,6 +6,7 @@ import type {
 } from '../src/avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../src/avatar-generation/service.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -71,7 +72,7 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    chatId = (await openCaptainChat(owner, { agentId, serverId })).id;
 });
 
 afterAll(async () => {

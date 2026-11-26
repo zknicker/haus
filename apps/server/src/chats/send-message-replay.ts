@@ -52,7 +52,13 @@ export async function replayChatMessage(
     existing: ExistingChatMessage,
     replyParentId: string | null,
     conflict: () => Error
-): Promise<{ events: []; receipt: ChatMessageReceipt; wakes: [] }> {
+): Promise<{
+    events: [];
+    interrupts: [];
+    receipt: ChatMessageReceipt;
+    sessions: [];
+    wakes: [];
+}> {
     const existingRelations = await readMessageRelations(db, input.serverId, existing.id);
     const content = await replayImageGenerationLinks(db, {
         content: await replayWorkerLinks(db, {
@@ -76,10 +82,12 @@ export async function replayChatMessage(
     }
     return {
         events: [],
+        interrupts: [],
         receipt: {
             idempotent: true,
             message: toChatMessage(existing, existingRelations),
         },
+        sessions: [],
         wakes: [],
     };
 }

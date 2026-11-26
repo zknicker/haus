@@ -19,13 +19,26 @@ import { stripAt } from './claim-row.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-export function agentIssueActor(runner: Pick<ResolvedRunner, 'agentId'>) {
-    return { agentId: runner.agentId, kind: 'captain' as const };
+export async function agentIssueActor(
+    db: Reader,
+    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>
+) {
+    const [task] = await db
+        .select({ id: tasksTable.id })
+        .from(tasksTable)
+        .where(
+            and(eq(tasksTable.serverId, runner.serverId), eq(tasksTable.agentId, runner.agentId))
+        )
+        .limit(1);
+    const actor: IssueActor = task
+        ? { kind: 'task', taskId: task.id }
+        : { agentId: runner.agentId, kind: 'captain' };
+    return actor;
 }
 
 export async function resolveIssueActorRef(db: Reader, runner: ResolvedRunner, ref: string) {
     if (ref === 'me') {
-        return agentIssueActor(runner);
+        return await agentIssueActor(db, runner);
     }
     if (ref.startsWith('task:')) {
         return await resolveTaskRef(db, runner.serverId, ref.slice('task:'.length));
@@ -88,6 +101,16 @@ export async function resolveIssueLabels(db: Reader, serverId: string, names: re
 }
 
 export async function requireAgentHomeProject(db: Reader, runner: ResolvedRunner) {
+    const [task] = await db
+        .select({ projectId: tasksTable.projectId })
+        .from(tasksTable)
+        .where(
+            and(eq(tasksTable.serverId, runner.serverId), eq(tasksTable.agentId, runner.agentId))
+        )
+        .limit(1);
+    if (task) {
+        return task.projectId;
+    }
     const [agent] = await db
         .select({ homeProjectId: agentsTable.homeProjectId })
         .from(agentsTable)
@@ -100,7 +123,7 @@ export async function requireAgentHomeProject(db: Reader, runner: ResolvedRunner
 }
 
 export async function requireIssueWriter(db: Reader, runner: ResolvedRunner, issue: Issue) {
-    if (sameIssueActor(issue.assignee, agentIssueActor(runner))) {
+    if (sameIssueActor(issue.assignee, await agentIssueActor(db, runner))) {
         return;
     }
     if ((await requireAgentHomeProject(db, runner)) !== issue.projectId) {

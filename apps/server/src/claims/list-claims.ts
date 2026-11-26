@@ -61,7 +61,7 @@ export async function listClaims(
         .where(and(...predicates))
         .orderBy(desc(messageClaimsTable.updatedAt));
 
-    const visible = rows.filter((row) => row.chatKind === 'channel' || row.chatKind === 'dm');
+    const visible = rows.filter((row) => row.chatKind !== 'task');
     const messageIds = visible.map((row) => row.claim.messageId);
     const [projected, bodies, works, images, reactions, taskLinks] = await Promise.all([
         projectMessageClaims(
@@ -88,7 +88,7 @@ export async function listClaims(
             continue;
         }
         claims.push({
-            chatKind: row.chatKind as 'channel' | 'dm',
+            chatKind: row.chatKind as 'captain' | 'channel' | 'dm',
             chatName: row.chatName,
             chatPeerUserId: row.chatPeerUserId,
             message: {

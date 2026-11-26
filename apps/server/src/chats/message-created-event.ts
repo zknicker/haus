@@ -48,7 +48,11 @@ export async function prepareMessageCreatedEvent(
 async function readConversation(
     db: Pick<HausDatabase, 'execute'>,
     input: { chatId: string; serverId: string }
-): Promise<{ inTask: boolean; kind: 'channel' | 'dm'; originAuthorUserId: string | null }> {
+): Promise<{
+    inTask: boolean;
+    kind: 'captain' | 'channel' | 'dm';
+    originAuthorUserId: string | null;
+}> {
     const rows = (await db.execute(sql`
         select coalesce(parent.kind, chat.kind) as kind, parent.id as parent_chat_id,
             origin.author_user_id as origin_author_user_id
@@ -68,8 +72,8 @@ async function readConversation(
         parent_chat_id: string | null;
     }>;
     const kind = rows[0]?.kind;
-    if (kind !== 'channel' && kind !== 'dm') {
-        throw new Error(`Chat ${input.chatId} has no Channel or DM conversation.`);
+    if (kind !== 'channel' && kind !== 'dm' && kind !== 'captain') {
+        throw new Error(`Chat ${input.chatId} has no Channel, DM or Captain chat conversation.`);
     }
     return {
         inTask: (rows[0]?.parent_chat_id ?? null) !== null,

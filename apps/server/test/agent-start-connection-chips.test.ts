@@ -13,6 +13,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { testAgentHome } from './agent-home.ts';
+import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { RecordingRunner } from './recording-runner.ts';
 
@@ -54,13 +55,17 @@ async function startChips(rankWrangler: { connected: boolean; tools: string[] } 
     const runner = new RecordingRunner();
     runner.attach(seed.agentId);
     const transport: DeliveryTransport = { isOnline: () => true, send: () => true };
-    await new AgentDelivery(connection.db, transport, undefined, runner).deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'Compare B07XN9T11R.',
-        dedupeKey: 'msg-chips',
-        serverId: seed.serverId,
-    });
+    await deliverHumanMessage(
+        connection.db,
+        new AgentDelivery(connection.db, transport, undefined, runner),
+        {
+            agentId: seed.agentId,
+            chatId: seed.chatId,
+            content: 'Compare B07XN9T11R.',
+            dedupeKey: `msg_chips_${seed.serverId}`,
+            serverId: seed.serverId,
+        }
+    );
     return runner.starts()[0]?.connectionChips ?? null;
 }
 
@@ -100,11 +105,9 @@ async function seedAgent() {
         serverId,
     });
     await db.insert(chatsTable).values({
-        dmAgentId: agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
+        captainAgentId: agentId,
         id: chatId,
-        kind: 'dm',
+        kind: 'captain',
         serverId,
     });
     return { agentId, chatId, computerId, serverId };

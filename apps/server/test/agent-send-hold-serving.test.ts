@@ -50,7 +50,7 @@ test('a hold serves its shown messages however deep the queued backlog behind th
     await connection.db.insert(agentInboxTable).values(
         Array.from({ length: 1001 }, (_, index) => ({
             agentId: seed.agentId,
-            chatId: seed.dmChatId,
+            chatId: seed.captainChatId,
             content: `Backlog ${index}`,
             createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)),
             dedupeKey: `backlog_${seed.agentId}_${index}`,

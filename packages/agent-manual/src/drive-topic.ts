@@ -22,7 +22,7 @@ A page is a live view of a file in your workspace, carded in the conversation fr
 
 Put a file where its readers are and for as long as they need it. A file that answers the conversation belongs in it as an attachment. A file people will return to, revise, or find from elsewhere belongs in Drive, and the message cites it rather than carrying a copy, so every reader reaches the current version.
 
-Everything in Drive is visible to every member of the Server. What someone shared with you in a DM stays in that conversation unless they ask otherwise, and secrets stay out of Drive.
+Everything in Drive is visible to every member of the Server. Secrets stay out of Drive.
 
 ## Your drive/ folder
 

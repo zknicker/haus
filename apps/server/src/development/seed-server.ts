@@ -5,6 +5,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
     agentTokenUsageDailyTable,
+    captainChatMembersTable,
     channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
@@ -148,9 +149,13 @@ export async function seedDevelopmentServer(
         await tx
             .insert(chatsTable)
             .values([
-                demoAgentDm(blippyDmId, blippyId, serverId, userId, now, 1),
-                demoAgentDm(tinyDmId, tinyId, serverId, userId, now, 1),
+                demoCaptainChat(blippyDmId, blippyId, serverId, now),
+                demoCaptainChat(tinyDmId, tinyId, serverId, now),
             ]);
+        const captainChatIds = [blippyDmId, tinyDmId];
+        await tx
+            .insert(captainChatMembersTable)
+            .values(captainChatIds.map((chatId) => ({ chatId, serverId, userId })));
         await tx.insert(chatMessagesTable).values([
             demoMessage(serverId, channelId, 1, {
                 authorUserId: userId,
@@ -291,22 +296,13 @@ export async function seedDevelopmentServer(
     return seeded;
 }
 
-function demoAgentDm(
-    id: string,
-    agentId: string,
-    serverId: string,
-    userId: string,
-    lastActivityAt: Date,
-    lastMessageSequence: number
-) {
+function demoCaptainChat(id: string, agentId: string, serverId: string, lastActivityAt: Date) {
     return {
-        dmAgentId: agentId,
-        dmMemberOneStint: 1,
-        dmMemberOneUserId: userId,
+        captainAgentId: agentId,
         id,
-        kind: 'dm' as const,
+        kind: 'captain' as const,
         lastActivityAt,
-        lastMessageSequence,
+        lastMessageSequence: 1,
         serverId,
     };
 }

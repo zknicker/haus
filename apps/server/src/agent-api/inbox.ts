@@ -2,6 +2,7 @@ import type { AgentAutomationEvent } from '@haus/api';
 import { recordExactMessagesServed } from '../agent-delivery/cursors.ts';
 import { buildInboxItems } from '../agent-delivery/inbox-items.ts';
 import { chatOf, isNoticelessInboxSource } from '../agent-delivery/inbox-lanes.ts';
+import { readQueueDeliveryIds } from '../agent-delivery/queue-delivery.ts';
 import {
     attachQueuedItemsToRun,
     listInboxItemsByDedupeKeys,
@@ -26,7 +27,10 @@ export async function pullAgentEvents(db: HausDatabase, runner: ResolvedRunner) 
             throw new Error('The Agent run is no longer active.');
         }
 
-        const pending = await listQueuedMessageItems(tx, runner.agentId, maxPulledMessages + 1);
+        const held = await readQueueDeliveryIds(tx, runner.agentId);
+        const pending = (
+            await listQueuedMessageItems(tx, runner.agentId, maxPulledMessages + 1 + held.size)
+        ).filter((row) => !held.has(row.id));
         const selected = pending.slice(0, maxPulledMessages);
         const messages: Array<{
             message: Awaited<ReturnType<typeof resolveAgentMessage>>;
@@ -185,8 +189,6 @@ export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner
             {
                 chatId,
                 workerResult: group.some((item) => item.worker !== undefined),
-                // Released Computers still read these two; current ones derive them from `target`.
-                dm: latest.target.startsWith('dm:'),
                 // Where `message read --after` starts to show the pending messages;
                 // null when only fires, assignments, or Worker results wait.
                 firstSequence: firstMessageSequence(group),

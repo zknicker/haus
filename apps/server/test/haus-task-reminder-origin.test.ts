@@ -1,14 +1,11 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import type { HausClient } from './haus-client.ts';
 
 const fixture = agentCreationFixture();
-const dmSecret = 'Salary bands for the offer: Ada 210k';
+const askedContent = 'Benchmark the offer for Ada';
 let runner: { token: string };
 let bea: HausClient;
-let connection: HausConnection;
 let dmMessageId: string;
 let taskChatId: string;
 let taskShortId: string;
@@ -31,7 +28,6 @@ async function agentPost(path: string, body: Record<string, unknown>) {
 
 beforeAll(async () => {
     const { owner, serverId } = fixture;
-    connection = await connectHausDatabase(fixture.harness.databaseUrl);
     runner = await fixture.mintRunner('run_task_reminder_dm_origin');
     bea = await fixture.signIn('user_task_reminder_bea', ['bea-reminders@haus.test']);
     const { token } = await owner.trpc.invitation.create.mutate({
@@ -45,17 +41,17 @@ beforeAll(async () => {
     `;
     const dm = await owner.trpc.chat.send.mutate({
         agentId: fixture.orbitAgentId,
-        content: dmSecret,
+        content: askedContent,
         nonce: 'task_reminder_dm_origin',
         serverId,
-        targetKind: 'agent-dm',
+        targetKind: 'captain',
     });
     dmMessageId = dm.message.id;
     const started = await agentPost('/api/agent/tasks/start', {
         brief: 'Benchmark the offer against last year.',
         from: dmMessageId,
         machine: fixture.computerId,
-        target: 'dm:@ada',
+        target: 'captain:@orbit',
         title: 'Benchmark the offer',
     });
     taskShortId = started.body.task?.shortId ?? '';
@@ -66,10 +62,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
     bea?.close();
-    await connection?.close();
 });
 
-test('a reminder on a DM-origin Task anchors on the Task’s own brief, never on the DM', async () => {
+test('a reminder on a Task started from a Captain chat anchors on the Task’s own brief', async () => {
     const scheduled = await agentPost('/api/agent/reminders/schedule', {
         commandId: 'task-reminder-dm-origin-brief',
         fireAt: '2099-01-01T00:00:00.000Z',
@@ -84,42 +79,4 @@ test('a reminder on a DM-origin Task anchors on the Task’s own brief, never on
     `) as { anchor_chat_id: string; anchor_message_id: string }[];
     expect(anchors.map((row) => row.anchor_chat_id)).toEqual([taskChatId]);
     expect(anchors.map((row) => row.anchor_message_id)).not.toContain(dmMessageId);
-});
-
-test('the fire context never shows a DM anchor to a Task reader outside the DM', async () => {
-    const { serverId } = fixture;
-    const fireAt = new Date('2026-11-19T12:00:00.000Z');
-    const legacy = await scheduleReminder(
-        connection.db,
-        fixture.orbitAgentId,
-        {
-            anchorChatId: taskChatId,
-            anchorMessageId: dmMessageId,
-            commandId: 'task-reminder-legacy-dm-anchor',
-            fireAt,
-            serverId,
-            title: 'Check the offer',
-        },
-        { now: () => new Date(fireAt.getTime() - 60_000) }
-    );
-    await tickReminders(connection.db, { now: () => new Date(fireAt.getTime() + 1000) });
-    const [fire] = (await fixture.harness.sql`
-        select id from reminder_fires where reminder_id = ${legacy.reminder.id}
-    `) as { id: string }[];
-    const sent = await agentPost('/api/agent/messages/send', {
-        cause: fire?.id,
-        content: 'Checked the offer.',
-        nonce: `task-reminder-answer-${fire?.id}`,
-        target: `task:${taskShortId}`,
-    });
-    const messageId = typeof sent.body.message === 'object' ? sent.body.message.id : '';
-
-    expect(await bea.trpc.automation.fireContext.query({ messageId, serverId })).toMatchObject({
-        anchorChatId: taskChatId,
-        anchorExcerpt: null,
-        anchorMessageId: null,
-    });
-    expect(
-        await fixture.owner.trpc.automation.fireContext.query({ messageId, serverId })
-    ).toMatchObject({ anchorExcerpt: dmSecret, anchorMessageId: dmMessageId });
 });

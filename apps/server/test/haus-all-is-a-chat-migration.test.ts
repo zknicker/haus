@@ -128,6 +128,8 @@ test('0142 makes #all a chat, moves its Project to #general, and rehomes Agents'
         }
         expect(await snapshot(database)).toEqual(before);
 
+        await writeFile(journalPath, JSON.stringify(journal));
+        await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         const connection = await connectHausDatabase(cluster.databaseUrl);
         try {
             const created = await createServer(connection.db, {

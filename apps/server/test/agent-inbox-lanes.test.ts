@@ -24,8 +24,8 @@ test('an addressed DM drains while its channel siblings stay notice rows', async
         await deliverHuman(connection.db, delivery, seed, { chatId: seed.channelId }),
     ];
     const dmId = await deliverHuman(connection.db, delivery, seed, {
-        addressedReason: 'dm',
-        chatId: seed.dmChatId,
+        addressedReason: 'captain_chat',
+        chatId: seed.captainChatId,
     });
 
     const start = await wake();
@@ -37,7 +37,7 @@ test('an addressed DM drains while its channel siblings stay notice rows', async
     expect(start?.inbox.map((item) => item.id)).toEqual([...channelIds, dmId]);
     expect(start?.inbox.find((item) => item.id === dmId)).toMatchObject({
         addressed: true,
-        addressedReason: 'dm',
+        addressedReason: 'captain_chat',
     });
     expect(start?.unreadElsewhere).toEqual([]);
 });
@@ -59,7 +59,7 @@ test('a resent active run reproduces the same drain sets and digest', async () =
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.channelId });
     await deliverHuman(connection.db, delivery, seed, {
         addressedReason: 'mention',
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
     });
     const first = await wake();
 

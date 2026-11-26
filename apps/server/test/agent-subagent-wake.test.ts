@@ -99,7 +99,7 @@ test('several reports while the Agent is busy queue one wake, which runs after t
     const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     const [human] = runner.starts();
 
     expect(await wake(delivery, seed, 'wake_000000000002')).toBe('accepted');
@@ -140,7 +140,7 @@ test('Stop retires a queued wake and tells the Computer to end background work',
     const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     expect(await wake(delivery, seed, 'wake_000000000007')).toBe('accepted');
 
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
@@ -187,7 +187,7 @@ test('at the automation chain ceiling a wake is refused unless reset work leads 
     expect(await wakeRows(seed)).toEqual([]);
 
     // A human message queued ahead resets the chain, so the wake drains after it.
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     await store.setAgentChainTurns(connection.db, {
         agentId: seed.agentId,
         turns: maxAgentChainTurns,
@@ -216,7 +216,7 @@ test('a run that adopted the self-started turn retires exactly that queued wake'
     const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     const [human] = runner.starts();
     expect(await wake(delivery, seed, 'wake_000000000012')).toBe('accepted');
 
@@ -283,7 +283,7 @@ test('a session reset retires a queued wake', async () => {
     const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
     expect(await wake(delivery, seed, 'wake_000000000008')).toBe('accepted');
 
     await delivery.reset({ agentId: seed.agentId, kind: 'session', serverId: seed.serverId });

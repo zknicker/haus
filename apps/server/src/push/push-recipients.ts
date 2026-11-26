@@ -5,6 +5,7 @@ import {
     messageNotificationReason,
 } from '@haus/api';
 import { and, eq, gte } from 'drizzle-orm';
+import { readCaptainChatSubscribers } from '../chats/captain-chat.ts';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { countUnreadInboxRows } from '../chats/unread-chat-count.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -26,13 +27,20 @@ export async function readPushRecipients(
     if (!message) {
         return null;
     }
+    // A Captain chat is open to everyone, so only its subscribed members hear every message.
+    const subscribers = new Set(
+        event.conversationKind === 'captain' ? await readCaptainChatSubscribers(db, event) : []
+    );
     const candidates = new Set([
         ...messageNotificationCandidates(event),
         ...(event.conversationKind === 'dm' ? message.dmMemberUserIds : []),
+        ...subscribers,
     ]);
     const recipients: PushRecipient[] = [];
     for (const userId of await readPushableMembers(db, event.serverId, [...candidates])) {
-        const reason = messageNotificationReason(event, userId);
+        const reason = messageNotificationReason(event, userId, {
+            subscribed: subscribers.has(userId),
+        });
         if (
             reason &&
             (await canSeeChat(db, userId, event)) &&

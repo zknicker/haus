@@ -30,10 +30,10 @@ export const originChannelJoin = [
 
 export interface MessagePlaceRow {
     chatId: string;
-    chatKind: 'channel' | 'dm' | 'task';
+    chatKind: 'captain' | 'channel' | 'dm' | 'task';
     chatName: null | string;
     parentChatId: null | string;
-    parentChatKind: 'channel' | 'dm' | 'task' | null;
+    parentChatKind: 'captain' | 'channel' | 'dm' | 'task' | null;
     parentChatName: null | string;
 }
 

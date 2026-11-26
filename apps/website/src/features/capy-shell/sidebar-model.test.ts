@@ -116,7 +116,7 @@ test('People and open Tasks are hidden when there are none', () => {
         sources({
             chats: [
                 chat({ id: 'eng', kind: 'channel', name: 'eng' }),
-                chat({ id: 'dm-forge', kind: 'dm', peerAgentId: 'forge' }),
+                chat({ id: 'dm-forge', kind: 'captain', peerAgentId: 'forge' }),
             ],
         })
     );
@@ -124,7 +124,7 @@ test('People and open Tasks are hidden when there are none', () => {
 });
 
 test('a Captain tile shows its working state and counts its DM unread', () => {
-    const chats = [chat({ id: 'dm-forge', kind: 'dm', peerAgentId: 'forge', unreadCount: 3 })];
+    const chats = [chat({ id: 'dm-forge', kind: 'captain', peerAgentId: 'forge', unreadCount: 3 })];
     expect(captainTile(forge, agentDm(chats, 'forge'))).toEqual({
         agentId: 'forge',
         avatarUrl: null,

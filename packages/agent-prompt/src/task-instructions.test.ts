@@ -14,22 +14,21 @@ const prompt = renderAgentInstructions({
 
 const tasks = prompt.split('### Tasks\n')[1]?.split('## Working through sub-agents')[0] ?? '';
 
-test('a Task is described by what people see, not by a placement ladder (ADR 0053)', () => {
+test('a Task is the Captain’s crew, a session people can talk to (ADR 0062)', () => {
     expect(tasks).toContain(
-        'A Task is how people follow work that takes longer than a reply. While it is active it sits in their sidebar. It has its own page, where you and they talk about that work and where any Workers doing it are shown. When it is archived, it leaves.'
-    );
-    expect(tasks).toContain(
-        'Create a Task when the work will not be finished in your reply: it needs more steps, more time, or a Worker. When your reply is the whole of the work, just reply. A Task does not mark work as yours; your claim already does that.'
+        'A Task is your crew: a fresh agent session with its own chat that does one piece of work taking longer than a reply, on its own Machine. People follow it in their sidebar and can talk to it there. When your reply is the whole of the work, just reply.'
     );
     expect(prompt).toContain('**Claim rule:**');
     expect(prompt).toContain('A failed claim is a concurrency lock');
 });
 
-test('a Task starts from a channel message, with the command shape beside it', () => {
+test('a Task starts with its brief on stdin, which is all it knows', () => {
     expect(tasks).toContain(
-        'A Task starts from a message in a channel, usually the request itself, or a message you post when there is none: `haus task start --target "#channel" --from <shortid> --title <text>`.'
+        'Start one with its brief on stdin: `haus task start --title <text> --target <the chat you answer in> --from <shortid> < brief`, adding `--issue <code>` or `--repo <owner/name>` when it has them. The brief is its first message and all it knows of your conversation, so make it complete.'
     );
-    expect(tasks).not.toContain('Never from a DM');
+    expect(tasks).toContain(
+        'People see each Task under its origin message. Separate pieces of work are separate Tasks. Reply with a link to the Task.'
+    );
 });
 
 test('Tasks start in the home Project, and other Projects get an @mention in their channel', () => {
@@ -38,26 +37,15 @@ test('Tasks start in the home Project, and other Projects get an @mention in the
     );
 });
 
-test('each Task has its own end, and the work goes in the Task', () => {
-    expect(prompt).toContain('Work for a Task is posted with `--target task:<shortId>`.');
+test('crew report back, and task send is the one way to message a Task', () => {
     expect(tasks).toContain(
-        'People see each Task under that message with its latest line. Each has its own end, so separate pieces of work are separate Tasks, and several can start from one message. Reply with a link to the Task; the work itself goes in the Task.'
+        "When a Task's turn you directed ends, its report reaches you as a crew report. `haus task send <shortId>` is the one way to message a Task, and it brings back an archived one. Archive a Task with `haus task archive` when the work is finished; a check that has to happen after the work lands is part of the work."
     );
+    expect(prompt).toContain(
+        'A Task is messaged with `haus task send <shortId>`, never `message send`.'
+    );
+    expect(prompt).not.toContain('Work for a Task is posted with');
     expect(prompt).not.toContain('KEY-n');
-});
-
-test('a Task being worked or waited on stays active, and an after-the-fact check is part of the work', () => {
-    expect(tasks).toContain(
-        'A Task you are working or waiting on stays active, where the people following it can see it. Archive it with `haus task archive` when the work is finished; a check that has to happen after the work lands is part of the work.'
-    );
-    for (const gone of [
-        'Work Tasks others assign you one at a time',
-        'set it back to `todo`',
-        'stays `open`',
-        'do not repeat the result in the channel',
-    ]) {
-        expect(tasks).not.toContain(gone);
-    }
 });
 
 test('the open Issues assigned to the agent are its queue (ADR 0062)', () => {
@@ -93,7 +81,7 @@ test('splitting for other agents files Issues, and claims stay in the conversati
 
 test('the Tasks and Issues families name every verb and point at the Manual', () => {
     expect(prompt).toContain(
-        '15. **Tasks**: `haus task start`, `haus task list`, `haus task show`, `haus task archive`, `haus task attach-pr`. Read the `tasks` Manual topic before the first one.\n16. **Issues**: `haus issue list`, `haus issue show`, `haus issue create`, `haus issue update`, `haus issue comment`, `haus issue link`. Read the `issues` Manual topic before the first one.\n17. **Computers**'
+        '15. **Tasks**: `haus task start`, `haus task send`, `haus task list`, `haus task show`, `haus task archive`, `haus task unarchive`, `haus task attach-pr`. Read the `tasks` Manual topic before the first one.\n16. **Issues**: `haus issue list`, `haus issue show`, `haus issue create`, `haus issue update`, `haus issue comment`, `haus issue link`. Read the `issues` Manual topic before the first one.\n17. **Computers**'
     );
     expect(prompt).not.toContain('**Boards**');
     expect(prompt).not.toContain('haus task create');

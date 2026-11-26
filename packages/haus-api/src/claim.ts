@@ -13,7 +13,7 @@ export const claimListInputSchema = z
 
 export const claimListItemSchema = z
     .object({
-        chatKind: z.enum(['channel', 'dm']),
+        chatKind: z.enum(['channel', 'dm', 'captain']),
         chatName: z.string().nullable(),
         chatPeerUserId: idSchema.nullable(),
         claim: messageClaimSchema,

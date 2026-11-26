@@ -56,8 +56,6 @@ function placementSentence(
     message: AgentCliMessage,
     options: SendReceiptOptions
 ): string {
-    const kind = chat.startsWith('dm:') ? 'DM' : 'channel';
-    const peer = chat.slice('dm:'.length);
     const replyTo = message.reply?.parentMessageId ?? options.replyToMessageId;
     if (replyTo) {
         const parentId = shortMessageId(replyTo);
@@ -66,7 +64,7 @@ function placementSentence(
             ? `Posted in ${chat} as an inline reply to message ${parentId}; its author is notified.`
             : `Posted in ${chat} as an inline reply, quoted under message ${parentId}.`;
     }
-    const audience = kind === 'DM' ? peer : 'members';
-    const verb = kind === 'DM' ? 'sees' : 'see';
-    return `Posted at the top of ${chat}; ${audience} ${verb} it in the ${kind}.`;
+    return chat.startsWith('captain:')
+        ? `Posted at the top of ${chat}; its members see it in your Captain chat.`
+        : `Posted at the top of ${chat}; members see it in the channel.`;
 }

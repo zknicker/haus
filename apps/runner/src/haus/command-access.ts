@@ -91,14 +91,15 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         'write-file': serverOnly,
     },
     task: {
-        assign: serverOnly,
+        archive: serverOnly,
         'attach-pr': serverOnly,
         list: serverOnly,
+        report: serverOnly,
+        send: serverOnly,
         show: serverOnly,
         start: serverOnly,
-        state: serverOnly,
+        unarchive: serverOnly,
         unfollow: serverOnly,
-        update: serverOnly,
     },
     trigger: {
         create: writes('--output'),

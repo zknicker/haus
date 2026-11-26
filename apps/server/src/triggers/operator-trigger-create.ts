@@ -1,7 +1,6 @@
 import type { TriggerCreateInput, TriggerCreateResult } from '@haus/api';
+import { readCaptainChatId } from '../chats/captain-chat.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
-import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { requireActiveAgent } from '../reminders/reminder-model.ts';
@@ -39,7 +38,7 @@ export async function createOperatorTrigger(
         title: input.title,
     };
     const resolveAnchor = (tx: HausDatabase) =>
-        anchorOnOperatorDm(tx, member, { ...input, userId: operator.id });
+        anchorOnCaptainChat(tx, member, { ...input, userId: operator.id });
     if (input.kind === 'github') {
         const created = await createGithubTriggerRow(
             { db, transport: services.githubTransport },
@@ -64,34 +63,18 @@ export async function createOperatorTrigger(
     };
 }
 
-/**
- * Re-checks the operator inside the transaction and anchors on their DM with
- * the owning Agent, creating it when needed. A DM created here is announced
- * only once the trigger commits.
- */
-async function anchorOnOperatorDm(
+/** Re-checks the operator inside the transaction and anchors on the owning Captain's chat. */
+async function anchorOnCaptainChat(
     tx: HausDatabase,
     member: HausUser | null,
     input: { agentId: string; serverId: string; userId: string }
 ): Promise<TriggerAnchor> {
     await requireTriggerOperator(tx, member, input.serverId);
     await requireActiveAgent(tx, input.serverId, input.agentId);
-    const dm = await ensureAgentDmRecord(tx, {
-        agentId: input.agentId,
-        serverId: input.serverId,
-        userId: input.userId,
-    });
-    await requireChatWritable(tx, { chatId: dm.id, serverId: input.serverId });
-    return {
-        chatId: dm.id,
-        ...(dm.created
-            ? {
-                  event: prepareLifecycleEvent(
-                      { chatId: dm.id, serverId: input.serverId },
-                      'created'
-                  ),
-              }
-            : {}),
-        messageId: null,
-    };
+    const chatId = await readCaptainChatId(tx, input);
+    if (!chatId) {
+        throw new Error('This Captain has no Captain chat to anchor the trigger in.');
+    }
+    await requireChatWritable(tx, { chatId, serverId: input.serverId });
+    return { chatId, messageId: null };
 }

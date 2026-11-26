@@ -50,7 +50,6 @@ export async function listAgentInboxConversations(
         nextBefore: hasMore ? (items.at(-1)?.activityKey ?? null) : null,
         totals: {
             conversations: all.length,
-            dms: all.filter(({ conversation }) => conversation.kind === 'dm').length,
             mentions: all.filter(({ conversation }) => conversation.mentions > 0).length,
         },
         view: query.view,
@@ -119,18 +118,13 @@ export function conversationsSql(runner: ResolvedRunner) {
             latest.id as "latestId",
             case
                 when chats.kind = 'channel' then '#' || chats.name
-                when chats.kind = 'dm' then 'dm:@' || dm_human.handle
+                when chats.kind = 'captain' then 'captain:@' || me.handle
                 else ${taskTargetOfChatSql('chats')}
             end as target
         from chats
         join agents me on me.server_id = chats.server_id and me.id = ${agentId}
         left join chats parent
             on parent.server_id = chats.server_id and parent.id = chats.parent_chat_id
-        left join server_memberships dm_human
-            on dm_human.server_id = chats.server_id
-            and dm_human.revoked_at is null
-            and chats.kind = 'dm'
-            and dm_human.user_id = chats.dm_member_one_user_id
         cross join lateral (
             select chats.kind = 'channel' and chats.id <> me.home_project_id as outside
         ) place
@@ -192,8 +186,14 @@ export function conversationsSql(runner: ResolvedRunner) {
           and ${visibleChatSql(runner)}
           and (
               -- Reading a Task is open, but this list follows hearing: no Task is
-              -- heard ambiently, so only the Tasks the Agent follows (ADR 0062).
+              -- heard ambiently, so only the agent's own Task and the Tasks it follows (ADR 0062).
               chats.kind <> 'task'
+              or exists (
+                  select 1 from tasks own_task
+                  where own_task.server_id = chats.server_id
+                    and own_task.chat_id = chats.id
+                    and own_task.agent_id = ${agentId}
+              )
               or exists (
                   select 1 from agent_task_follows follow
                   where follow.server_id = chats.server_id
@@ -202,7 +202,9 @@ export function conversationsSql(runner: ResolvedRunner) {
                     and follow.followed
               )
           )
-          and (chats.kind = 'channel' or parent.kind = 'channel' or dm_human.handle is not null)
+          -- A Captain chat reaches its own Captain only.
+          and (chats.kind <> 'captain' or chats.captain_agent_id = ${agentId})
+          and (chats.kind in ('channel', 'captain') or parent.kind = 'channel')
           and case when place.outside then counts.heard > 0 else counts.unread > 0 end
     `;
 }

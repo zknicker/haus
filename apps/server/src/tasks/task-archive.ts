@@ -87,41 +87,45 @@ export async function archiveLockedTask(
 export async function unarchiveTask(db: HausDatabase, actor: TaskActor, input: TaskArchiveInput) {
     return await db.transaction(async (tx) => {
         const current = await lockForArchive(tx, actor, input);
-        if (current.archivedAt === null) {
-            const unchanged: TaskWriteResult = {
-                events: [],
-                task: await readTask(tx, input.serverId, current.id),
-                wakes: [],
-            };
-            return unchanged;
-        }
-        requireTaskPlace(current);
-        await requireProjectActive(tx, current);
-        if (current.agentId && !current.computerId) {
-            throw new TaskInvariantError(
-                'This Task’s Machine was removed, so it stays archived. Start a new Task instead.'
-            );
-        }
-        await setArchivedAt(tx, current, null);
-        const sessions = current.agentId
-            ? [
-                  await rotateTaskSession(tx, {
-                      agentId: current.agentId,
-                      archived: false,
-                      chatId: current.chatId,
-                      serverId: current.serverId,
-                  }),
-              ]
-            : [];
-        const task = await readTask(tx, input.serverId, current.id);
-        const result: TaskWriteResult = {
-            events: [prepareTaskUpdatedEvent(task)],
-            sessions,
-            task,
+        return await restoreLockedTask(tx, current);
+    });
+}
+
+export async function restoreLockedTask(tx: Tx, current: LockedTask) {
+    if (current.archivedAt === null) {
+        const unchanged: TaskWriteResult = {
+            events: [],
+            task: await readTask(tx, current.serverId, current.id),
             wakes: [],
         };
-        return result;
-    });
+        return unchanged;
+    }
+    requireTaskPlace(current);
+    await requireProjectActive(tx, current);
+    if (current.agentId && !current.computerId) {
+        throw new TaskInvariantError(
+            'This Task’s Machine was removed, so it stays archived. Start a new Task instead.'
+        );
+    }
+    await setArchivedAt(tx, current, null);
+    const sessions = current.agentId
+        ? [
+              await rotateTaskSession(tx, {
+                  agentId: current.agentId,
+                  archived: false,
+                  chatId: current.chatId,
+                  serverId: current.serverId,
+              }),
+          ]
+        : [];
+    const task = await readTask(tx, current.serverId, current.id);
+    const result: TaskWriteResult = {
+        events: [prepareTaskUpdatedEvent(task)],
+        sessions,
+        task,
+        wakes: [],
+    };
+    return result;
 }
 
 async function lockForArchive(tx: Tx, actor: TaskActor, input: TaskArchiveInput) {

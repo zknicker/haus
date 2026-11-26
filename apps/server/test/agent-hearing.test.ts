@@ -61,7 +61,7 @@ test('a DM reaches its Agent wherever it lives', async () => {
         content: 'Quick question.',
         nonce: createOpaqueId('n'),
         serverId: fixture.serverId,
-        targetKind: 'agent-dm',
+        targetKind: 'captain',
     });
 
     expect(await heard(sent.message.id)).toEqual(['bex']);

@@ -65,8 +65,8 @@ test('an inline reply to an Agent message claims no notification', () => {
 });
 
 test('an inline reply without a response reference falls back to the --reply-to value', () => {
-    expect(sendPlacement('dm:@zach', sent(), { replyToMessageId: '1234abcd' })).toBe(
-        'Posted in dm:@zach as an inline reply, quoted under message 1234abcd.'
+    expect(sendPlacement('captain:@orbit', sent(), { replyToMessageId: '1234abcd' })).toBe(
+        'Posted in captain:@orbit as an inline reply, quoted under message 1234abcd.'
     );
 });
 
@@ -74,8 +74,8 @@ test('a top-level receipt names who sees it and suggests no other place', () => 
     expect(sendPlacement('#general', sent(), {})).toBe(
         'Posted at the top of #general; members see it in the channel.'
     );
-    expect(sendPlacement('dm:@zach', sent(), {})).toBe(
-        'Posted at the top of dm:@zach; @zach sees it in the DM.'
+    expect(sendPlacement('captain:@orbit', sent(), {})).toBe(
+        'Posted at the top of captain:@orbit; its members see it in your Captain chat.'
     );
     expect(renderSentReceipt('#general', sentResponse(), {}).toLowerCase()).not.toContain('thread');
 });
@@ -89,11 +89,11 @@ test('a Task receipt names the Task and its followers', () => {
     );
 });
 
-test('--done on a channel or DM target closes the reply to that request', () => {
+test('--done on a channel or Captain chat target closes the reply to that request', () => {
     expect(sendPlacement('#general', sent(replyTo(replyReference)), { done: true })).toBe(
         'Posted in #general as an inline reply to message 1a2b3c4d; its author is notified. This closes your reply to that request.'
     );
-    expect(sendPlacement('dm:@zach', sent(), { done: true })).toBe(
-        'Posted at the top of dm:@zach; @zach sees it in the DM. This closes your reply to that request.'
+    expect(sendPlacement('captain:@orbit', sent(), { done: true })).toBe(
+        'Posted at the top of captain:@orbit; its members see it in your Captain chat. This closes your reply to that request.'
     );
 });

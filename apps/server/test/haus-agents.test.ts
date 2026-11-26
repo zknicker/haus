@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { hausAgentVersion } from '@haus/api';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { reportRunnerModels } from './runner.fixture.ts';
@@ -95,27 +96,29 @@ test('provisions an ordinary Agent without pre-creating an Owner DM', async () =
     expect(created.agent).not.toHaveProperty('archetype');
     expect(created.agent).not.toHaveProperty('factoryKind');
     const chats = await owner.trpc.chat.list.query({ serverId });
-    expect(chats.some((chat) => chat.peerAgentId === created.agent.id)).toBe(false);
+    const captainChat = chats.find((chat) => chat.peerAgentId === created.agent.id);
+    expect(captainChat?.captainChat).toEqual({ member: true, subscribed: true });
+    expect(created.agent).toMatchObject({ captainChatId: captainChat?.id, ownerUserId });
 
     const agents = await owner.trpc.agent.list.query({ serverId });
     expect(agents.map((agent) => agent.handle)).toEqual(['scout']);
     expect(agents[0]).toMatchObject({ avatarUrl: null, handle: 'scout' });
     expect(agents[0]).not.toHaveProperty('archetype');
-    expect(agents[0]?.dmChatId).toBeNull();
+    expect(agents[0]?.captainChatId).toBe(captainChat?.id ?? '');
     expect(await owner.trpc.agent.get.query({ agentId: created.agent.id, serverId })).toEqual(
         agents[0]
     );
 });
 
-test('materializes one canonical Agent DM only when requested', async () => {
+test('every Captain has exactly one Captain chat', async () => {
     const [agent] = await owner.trpc.agent.list.query({ serverId });
     if (!agent) {
         throw new Error('Expected the provisioned Agent.');
     }
 
     const [first, retry] = await Promise.all([
-        owner.trpc.chat.ensureAgentDm.mutate({ agentId: agent.id, serverId }),
-        owner.trpc.chat.ensureAgentDm.mutate({ agentId: agent.id, serverId }),
+        openCaptainChat(owner, { agentId: agent.id, serverId }),
+        openCaptainChat(owner, { agentId: agent.id, serverId }),
     ]);
 
     expect(retry.id).toBe(first.id);
@@ -126,7 +129,7 @@ test('materializes one canonical Agent DM only when requested', async () => {
     ).toHaveLength(1);
 });
 
-test('first human sends materialize exactly one pair DM under retries and per-human isolation', async () => {
+test('people share one Captain chat, and a send is idempotent by nonce', async () => {
     const created = await createHomedAgent(owner, {
         computerId: computerB,
         displayName: 'Relay',
@@ -137,10 +140,10 @@ test('first human sends materialize exactly one pair DM under retries and per-hu
     });
     const input = {
         agentId: created.agent.id,
-        content: 'Materialize once.',
-        nonce: 'implicit-agent-dm-retry',
+        content: 'Send once.',
+        nonce: 'captain-chat-retry',
         serverId,
-        targetKind: 'agent-dm' as const,
+        targetKind: 'captain' as const,
     };
     const [first, retry] = await Promise.all([
         owner.trpc.chat.send.mutate(input),
@@ -149,29 +152,27 @@ test('first human sends materialize exactly one pair DM under retries and per-hu
 
     expect(retry.message.id).toBe(first.message.id);
     expect([first.idempotent, retry.idempotent].sort()).toEqual([false, true]);
-    const ownerDmId = first.message.chatId;
-    expect(
-        (await owner.trpc.chat.list.query({ serverId })).filter(
-            (chat) => chat.peerAgentId === created.agent.id
-        )
-    ).toHaveLength(1);
-
     const memberSend = await member.trpc.chat.send.mutate({
         agentId: created.agent.id,
-        content: 'A separate private pair.',
-        nonce: 'implicit-agent-dm-member',
+        content: 'The same chat, from someone else.',
+        nonce: 'captain-chat-member',
         serverId,
-        targetKind: 'agent-dm',
+        targetKind: 'captain',
     });
-    expect(memberSend.message.chatId).not.toBe(ownerDmId);
+    expect(memberSend.message.chatId).toBe(first.message.chatId);
+    expect(
+        (await member.trpc.chat.list.query({ serverId })).find(
+            (chat) => chat.id === first.message.chatId
+        )?.captainChat
+    ).toEqual({ member: true, subscribed: true });
     expect(
         (
             await harness.sql`
             select count(*)::int as count from chats
-            where server_id = ${serverId} and dm_agent_id = ${created.agent.id}
+            where server_id = ${serverId} and captain_agent_id = ${created.agent.id}
         `
         )[0]?.count
-    ).toBe(2);
+    ).toBe(1);
     await owner.trpc.agent.delete.mutate({
         agentId: created.agent.id,
         confirmation: created.agent.displayName,
@@ -282,7 +283,7 @@ test('saves desired config from the runner catalog while the Computer is offline
     `;
     expect(rotations).toEqual([{ generation: 2, reason: 'configuration' }]);
     const dmMessages = await harness.sql`
-        select id from chat_messages where chat_id = ${agent.dmChatId}
+        select id from chat_messages where chat_id = ${agent.captainChatId}
     `;
     expect(dmMessages).toEqual([]);
 
@@ -501,13 +502,12 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
         runtimeId: 'codex',
         serverId,
     });
-    const dmChatId = (
-        await owner.trpc.chat.ensureAgentDm.mutate({ agentId: created.agent.id, serverId })
-    ).id;
+    const captainChatId = (await openCaptainChat(owner, { agentId: created.agent.id, serverId }))
+        .id;
 
     // A normal DM send arms durable delivery for an active Agent.
     await owner.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Hello Fen',
         nonce: crypto.randomUUID(),
         serverId,
@@ -541,11 +541,11 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
     // transcript remains readable by stable Chat id.
     expect(await owner.trpc.agent.list.query({ serverId })).toEqual([]);
     const listed = (await owner.trpc.chat.list.query({ serverId })).find(
-        (chat) => chat.id === dmChatId
+        (chat) => chat.id === captainChatId
     );
     expect(listed).toBeUndefined();
     const transcript = await owner.trpc.chat.messages.query({
-        chatId: dmChatId,
+        chatId: captainChatId,
         limit: 50,
         serverId,
     });
@@ -553,7 +553,7 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
 
     await expect(
         owner.trpc.chat.send.mutate({
-            chatId: dmChatId,
+            chatId: captainChatId,
             content: 'Still there?',
             nonce: crypto.randomUUID(),
             serverId,
@@ -561,7 +561,7 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
     ).rejects.toThrow(/retired/u);
     await expect(
         owner.trpc.claim.create.mutate({
-            chatId: dmChatId,
+            chatId: captainChatId,
             content: 'Claim the retired Agent',
             nonce: crypto.randomUUID(),
             serverId,
@@ -577,7 +577,7 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
     expect(pending).toEqual([]);
     const stored = (await harness.sql`
         select content from chat_messages
-        where chat_id = ${dmChatId} and author_user_id = ${ownerUserId}
+        where chat_id = ${captainChatId} and author_user_id = ${ownerUserId}
           and content in ('Still there?', 'Claim the retired Agent')
     `) as { content: string }[];
     expect(stored).toEqual([]);
@@ -592,10 +592,7 @@ test('releases a retired Agent handle without conflating the replacement identit
         runtimeId: 'codex',
         serverId,
     });
-    const originalChat = await owner.trpc.chat.ensureAgentDm.mutate({
-        agentId: original.agent.id,
-        serverId,
-    });
+    const originalChat = await openCaptainChat(owner, { agentId: original.agent.id, serverId });
 
     await expect(
         createHomedAgent(owner, {
@@ -622,7 +619,7 @@ test('releases a retired Agent handle without conflating the replacement identit
         runtimeId: 'codex',
         serverId,
     });
-    const replacementChat = await owner.trpc.chat.ensureAgentDm.mutate({
+    const replacementChat = await openCaptainChat(owner, {
         agentId: replacement.agent.id,
         serverId,
     });

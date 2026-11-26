@@ -63,9 +63,9 @@ export const roomColumns: MessageColumns<RoomFact> = {
                 join chats room
                     on room.server_id = ${scope.serverId}
                     and room.id = mine.room_id
-                    and room.kind = 'dm'
+                    and room.kind in ('dm', 'captain')
                 left join agents agent
-                    on agent.server_id = room.server_id and agent.id = room.dm_agent_id
+                    on agent.server_id = room.server_id and agent.id = room.captain_agent_id
                 group by room.id, agent.display_name
             ) dms
             where name is not null

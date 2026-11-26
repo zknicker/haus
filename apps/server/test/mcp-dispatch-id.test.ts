@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -79,7 +80,7 @@ beforeAll(async () => {
         runtimeId: 'codex',
         serverId: server.id,
     });
-    const chat = await owner.trpc.chat.ensureAgentDm.mutate({
+    const chat = await openCaptainChat(owner, {
         agentId: agent.id,
         serverId: server.id,
     });

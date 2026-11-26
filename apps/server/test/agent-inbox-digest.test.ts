@@ -27,7 +27,7 @@ test('a concrete wake reports the human work queued elsewhere', async () => {
     const fireId = createOpaqueId('rmf');
     await delivery.deliver({
         agentId: seed.agentId,
-        chatId: seed.dmChatId,
+        chatId: seed.captainChatId,
         content: `Reminder\nfire=${fireId}`,
         createdAt: new Date(),
         dedupeKey: fireId,
@@ -50,7 +50,7 @@ test('a drain that hits the budget reports its same-chat remainder in the unread
     for (let index = 0; index < 3; index += 1) {
         await delivery.deliver({
             agentId: seed.agentId,
-            chatId: seed.dmChatId,
+            chatId: seed.captainChatId,
             content: body,
             createdAt: new Date(Date.now() + index),
             dedupeKey: createOpaqueId('rmf'),
@@ -63,14 +63,14 @@ test('a drain that hits the budget reports its same-chat remainder in the unread
     // Two fires fit the 24,000-character budget. The third is represented by no
     // row of this frame, so it surfaces as a count rather than vanishing.
     expect(start?.drainItemIds).toHaveLength(2);
-    expect(start?.unreadElsewhere).toEqual([{ count: 1, target: `dm:@${seed.humanHandle}` }]);
+    expect(start?.unreadElsewhere).toEqual([{ count: 1, target: `captain:@${seed.agentHandle}` }]);
 });
 
 test('unread elsewhere excludes every chat a notice row represents', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.channelId });
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await deliverHuman(connection.db, delivery, seed, { chatId: seed.captainChatId });
 
     const start = await wake();
     expect(start?.inbox).toHaveLength(2);

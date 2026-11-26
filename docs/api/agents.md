@@ -354,7 +354,7 @@ a claim or list response.
 counted in `omitted`; `all`, `archived` and `project` (a key like `SEC`) widen or narrow it.
 `GET /api/agent/tasks/show?task=k3mq7xta` adds the description, Mentioned in, and Reminders.
 `POST /api/agent/tasks/start` starts crew in the Captain's home Project (ADR 0062):
-`{ brief, title?, target?, from?, machine?, model?, issue?, requestId? }`. It answers
+`{ brief, title?, target?, from?, repo?, ref?, machine?, model?, issue?, requestId? }`. It answers
 `{ state: 'started', target, task }`, or `{ state: 'held', … }` with the newer messages when
 `target` holds the start, as `haus message send` does. The brief posts as the Captain's first
 message in the Task's chat and is queued as the Task agent's first turn; the Captain does not
@@ -362,11 +362,22 @@ follow the Task. `machine` (a name or id) defaults to the crew Machine, then the
 Machine, and must be one the Captain may use; `model` defaults to the crew model, then the
 Captain's own. `issue` links and assigns an open Issue in the home Project held by the caller or
 nobody, without changing its state; another Project's Issue is `403 TASK_PROJECT_NOT_HOME` and a
-held one `409 ISSUE_TAKEN`. A Task agent's credential is refused with `400 INVALID_ARG` ("Tasks
-never start Tasks"). The same `requestId` answers the same Task. `/archive` and `/unarchive`
+held one `409 ISSUE_TAKEN`. `repo` (`owner/name`, one of the Server's Repos) and `ref` (which needs
+`repo`) are recorded on the Task and named in its prompt. A Task agent's credential is refused with
+`403 TASK_START_NOT_CAPTAIN`. The same `requestId` answers the same Task. `/archive` and `/unarchive`
 take `{ task, expectedVersion? }`; unarchive starts no turn and is `409 TASK_PROJECT_ARCHIVED`
 while the Project is archived. `/attach-pr` takes `{ task, url }` and answers
-`{ task, pullRequest }`; `/unfollow` takes a `task:<shortId>` target. Inputs are in
+`{ task, pullRequest }`; `/unfollow` takes a `task:<shortId>` target.
+
+`POST /api/agent/tasks/send` takes `{ task, body, delivery? }` (`steer` by default, `interrupt`,
+or `queue`), posts the body in that Task's chat as the caller, and wakes its agent under that mode;
+it answers `{ message, task }`. A Captain may message any Task and unarchives an archived one; a
+Task agent may message only Tasks of its own Project, and an archived one is `409 TASK_ARCHIVED`.
+`POST /api/agent/tasks/report` takes `{ outcome, text, ask?, person?, pullRequestUrls? }` from a
+Task agent about its own turn. It posts the text in the Task, attaches the pull requests, records the
+report in `task_reports`, and answers `{ message, reachesCaptain, task }`. `person` must be a person
+who can read the Task (`400 TASK_PERSON_UNKNOWN` lists its followers); a crew report reaches the
+Captain as a `crew_report` inbox item unless it is `needs-you` for a named person. Inputs are in
 `packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
 `agent-task-refusals.ts`.
 

@@ -60,7 +60,7 @@ function captainPresence(agent: CaptainSource) {
 }
 
 export function agentDm(chats: readonly Chat[], agentId: string) {
-    const dm = chats.find((chat) => chat.kind === 'dm' && chat.peerAgentId === agentId);
+    const dm = chats.find((chat) => chat.kind === 'captain' && chat.peerAgentId === agentId);
     return dm ? { id: dm.id, unreadCount: dm.unreadCount } : null;
 }
 

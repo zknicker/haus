@@ -9,7 +9,7 @@ export interface PushMessage extends StoredChatMessageAuthorRow {
     chatId: string;
     content: string;
     conversationChatId: string;
-    conversationKind: 'channel' | 'dm';
+    conversationKind: 'captain' | 'channel' | 'dm';
     conversationName: string | null;
     /** The DM's human members; empty outside a DM. */
     dmMemberUserIds: string[];
@@ -38,7 +38,7 @@ export async function readPushMessage(
             message.content,
             coalesce(parent.id, chat.id) as "conversationChatId",
             coalesce(parent.kind, chat.kind) as "conversationKind",
-            coalesce(parent.name, chat.name) as "conversationName",
+            coalesce(parent.name, chat.name, captain.display_name) as "conversationName",
             array_remove(
                 array[
                     coalesce(parent.dm_member_one_user_id, chat.dm_member_one_user_id),
@@ -56,6 +56,8 @@ export async function readPushMessage(
         left join tasks task on task.server_id = chat.server_id and task.chat_id = chat.id
         left join agents agent
             on agent.server_id = message.server_id and agent.id = message.author_agent_id
+        left join agents captain
+            on captain.server_id = chat.server_id and captain.id = chat.captain_agent_id
         left join users author on author.id = message.author_user_id
         where message.server_id = ${input.serverId}
             and message.chat_id = ${input.chatId}

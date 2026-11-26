@@ -18,7 +18,7 @@ export class ClaimMessageNotFoundError extends Error {
 
 export class UnclaimableMessageError extends Error {
     constructor() {
-        super('Only human or Agent messages in a Channel or DM can become claims.');
+        super('Only human or Agent messages in a Channel, DM or Captain chat can become claims.');
         this.name = 'UnclaimableMessageError';
     }
 }
@@ -67,7 +67,7 @@ export async function promoteMessageClaim(
             chatId: message.chatId,
             serverId: input.serverId,
         });
-        if (chat.kind !== 'channel' && chat.kind !== 'dm') {
+        if (chat.kind === 'task') {
             throw new UnclaimableMessageError();
         }
 

@@ -213,13 +213,13 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
         content: 'A DM root for nonce replay.',
         nonce: 'inline_dm_root',
         serverId: fixture.serverId,
-        targetKind: 'agent-dm',
+        targetKind: 'captain',
     });
     const dmBody = {
         content: 'The same reply send is idempotent.',
         nonce: 'inline_dm_reply_nonce',
         replyToMessageId: dmRoot.message.id,
-        target: 'dm:@ada',
+        target: 'captain:@orbit',
     };
     const firstDmReply = await sendAgentRequest(orbit.token, dmBody);
     const replayedDmReply = await sendAgentRequest(orbit.token, dmBody);
@@ -237,7 +237,7 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
         content: 'A different DM parent.',
         nonce: 'inline_dm_second_root',
         serverId: fixture.serverId,
-        targetKind: 'agent-dm',
+        targetKind: 'captain',
     });
     const conflictingDmReply = await sendAgentRequest(orbit.token, {
         ...dmBody,

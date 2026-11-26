@@ -137,7 +137,7 @@ PostgreSQL owns the hosted collaboration tables
 | `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, canonical Haus User owner, and the CLI's post-persistence acknowledgement |
 | `computers` | Server-scoped Computer credentials (hash only), durable attachment idempotency, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
-| `chats` | Server-owned Channels (each a Project with a `projects` row holding its `task_key_id`), canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and each Task's own `task` Chat under its origin Channel and Message |
+| `chats` | Server-owned Channels (each a Project with a `projects` row holding its `task_key_id`), canonical sorted two-human DMs, each Captain's one org-visible Captain chat (`captain_agent_id`, with per-person flags in `captain_chat_members`), and each Task's own `task` Chat under its origin Channel and Message |
 | `tasks` / `task_keys` / `task_pull_requests` | Tasks with their state, assignee, and origin; the per-Server key ledger; pull requests attached to a Task ([specs/tasks.md](../../specs/tasks.md)) |
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Task follows (`thread_chat_kind = 'task'`); never membership |

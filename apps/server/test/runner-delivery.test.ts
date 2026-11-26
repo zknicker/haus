@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { AgentLifecycleEvent } from '@haus/api';
 import { onAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import {
@@ -19,7 +20,7 @@ let owner: HausClient;
 let runner: RunnerClient;
 let serverId: string;
 let agentId: string;
-let dmChatId: string;
+let captainChatId: string;
 let firstRunId: string;
 let stoppedRunId: string;
 
@@ -57,7 +58,7 @@ beforeAll(async () => {
             serverId,
         })
     ).agent.id;
-    dmChatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    captainChatId = (await openCaptainChat(owner, { agentId, serverId })).id;
 });
 
 afterAll(async () => {
@@ -68,7 +69,7 @@ afterAll(async () => {
 
 test('a DM reaches the runner with a working run credential while the Computer is offline', async () => {
     await owner.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Can you check the deploy?',
         nonce: 'runner_dm_first',
         serverId,
@@ -78,7 +79,7 @@ test('a DM reaches the runner with a working run credential while the Computer i
     const start = await runner.next(frameOfType('runner-start'));
     const { runId } = startOf(start);
 
-    expect(startOf(start)).toMatchObject({ agentId, chatId: dmChatId, type: 'start' });
+    expect(startOf(start)).toMatchObject({ agentId, chatId: captainChatId, type: 'start' });
     expect(start.reasoningEffort).toBe('high');
     expect(start.runCredential).toMatch(/^grtr_[A-Za-z0-9_-]{43}$/u);
     const [credential] = await harness.sql`
@@ -98,7 +99,7 @@ test('ack, a busy notice, then a turn settle the run and revoke its credential',
     await accepted;
 
     await owner.trpc.chat.send.mutate({
-        chatId: dmChatId,
+        chatId: captainChatId,
         content: 'Also look at the logs.',
         nonce: 'runner_dm_busy',
         serverId,
@@ -120,7 +121,7 @@ test('a human Stop reaches the runner and revokes the run credential', async () 
         (frame) => frame.type === 'runner-start' && startOf(frame).runId !== firstRunId
     );
     const { runId } = startOf(start);
-    expect(startOf(start).chatId).toBe(dmChatId);
+    expect(startOf(start).chatId).toBe(captainChatId);
 
     await owner.trpc.agent.stop.mutate({ agentId, serverId });
 
@@ -169,7 +170,7 @@ function lifecycle(runId: string, phase: AgentLifecycleEvent['phase']) {
 
 async function agentSend(start: RunnerFrame, nonce: string) {
     return await fetch(new URL('/api/agent/messages/send', harness.url), {
-        body: JSON.stringify({ content: 'On it.', nonce, target: 'dm:@ada' }),
+        body: JSON.stringify({ content: 'On it.', nonce, target: 'captain:@orbit' }),
         headers: {
             authorization: `Bearer ${String(start.runCredential)}`,
             'content-type': 'application/json',

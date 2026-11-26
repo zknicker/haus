@@ -51,6 +51,9 @@ export function agentTurnTrigger(
     if (record.source === 'subagent') {
         return { kind: 'subagent' };
     }
+    if (record.source === 'crew_report') {
+        return { kind: 'private' };
+    }
     if (isBatchedChatlessInboxSource(record.source)) {
         return issues.get(record.workId) ?? null;
     }

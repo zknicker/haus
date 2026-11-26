@@ -8,6 +8,7 @@ import {
     startInvocationHarness,
 } from './agent-invocations.fixture.ts';
 import { closeFlush, nextAfter, settledTurn } from './agent-machine.fixture.ts';
+import { openCaptainChat } from './captain-chat.fixture.ts';
 import {
     connectRunner,
     frameOfType,
@@ -79,7 +80,7 @@ test('an idle Agent flushes the old Machine, then switches once that push closes
 
 test('a change asked for mid-turn waits for the turn, then the old Machine pushes and flushes', async () => {
     const { agentId, owner, serverId } = setup;
-    const chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    const chatId = (await openCaptainChat(owner, { agentId, serverId })).id;
     const pulled = nextAfter(laptop, (frame) => frame.type === 'drive-pull');
     const started = nextAfter(runner, (frame) => frame.type === 'runner-start');
     await owner.trpc.chat.send.mutate({

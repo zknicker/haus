@@ -30,8 +30,10 @@ export interface ConfiguredAgentRow extends Pick<
     desiredModelId: string | null;
     desiredReasoningEffort: AgentReasoningEffort;
     desiredRuntimeId: string | null;
+    captainChatId: string | null;
+    crewComputerId: string | null;
+    crewModel: string | null;
     displayName: string;
-    dmChatId: string | null;
     effectiveBackgroundSubagents: number;
     effectiveHausAgentAppliedAt: Date | null;
     effectiveHausAgentStatus: HausAgentStatus | null;
@@ -44,6 +46,7 @@ export interface ConfiguredAgentRow extends Pick<
     handle: string;
     id: string;
     modelConnectionId: string | null;
+    ownerUserId: string | null;
     serverId: string;
     stopped: boolean;
 }
@@ -106,7 +109,9 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         desiredReasoningEffort: row.desiredReasoningEffort,
         desiredRuntimeId: row.desiredRuntimeId,
         displayName: row.displayName,
-        dmChatId: row.dmChatId,
+        captainChatId: row.captainChatId,
+        crewComputerId: row.crewComputerId,
+        crewModel: row.crewModel,
         effectiveModelId: row.effectiveModelId,
         effectiveReasoningEffort: row.effectiveReasoningEffort,
         effectiveReportedAt: row.effectiveReportedAt?.toISOString() ?? null,
@@ -126,6 +131,7 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         id: row.id,
         missingResources: row.effectiveMissing ?? [],
         modelConnectionId: row.modelConnectionId,
+        ownerUserId: row.ownerUserId,
         serverId: row.serverId,
         status: deriveAgentStatus(row),
         wakePause: toWakePause(row),

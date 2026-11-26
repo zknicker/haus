@@ -57,6 +57,27 @@ export async function rotateTaskSession(
 }
 
 export function announceTaskSessions(wire: TaskSessionWire, resets: readonly TaskSessionReset[]) {
+    publishTaskSessionResets(resets);
+    for (const reset of resets) {
+        const { agentId, serverId } = reset;
+        if (reset.archived) {
+            wire.runner.send({
+                agentId,
+                kind: 'archive',
+                sessionGeneration: reset.generation,
+                type: 'agent-reset',
+            });
+            wire.invocations.archiveSession({
+                agentId,
+                computerId: reset.computerId,
+                generation: reset.generation,
+                serverId,
+            });
+        }
+    }
+}
+
+export function publishTaskSessionResets(resets: readonly TaskSessionReset[]) {
     for (const reset of resets) {
         const { agentId, serverId } = reset;
         if (reset.activity) {
@@ -70,20 +91,6 @@ export function announceTaskSessions(wire: TaskSessionWire, resets: readonly Tas
                 outcome: 'stopped',
                 phase: 'settled',
                 runId: reset.killedRun.runId,
-                serverId,
-            });
-        }
-        if (reset.archived) {
-            wire.runner.send({
-                agentId,
-                kind: 'archive',
-                sessionGeneration: reset.generation,
-                type: 'agent-reset',
-            });
-            wire.invocations.archiveSession({
-                agentId,
-                computerId: reset.computerId,
-                generation: reset.generation,
                 serverId,
             });
         }

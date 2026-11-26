@@ -43,6 +43,9 @@ export const tasksTable = pgTable(
         originChatId: text('origin_chat_id'),
         originMessageId: text('origin_message_id'),
         projectId: text('project_id').notNull(),
+        /** The Server repo, `owner/name`, a crew Task checks out first, and its starting ref. */
+        repo: text('repo'),
+        repoRef: text('repo_ref'),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -57,6 +60,7 @@ export const tasksTable = pgTable(
     },
     (table) => [
         unique('tasks_server_id_key').on(table.serverId, table.id),
+        check('tasks_repo_shape', sql`${table.repo} is not null or ${table.repoRef} is null`),
         uniqueIndex('tasks_short_id_key').on(table.serverId, table.shortId),
         uniqueIndex('tasks_chat_key').on(table.chatId),
         uniqueIndex('tasks_agent_key').on(table.agentId),

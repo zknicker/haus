@@ -10,7 +10,7 @@ import { mentionedRecipientIds, type PreparedMessageRouting } from './route-huma
 
 interface RoutingCommit {
     chatId: string;
-    chatKind: 'channel' | 'dm' | 'task';
+    chatKind: 'captain' | 'channel' | 'dm' | 'task';
     isReply: boolean;
     messageId: string;
     prepared: PreparedMessageRouting;
@@ -177,7 +177,7 @@ function mentionAudit(
 }
 
 function bypassReason(input: RoutingCommit, reason: RoutingBypassReason): RoutingBypassReason {
-    if (input.chatKind === 'dm') {
+    if (input.chatKind === 'dm' || input.chatKind === 'captain') {
         return 'direct-message';
     }
     if (input.chatKind === 'task') {

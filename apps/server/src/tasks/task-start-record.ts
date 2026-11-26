@@ -1,6 +1,5 @@
 import type { TaskActor } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentTaskFollowsTable, chatsTable, tasksTable } from '../postgres/schema.ts';
@@ -26,6 +25,7 @@ export async function insertStartedTask(
         captainId: string | null;
         origin: { chatId: string; messageId: string } | null;
         projectId: string;
+        repo?: { name: string; ref: string | null } | null;
         requestId: string | null;
         serverId: string;
         session: TaskSessionChoice;
@@ -57,6 +57,8 @@ export async function insertStartedTask(
         originChatId: input.origin?.chatId ?? null,
         originMessageId: input.origin?.messageId ?? null,
         projectId: input.projectId,
+        repo: input.repo?.name ?? null,
+        repoRef: input.repo?.ref ?? null,
         serverId,
         shortId,
         startRequestId: input.requestId,
@@ -122,28 +124,4 @@ export async function unfollowAsCaptain(
                 eq(agentTaskFollowsTable.taskChatId, input.chatId)
             )
         );
-}
-
-export async function queueTaskTurn(
-    tx: Tx,
-    agentDelivery: Pick<AgentDelivery, 'enqueue'>,
-    input: {
-        agentId: string;
-        chatId: string;
-        message: { content: string; id: string; sequence: number };
-        serverId: string;
-        source: string;
-    }
-) {
-    await agentDelivery.enqueue(tx, {
-        addressedReason: 'dm',
-        agentId: input.agentId,
-        chatId: input.chatId,
-        content: input.message.content,
-        dedupeKey: input.message.id,
-        mentioned: false,
-        sequence: input.message.sequence,
-        serverId: input.serverId,
-        source: input.source,
-    });
 }

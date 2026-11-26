@@ -76,7 +76,7 @@ test('starts over for a message steered into the run, and keeps runs apart', asy
         connection.db,
         first.seed,
         first.delivery,
-        first.seed.dmChatId,
+        first.seed.captainChatId,
         'Also, is staging up?'
     );
     await attestAgentEvents(connection.db, first.runner as never, [dm], { composed: true });
@@ -93,7 +93,7 @@ test('starts over for a message steered into the run, and keeps runs apart', asy
     ).toEqual(['(none)']);
     expect(heard.sort((a, b) => a.chatId.localeCompare(b.chatId))).toEqual(
         [
-            { chatId: first.seed.dmChatId, text: 'Pulling the deploy' },
+            { chatId: first.seed.captainChatId, text: 'Pulling the deploy' },
             { chatId: first.seed.channelId, text: 'Pulling the deploy' },
         ].sort((a, b) => a.chatId.localeCompare(b.chatId))
     );

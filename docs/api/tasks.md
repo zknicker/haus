@@ -32,7 +32,8 @@ A started Task carries its hidden `task` agent (`agentId`), its Machine (`comput
 message, cut at a word to 80 characters, until someone renames it (`titleCustom`). `activity` is
 derived from the agent's delivery: `working` while a run is active or work waits for an online
 Machine, `waiting` while work waits for an offline Machine, `failed` after a failed turn, else
-`idle`. `needsYou` stays false until crew reports land (step 5b). A Task filed or started before
+`idle`. `needsYou` is true while the newest report is `needs-you` and no person has posted since,
+and the Task then reads `waiting`. A Task filed or started before
 step 5 has null `agentId`, `computerId` and `model`.
 
 ## Tasks
@@ -49,7 +50,7 @@ step 5 has null `agentId`, `computerId` and `model`.
 | `task.unarchive` | `taskArchiveInputSchema` | `{ task }`; clears `archivedAt`, bumps the session generation again, and starts no turn. Canceled reminders stay canceled. `CONFLICT` while the Project is archived |
 | `task.setFollow` | `taskSetFollowInputSchema`: `serverId`, `taskId`, `followed` | `{ serverId, taskId, followed }` |
 
-A post in an archived Task leaves it archived; unarchive on message is step 5b.
+A person's post in an archived Task unarchives it and wakes its agent.
 
 ## Task keys
 

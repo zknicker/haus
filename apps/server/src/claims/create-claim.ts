@@ -2,7 +2,7 @@ import type { MessageClaim } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
-import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
+import { requireActiveCaptain } from '../chats/captain-chat.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import { replayImageGenerationLinks } from '../chats/image-generation-links.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
@@ -64,7 +64,7 @@ export async function createClaim(
             for update
         `);
         const chat = await requireChatWriteAccess(tx, member, input);
-        if (chat.kind !== 'channel' && chat.kind !== 'dm') {
+        if (chat.kind === 'task') {
             throw new UnclaimableMessageError();
         }
         const [existing] = await tx
@@ -97,7 +97,7 @@ export async function createClaim(
             }
             return { events: [], idempotent: true, claim, wakes: [] };
         }
-        await requireActiveDmPeer(tx, chat);
+        await requireActiveCaptain(tx, chat);
         const [numberedChat] = await tx
             .update(chatsTable)
             .set({

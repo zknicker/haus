@@ -1,8 +1,8 @@
 import { createRouter } from '../trpc.ts';
 import { archiveChannelProcedure } from './archive-channel.ts';
+import { setCaptainChatMembershipProcedure } from './captain-chat-membership.ts';
 import { deleteChannelProcedure } from './delete-channel.ts';
 import { listChatEngagementsProcedure } from './engagements.ts';
-import { ensureAgentDmProcedure } from './ensure-agent-dm.ts';
 import { ensureDmProcedure } from './ensure-dm.ts';
 import { getChatProcedure } from './get.ts';
 import { listArchivedChatsProcedure } from './list-archived.ts';
@@ -33,7 +33,6 @@ export const chatRouter = createRouter({
     deleteChannel: deleteChannelProcedure,
     engagements: listChatEngagementsProcedure,
     ensureDm: ensureDmProcedure,
-    ensureAgentDm: ensureAgentDmProcedure,
     get: getChatProcedure,
     list: listChatsProcedure,
     listArchived: listArchivedChatsProcedure,
@@ -53,6 +52,7 @@ export const chatRouter = createRouter({
     react: reactToChatMessageProcedure,
     search: searchChatMessagesProcedure,
     send: sendChatMessageProcedure,
+    setCaptainChatMembership: setCaptainChatMembershipProcedure,
     unarchiveChannel: unarchiveChannelProcedure,
     unreadChatCount: unreadChatCountProcedure,
     unreadPreviews: listUnreadPreviewsProcedure,

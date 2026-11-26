@@ -1,8 +1,16 @@
 import { captainWarmIdleMs, type RunnerSessionPolicy, taskWarmIdleMs } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import { readIssues } from '../issues/issue-read.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, projectsTable, taskKeysTable, tasksTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    issuesTable,
+    issueTaskLinksTable,
+    projectsTable,
+    taskKeysTable,
+    tasksTable,
+} from '../postgres/schema.ts';
 import { readAgentHomeKey } from '../projects/agent-home.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
@@ -17,7 +25,12 @@ export async function readRunnerSessionPolicy(
             captainHandle: captain.handle,
             handle: agentsTable.handle,
             kind: agentsTable.kind,
+            repo: tasksTable.repo,
+            repoRef: tasksTable.repoRef,
+            shortId: tasksTable.shortId,
+            taskId: tasksTable.id,
             taskProjectKey: taskKeysTable.key,
+            title: tasksTable.title,
         })
         .from(agentsTable)
         .leftJoin(
@@ -51,7 +64,7 @@ export async function readRunnerSessionPolicy(
         throw new Error(`Agent ${input.agentId} is gone, so it has no session policy.`);
     }
     if (agent.kind === 'task') {
-        if (!agent.taskProjectKey) {
+        if (!(agent.taskProjectKey && agent.taskId && agent.shortId && agent.title)) {
             throw new Error(`Task agent ${input.agentId} has no Task in a Project.`);
         }
         const task: RunnerSessionPolicy = {
@@ -63,6 +76,13 @@ export async function readRunnerSessionPolicy(
                 `projects/${agent.taskProjectKey}/AGENTS.md`,
                 ...(agent.captainHandle ? [`agents/${agent.captainHandle}/WORKER.md`] : []),
             ],
+            task: {
+                captainHandle: agent.captainHandle,
+                issues: await readTaskIssues(db, { ...input, taskId: agent.taskId }),
+                repo: agent.repo ? { name: agent.repo, ref: agent.repoRef } : null,
+                shortId: agent.shortId,
+                title: agent.title,
+            },
             warmIdleMs: taskWarmIdleMs,
         };
         return task;
@@ -77,9 +97,39 @@ export async function readRunnerSessionPolicy(
             `projects/${projectKey}/AGENTS.md`,
             `agents/${agent.handle}/AGENTS.md`,
         ],
+        task: null,
         warmIdleMs: captainWarmIdleMs,
     };
     return captainPolicy;
 }
 
 const hausRules = 'haus/AGENTS.md';
+
+async function readTaskIssues(db: Reader, input: { serverId: string; taskId: string }) {
+    const links = await db
+        .select({ issueId: issueTaskLinksTable.issueId })
+        .from(issueTaskLinksTable)
+        .where(
+            and(
+                eq(issueTaskLinksTable.serverId, input.serverId),
+                eq(issueTaskLinksTable.taskId, input.taskId)
+            )
+        )
+        .limit(10);
+    if (links.length === 0) {
+        return [];
+    }
+    const issues = await readIssues(
+        db,
+        input.serverId,
+        inArray(
+            issuesTable.id,
+            links.map((link) => link.issueId)
+        )
+    );
+    return issues.map((issue) => ({
+        code: issue.code,
+        description: issue.description,
+        title: issue.title,
+    }));
+}
