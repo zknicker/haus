@@ -493,9 +493,8 @@ Superseded by [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-th
 `worker_report` becomes [`crew_report`](#crew-reports) in step 3, and `worker_stall` goes with
 the cloud places in step 7. This section stays as history until then.
 
-[Workers](workers.md) reach their Agent through three item kinds. They replace the
-`cloud_agent_work` kind, its row in the item table, and the Cloud Agent bullets under delivery
-planning. W2 deletes those and migrates queued rows by their `cloud_agent_notice`.
+[Workers](workers.md) reach their Agent through three item kinds, which replaced the
+`cloud_agent_work` kind.
 
 | Kind (`source`) | What it is | Recipient | Identity | Lane |
 | --- | --- | --- | --- | --- |
