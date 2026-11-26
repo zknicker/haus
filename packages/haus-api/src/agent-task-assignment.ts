@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
-import { taskKeySchema } from './task-key.ts';
-import { taskPrioritySchema, taskTitleSchema } from './task.ts';
+import { taskPriorities } from './task-labels.ts';
+import { taskTitleSchema } from './task.ts';
 
 /** Most Task assignments one run or busy notice names; a larger batch drains in further runs. */
 export const agentTaskAssignmentBatchLimit = 50;
@@ -17,8 +17,8 @@ export const agentTaskAssignmentSchema = z
         assignedBy: z.string().min(1).max(128).nullable(),
         assignedByAgent: z.boolean(),
         id: idSchema,
-        key: taskKeySchema,
-        priority: taskPrioritySchema,
+        key: z.string().regex(/^[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*$/u),
+        priority: z.enum(taskPriorities),
         taskId: idSchema,
         title: taskTitleSchema,
     })

@@ -1126,30 +1126,22 @@ paths:
       tags: [Agent CLI]
       summary: List Tasks on the calling agent's Server.
       parameters:
-        - name: assignee
+        - name: all
           in: query
-          description: '`me`, an @handle of a person or Agent, or `none` for unassigned Tasks.'
-          schema: { type: string, pattern: '^(me|none|@\S+)$' }
-        - name: key
+          description: '`true` lists every Task; otherwise only the Tasks the caller started.'
+          schema: { type: string, enum: ['true', 'false'] }
+        - name: archived
           in: query
-          description: A Task key-ledger entry, such as `SEC`; only Tasks numbered by it.
+          description: '`true` lists archived Tasks instead of active ones.'
+          schema: { type: string, enum: ['true', 'false'] }
+        - name: project
+          in: query
+          description: A Project by its key, such as `SEC`; only its Tasks.
           schema:
-            $ref: '#/components/schemas/AgentTaskKeyPrefix'
-        - name: state
-          in: query
-          description: >-
-            Task states, comma-separated or repeated (`state=done&state=canceled`); defaults to
-            todo,open.
-          schema:
-            oneOf:
-              - $ref: '#/components/schemas/AgentTaskStateList'
-              - type: array
-                minItems: 1
-                items:
-                  $ref: '#/components/schemas/AgentTaskStateList'
+            $ref: '#/components/schemas/AgentTaskProjectKey'
       responses:
         '200':
-          description: Matching Tasks, by priority then age.
+          description: Matching Tasks, newest first.
           content:
             application/json:
               schema:
@@ -1160,13 +1152,13 @@ paths:
     get:
       operationId: showAgentTask
       tags: [Agent CLI]
-      summary: Read one Task by key, with the messages and Reminders that reference it.
+      summary: Read one Task by short id or id, with the messages and Reminders that reference it.
       parameters:
-        - name: key
+        - name: task
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/AgentTaskKey'
+            $ref: '#/components/schemas/AgentTaskRef'
       responses:
         '200':
           description: The Task, its description, Mentioned in, and Reminders.
@@ -1176,46 +1168,6 @@ paths:
                 $ref: '#/components/schemas/AgentTaskShowResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/update:
-    post:
-      operationId: updateAgentTask
-      tags: [Agent CLI]
-      summary: Edit one Task's title, description, priority, labels, or due date.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AgentTaskUpdateRequest'
-      responses:
-        '200':
-          description: Updated Task.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentTaskSingleResponse'
-        default:
-          $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/assign:
-    post:
-      operationId: assignAgentTask
-      tags: [Agent CLI]
-      summary: Assign one Task to a person or Agent, or unassign it.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AgentTaskAssignRequest'
-      responses:
-        '200':
-          description: Updated Task.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentTaskSingleResponse'
-        default:
-          $ref: '#/components/responses/AgentError'
   /api/agent/tasks/start:
     post:
       operationId: startAgentTask
@@ -1223,8 +1175,8 @@ paths:
       summary: Start a Task from a Message in a Channel or DM.
       description: >-
         Starts a Task, a place for one piece of work, in a Project from an origin Message in a
-        Channel or DM (ADR 0055). The Task takes its Project's key. An Agent starting outside
-        its Project is refused with `TASK_PROJECT_NOT_HOME`.
+        Channel or DM (ADR 0055). The Task gets a short id. An Agent starting outside its
+        Project is refused with `TASK_PROJECT_NOT_HOME`.
       requestBody:
         required: true
         content:
@@ -1240,17 +1192,17 @@ paths:
                 $ref: '#/components/schemas/AgentTaskStartResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/state:
+  /api/agent/tasks/archive:
     post:
-      operationId: setAgentTaskState
+      operationId: archiveAgentTask
       tags: [Agent CLI]
-      summary: Set one Task's state; done or canceled ends it.
+      summary: Archive one Task; its pending reminders are canceled.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentTaskStateRequest'
+              $ref: '#/components/schemas/AgentTaskArchiveRequest'
       responses:
         '200':
           description: Updated Task.
@@ -2925,10 +2877,10 @@ components:
         # request replay the original reminder; a different request under it is
         # refused with IDEMPOTENCY_KEY_REUSED.
         commandId: { type: string, minLength: 1, maxLength: 128 }
-        # The anchor: exactly one of messageId and target. A `task:KEY-n`
+        # The anchor: exactly one of messageId and target. A `task:<shortId>`
         # target anchors on that Task's newest message, one-time only
         # (TASK_RECURRING_REMINDER otherwise).
-        target: { type: string, pattern: '^task:[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*$' }
+        target: { type: string, pattern: '^task:[0-9a-hjkmnp-tv-z]{8}$' }
         description: { type: string, minLength: 1 }
         # Required for one-shots and every: repeats. A daily@ or weekly: repeat
         # may omit it: the Server derives the next slot in timezone. A supplied
@@ -2973,25 +2925,19 @@ components:
         commandId: { type: string, minLength: 1, maxLength: 128 }
         expectedVersion: { type: integer, minimum: 1 }
         id: { type: string, minLength: 1 }
-    AgentTaskKeyPrefix:
+    AgentTaskProjectKey:
       type: string
       pattern: '^[A-Z][A-Z0-9]{1,4}$'
-      description: A Task key-ledger entry, like SEC.
-    AgentTaskStateList:
+      description: A Project's key, like SEC.
+    AgentTaskShortId:
       type: string
-      pattern: '^(todo|open|done|canceled)(,(todo|open|done|canceled))*$'
-      description: One or more Task states, comma-separated.
-    AgentTaskKey:
+      pattern: '^[0-9a-hjkmnp-tv-z]{8}$'
+      description: A Task's short id, 8 lowercase Crockford base32 characters, like k3mq7xta.
+    AgentTaskRef:
       type: string
-      pattern: '^[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*$'
-      description: A Task key, its ledger key and number, like SEC-12.
-    AgentTaskState:
-      type: string
-      enum: [todo, open, done, canceled]
-      description: A Task's state (ADR 0053); done and canceled end it.
-    AgentTaskPriority:
-      type: string
-      enum: [none, urgent, high, medium, low]
+      minLength: 1
+      maxLength: 128
+      description: A Task's short id, like k3mq7xta, or its full id.
     AgentTaskActor:
       description: A person or Agent of the Server, by handle.
       type: object
@@ -3004,37 +2950,23 @@ components:
       type: object
       additionalProperties: false
       required:
-        - assignee
-        - completedAt
+        - archivedAt
         - createdAt
         - createdBy
-        - dueOn
-        - key
-        - labels
-        - priority
-        - state
+        - shortId
         - title
         - updatedAt
         - version
       properties:
-        assignee:
-          oneOf:
-            - $ref: '#/components/schemas/AgentTaskActor'
-            - type: 'null'
-        state:
-          $ref: '#/components/schemas/AgentTaskState'
-        completedAt: { type: [string, 'null'], format: date-time }
+        archivedAt:
+          type: [string, 'null']
+          format: date-time
+          description: When the Task was archived; null while it is active.
         createdAt: { type: string, format: date-time }
         createdBy:
           $ref: '#/components/schemas/AgentTaskActor'
-        dueOn: { type: [string, 'null'], format: date }
-        key:
-          $ref: '#/components/schemas/AgentTaskKey'
-        labels:
-          type: array
-          items: { type: string, minLength: 1 }
-        priority:
-          $ref: '#/components/schemas/AgentTaskPriority'
+        shortId:
+          $ref: '#/components/schemas/AgentTaskShortId'
         title: { type: string, minLength: 1, maxLength: 200 }
         updatedAt: { type: string, format: date-time }
         version:
@@ -3102,77 +3034,22 @@ components:
       properties:
         task:
           $ref: '#/components/schemas/AgentTaskRow'
-    AgentTaskUpdateRequest:
-      type: object
-      additionalProperties: false
-      required: [key]
-      properties:
-        description: { type: string, maxLength: 20000 }
-        dueOn:
-          type: [string, 'null']
-          format: date
-          description: A date, or null to clear it.
-        expectedVersion:
-          type: integer
-          minimum: 1
-          description: Apply only if the Task is still at this version; omit to use the current one.
-        key:
-          $ref: '#/components/schemas/AgentTaskKey'
-        labels:
-          type: array
-          description: The Task's whole label set, by name.
-          items: { type: string, minLength: 1 }
-        priority:
-          $ref: '#/components/schemas/AgentTaskPriority'
-        title: { type: string, minLength: 1, maxLength: 200 }
-      anyOf:
-        - required: [description]
-        - required: [dueOn]
-        - required: [labels]
-        - required: [priority]
-        - required: [title]
-    AgentTaskAssignRequest:
-      type: object
-      additionalProperties: false
-      required: [assignee, key]
-      properties:
-        assignee:
-          type: [string, 'null']
-          minLength: 1
-          description: '`me`, an @handle of a person or Agent of the Server, or null to unassign.'
-        expectedVersion:
-          type: integer
-          minimum: 1
-          description: Apply only if the Task is still at this version; omit to use the current one.
-        key:
-          $ref: '#/components/schemas/AgentTaskKey'
     AgentTaskStartRequest:
       type: object
       additionalProperties: false
       required: [from, target, title]
       properties:
-        assignee:
-          type: string
-          minLength: 1
-          description: '`me` or an @handle of a person or Agent of the Server; defaults to the caller.'
         description: { type: string, maxLength: 20000 }
-        dueOn: { type: string, format: date }
         from:
           type: string
           minLength: 1
           description: The origin Message id. It must be in `target`.
-        priority:
-          $ref: '#/components/schemas/AgentTaskPriority'
         project:
           type: string
           pattern: '^[A-Z][A-Z0-9]{1,4}$'
           description: >-
             The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or
             `#all` origin to the caller's Project.
-        state:
-          description: Defaults to open.
-          type: string
-          enum: [todo, open]
         target:
           type: string
           minLength: 1
@@ -3187,30 +3064,28 @@ components:
       properties:
         target:
           type: string
-          pattern: '^task:[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*$'
-          description: The Task's send target, like `task:SEC-12`.
+          pattern: '^task:[0-9a-hjkmnp-tv-z]{8}$'
+          description: The Task's target, like `task:k3mq7xta`.
         task:
           $ref: '#/components/schemas/AgentTaskRow'
-    AgentTaskStateRequest:
+    AgentTaskArchiveRequest:
       type: object
       additionalProperties: false
-      required: [key, state]
+      required: [task]
       properties:
         expectedVersion:
           type: integer
           minimum: 1
           description: Apply only if the Task is still at this version; omit to use the current one.
-        key:
-          $ref: '#/components/schemas/AgentTaskKey'
-        state:
-          $ref: '#/components/schemas/AgentTaskState'
+        task:
+          $ref: '#/components/schemas/AgentTaskRef'
     AgentTaskAttachPullRequestRequest:
       type: object
       additionalProperties: false
-      required: [key, url]
+      required: [task, url]
       properties:
-        key:
-          $ref: '#/components/schemas/AgentTaskKey'
+        task:
+          $ref: '#/components/schemas/AgentTaskRef'
         url:
           type: string
           format: uri
@@ -3832,15 +3707,15 @@ components:
       additionalProperties: false
       required:
         - task_id
-        - key
+        - short_id
         - text
       properties:
         task_id:
           type: string
           minLength: 1
-        key:
+        short_id:
           type: string
-          pattern: '^[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*$'
+          pattern: '^[0-9a-hjkmnp-tv-z]{8}$'
         text:
           type: string
           minLength: 1

@@ -22,9 +22,9 @@ export const agentTaskRefusalCodeSchema = z.enum(agentTaskRefusalCodes);
 
 export type AgentTaskRefusalCode = z.infer<typeof agentTaskRefusalCodeSchema>;
 
-/** A Task's send target, `task:SEC-12`, as Agent receipts and inbox rows name it. */
-export const TASK_TARGET_PATTERN = /^task:([A-Z][A-Z0-9]{1,4}-[1-9][0-9]*)$/u;
+/** A Task's target, `task:k3mq7xta`, as Agent receipts and inbox rows name it. */
+export const TASK_TARGET_PATTERN = /^task:([0-9a-hjkmnp-tv-z]{8})$/u;
 
-export function formatTaskTarget(taskKey: string): string {
-    return `task:${taskKey}`;
+export function formatTaskTarget(shortId: string): string {
+    return `task:${shortId}`;
 }

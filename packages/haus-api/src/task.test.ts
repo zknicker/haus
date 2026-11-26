@@ -2,104 +2,53 @@ import { expect, test } from 'bun:test';
 import { agentDeliveryRecordSchema, isChatlessInboxSource } from './agent-deliveries.ts';
 import { type AgentTurnTrigger, agentTurnTriggerSchema } from './agent-turn-trigger.ts';
 import { chatMessageSchema } from './chat.ts';
-import {
-    taskAssignInputSchema,
-    taskGetInputSchema,
-    taskListInputSchema,
-    taskUpdateInputSchema,
-} from './task-input.ts';
-import { formatTaskKey, parseTaskKey, taskKeySchema, taskLinkSchema } from './task-key.ts';
-import {
-    type Task,
-    taskAssigneeSchema,
-    taskDetailSchema,
-    taskMessagePlaceSchema,
-    taskSchema,
-} from './task.ts';
+import { taskGetInputSchema, taskListInputSchema, taskUpdateInputSchema } from './task-input.ts';
+import { isTaskShortId, taskLinkSchema, taskShortIdSchema } from './task-short-id.ts';
+import { type Task, taskDetailSchema, taskMessagePlaceSchema, taskSchema } from './task.ts';
 
 const task: Task = {
-    assignee: { agentId: 'agt_zero', kind: 'agent' },
+    archivedAt: null,
     chatId: 'cht_task',
-    completedAt: null,
     createdAt: '2026-11-04T12:00:00.000Z',
     createdBy: { kind: 'user', userId: 'usr_zach' },
     description: 'Rotate the leaked key.',
-    dueOn: '2026-11-07',
     id: 'tsk_12',
-    key: 'SEC-12',
-    keyId: 'brd_sec',
-    labelIds: ['lbl_security'],
-    number: 12,
     origin: { chatId: 'cht_security', messageId: 'msg_origin' },
-    priority: 'high',
     projectId: 'cht_security',
     serverId: 'srv_1',
-    state: 'todo',
+    shortId: 'k3mq7xta',
     title: 'Rotate the deploy key',
     updatedAt: '2026-11-04T12:00:00.000Z',
     version: 3,
 };
 
-test('task keys are a board key and a positive number', () => {
-    expect(formatTaskKey('SEC', 12)).toBe('SEC-12');
-    expect(parseTaskKey('SEC-12')).toEqual({ boardKey: 'SEC', number: 12 });
-    for (const key of [
-        'sec-12',
-        'SEC-0',
-        'SEC-012',
-        'SEC12',
-        'SEC-',
-        'S-1',
-        'SECURE-1',
-        'SEC-1a',
-    ]) {
-        expect(parseTaskKey(key)).toBeNull();
-        expect(taskKeySchema.safeParse(key).success).toBe(false);
+test('a short id is 8 lowercase Crockford base32 characters', () => {
+    expect(isTaskShortId('k3mq7xta')).toBe(true);
+    expect(isTaskShortId('0123abcz')).toBe(true);
+    for (const shortId of ['K3MQ7XTA', 'k3mq7xt', 'k3mq7xtaa', 'k3mq7xti', 'k3mq7xtl', 'k3mq7xto']) {
+        expect(isTaskShortId(shortId)).toBe(false);
+        expect(taskShortIdSchema.safeParse(shortId).success).toBe(false);
     }
-    expect(parseTaskKey('SEC-99999999999999999999')).toBeNull();
+    expect(isTaskShortId('k3mq7xtu')).toBe(false);
 });
 
-test('a Task has at most one assignee, a person or an Agent', () => {
+test('a Task has a short id and an archive time, and no backlog fields', () => {
     expect(taskSchema.parse(task)).toEqual(task);
-    expect(taskSchema.parse({ ...task, assignee: null }).assignee).toBeNull();
-    expect(taskAssigneeSchema.safeParse({ kind: 'user', userId: 'usr_ada' }).success).toBe(true);
-    expect(
-        taskAssigneeSchema.safeParse({ agentId: 'agt_zero', kind: 'user', userId: 'usr_ada' })
-            .success
-    ).toBe(false);
-    expect(taskAssigneeSchema.safeParse({ agentId: 'agt_zero', userId: 'usr_ada' }).success).toBe(
-        false
-    );
-    expect(taskSchema.safeParse({ ...task, assignee: [task.assignee] }).success).toBe(false);
+    const archived = { ...task, archivedAt: '2026-11-05T09:00:00.000Z' };
+    expect(taskSchema.parse(archived).archivedAt).toBe(archived.archivedAt);
+    for (const field of ['state', 'priority', 'dueOn', 'labelIds', 'assignee', 'key', 'number']) {
+        expect(taskSchema.safeParse({ ...task, [field]: null }).success).toBe(false);
+    }
+    expect(taskSchema.safeParse({ ...task, shortId: 'SEC-12' }).success).toBe(false);
+    expect(taskSchema.safeParse({ ...task, title: 'x'.repeat(201) }).success).toBe(false);
+    expect(taskSchema.safeParse({ ...task, description: 'x'.repeat(20_001) }).success).toBe(false);
     expect(
         taskSchema.safeParse({ ...task, createdBy: { agentId: 'a', kind: 'user', userId: 'u' } })
             .success
     ).toBe(false);
 });
 
-test('completedAt is set exactly while a Task is done or canceled', () => {
-    const doneAt = '2026-11-05T09:00:00.000Z';
-    expect(taskSchema.safeParse({ ...task, completedAt: doneAt, state: 'done' }).success).toBe(
-        true
-    );
-    expect(taskSchema.safeParse({ ...task, completedAt: doneAt, state: 'canceled' }).success).toBe(
-        true
-    );
-    expect(taskSchema.safeParse({ ...task, state: 'done' }).success).toBe(false);
-    expect(taskSchema.safeParse({ ...task, completedAt: doneAt }).success).toBe(false);
-    expect(taskSchema.safeParse({ ...task, columnId: 'col_todo' }).success).toBe(false);
-});
-
-test('a Task record keeps its derived key consistent and its fields bounded', () => {
-    expect(taskSchema.safeParse({ ...task, key: 'SEC-13' }).success).toBe(false);
-    expect(taskSchema.safeParse({ ...task, key: 'sec-12' }).success).toBe(false);
-    expect(taskSchema.safeParse({ ...task, title: 'x'.repeat(201) }).success).toBe(false);
-    expect(taskSchema.safeParse({ ...task, description: 'x'.repeat(20_001) }).success).toBe(false);
-    expect(taskSchema.safeParse({ ...task, dueOn: '2026-11-07T00:00:00Z' }).success).toBe(false);
-    expect(taskSchema.safeParse({ ...task, priority: 'p0' }).success).toBe(false);
-    expect(
-        taskDetailSchema.safeParse({ ...task, key: 'SEC-13', mentions: [], reminders: [] }).success
-    ).toBe(false);
+test('a Task detail carries its Mentioned in and Reminders', () => {
     expect(
         taskDetailSchema.parse({
             ...task,
@@ -107,22 +56,17 @@ test('a Task record keeps its derived key consistent and its fields bounded', ()
             descriptionContent: task.description,
             descriptionTaskLinks: [],
             followed: true,
-            pullRequests: [],
-            unreadCount: 0,
             mentions: [
                 {
                     authorLabel: 'Zero',
                     chatId: 'cht_security',
                     createdAt: '2026-11-04T12:01:00.000Z',
-                    excerpt: 'Filed SEC-12 for the leaked key.',
+                    excerpt: 'Started a Task for the leaked key.',
                     messageId: 'msg_1',
-                    place: {
-                        chatId: 'cht_security',
-                        chatKind: 'channel',
-                        chatName: 'security',
-                    },
+                    place: { chatId: 'cht_security', chatKind: 'channel', chatName: 'security' },
                 },
             ],
+            pullRequests: [],
             reminders: [
                 {
                     anchorChatId: 'cht_security',
@@ -130,19 +74,16 @@ test('a Task record keeps its derived key consistent and its fields bounded', ()
                     nextFireAt: '2026-11-07T15:00:00.000Z',
                     reminderId: 'rem_1',
                     setBy: { agentId: 'agt_forge', displayName: 'Forge' },
-                    title: 'Check SEC-12',
+                    title: 'Check the key',
                 },
             ],
+            unreadCount: 0,
         }).mentions
     ).toHaveLength(1);
 });
 
 test("a message's place names a Channel and never a DM's peer", () => {
-    const channel = {
-        chatId: 'cht_security',
-        chatKind: 'channel',
-        chatName: 'security',
-    };
+    const channel = { chatId: 'cht_security', chatKind: 'channel', chatName: 'security' };
     const dm = { ...channel, chatKind: 'dm', chatName: null };
     expect(taskMessagePlaceSchema.safeParse(channel).success).toBe(true);
     expect(taskMessagePlaceSchema.safeParse(dm).success).toBe(true);
@@ -150,63 +91,48 @@ test("a message's place names a Channel and never a DM's peer", () => {
     expect(taskMessagePlaceSchema.safeParse({ ...dm, chatName: 'Ada' }).success).toBe(false);
 });
 
-test('task inputs reject illegal assignments and empty patches', () => {
+test('task updates take a title or description and nothing else', () => {
     const mutation = { expectedVersion: 3, serverId: 'srv_1', taskId: 'tsk_12' };
-    expect(
-        taskAssignInputSchema.safeParse({ ...mutation, assignee: { agentId: 'a', userId: 'u' } })
-            .success
-    ).toBe(false);
-    expect(
-        taskUpdateInputSchema.safeParse({ ...mutation, patch: { labelIds: ['lbl_1', 'lbl_1'] } })
-            .success
-    ).toBe(false);
+    expect(taskUpdateInputSchema.safeParse({ ...mutation, patch: { title: 'New' } }).success).toBe(
+        true
+    );
     expect(taskUpdateInputSchema.safeParse({ ...mutation, patch: { title: '   ' } }).success).toBe(
         false
     );
-    expect(taskAssignInputSchema.safeParse({ ...mutation, assignee: null }).success).toBe(true);
-    expect(taskAssignInputSchema.safeParse(mutation).success).toBe(false);
     expect(taskUpdateInputSchema.safeParse({ ...mutation, patch: {} }).success).toBe(false);
-    expect(taskUpdateInputSchema.safeParse({ ...mutation, patch: { dueOn: null } }).success).toBe(
-        true
-    );
-    expect(
-        taskUpdateInputSchema.safeParse({ ...mutation, patch: { columnId: 'col_done' } }).success
-    ).toBe(false);
+    for (const patch of [{ priority: 'high' }, { dueOn: null }, { labelIds: [] }]) {
+        expect(taskUpdateInputSchema.safeParse({ ...mutation, patch }).success).toBe(false);
+    }
 });
 
-test('tasks are addressed by id or key, and listed by one assignee filter', () => {
-    expect(taskGetInputSchema.safeParse({ key: 'SEC-12', serverId: 'srv_1' }).success).toBe(true);
+test('tasks are addressed by id or short id, and listed active or archived', () => {
+    expect(taskGetInputSchema.safeParse({ serverId: 'srv_1', shortId: 'k3mq7xta' }).success).toBe(
+        true
+    );
     expect(taskGetInputSchema.safeParse({ serverId: 'srv_1', taskId: 'tsk_12' }).success).toBe(
         true
     );
     expect(
-        taskGetInputSchema.safeParse({ key: 'SEC-12', serverId: 'srv_1', taskId: 'tsk_12' }).success
+        taskGetInputSchema.safeParse({ serverId: 'srv_1', shortId: 'k3mq7xta', taskId: 'tsk_12' })
+            .success
     ).toBe(false);
-    expect(taskGetInputSchema.safeParse({ key: 'sec-12', serverId: 'srv_1' }).success).toBe(false);
-    for (const assignee of [{ userId: 'usr_ada' }, { agentId: 'agt_zero' }, 'none']) {
-        expect(taskListInputSchema.safeParse({ assignee, serverId: 'srv_1' }).success).toBe(true);
-    }
-    expect(
-        taskListInputSchema.safeParse({
-            assignee: { agentId: 'agt_zero', userId: 'usr_ada' },
-            serverId: 'srv_1',
-        }).success
-    ).toBe(false);
-    expect(taskListInputSchema.safeParse({ states: [], serverId: 'srv_1' }).success).toBe(false);
-    expect(taskListInputSchema.safeParse({ boardId: 'brd_sec', serverId: 'srv_1' }).success).toBe(
+    expect(taskGetInputSchema.safeParse({ key: 'SEC-12', serverId: 'srv_1' }).success).toBe(false);
+    expect(taskListInputSchema.safeParse({ archived: true, serverId: 'srv_1' }).success).toBe(true);
+    expect(taskListInputSchema.safeParse({ serverId: 'srv_1', states: ['open'] }).success).toBe(
         false
     );
 });
 
 test('chat messages carry resolved task links, defaulting to none', () => {
-    const link = { key: 'SEC-12', taskId: 'tsk_12', text: 'SEC-12' };
+    const link = { shortId: 'k3mq7xta', taskId: 'tsk_12', text: '[the key](task://tsk_12)' };
     expect(taskLinkSchema.parse(link)).toEqual(link);
     expect(taskLinkSchema.safeParse({ ...link, text: '' }).success).toBe(false);
+    expect(taskLinkSchema.safeParse({ ...link, shortId: 'SEC-12' }).success).toBe(false);
     expect(chatMessageSchema.shape.taskLinks.parse(undefined)).toEqual([]);
     expect(chatMessageSchema.shape.taskLinks.parse([link])).toEqual([link]);
 });
 
-test('a task assignment wakes the Agent without a Chat', () => {
+test('a task assignment run is chatless and names its Task by short id', () => {
     expect(isChatlessInboxSource('task_assignment')).toBe(true);
     const delivery = {
         acceptedAt: null,
@@ -226,8 +152,8 @@ test('a task assignment wakes the Agent without a Chat', () => {
         false
     );
     const trigger: AgentTurnTrigger = {
-        key: 'SEC-12',
         kind: 'task',
+        shortId: 'k3mq7xta',
         taskId: 'tsk_12',
         title: 'Rotate the key',
     };

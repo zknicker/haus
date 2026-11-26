@@ -3,7 +3,7 @@ import { agentInboxItemSchema } from './agent-inbox.ts';
 import { formatTaskTarget, TASK_TARGET_PATTERN } from './agent-task-refusals.ts';
 import { agentTaskListQuerySchema } from './agent-task.ts';
 import { chatMessagePageSchema } from './chat.ts';
-import { taskSetStateInputSchema } from './task-input.ts';
+import { taskArchiveInputSchema } from './task-input.ts';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 import { taskPreviewSchema } from './task-preview.ts';
 
@@ -17,21 +17,21 @@ test('a message page defaults its Task previews to none', () => {
     expect(page.tasks).toEqual([]);
 });
 
-test('a Task preview carries its state and at most three recent messages', () => {
+test('a Task preview carries its archive time and at most three recent messages', () => {
     const preview = {
+        archivedAt: null,
         chatId: 'cht_task',
         followed: true,
-        key: 'SEC-12',
         messageCount: 4,
         originMessageId: 'msg_origin',
         recentMessages: [],
-        state: 'open' as const,
+        shortId: 'k3mq7xta',
         taskId: 'tsk_12',
         title: 'Rotate the deploy key',
         unreadCount: 2,
     };
     expect(taskPreviewSchema.parse(preview)).toEqual(preview);
-    expect(() => taskPreviewSchema.parse({ ...preview, state: 'active' })).toThrow();
+    expect(() => taskPreviewSchema.parse({ ...preview, state: 'open' })).toThrow();
     const reply = {
         authorAgentId: null,
         authorUserId: 'usr_zach',
@@ -44,32 +44,21 @@ test('a Task preview carries its state and at most three recent messages', () =>
     ).toThrow();
 });
 
-test('state changes and key-ledger entries validate their shapes', () => {
-    const setState = {
-        expectedVersion: 2,
-        serverId: 'srv_1',
-        state: 'done' as const,
-        taskId: 'tsk_12',
-    };
-    expect(taskSetStateInputSchema.parse(setState)).toEqual(setState);
-    expect(() => taskSetStateInputSchema.parse({ ...setState, state: 'closed' })).toThrow();
+test('archive inputs and Project keys validate their shapes', () => {
+    const archive = { expectedVersion: 2, serverId: 'srv_1', taskId: 'tsk_12' };
+    expect(taskArchiveInputSchema.parse(archive)).toEqual(archive);
+    expect(() => taskArchiveInputSchema.parse({ ...archive, state: 'done' })).toThrow();
     expect(taskKeyPrefixSchema.parse('SEC')).toBe('SEC');
     expect(() => taskKeyPrefixSchema.parse('sec')).toThrow();
 });
 
-test('the Agent Task list filters by state and key, as a comma list or repeated', () => {
-    expect(agentTaskListQuerySchema.parse({ key: 'SEC', state: 'done,canceled' })).toEqual({
-        key: 'SEC',
-        state: ['done', 'canceled'],
-    });
-    expect(agentTaskListQuerySchema.parse({ state: ['todo', 'open,done'] }).state).toEqual([
-        'todo',
-        'open',
-        'done',
-    ]);
-    expect(agentTaskListQuerySchema.parse({ category: 'active' })).toEqual({});
-    expect(agentTaskListQuerySchema.safeParse({ state: 'finished' }).success).toBe(false);
-    expect(agentTaskListQuerySchema.safeParse({ key: 'sec' }).success).toBe(false);
+test('the Agent Task list filters by scope, archive and Project', () => {
+    expect(agentTaskListQuerySchema.parse({ all: 'true', archived: 'false', project: 'SEC' })).toEqual(
+        { all: true, archived: false, project: 'SEC' }
+    );
+    expect(agentTaskListQuerySchema.parse({ state: 'open' })).toEqual({});
+    expect(agentTaskListQuerySchema.safeParse({ all: 'yes' }).success).toBe(false);
+    expect(agentTaskListQuerySchema.safeParse({ project: 'sec' }).success).toBe(false);
 });
 
 test('a pull request notice with no Run is a system attention with no Chat cursor', () => {
@@ -85,14 +74,15 @@ test('a pull request notice with no Run is a system attention with no Chat curso
         senderHandle: 'haus',
         senderType: 'system',
         sequence: 0,
-        target: 'task:SEC-12',
+        target: 'task:k3mq7xta',
     } as const;
     expect(agentInboxItemSchema.parse(item)).toEqual(item);
     expect(agentInboxItemSchema.safeParse({ ...item, sequence: 3 }).success).toBe(false);
 });
 
-test('a Task send target is task: and its key', () => {
-    expect(formatTaskTarget('SEC-12')).toBe('task:SEC-12');
-    expect(TASK_TARGET_PATTERN.test('task:SEC-12')).toBe(true);
-    expect(TASK_TARGET_PATTERN.test('task:sec-12')).toBe(false);
+test('a Task target is task: and its short id', () => {
+    expect(formatTaskTarget('k3mq7xta')).toBe('task:k3mq7xta');
+    expect(TASK_TARGET_PATTERN.test('task:k3mq7xta')).toBe(true);
+    expect(TASK_TARGET_PATTERN.test('task:SEC-12')).toBe(false);
+    expect(TASK_TARGET_PATTERN.test('task:k3mq7xtu')).toBe(false);
 });

@@ -1,67 +1,29 @@
 import * as z from 'zod';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
-import { taskKeySchema } from './task-key.ts';
-import { taskStateSchema } from './task-state.ts';
-import {
-    taskDescriptionSchema,
-    taskDueOnSchema,
-    taskPrioritySchema,
-    taskTitleSchema,
-} from './task.ts';
+import { taskRefSchema } from './task-short-id.ts';
 
-const expectedVersionSchema = z.number().int().positive();
-const labelNamesSchema = z.array(z.string().trim().min(1).max(80)).max(50);
-
-/** An assignee as an Agent writes it: `me`, or the handle of a person or Agent of the Server. */
-const assigneeRefSchema = z.string().trim().min(1).max(64);
-
-const commaListSchema = z
-    .union([z.string(), z.array(z.string())])
-    .transform((value) =>
-        (Array.isArray(value) ? value : [value]).flatMap((part) => part.split(','))
-    );
+const flagSchema = z.enum(['true', 'false']).transform((value) => value === 'true');
 
 /**
- * `GET /api/agent/tasks`. `state` takes a comma list or a repeated parameter;
- * without it, the unfinished states. `key` names a key-ledger entry (`SEC`).
+ * `GET /api/agent/tasks`. Without `all`, the Tasks the caller started; without
+ * `archived`, active ones only. `project` names a Project by its key (`SEC`).
  */
 export const agentTaskListQuerySchema = z.object({
-    assignee: z
-        .string()
-        .regex(/^(me|none|@\S+)$/u)
-        .optional(),
-    key: taskKeyPrefixSchema.optional(),
-    state: commaListSchema.pipe(z.array(taskStateSchema).min(1)).optional(),
+    all: flagSchema.optional(),
+    archived: flagSchema.optional(),
+    project: taskKeyPrefixSchema.optional(),
 });
 
-export const agentTaskShowQuerySchema = z.object({ key: taskKeySchema });
+/** `GET /api/agent/tasks/show`: one Task by short id or full id. */
+export const agentTaskShowQuerySchema = z.object({ task: taskRefSchema });
 
-export const agentTaskUpdateInputSchema = z
+/** `POST /api/agent/tasks/archive`. Without `expectedVersion` the last write wins. */
+export const agentTaskArchiveInputSchema = z
     .object({
-        description: taskDescriptionSchema.optional(),
-        dueOn: taskDueOnSchema.nullable().optional(),
-        expectedVersion: expectedVersionSchema.optional(),
-        key: taskKeySchema,
-        labels: labelNamesSchema.optional(),
-        priority: taskPrioritySchema.optional(),
-        title: taskTitleSchema.optional(),
-    })
-    .strict()
-    .refine(
-        ({ description, dueOn, labels, priority, title }) =>
-            [description, dueOn, labels, priority, title].some((field) => field !== undefined),
-        'Provide at least one task field.'
-    );
-
-/** `assignee: null` unassigns. */
-export const agentTaskAssignInputSchema = z
-    .object({
-        assignee: assigneeRefSchema.nullable(),
-        expectedVersion: expectedVersionSchema.optional(),
-        key: taskKeySchema,
+        expectedVersion: z.number().int().positive().optional(),
+        task: taskRefSchema,
     })
     .strict();
 
 export type AgentTaskListQuery = z.infer<typeof agentTaskListQuerySchema>;
-export type AgentTaskUpdateInput = z.infer<typeof agentTaskUpdateInputSchema>;
-export type AgentTaskAssignInput = z.infer<typeof agentTaskAssignInputSchema>;
+export type AgentTaskArchiveInput = z.infer<typeof agentTaskArchiveInputSchema>;

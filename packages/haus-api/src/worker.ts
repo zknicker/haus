@@ -2,7 +2,7 @@ import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import type { components } from './generated/openapi.d.ts';
 import { repoNameSchema } from './repos.ts';
-import { taskKeySchema } from './task-key.ts';
+import { taskRefSchema, taskShortIdSchema } from './task-short-id.ts';
 import { workerTurnAttemptSchema } from './worker-computer-frames.ts';
 import { workerObservedResultSchema, workerTurnInputTextMaxLength } from './worker-outcome.ts';
 import { workerPlaceInputSchema, workerPlaceSchema } from './worker-place.ts';
@@ -85,7 +85,7 @@ export const agentWorkerStartInputSchema = z
         repository: repoNameSchema,
         runtime: workerRuntimeSchema.optional(),
         startingRef: workerRefSchema.nullable().default(null),
-        task: taskKeySchema.optional(),
+        task: taskRefSchema.optional(),
         title: workerTitleSchema,
     })
     .strict();
@@ -288,7 +288,7 @@ export const activeWorkerSchema = z
         conversationChatId: idSchema,
         location: activeWorkerLocationSchema,
         taskId: idSchema,
-        taskKey: z.string().min(1),
+        taskShortId: taskShortIdSchema,
         worker: workerSchema,
     })
     .strict();

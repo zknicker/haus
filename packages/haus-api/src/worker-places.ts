@@ -1,11 +1,11 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import { repoNameSchema } from './repos.ts';
-import { taskKeySchema } from './task-key.ts';
+import { taskRefSchema, taskShortIdSchema } from './task-short-id.ts';
 import { workerRuntimeReadinessSchema } from './worker-runtime.ts';
 
-/** `GET /api/agent/workers/places?task=<KEY-n>`: `task` marks the Project default. */
-export const workerPlacesInputSchema = z.object({ task: taskKeySchema.optional() }).strict();
+/** `GET /api/agent/workers/places?task=<shortId>`: `task` marks the Project default. */
+export const workerPlacesInputSchema = z.object({ task: taskRefSchema.optional() }).strict();
 
 const slotsShape = {
     freeSlots: z.number().int().nonnegative(),
@@ -45,7 +45,7 @@ export type WorkerPlaceEntry = z.infer<typeof workerPlaceEntrySchema>;
 export const workerPlacesResponseSchema = z
     .object({
         places: z.array(workerPlaceEntrySchema).max(200),
-        task: taskKeySchema.nullable(),
+        task: taskShortIdSchema.nullable(),
     })
     .strict();
 export type WorkerPlacesResponse = z.infer<typeof workerPlacesResponseSchema>;

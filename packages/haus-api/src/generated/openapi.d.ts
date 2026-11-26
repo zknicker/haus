@@ -817,44 +817,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read one Task by key, with the messages and Reminders that reference it. */
+        /** Read one Task by short id or id, with the messages and Reminders that reference it. */
         get: operations["showAgentTask"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/tasks/update": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Edit one Task's title, description, priority, labels, or due date. */
-        post: operations["updateAgentTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/tasks/assign": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Assign one Task to a person or Agent, or unassign it. */
-        post: operations["assignAgentTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -872,7 +838,7 @@ export interface paths {
         put?: never;
         /**
          * Start a Task from a Message in a Channel or DM.
-         * @description Starts a Task, a place for one piece of work, in a Project from an origin Message in a Channel or DM (ADR 0055). The Task takes its Project's key. An Agent starting outside its Project is refused with `TASK_PROJECT_NOT_HOME`.
+         * @description Starts a Task, a place for one piece of work, in a Project from an origin Message in a Channel or DM (ADR 0055). The Task gets a short id. An Agent starting outside its Project is refused with `TASK_PROJECT_NOT_HOME`.
          */
         post: operations["startAgentTask"];
         delete?: never;
@@ -881,7 +847,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/state": {
+    "/api/agent/tasks/archive": {
         parameters: {
             query?: never;
             header?: never;
@@ -890,8 +856,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Set one Task's state; done or canceled ends it. */
-        post: operations["setAgentTaskState"];
+        /** Archive one Task; its pending reminders are canceled. */
+        post: operations["archiveAgentTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1932,19 +1898,12 @@ export interface components {
             expectedVersion: number;
             id: string;
         };
-        /** @description A Task key-ledger entry, like SEC. */
-        AgentTaskKeyPrefix: string;
-        /** @description One or more Task states, comma-separated. */
-        AgentTaskStateList: string;
-        /** @description A Task key, its ledger key and number, like SEC-12. */
-        AgentTaskKey: string;
-        /**
-         * @description A Task's state (ADR 0053); done and canceled end it.
-         * @enum {string}
-         */
-        AgentTaskState: "todo" | "open" | "done" | "canceled";
-        /** @enum {string} */
-        AgentTaskPriority: "none" | "urgent" | "high" | "medium" | "low";
+        /** @description A Project's key, like SEC. */
+        AgentTaskProjectKey: string;
+        /** @description A Task's short id, 8 lowercase Crockford base32 characters, like k3mq7xta. */
+        AgentTaskShortId: string;
+        /** @description A Task's short id, like k3mq7xta, or its full id. */
+        AgentTaskRef: string;
         /** @description A person or Agent of the Server, by handle. */
         AgentTaskActor: {
             handle: string | null;
@@ -1952,18 +1911,15 @@ export interface components {
             type: "human" | "agent";
         };
         AgentTaskRow: {
-            assignee: components["schemas"]["AgentTaskActor"] | null;
-            state: components["schemas"]["AgentTaskState"];
-            /** Format: date-time */
-            completedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When the Task was archived; null while it is active.
+             */
+            archivedAt: string | null;
             /** Format: date-time */
             createdAt: string;
             createdBy: components["schemas"]["AgentTaskActor"];
-            /** Format: date */
-            dueOn: string | null;
-            key: components["schemas"]["AgentTaskKey"];
-            labels: string[];
-            priority: components["schemas"]["AgentTaskPriority"];
+            shortId: components["schemas"]["AgentTaskShortId"];
             title: string;
             /** Format: date-time */
             updatedAt: string;
@@ -2003,61 +1959,28 @@ export interface components {
         AgentTaskSingleResponse: {
             task: components["schemas"]["AgentTaskRow"];
         };
-        AgentTaskUpdateRequest: {
-            description?: string;
-            /**
-             * Format: date
-             * @description A date, or null to clear it.
-             */
-            dueOn?: string | null;
-            /** @description Apply only if the Task is still at this version; omit to use the current one. */
-            expectedVersion?: number;
-            key: components["schemas"]["AgentTaskKey"];
-            /** @description The Task's whole label set, by name. */
-            labels?: string[];
-            priority?: components["schemas"]["AgentTaskPriority"];
-            title?: string;
-        } | unknown | unknown | unknown | unknown | unknown;
-        AgentTaskAssignRequest: {
-            /** @description `me`, an @handle of a person or Agent of the Server, or null to unassign. */
-            assignee: string | null;
-            /** @description Apply only if the Task is still at this version; omit to use the current one. */
-            expectedVersion?: number;
-            key: components["schemas"]["AgentTaskKey"];
-        };
         AgentTaskStartRequest: {
-            /** @description `me` or an @handle of a person or Agent of the Server; defaults to the caller. */
-            assignee?: string;
             description?: string;
-            /** Format: date */
-            dueOn?: string;
             /** @description The origin Message id. It must be in `target`. */
             from: string;
-            priority?: components["schemas"]["AgentTaskPriority"];
             /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or `#all` origin to the caller's Project. */
             project?: string;
-            /**
-             * @description Defaults to open.
-             * @enum {string}
-             */
-            state?: "todo" | "open";
             /** @description The Channel or DM holding the origin Message, as a send target like `#security` or `dm:@ada`. */
             target: string;
             title: string;
         };
         AgentTaskStartResponse: {
-            /** @description The Task's send target, like `task:SEC-12`. */
+            /** @description The Task's target, like `task:k3mq7xta`. */
             target: string;
             task: components["schemas"]["AgentTaskRow"];
         };
-        AgentTaskStateRequest: {
+        AgentTaskArchiveRequest: {
             /** @description Apply only if the Task is still at this version; omit to use the current one. */
             expectedVersion?: number;
-            key: components["schemas"]["AgentTaskKey"];
-            state: components["schemas"]["AgentTaskState"];
+            task: components["schemas"]["AgentTaskRef"];
         };
         AgentTaskAttachPullRequestRequest: {
-            key: components["schemas"]["AgentTaskKey"];
+            task: components["schemas"]["AgentTaskRef"];
             /**
              * Format: uri
              * @description A GitHub pull request URL.
@@ -2343,7 +2266,7 @@ export interface components {
         };
         MessageTaskLink: {
             task_id: string;
-            key: string;
+            short_id: string;
             /** @description The exact matched substring of `content`. */
             text: string;
         };
@@ -3988,12 +3911,12 @@ export interface operations {
     listAgentTasks: {
         parameters: {
             query?: {
-                /** @description `me`, an @handle of a person or Agent, or `none` for unassigned Tasks. */
-                assignee?: string;
-                /** @description A Task key-ledger entry, such as `SEC`; only Tasks numbered by it. */
-                key?: components["schemas"]["AgentTaskKeyPrefix"];
-                /** @description Task states, comma-separated or repeated (`state=done&state=canceled`); defaults to todo,open. */
-                state?: components["schemas"]["AgentTaskStateList"] | components["schemas"]["AgentTaskStateList"][];
+                /** @description `true` lists every Task; otherwise only the Tasks the caller started. */
+                all?: "true" | "false";
+                /** @description `true` lists archived Tasks instead of active ones. */
+                archived?: "true" | "false";
+                /** @description A Project by its key, such as `SEC`; only its Tasks. */
+                project?: components["schemas"]["AgentTaskProjectKey"];
             };
             header?: never;
             path?: never;
@@ -4001,7 +3924,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Matching Tasks, by priority then age. */
+            /** @description Matching Tasks, newest first. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4016,7 +3939,7 @@ export interface operations {
     showAgentTask: {
         parameters: {
             query: {
-                key: components["schemas"]["AgentTaskKey"];
+                task: components["schemas"]["AgentTaskRef"];
             };
             header?: never;
             path?: never;
@@ -4031,56 +3954,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentTaskShowResponse"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    updateAgentTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgentTaskUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Updated Task. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    assignAgentTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgentTaskAssignRequest"];
-            };
-        };
-        responses: {
-            /** @description Updated Task. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
@@ -4111,7 +3984,7 @@ export interface operations {
             default: components["responses"]["AgentError"];
         };
     };
-    setAgentTaskState: {
+    archiveAgentTask: {
         parameters: {
             query?: never;
             header?: never;
@@ -4120,7 +3993,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskStateRequest"];
+                "application/json": components["schemas"]["AgentTaskArchiveRequest"];
             };
         };
         responses: {

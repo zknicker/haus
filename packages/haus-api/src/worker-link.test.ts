@@ -120,11 +120,11 @@ describe('Happening now location', () => {
             conversationChatId: 'cht_product',
             location: activeWorkLocations.task,
             taskId: 'tsk_work',
-            taskKey: 'SEC-12',
+            taskShortId: 'k3mq7xta',
             worker: linkedWork,
         };
         expect(activeWorkerSchema.parse(row).location).toEqual(activeWorkLocations.task);
-        expect(activeWorkerSchema.safeParse({ ...row, taskKey: null }).success).toBe(false);
+        expect(activeWorkerSchema.safeParse({ ...row, taskShortId: null }).success).toBe(false);
         expect(activeWorkerSchema.safeParse({ ...row, taskId: null }).success).toBe(false);
         expect(activeWorkerSchema.safeParse({ ...row, location: undefined }).success).toBe(false);
         expect(activeWorkerSchema.safeParse({ ...row, parentChatId: 'cht_parent' }).success).toBe(

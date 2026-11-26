@@ -1,8 +1,6 @@
 import * as z from 'zod';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
-import { taskKeySchema, taskLinkSchema } from './task-key.ts';
-import { taskPriorities } from './task-labels.ts';
-import { isClosedTaskState, type TaskState, taskStateSchema } from './task-state.ts';
+import { taskLinkSchema, taskShortIdSchema } from './task-short-id.ts';
 import { pullRequestReadingSchema, workerSchema } from './worker-shared.ts';
 
 export const TASK_TITLE_MAX_CHARS = 200;
@@ -10,21 +8,14 @@ export const TASK_DESCRIPTION_MAX_CHARS = 20_000;
 
 export const taskTitleSchema = z.string().trim().min(1).max(TASK_TITLE_MAX_CHARS);
 export const taskDescriptionSchema = z.string().max(TASK_DESCRIPTION_MAX_CHARS);
-/** Display only: it sorts and badges, and wakes nothing. */
-export const taskDueOnSchema = z.iso.date();
-export const taskPrioritySchema = z.enum(taskPriorities);
 
-/** A person or an Agent of the Server: a Task's creator, assignee, or assigner. */
+/** A person or an Agent of the Server: who started a Task, or who acts on one. */
 export const taskActorSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('user'), userId: idSchema }).strict(),
     z.object({ kind: z.literal('agent'), agentId: idSchema }).strict(),
 ]);
 
-/** At most one assignee: an active human member or a non-deleted Agent. */
-export const taskAssigneeSchema = taskActorSchema;
-
 export type TaskActor = z.infer<typeof taskActorSchema>;
-export type TaskAssignee = z.infer<typeof taskAssigneeSchema>;
 
 /**
  * The Message a Task started from: in a Channel, which need not be the Task's
@@ -36,29 +27,23 @@ export const taskOriginSchema = z.object({ chatId: idSchema, messageId: idSchema
 export type TaskOrigin = z.infer<typeof taskOriginSchema>;
 
 const taskFields = {
-    assignee: taskAssigneeSchema.nullable(),
+    /** The only archive state (ADR 0062 decision 2); null while the Task is active. */
+    archivedAt: timestampSchema.nullable(),
     chatId: idSchema.nullable(),
-    completedAt: timestampSchema.nullable(),
     createdAt: timestampSchema,
     createdBy: taskActorSchema,
     description: taskDescriptionSchema,
-    dueOn: taskDueOnSchema.nullable(),
     id: idSchema,
-    key: taskKeySchema,
-    keyId: idSchema,
-    labelIds: z.array(idSchema),
-    number: z.number().int().positive(),
     origin: taskOriginSchema.nullable(),
-    priority: taskPrioritySchema,
     projectId: idSchema,
     serverId: idSchema,
-    state: taskStateSchema,
+    shortId: taskShortIdSchema,
     title: taskTitleSchema,
     updatedAt: timestampSchema,
     version: z.number().int().positive(),
 };
 
-export const taskSchema = z.object(taskFields).strict().superRefine(checkTaskRecord);
+export const taskSchema = z.object(taskFields).strict();
 
 export type Task = z.infer<typeof taskSchema>;
 
@@ -129,8 +114,7 @@ export const taskDetailSchema = z
         reminders: z.array(taskReminderRefSchema),
         unreadCount: z.number().int().nonnegative(),
     })
-    .strict()
-    .superRefine(checkTaskRecord);
+    .strict();
 
 export type TaskMention = z.infer<typeof taskMentionSchema>;
 export type TaskReminderRef = z.infer<typeof taskReminderRefSchema>;
@@ -143,9 +127,9 @@ export const taskMutationResultSchema = z.object({ task: taskSchema }).strict();
 export type TaskMutationResult = z.infer<typeof taskMutationResultSchema>;
 
 /**
- * `task.onCreated` / `task.onUpdated`: a Task was created, or edited, had its
- * state changed, or was assigned. Every member. Ids only: the App invalidates
- * that Task and the Task lists.
+ * `task.onCreated` / `task.onUpdated`: a Task was created, edited, archived, or
+ * unarchived. Every member. Ids only: the App invalidates that Task and the
+ * Task lists.
  */
 export const taskCreatedEventSchema = z
     .object({
@@ -174,23 +158,3 @@ export const taskFollowUpdatedEventSchema = z
 export type TaskCreatedEvent = z.infer<typeof taskCreatedEventSchema>;
 export type TaskUpdatedEvent = z.infer<typeof taskUpdatedEventSchema>;
 export type TaskFollowUpdatedEvent = z.infer<typeof taskFollowUpdatedEventSchema>;
-
-function checkTaskRecord(
-    task: { completedAt: string | null; key: string; number: number; state: TaskState },
-    context: z.RefinementCtx
-) {
-    if ((task.completedAt !== null) !== isClosedTaskState(task.state)) {
-        context.addIssue({
-            code: 'custom',
-            message: 'completedAt is set exactly while the Task is done or canceled.',
-            path: ['completedAt'],
-        });
-    }
-    if (!task.key.endsWith(`-${task.number}`)) {
-        context.addIssue({
-            code: 'custom',
-            message: 'A Task key ends with its number.',
-            path: ['key'],
-        });
-    }
-}

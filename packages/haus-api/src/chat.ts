@@ -18,7 +18,7 @@ import * as receiptContracts from './chat-message-receipts.ts';
 import { messageClaimSchema } from './claim-shared.ts';
 import { driveCitationSchema } from './drive.ts';
 import { imageGenerationSchema } from './image-generation.ts';
-import { taskLinkSchema } from './task-key.ts';
+import { taskLinkSchema } from './task-short-id.ts';
 import { taskPreviewSchema } from './task-preview.ts';
 import { chatMessageAuthoredContentMaxLength, chatMessageContentMaxLength } from './worker-link.ts';
 import { workerSchema } from './worker-shared.ts';

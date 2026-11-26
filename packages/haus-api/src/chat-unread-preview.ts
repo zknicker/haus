@@ -1,8 +1,7 @@
 import * as z from 'zod';
-import { idSchema } from './chat-contract-primitives.ts';
+import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 import { chatMessageSchema } from './chat.ts';
-import { taskKeySchema } from './task-key.ts';
-import { taskStateSchema } from './task-state.ts';
+import { taskShortIdSchema } from './task-short-id.ts';
 
 /** How many waiting messages an Inbox row carries before "N earlier". */
 export const unreadPreviewMessageLimit = 3;
@@ -21,9 +20,9 @@ export const chatUnreadPreviewsInputSchema = z
 /** What an unread Task row names beyond its messages: the Project names its place. */
 export const chatUnreadPreviewTaskSchema = z
     .object({
-        key: taskKeySchema,
+        archivedAt: timestampSchema.nullable(),
         projectId: idSchema,
-        state: taskStateSchema,
+        shortId: taskShortIdSchema,
         taskId: idSchema,
         title: z.string().min(1),
     })
