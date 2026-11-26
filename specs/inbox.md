@@ -585,7 +585,9 @@ Recipient: the session that started it, a Task or a Captain. Identity
 conflict, and leads its own concrete run (`AgentStartCommand.processExit`). It carries the process
 id, the Computer's name, the exit code (null when the Computer restarted under it), the output's
 last 4,000 characters, the output cursor, and when it started and ended. Spends the automation
-chain and waits at the ceiling. A process killed by archive or by its own session queues nothing.
+chain and waits at the ceiling. A process killed by archive or by its own session queues nothing,
+and the Server acknowledges an exit from a session generation older than the agent's current one
+without queueing it.
 
 | Contract | Guard |
 | --- | --- |

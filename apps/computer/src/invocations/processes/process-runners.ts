@@ -20,7 +20,11 @@ export async function startBackgroundProcess(
         env: context.env,
         runId: context.runId,
         sessionGeneration: context.sessionGeneration,
+        signal: context.signal,
     });
+    if (started.kind === 'stopped') {
+        return textResult('cancelled', 'Cancelled before it started.');
+    }
     if (started.kind === 'full') {
         return textResult(
             'failed',

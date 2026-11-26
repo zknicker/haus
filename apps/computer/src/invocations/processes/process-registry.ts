@@ -30,6 +30,13 @@ export interface ProcessStart {
     env: NodeJS.ProcessEnv;
     runId: string;
     sessionGeneration: number;
+    signal: AbortSignal;
+}
+
+interface PendingStart {
+    agentId: string;
+    cancelled: boolean;
+    sessionGeneration: number;
 }
 
 export type ProcessRegistry = ReturnType<typeof createProcessRegistry>;
@@ -42,6 +49,7 @@ export function createProcessRegistry(input: {
     const records = createProcessRecords(input.agentsRoot);
     const live = new Map<string, LiveProcess>();
     const owners = new Map<string, string>();
+    const pending = new Map<string, PendingStart>();
 
     async function recoverLost() {
         const exitedAt = new Date().toISOString();
@@ -56,13 +64,35 @@ export function createProcessRegistry(input: {
     }
 
     async function start(request: ProcessStart) {
-        if (live.size >= input.limit) {
+        if (live.size + pending.size >= input.limit) {
             return { kind: 'full' as const, limit: input.limit };
         }
         const processId = `prc_${randomBytes(12).toString('base64url')}`;
+        const reservation: PendingStart = {
+            agentId: request.agentId,
+            cancelled: false,
+            sessionGeneration: request.sessionGeneration,
+        };
+        pending.set(processId, reservation);
+        try {
+            return await spawnReserved(request, processId, reservation);
+        } finally {
+            pending.delete(processId);
+        }
+    }
+
+    async function spawnReserved(
+        request: ProcessStart,
+        processId: string,
+        reservation: PendingStart
+    ) {
         const logPath = records.logPath(request.agentId, processId);
         await mkdir(records.directory(request.agentId), { mode: 0o700, recursive: true });
         const log = await open(logPath, 'a', 0o600);
+        if (reservation.cancelled || request.signal.aborted) {
+            await log.close();
+            return { kind: 'stopped' as const };
+        }
         let child: ChildProcess;
         try {
             child = spawn('/bin/bash', ['-c', request.command], {
@@ -71,8 +101,9 @@ export function createProcessRegistry(input: {
                 env: request.env,
                 stdio: ['ignore', log.fd, log.fd],
             });
-        } finally {
+        } catch (error) {
             await log.close();
+            throw error;
         }
         const record: ProcessRecord = {
             agentId: request.agentId,
@@ -110,6 +141,7 @@ export function createProcessRegistry(input: {
             end(exitStatus(child, code));
         });
         child.once('error', () => end(null));
+        await log.close();
         await written;
         return { kind: 'started' as const, logPath, processId };
     }
@@ -213,11 +245,15 @@ export function createProcessRegistry(input: {
             agentId: string,
             scope: { before?: number; ending: 'archived' | 'revoked' }
         ) => {
-            const entries = [...live.values()].filter(
-                (entry) =>
-                    entry.record.agentId === agentId &&
-                    (scope.before === undefined || entry.record.sessionGeneration < scope.before)
-            );
+            const inScope = (owner: { agentId: string; sessionGeneration: number }) =>
+                owner.agentId === agentId &&
+                (scope.before === undefined || owner.sessionGeneration < scope.before);
+            for (const reservation of pending.values()) {
+                if (inScope(reservation)) {
+                    reservation.cancelled = true;
+                }
+            }
+            const entries = [...live.values()].filter((entry) => inScope(entry.record));
             await Promise.all(entries.map((entry) => stop(entry, scope.ending)));
         },
     };

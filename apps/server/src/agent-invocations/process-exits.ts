@@ -28,14 +28,14 @@ export async function ingestProcessExit(
     if (!parsed.success) {
         return false;
     }
-    const { agentId, sessionGeneration: _generation, type: _type, ...exit } = parsed.data;
+    const { agentId, sessionGeneration, type: _type, ...exit } = parsed.data;
     const { computerId, serverId } = input;
     const [agent] = await db
-        .select({ id: agentsTable.id })
+        .select({ sessionGeneration: agentsTable.sessionGeneration })
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, serverId), eq(agentsTable.id, agentId)))
         .limit(1);
-    if (agent) {
+    if (agent && agent.sessionGeneration <= sessionGeneration) {
         const computer = await readComputerFacts(db, { computerId, serverId });
         const attention: ProcessExitAttention = {
             ...exit,

@@ -80,6 +80,31 @@ test('a background process exit wakes its idle session once, and every report is
     ).toEqual([{ dedupe_key: 'process-exit:prc_buildbuildbuildb', source: 'process_exit' }]);
 });
 
+test('an exit from an older session generation is acknowledged and wakes nobody', async () => {
+    await setup.harness.sql`
+        update agents set session_generation = 2 where id = ${setup.agentId}
+    `;
+    computer.send({
+        agentId: setup.agentId,
+        cursor: 0,
+        exitCode: 0,
+        exitedAt: '2026-11-26T12:10:00.000Z',
+        processId: 'prc_stalestalestales',
+        sessionGeneration: 1,
+        startedAt: '2026-11-26T12:09:00.000Z',
+        tail: '',
+        type: 'process-exit',
+    });
+    await computer.next(frameOfType('process-exit-ack', { processId: 'prc_stalestalestales' }));
+
+    expect(
+        await setup.harness.sql`
+            select dedupe_key from agent_inbox
+            where agent_id = ${setup.agentId} and dedupe_key = 'process-exit:prc_stalestalestales'
+        `
+    ).toEqual([]);
+});
+
 function settledTurn(runId: string) {
     const now = new Date().toISOString();
     return {
