@@ -38,11 +38,6 @@ export async function readTaskReminderAnchor(
     return { anchorChatId: input.chatId, anchorMessageId: newest.id };
 }
 
-/**
- * A reminder anchored in a Task's chat belongs to the Task's agent, whoever set it, so its fire
- * wakes the Task and not its Captain (specs/tasks.md#reminders-on-a-task). A Task agent sets
- * reminders only in its own chat, so anywhere else it has no owner (null).
- */
 export async function readReminderOwner(
     db: Pick<HausDatabase, 'select'>,
     input: { agentId: string; anchorChatId: string; serverId: string }

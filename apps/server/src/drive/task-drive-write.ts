@@ -15,11 +15,6 @@ export interface TaskDriveWriteOptions {
     thumbnails: ArtifactThumbnails | null;
 }
 
-/**
- * `haus drive write` (specs/tasks.md#drive): a Task writes one file under its own folders as a
- * new revision attributed to the Task, replacing the current one. Captains edit their `drive/`
- * folder instead.
- */
 export async function writeTaskDriveFile(
     options: TaskDriveWriteOptions,
     runner: ResolvedRunner,

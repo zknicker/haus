@@ -31,9 +31,9 @@ test('a crew Task writes its report under its Captain’s reports folder, attrib
 
 test('a Task cannot write outside its own folders, nor through the push routes', async () => {
     const task = await startCrew('Write the audit.');
-    expect(await write(task.runner, 'haus/AGENTS.md', { body: 'Rewrite the rules.' })).toMatchObject(
-        { body: { code: 'DRIVE_WRITE_OUTSIDE_TASK' }, status: 403 }
-    );
+    expect(
+        await write(task.runner, 'haus/AGENTS.md', { body: 'Rewrite the rules.' })
+    ).toMatchObject({ body: { code: 'DRIVE_WRITE_OUTSIDE_TASK' }, status: 403 });
     expect(
         await write(task.runner, 'agents/orbit/reports/someoneelse/audit.md', { body: 'x' })
     ).toMatchObject({ body: { code: 'DRIVE_WRITE_OUTSIDE_TASK' }, status: 403 });
@@ -60,11 +60,8 @@ async function startCrew(brief: string) {
         new URL('/api/agent/tasks/start', fixture.harness.url),
         request(captain, { brief, machine: fixture.computerId })
     );
-    const { task: started_ } = (await started.json()) as { task: { shortId: string } };
-    const task = await fixture.owner.trpc.task.get.query({
-        serverId: fixture.serverId,
-        shortId: started_.shortId,
-    });
+    const { shortId } = ((await started.json()) as { task: { shortId: string } }).task;
+    const task = await fixture.owner.trpc.task.get.query({ serverId: fixture.serverId, shortId });
     const runner = await fixture.mintRunner(
         `run_task_drive_${task.shortId}`,
         task.agentId ?? '',

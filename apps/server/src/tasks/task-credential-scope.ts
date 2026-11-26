@@ -4,12 +4,6 @@ import { authorizeAgentRunner, sendAgentApiError } from '../agent-api/auth.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 
-/**
- * A Task agent's run credential reaches its own chat, its Issues, Drive reads, its own Drive
- * writes and the `haus task` verbs (specs/tasks.md#captains-and-the-captain-chat). The routes
- * that change anything else refuse it here, before they run; reads stay open, and the routes a
- * Task may call check their own targets.
- */
 export function registerTaskCredentialScope(app: FastifyInstance, db: HausDatabase) {
     app.addHook('onRequest', async (request, reply) => {
         const route = request.routeOptions.url;

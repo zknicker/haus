@@ -26,7 +26,8 @@ test('drive write sends stdin as one base64 file and prints its citation', async
                     stable_url: 'https://haus.chat/s/demo/artifacts/art_report',
                     title: 'report.md',
                     updated_at: '2026-11-26T00:00:00.000Z',
-                    version_url: 'https://haus.chat/s/demo/artifacts/art_report?revision=rev_report',
+                    version_url:
+                        'https://haus.chat/s/demo/artifacts/art_report?revision=rev_report',
                 },
                 citation: `[report.md](drive://${path})`,
             });
@@ -35,7 +36,7 @@ test('drive write sends stdin as one base64 file and prints its citation', async
     const written: string[] = [];
     try {
         await runDriveWrite(
-            { positionals: [path], values: {} },
+            { flags: {}, help: false, positionals: [path], values: {} },
             {
                 client: new AgentApiClient({
                     serverUrl: `http://127.0.0.1:${server.port}`,
@@ -61,7 +62,7 @@ test('drive write refuses an empty file before it calls the Server', async () =>
     const client = new AgentApiClient({ serverUrl: 'http://127.0.0.1:9', token: 'grta_unused' });
     await expect(
         runDriveWrite(
-            { positionals: [path], values: {} },
+            { flags: {}, help: false, positionals: [path], values: {} },
             {
                 client,
                 readFile: () => Promise.reject(new Error('unused')),

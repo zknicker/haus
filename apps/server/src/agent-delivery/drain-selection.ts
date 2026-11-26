@@ -4,11 +4,11 @@ import { chatlessStartFrame } from './chatless-run.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
 import { attachQueuedGreeting, isGreetingRow, retireSpentGreeting } from './greeting.ts';
 import { buildInboxItems } from './inbox-items.ts';
-import { leadWithInterrupts } from './interrupt-lead.ts';
 import {
     isConcreteInboxSource as isConcreteSource,
     isNoticelessInboxSource,
 } from './inbox-lanes.ts';
+import { leadWithInterrupts } from './interrupt-lead.ts';
 import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
 import { readTaskContexts, taskContextChars } from './task-context.ts';
@@ -128,7 +128,13 @@ export async function claimRunItems(
     // Derived from the rows this frame carries, not from the candidate slice,
     // so a resend rebuilding from those same persisted rows reproduces them.
     const { drainRows, warmDrainRows } = await humanDrainSets(tx, noticeRows);
-    return { drainRows, greets, noticeRows, selected, warmDrainRows };
+    return {
+        drainRows,
+        greets,
+        noticeRows: await leadWithInterrupts(tx, noticeRows),
+        selected,
+        warmDrainRows,
+    };
 }
 
 /**

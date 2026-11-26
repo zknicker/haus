@@ -65,11 +65,7 @@ export async function writableDriveFolder(
     access: Pick<ArtifactAccess, 'agentId' | 'serverId'>,
     folder: string
 ) {
-    return await requireWritable(
-        tx,
-        access,
-        await driveAreaOfFolder(tx, access.serverId, folder)
-    );
+    return await requireWritable(tx, access, await driveAreaOfFolder(tx, access.serverId, folder));
 }
 
 async function requireWritable(
