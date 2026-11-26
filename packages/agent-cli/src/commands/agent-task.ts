@@ -1,7 +1,7 @@
 import { createAgentApiClient } from '../agent-api-client.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
-import { runTaskArchive, runTaskList, runTaskShow } from './agent-task-actions.ts';
+import { runTaskArchive, runTaskList, runTaskShow, runTaskUnarchive } from './agent-task-actions.ts';
 import { runTaskAttachPullRequest, runTaskStart } from './agent-task-place-actions.ts';
 import { TASK_UNFOLLOW_SUBCOMMAND } from './agent-task-unfollow.ts';
 import type { TaskDeps } from './agent-task-view.ts';
@@ -11,44 +11,56 @@ const idPositional = '<id>';
 export const TASK_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'haus task start --target "#security" --from 1a2b3c4d --title "Rotate the signing key"',
-            'haus task start --target dm:@ada --from 5e6f7a8b --title "Patch the login bug" --project APP',
+            'haus task start --title "Rotate the signing key" < brief.md',
+            'haus task start --target "#security" --from 1a2b3c4d --issue SEC-12 < brief.md',
         ],
         flags: [
             {
-                description:
-                    'The channel or DM holding the origin message, like #security or dm:@ada',
+                description: 'The chat you are answering in; a newer message there holds the start',
                 name: '--target',
                 valueName: '<#channel|dm:@handle>',
             },
             {
-                description: 'The origin message id (msg= from a message there)',
+                description: 'A message in --target that becomes the Task’s origin',
                 name: '--from',
                 valueName: '<messageId>',
             },
             {
-                description:
-                    "The Project's key, like APP; defaults to the origin's channel, or your Project for a DM or #all",
-                name: '--project',
-                valueName: '<KEY>',
+                description: 'Title, up to 200 characters; defaults to a summary of the brief',
+                name: '--title',
+                valueName: '<text>',
             },
-            { description: 'Title, up to 200 characters', name: '--title', valueName: '<text>' },
             {
-                description: 'Markdown description, or - to read it from stdin',
-                name: '--description',
-                valueName: '<text|->',
+                description: 'The Machine it runs on; defaults to your crew Machine, then the Project’s',
+                name: '--machine',
+                valueName: '<name>',
+            },
+            {
+                description: 'The model it runs; defaults to your crew model, then your own',
+                name: '--model',
+                valueName: '<id>',
+            },
+            {
+                description: 'An open Issue in your Project to link and assign to the Task',
+                name: '--issue',
+                valueName: '<code>',
+            },
+            {
+                description: 'Your own id for this start; repeating it returns the same Task',
+                name: '--request-id',
+                valueName: '<id>',
             },
         ],
         name: 'start',
         notes: [
-            'A Task starts from a message in a channel or DM and gets a short id. Several Tasks may start from one message.',
-            'You start Tasks only in your Project; elsewhere the Server refuses with TASK_PROJECT_NOT_HOME.',
-            'Not idempotent: if a start goes unanswered, check haus task list before repeating it.',
+            'Starts crew in your home Project: a fresh agent session with its own chat. The brief on stdin is its first message.',
+            '--issue never changes the Issue’s state; an Issue someone else holds is refused with ISSUE_TAKEN.',
+            'The receipt says the Task is queued, with its short id. Pass --request-id to make a retry safe.',
         ],
         positionals: [],
         run: (args) => runTaskStart(args, defaultDeps()),
-        summary: 'Start a Task from a message in a channel or DM',
-        usage: 'haus task start --target <#channel|dm:@handle> --from <messageId> --title <text> [--project <KEY>] [--description <text|->]',
+        summary: 'Start a crew Task with a brief',
+        usage: 'haus task start [--title <text>] [--target <chat>] [--from <messageId>] [--machine <name>] [--model <id>] [--issue <code>] [--request-id <id>] < brief',
     },
     {
         examples: [
@@ -102,6 +114,22 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         run: (args) => runTaskArchive(args, defaultDeps()),
         summary: 'Archive a Task',
         usage: 'haus task archive <id> [--expected-version <n>]',
+    },
+    {
+        examples: ['haus task unarchive k3mq7xta'],
+        flags: [
+            {
+                description: 'Apply only if the Task is still at this version (show prints it)',
+                name: '--expected-version',
+                valueName: '<n>',
+            },
+        ],
+        name: 'unarchive',
+        notes: ['Restoring starts no turn; the next message to the Task wakes a fresh session.'],
+        positionals: [idPositional],
+        run: (args) => runTaskUnarchive(args, defaultDeps()),
+        summary: 'Restore an archived Task',
+        usage: 'haus task unarchive <id> [--expected-version <n>]',
     },
     {
         examples: ['haus task attach-pr k3mq7xta https://github.com/haus/haus/pull/12'],

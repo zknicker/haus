@@ -8,7 +8,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
-import { archiveTask } from '../tasks/task-archive.ts';
+import { archiveTask, unarchiveTask } from '../tasks/task-archive.ts';
 import { findTaskByRef } from '../tasks/task-list.ts';
 import { startCrewTask } from '../tasks/task-start.ts';
 import type { TaskWriteResult } from '../tasks/task-write-result.ts';
@@ -90,6 +90,22 @@ export function registerAgentTaskPlaceRoutes(
                         taskId: task.id,
                     })
             );
+            return { task: await commit(runner, result) };
+        }
+    );
+
+    agentTaskWrite(
+        app,
+        db,
+        { body: agentTaskArchiveInputSchema, path: '/api/agent/tasks/unarchive' },
+        async (runner, input) => {
+            const { serverId } = runner;
+            const task = await findTaskByRef(db, { ref: input.task, serverId });
+            const result = await unarchiveTask(db, agentActor(runner), {
+                expectedVersion: input.expectedVersion ?? task.version,
+                serverId,
+                taskId: task.id,
+            });
             return { task: await commit(runner, result) };
         }
     );

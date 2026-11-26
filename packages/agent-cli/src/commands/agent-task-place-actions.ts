@@ -1,8 +1,9 @@
+import type * as z from 'zod';
 import { AgentCliError } from '../agent-error.ts';
-import { shortMessageId } from '../agent-format.ts';
+import { formatHistoryLine, shortMessageId } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
-import { positionalTask, readDescription } from './agent-task-actions.ts';
+import { assertAgentTarget } from './agent-command-utils.ts';
+import { positionalTask } from './agent-task-actions.ts';
 import {
     describeTask,
     type TaskDeps,
@@ -12,39 +13,68 @@ import {
 } from './agent-task-view.ts';
 
 export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<number> {
-    const target = requiredValue(args, '--target');
-    assertAgentTarget(target);
-    if (target.startsWith('task:')) {
-        throw new AgentCliError(
-            'INVALID_ARG',
-            `A Task starts from a message in a channel or DM, not one inside a Task (${target}).`,
-            {
-                nextAction:
-                    'Start it from the message in the channel or DM that asked for the work.',
-            }
-        );
+    const target = args.values['--target'];
+    const from = args.values['--from'];
+    if (target !== undefined) {
+        assertAgentTarget(target);
     }
-    const from = requiredValue(args, '--from');
+    if (from !== undefined && target === undefined) {
+        throw new AgentCliError('INVALID_ARG', '--from needs the chat it is in as --target.', {
+            nextAction: 'haus task start --target "#security" --from 1a2b3c4d < brief.md',
+        });
+    }
+    const brief = (await deps.readStdin()).trim();
+    if (!brief) {
+        throw new AgentCliError('INVALID_ARG', 'Give the brief on stdin.', {
+            nextAction: 'haus task start --title "Rotate the signing key" < brief.md',
+        });
+    }
     const response = await deps.client.request('/api/agent/tasks/start', taskStartSchema, {
         body: {
-            description: await readDescription(args, deps),
+            brief,
             from,
-            project: args.values['--project'],
+            issue: args.values['--issue'],
+            machine: args.values['--machine'],
+            model: args.values['--model'],
+            requestId: args.values['--request-id'],
             target,
-            title: requiredValue(args, '--title'),
+            title: args.values['--title'],
         },
         method: 'POST',
     });
+    if (response.state === 'held') {
+        deps.write(renderHeldStart(target ?? 'the chat', response));
+        return 0;
+    }
     deps.write(
         [
-            `Started ${describeTask(response.task)}`,
-            `Task target: ${response.target}`,
-            `Started from message ${shortMessageId(from)} in ${target}; you, its author and anyone it mentions follow the Task.`,
+            `Queued ${describeTask(response.task)}`,
+            `Its brief posted as its first message, and its first turn is queued. Task target: ${response.target}`,
+            ...(from && target ? [`Started from message ${shortMessageId(from)} in ${target}.`] : []),
             '',
         ].join('\n')
     );
     return 0;
 }
+
+function renderHeldStart(target: string, held: Extract<TaskStartResponse, { state: 'held' }>) {
+    const lines = [
+        `Freshness hold: showing latest ${held.shownMessages.length} of ${held.newMessageCount} newer messages.`,
+        ...(held.omittedMessageCount > 0
+            ? [
+                  `${held.omittedMessageCount} earlier newer messages were omitted. Use haus message read --target "${target}" to review them.`,
+              ]
+            : []),
+        'The Task was not started: nothing was recorded. Review this context.',
+        '',
+        ...held.shownMessages.map(formatHistoryLine),
+        '',
+        'If the Task is still right, run the same haus task start again. If the newer messages change the brief, start it with the new brief or skip it.',
+    ];
+    return `${lines.join('\n')}\n`;
+}
+
+type TaskStartResponse = z.infer<typeof taskStartSchema>;
 
 export async function runTaskAttachPullRequest(args: ParsedArgs, deps: TaskDeps): Promise<number> {
     const url = args.positionals[1]?.trim();
