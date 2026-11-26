@@ -43,6 +43,8 @@ export * from './schema/haus-auth.ts';
 export * from './schema/image-generation-keys.ts';
 export * from './schema/image-generation-links.ts';
 export * from './schema/image-generations.ts';
+export * from './schema/issue-activity.ts';
+export * from './schema/issues.ts';
 export * from './schema/mcp.ts';
 export * from './schema/message-causes.ts';
 export * from './schema/message-claims.ts';
