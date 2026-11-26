@@ -14,7 +14,12 @@ import { requireStartOrigin } from './task-origin.ts';
 import { readTask } from './task-read.ts';
 import { chooseTaskSession } from './task-session-choice.ts';
 import { assignStartIssue, readStartIssue } from './task-start-issue.ts';
-import { insertStartedTask, queueTaskTurn, readStartedByRequest } from './task-start-record.ts';
+import {
+    insertStartedTask,
+    queueTaskTurn,
+    readStartedByRequest,
+    unfollowAsCaptain,
+} from './task-start-record.ts';
 import { autoTaskTitle } from './task-title.ts';
 import type { TaskWriteResult } from './task-write-result.ts';
 
@@ -107,6 +112,7 @@ export async function startCrewTask(
             },
             deps.agentDelivery
         );
+        await unfollowAsCaptain(tx, { captainId: captain.id, chatId: record.chatId, serverId });
         await queueTaskTurn(tx, deps.agentDelivery, {
             agentId: record.agentId,
             chatId: record.chatId,

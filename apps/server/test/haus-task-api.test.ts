@@ -1,13 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { startTask } from '../src/tasks/task-start.ts';
+import { createTask } from '../src/tasks/task-create.ts';
 import type { HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { taskFixture } from './task-fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
 const agentId = 'agt_task_api';
-const agent = { agentId, kind: 'agent' } as const;
 let allChatId: string;
 let projectChatId: string;
 let connection: HausConnection;
@@ -47,12 +46,11 @@ async function send(content: string) {
 
 describe('short ids and versions', () => {
     test('gives every Task its own short id, unique under concurrent starts', async () => {
-        const origins = await Promise.all(Array.from({ length: 8 }, (_, i) => send(`Work ${i}`)));
+        const person = { kind: 'user', userId: ownerUserId } as const;
         const started = await Promise.all(
-            origins.map((origin, index) =>
-                startTask(connection.db, agent, {
-                    originChatId: allChatId,
-                    originMessageId: origin.id,
+            Array.from({ length: 8 }, (_, index) =>
+                createTask(connection.db, person, {
+                    projectId: projectChatId,
                     serverId,
                     title: `Parallel ${index}`,
                 })
@@ -63,7 +61,7 @@ describe('short ids and versions', () => {
         expect(shortIds.every((shortId) => /^[0-9a-hjkmnp-tv-z]{8}$/u.test(shortId))).toBe(true);
         expect(started[0]?.task).toMatchObject({
             archivedAt: null,
-            createdBy: agent,
+            createdBy: person,
             description: '',
             version: 1,
         });

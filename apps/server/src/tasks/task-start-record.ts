@@ -1,9 +1,9 @@
 import type { TaskActor } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatsTable, tasksTable } from '../postgres/schema.ts';
+import { agentTaskFollowsTable, chatsTable, tasksTable } from '../postgres/schema.ts';
 import { insertTaskAgent } from './task-agent.ts';
 import { creatorColumns } from './task-actor.ts';
 import { TaskInvariantError } from './task-errors.ts';
@@ -108,6 +108,23 @@ export async function readStartedByRequest(
         throw new TaskInvariantError('That request id already started someone else’s Task.');
     }
     return task.id;
+}
+
+/** A crew Task's Captain does not follow it; it hears its crew through reports (specs/tasks.md). */
+export async function unfollowAsCaptain(
+    tx: Pick<HausDatabase, 'update'>,
+    input: { captainId: string; chatId: string; serverId: string }
+) {
+    await tx
+        .update(agentTaskFollowsTable)
+        .set({ followed: false, updatedAt: sql`now()` })
+        .where(
+            and(
+                eq(agentTaskFollowsTable.serverId, input.serverId),
+                eq(agentTaskFollowsTable.agentId, input.captainId),
+                eq(agentTaskFollowsTable.taskChatId, input.chatId)
+            )
+        );
 }
 
 /** Queues the first message as the Task agent's first turn, addressed to it alone. */
