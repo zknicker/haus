@@ -129,11 +129,23 @@ export async function removeCleanWorktree(input: {
 export async function removeCleanWorktreesOf(
     root: string,
     id: string,
-    options: { credentials: GitCredentials | 'fetched'; deleteBranch: boolean }
+    options: {
+        credentials: GitCredentials | 'fetched';
+        deleteBranch: boolean;
+        spare?: (path: string) => Promise<boolean>;
+    }
 ) {
     const kept: string[] = [];
     for (const worktree of (await listWorktrees(root)).filter((found) => found.id === id)) {
-        const state = await removeCleanWorktree({ ...options, path: worktree.path, root });
+        if (await options.spare?.(worktree.path)) {
+            continue;
+        }
+        const state = await removeCleanWorktree({
+            credentials: options.credentials,
+            deleteBranch: options.deleteBranch,
+            path: worktree.path,
+            root,
+        });
         if (state === 'dirty' || state === 'broken') {
             kept.push(worktree.path);
         }

@@ -130,9 +130,7 @@ test('an Agent outside #ops that posts in a Task there hears it, and posts in #o
     });
     const task = await fixture.owner.trpc.task.get.query({ serverId: fixture.serverId, shortId });
     const reply = await humanSend(task.chatId ?? '', 'It went down at noon.');
-    expect(await inboxAgentsFor(reply.message.id)).toEqual(
-        [opsAgentId, fixture.orbitAgentId].toSorted()
-    );
+    expect(await inboxAgentsFor(reply.message.id)).toEqual([fixture.orbitAgentId]);
     const inbox = await agentCall(orbit, '/api/agent/inbox/conversations');
     expect((inbox.body.items as { target: string }[]).map((item) => item.target)).toEqual([
         target,

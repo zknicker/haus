@@ -25,6 +25,7 @@ export function createRepoCheckoutRunner(agentsRoot: string) {
                 }),
                 ref: operation.ref,
                 repository: operation.repository,
+                sessionGeneration: context.sessionGeneration,
                 signal: context.signal,
             });
             return textResult('completed', agentCheckoutText(receipt));

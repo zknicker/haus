@@ -53,3 +53,20 @@ test('haus server info --agents and haus profile show never name the Task agent'
     const profile = await agentGet(`/api/agent/profile?target=@${taskAgent.handle}`);
     expect(profile.status).toBe(404);
 });
+
+test('a Task agent is never a hearing candidate, so #all never reaches it', async () => {
+    const [all] = (await fixture.harness.sql`
+        select id from chats where server_id = ${fixture.serverId} and is_all
+    `) as { id: string }[];
+    const sent = await fixture.owner.trpc.chat.send.mutate({
+        chatId: all?.id ?? '',
+        content: 'Standup in five.',
+        nonce: 'task-agent-roster-all',
+        serverId: fixture.serverId,
+    });
+    const reached = (await fixture.harness.sql`
+        select agent_id from agent_inbox where dedupe_key = ${sent.message.id}
+    `) as { agent_id: string }[];
+    expect(reached.map((row) => row.agent_id)).toContain(fixture.orbitAgentId);
+    expect(reached.map((row) => row.agent_id)).not.toContain(taskAgent.agentId);
+});

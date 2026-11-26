@@ -1,5 +1,5 @@
 {
-  "id": "23c2ecbb-f2cc-4c21-9285-739e34126cfb",
+  "id": "2dd9396e-739b-44c0-a13b-2970ece217f3",
   "prevId": "e8d9d8d4-d412-4898-9d6e-804ee87e450d",
   "version": "7",
   "dialect": "postgresql",
@@ -1802,7 +1802,7 @@
         },
         "agent_inbox_chat": {
           "name": "agent_inbox_chat",
-          "value": "\"agent_inbox\".\"source\" = 'task_assignment'\n                or (\"agent_inbox\".\"chat_id\" is null) = (\"agent_inbox\".\"source\" in ('subagent', 'drive_conflict', 'process_exit'))"
+          "value": "(\"agent_inbox\".\"chat_id\" is null) = (\"agent_inbox\".\"source\" in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event'))"
         },
         "agent_inbox_undelivered_shape": {
           "name": "agent_inbox_undelivered_shape",
@@ -3018,7 +3018,7 @@
       "checkConstraints": {
         "agent_run_triggers_chat": {
           "name": "agent_run_triggers_chat",
-          "value": "\"agent_run_triggers\".\"source\" = 'task_assignment'\n                or (\"agent_run_triggers\".\"chat_id\" is null) = (\"agent_run_triggers\".\"source\" in ('subagent', 'drive_conflict', 'process_exit'))"
+          "value": "(\"agent_run_triggers\".\"chat_id\" is null) = (\"agent_run_triggers\".\"source\" in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event'))"
         }
       },
       "isRLSEnabled": false
@@ -15694,7 +15694,11 @@
       "checkConstraints": {
         "tasks_session_shape": {
           "name": "tasks_session_shape",
-          "value": "num_nonnulls(\"tasks\".\"agent_id\", \"tasks\".\"computer_id\", \"tasks\".\"model\") in (0, 3)"
+          "value": "(\"tasks\".\"agent_id\" is null) = (\"tasks\".\"model\" is null)\n                and (\"tasks\".\"agent_id\" is not null or \"tasks\".\"computer_id\" is null)"
+        },
+        "tasks_machine_shape": {
+          "name": "tasks_machine_shape",
+          "value": "\"tasks\".\"computer_id\" is not null or \"tasks\".\"agent_id\" is null or \"tasks\".\"archived_at\" is not null"
         },
         "tasks_captain_shape": {
           "name": "tasks_captain_shape",

@@ -23,6 +23,7 @@ export async function moveAgentsOffRemovedComputer(
             and(
                 eq(agentsTable.serverId, input.serverId),
                 eq(agentsTable.computerId, input.computerId),
+                eq(agentsTable.kind, 'captain'),
                 isNull(agentsTable.retiredAt)
             )
         );

@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, type SQL } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { tasksTable } from '../postgres/schema.ts';
@@ -8,23 +8,47 @@ import { lockTask } from './task-read.ts';
 
 type Tx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
-export async function archiveCrew(
+export function archiveCrew(
     tx: Tx,
     agentDelivery: AgentDelivery,
     input: { actor: TaskActor; captainId: string; serverId: string }
 ) {
-    const crew = await tx
+    return archiveActiveTasks(tx, agentDelivery, input, eq(tasksTable.captainId, input.captainId));
+}
+
+export function archiveProjectTasks(
+    tx: Tx,
+    agentDelivery: AgentDelivery,
+    input: { actor: TaskActor; projectId: string; serverId: string }
+) {
+    return archiveActiveTasks(tx, agentDelivery, input, eq(tasksTable.projectId, input.projectId));
+}
+
+export function archiveMachineTasks(
+    tx: Tx,
+    agentDelivery: AgentDelivery,
+    input: { actor: TaskActor; computerId: string; serverId: string }
+) {
+    return archiveActiveTasks(
+        tx,
+        agentDelivery,
+        input,
+        eq(tasksTable.computerId, input.computerId)
+    );
+}
+
+async function archiveActiveTasks(
+    tx: Tx,
+    agentDelivery: AgentDelivery,
+    input: { actor: TaskActor; serverId: string },
+    where: SQL
+) {
+    const active = await tx
         .select({ id: tasksTable.id })
         .from(tasksTable)
-        .where(
-            and(
-                eq(tasksTable.serverId, input.serverId),
-                eq(tasksTable.captainId, input.captainId),
-                isNull(tasksTable.archivedAt)
-            )
-        );
+        .where(and(eq(tasksTable.serverId, input.serverId), isNull(tasksTable.archivedAt), where));
     const archived = [];
-    for (const { id } of crew) {
+    for (const { id } of active) {
         const current = await lockTask(tx, input.serverId, id);
         archived.push(await archiveLockedTask(tx, input.actor, agentDelivery, current));
     }

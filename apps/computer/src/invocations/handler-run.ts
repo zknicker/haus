@@ -56,7 +56,11 @@ export async function executeInvocation(
                 signal: input.controller.signal,
                 timeoutMs,
             });
-            await recordWorktreeUse(input.agentsRoot, operation, { cwd, env }).catch(logUseFailure);
+            await recordWorktreeUse(input.agentsRoot, operation, {
+                cwd,
+                env,
+                sessionGeneration: command.sessionGeneration,
+            }).catch(logUseFailure);
             return ran;
         });
     } catch (error) {
