@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+    boolean,
     check,
     foreignKey,
     index,
@@ -14,6 +15,7 @@ import {
 import { agentsTable } from './agents.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
+import { computersTable } from './computers.ts';
 import { projectsTable } from './projects.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
@@ -22,13 +24,21 @@ export const tasksTable = pgTable(
     'tasks',
     {
         /** The only archive state (ADR 0062); the Task's Chat stays unarchived. */
+        /** The Task's hidden `task` agent (ADR 0062), one to one; null only on a Task older than step 5. */
+        agentId: text('agent_id'),
         archivedAt: timestamp('archived_at', { withTimezone: true }),
+        /** The Captain whose crew this Task is; null for a Task a person started. */
+        captainId: text('captain_id'),
         chatId: text('chat_id'),
+        /** The Task's Machine, fixed at start. */
+        computerId: text('computer_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         createdByAgentId: text('created_by_agent_id'),
         createdByUserId: text('created_by_user_id'),
         description: text('description').notNull().default(''),
         id: text('id').primaryKey(),
+        /** The model the Task runs, fixed at start. */
+        model: text('model'),
         /** The Message the Task started from, both or neither; null for a filed Task. */
         originChatId: text('origin_chat_id'),
         originMessageId: text('origin_message_id'),
@@ -37,7 +47,11 @@ export const tasksTable = pgTable(
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
         shortId: text('short_id').notNull(),
+        /** The starter's idempotency key: a retried start returns the same Task. */
+        startRequestId: text('start_request_id'),
         title: text('title').notNull(),
+        /** True once a person or agent renamed it; an automatic title never replaces it. */
+        titleCustom: boolean('title_custom').notNull().default(false),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
         version: integer('version').notNull().default(1),
     },
@@ -45,6 +59,49 @@ export const tasksTable = pgTable(
         unique('tasks_server_id_key').on(table.serverId, table.id),
         uniqueIndex('tasks_short_id_key').on(table.serverId, table.shortId),
         uniqueIndex('tasks_chat_key').on(table.chatId),
+        uniqueIndex('tasks_agent_key').on(table.agentId),
+        uniqueIndex('tasks_start_request_key')
+            .on(table.serverId, table.startRequestId)
+            .where(sql`${table.startRequestId} is not null`),
+        foreignKey({
+            columns: [table.serverId, table.agentId],
+            foreignColumns: [agentsTable.serverId, agentsTable.id],
+            name: 'tasks_agent_fk',
+        }),
+        foreignKey({
+            columns: [table.serverId, table.captainId],
+            foreignColumns: [agentsTable.serverId, agentsTable.id],
+            name: 'tasks_captain_fk',
+        }),
+        foreignKey({
+            columns: [table.serverId, table.computerId],
+            foreignColumns: [computersTable.serverId, computersTable.id],
+            name: 'tasks_computer_fk',
+        }),
+        check(
+            'tasks_session_shape',
+            sql`(${table.agentId} is null) = (${table.model} is null)
+                and (${table.agentId} is not null or ${table.computerId} is null)`
+        ),
+        check(
+            'tasks_machine_shape',
+            sql`${table.computerId} is not null or ${table.agentId} is null or ${table.archivedAt} is not null`
+        ),
+        check(
+            'tasks_captain_shape',
+            sql`${table.captainId} is null or (${table.agentId} is not null and ${table.createdByAgentId} = ${table.captainId})`
+        ),
+        check(
+            'tasks_start_request_length',
+            sql`${table.startRequestId} is null or char_length(${table.startRequestId}) between 1 and 128`
+        ),
+        check(
+            'tasks_model_length',
+            sql`${table.model} is null or char_length(${table.model}) between 1 and 128`
+        ),
+        index('tasks_captain_idx')
+            .on(table.serverId, table.captainId)
+            .where(sql`${table.captainId} is not null`),
         foreignKey({
             columns: [table.serverId, table.chatId],
             foreignColumns: [chatsTable.serverId, chatsTable.id],

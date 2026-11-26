@@ -5,17 +5,27 @@ import { publishRealtime } from '../../realtime/topic.ts';
 import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentDeleteDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { deleteAgent } from '../../server-agents/delete-agent.ts';
+import { announceTaskSessions } from '../../tasks/task-session.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const deleteAgentProcedure = memberProcedure
     .input(deleteAgentInputSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const result = await deleteAgent(ctx.hausDb, ctx.member, input);
+            const result = await deleteAgent(ctx.hausDb, ctx.member, input, ctx.agentDelivery);
             for (const event of result.claimEvents) {
                 publishRealtime(event);
             }
             publishRealtime(result.taskEvents);
+            publishRealtime(result.crew.events);
+            for (const { computerId, frame } of result.crew.workerFrames) {
+                ctx.computerConnections.send(computerId, frame);
+            }
+            announceTaskSessions(
+                { invocations: ctx.invocations, runner: ctx.runnerLink },
+                result.crew.sessions
+            );
+            void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.crew.wakes);
             for (const computerId of await readServerComputerIds(ctx.hausDb, input.serverId)) {
                 ctx.invocations.fenceAgent({
                     agentId: result.agentId,

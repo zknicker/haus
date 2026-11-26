@@ -2,6 +2,7 @@ import { indentContinuationLines } from '@haus/agent-prompt';
 import { formatTaskTarget } from '@haus/api';
 import * as z from 'zod';
 import type { AgentApiRequester } from '../agent-api-client.ts';
+import { agentMessageSchema } from '../agent-api-schemas.ts';
 import { formatUtcTime, shortMessageId } from '../agent-format.ts';
 import { clip } from './agent-reminder-view.ts';
 
@@ -31,7 +32,17 @@ export const taskListSchema = z.object({
     tasks: z.array(taskRowSchema),
 });
 export const taskSingleSchema = z.object({ task: taskRowSchema });
-export const taskStartSchema = z.object({ target: z.string(), task: taskRowSchema });
+/** `haus task start`: the queued Task, or a freshness hold with the newer messages it showed. */
+export const taskStartSchema = z.discriminatedUnion('state', [
+    z.object({ state: z.literal('started'), target: z.string(), task: taskRowSchema }),
+    z.looseObject({
+        formalMentionCount: z.number().int().nonnegative(),
+        newMessageCount: z.number().int().positive(),
+        omittedMessageCount: z.number().int().nonnegative(),
+        shownMessages: z.array(agentMessageSchema).max(12),
+        state: z.literal('held'),
+    }),
+]);
 export const taskAttachPullRequestSchema = z.object({
     pullRequest: z.object({
         number: z.number().int().positive(),

@@ -1,4 +1,4 @@
-import type { AgentReasoningEffort, RunnerModelConnection } from '@haus/api';
+import type { AgentReasoningEffort, RunnerModelConnection, RunnerSessionPolicy } from '@haus/api';
 import type { RunTools } from '../run-context.ts';
 import type { HarnessContext } from './context-snapshot.ts';
 import type { TurnEvent } from './turn-event.ts';
@@ -18,6 +18,7 @@ export interface RuntimeLaunch {
     readonly connection: RunnerModelConnection;
     readonly instructions: string;
     readonly modelId: string;
+    readonly policy?: RunnerSessionPolicy;
     readonly reasoningEffort: AgentReasoningEffort;
     readonly runId: string;
     readonly runtimeId?: string;

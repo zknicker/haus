@@ -29,7 +29,7 @@ export function agentSessions(input: {
             if (reset.scope === 'restart') {
                 restarts.set(agentId, (restarts.get(agentId) ?? 0) + 1);
             }
-            if (reset.scope === 'full' || reset.scope === 'session') {
+            if ('sessionGeneration' in reset) {
                 const generation = Math.max(reset.sessionGeneration, announced.get(agentId) ?? 0);
                 announced.set(agentId, generation);
             }
@@ -47,7 +47,7 @@ export function agentSessions(input: {
             if (reset.sessionGeneration <= ((await sessions.applied(agentId)) ?? 0)) {
                 return;
             }
-            await discard(agentId, reset.scope);
+            await discard(agentId, reset.scope === 'session' ? 'session' : 'full');
             await sessions.advance(agentId, reset.sessionGeneration);
         },
         async enter(
@@ -82,8 +82,7 @@ export function agentSessions(input: {
             return (
                 reset.scope === 'retire' ||
                 reset.scope === 'restart' ||
-                ((reset.scope === 'full' || reset.scope === 'session') &&
-                    generation < reset.sessionGeneration)
+                generation < reset.sessionGeneration
             );
         },
     };

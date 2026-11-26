@@ -39,6 +39,7 @@ export async function readRoutingAgents(
             and(
                 eq(agentsTable.serverId, serverId),
                 isNull(agentsTable.retiredAt),
+                eq(agentsTable.kind, 'captain'),
                 inArray(agentsTable.id, agentIds)
             )
         )

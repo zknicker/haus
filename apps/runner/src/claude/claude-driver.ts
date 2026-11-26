@@ -120,7 +120,11 @@ export function createClaudeHarness(options: {
                             launch.agentId,
                             { launchKey: parked.launchKey, nativeSessionId: parked.sessionId },
                             parked,
-                            Date.now()
+                            Date.now(),
+                            {
+                                idleCompaction: launch.policy?.idleCompaction ?? true,
+                                idleMs: launch.policy?.warmIdleMs ?? warmIdleMs,
+                            }
                         )
                     );
                     slots.parked();

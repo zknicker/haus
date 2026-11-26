@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, type SQL } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
 
@@ -16,8 +16,7 @@ const hearingRules: Record<HearingPlace, (hearer: Hearer) => boolean> = {
     task: ({ follows, mentioned }) => mentioned || follows,
 };
 
-// WARNING: step 5a sets this to eq(agentsTable.kind, 'captain'), or every #all message wakes every Task agent.
-const hearingCandidatesAreCaptains: SQL | undefined = undefined;
+const hearingCandidatesAreCaptains = eq(agentsTable.kind, 'captain');
 
 export function hears(place: HearingPlace, hearer: Hearer) {
     return hearingRules[place](hearer);

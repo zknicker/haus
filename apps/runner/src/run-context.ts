@@ -145,4 +145,4 @@ export interface TurnHost {
 export type AgentReset =
     | { readonly scope: 'restart' }
     | { readonly scope: 'retire' }
-    | { readonly scope: 'full' | 'session'; readonly sessionGeneration: number };
+    | { readonly scope: 'archive' | 'full' | 'session'; readonly sessionGeneration: number };

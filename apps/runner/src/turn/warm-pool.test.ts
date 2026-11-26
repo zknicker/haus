@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { taskWarmIdleMs } from '@haus/api';
 import { WarmPool, warmIdleMs } from './warm-pool.ts';
 
 const minute = 60_000;
@@ -11,6 +12,16 @@ test('parking past the cap evicts the least recently parked process first', () =
     expect(pool.park('agent-1', identity('s1'), 'process-1', 2 * minute)).toEqual([]);
     expect(pool.park('agent-3', identity('s3'), 'process-3', 3 * minute)).toEqual(['process-2']);
     expect(pool.size).toBe(2);
+});
+
+test('a Task process parks for its own five minutes while a Captain keeps its hour', () => {
+    const pool = new WarmPool<string>({ idleMs: warmIdleMs, maxWarm: 16 });
+    pool.park('captain', identity('s1'), 'captain-process', 0);
+    pool.park('task', identity('s2'), 'task-process', 0, taskWarmIdleMs);
+    expect(pool.claim('task', identity('s2'), 4 * minute).process).toBe('task-process');
+    pool.park('task', identity('s2'), 'task-process', 4 * minute, taskWarmIdleMs);
+    expect(pool.expire(9 * minute)).toEqual(['task-process']);
+    expect(pool.claim('captain', identity('s1'), 9 * minute).process).toBe('captain-process');
 });
 
 test('evicting takes the least recently parked process, one at a time', () => {

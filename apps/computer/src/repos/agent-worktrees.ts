@@ -8,7 +8,9 @@ import { withAgentCleanup } from './agent-use.ts';
 import { type GithubAppGit, githubAppGit } from './github-git.ts';
 import {
     lastUseMs,
+    markSessionGeneration,
     readMarker,
+    readSessionGeneration,
     touchWorktree,
     worktreeGitDirs,
     writeMarker,
@@ -32,6 +34,7 @@ export interface AgentCheckout {
     ref: string | null;
     repository: string;
     serverId: string;
+    sessionGeneration: number;
     signal?: AbortSignal;
 }
 
@@ -67,6 +70,7 @@ export async function checkoutAgentWorktree(input: AgentCheckout) {
             ? await resetAgentWorktree({ ...input, branch, path, ref })
             : null;
     await touchWorktree(path);
+    await markSessionGeneration(path, input.sessionGeneration);
     return {
         branch,
         from: moved?.from ?? added.start,
@@ -132,6 +136,21 @@ export function removeAgentWorktrees(input: {
     });
 }
 
+export async function removeArchivedWorktrees(input: {
+    agentId: string;
+    dataRoot: string;
+    generation: number;
+    serverId: string;
+}) {
+    return await withAgentCleanup(input.agentId, () =>
+        removeCleanWorktreesOf(worktreesRoot(input.dataRoot, input.serverId), input.agentId, {
+            credentials: cleanupGit(input, input.agentId),
+            deleteBranch: true,
+            spare: async (path) => ((await readSessionGeneration(path)) ?? 0) > input.generation,
+        })
+    );
+}
+
 export function agentWorktreeOf(path: string, root: string) {
     const inside = relative(root, resolve(path));
     if (inside === '' || inside.startsWith('..') || isAbsolute(inside)) {
@@ -141,10 +160,11 @@ export function agentWorktreeOf(path: string, root: string) {
     return id && owner && name && isAgentId(id) ? join(root, id, owner, name) : null;
 }
 
-export async function touchAgentWorktreeAt(path: string, root: string) {
+export async function touchAgentWorktreeAt(path: string, root: string, sessionGeneration: number) {
     const worktree = agentWorktreeOf(path, root);
     if (worktree !== null) {
         await touchWorktree(worktree);
+        await markSessionGeneration(worktree, sessionGeneration);
     }
 }
 

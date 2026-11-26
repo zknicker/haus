@@ -1,5 +1,6 @@
 import type { DeleteAgentInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { clearClaimAssignments } from '../claims/clear-claim-assignments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -14,6 +15,7 @@ import {
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { archiveCrew } from '../tasks/task-bulk-archive.ts';
 import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentDeleteDeniedError } from './agent-config-errors.ts';
@@ -22,11 +24,13 @@ import { AgentDeleteDeniedError } from './agent-config-errors.ts';
 export async function deleteAgent(
     db: HausDatabase,
     member: HausUser | null,
-    input: DeleteAgentInput
+    input: DeleteAgentInput,
+    agentDelivery: AgentDelivery
 ): Promise<{
     agentId: string;
     claimEvents: PreparedRealtimeEvent[];
     computerId: string;
+    crew: Awaited<ReturnType<typeof archiveCrew>>;
     taskEvents: PreparedRealtimeEvent[];
 }> {
     return await db.transaction(async (tx) => {
@@ -46,6 +50,7 @@ export async function deleteAgent(
                 and(
                     eq(agentsTable.serverId, input.serverId),
                     eq(agentsTable.id, input.agentId),
+                    eq(agentsTable.kind, 'captain'),
                     isNull(agentsTable.retiredAt)
                 )
             )
@@ -60,6 +65,11 @@ export async function deleteAgent(
             throw new AgentDeleteDeniedError('Type the Agent name exactly to delete it.');
         }
 
+        const crew = await archiveCrew(tx, agentDelivery, {
+            actor: { kind: 'user', userId: member.id },
+            captainId: agent.id,
+            serverId: input.serverId,
+        });
         const owner = and(
             eq(agentDeliveryTable.serverId, input.serverId),
             eq(agentDeliveryTable.agentId, agent.id)
@@ -134,6 +144,7 @@ export async function deleteAgent(
             agentId: agent.id,
             claimEvents,
             computerId: agent.computerId,
+            crew,
             taskEvents: reminderTaskEvents,
         };
     });

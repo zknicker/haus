@@ -10,6 +10,7 @@ import {
     checkoutAgentWorktree,
     pruneIdleAgentWorktrees,
     removeAgentWorktrees,
+    removeArchivedWorktrees,
 } from './agent-worktrees.ts';
 import { githubAppGit } from './github-git.ts';
 import { git, registerRepoFixture } from './repo.fixture.ts';
@@ -21,7 +22,7 @@ const agentId = 'agt_alpha';
 function setup() {
     const fixture = repos();
     const folder = fixture.folder();
-    const checkout = (ref: string | null = null) =>
+    const checkout = (ref: string | null = null, sessionGeneration = 1) =>
         checkoutAgentWorktree({
             agentId,
             dataRoot: fixture.dataRoot,
@@ -33,6 +34,7 @@ function setup() {
             ref,
             repository: 'acme/app',
             serverId: 'srv_1',
+            sessionGeneration,
         });
     const path = join(fixture.dataRoot, 'servers', 'srv_1', 'worktrees', agentId, 'acme', 'app');
     return { ...fixture, checkout, folder, path };
@@ -133,6 +135,49 @@ describe('Agent worktree cleanup', () => {
             path,
         ]);
         expect(existsSync(join(path, 'draft.md'))).toBe(true);
+    });
+
+    test('an archived Task loses its clean worktree and branch, and keeps an unpushed one', async () => {
+        const clean = setup();
+        await clean.checkout();
+        expect(
+            await removeArchivedWorktrees({
+                agentId,
+                dataRoot: clean.dataRoot,
+                generation: 1,
+                serverId: 'srv_1',
+            })
+        ).toEqual([]);
+        expect(existsSync(clean.path)).toBe(false);
+        expect(git(clean.folder, 'branch', '--list', 'haus/*')).toBe('');
+
+        const unpushed = setup();
+        await unpushed.checkout();
+        git(unpushed.path, 'commit', '--quiet', '--allow-empty', '-m', 'unpushed');
+        expect(
+            await removeArchivedWorktrees({
+                agentId,
+                dataRoot: unpushed.dataRoot,
+                generation: 1,
+                serverId: 'srv_1',
+            })
+        ).toEqual([unpushed.path]);
+        expect(git(unpushed.path, 'log', '--format=%s', '-1')).toBe('unpushed');
+    });
+
+    test('a late archive cleanup spares the worktree a restored, newer session checked out', async () => {
+        const restored = setup();
+        await restored.checkout(null, 1);
+        await restored.checkout(null, 3);
+        expect(
+            await removeArchivedWorktrees({
+                agentId,
+                dataRoot: restored.dataRoot,
+                generation: 2,
+                serverId: 'srv_1',
+            })
+        ).toEqual([]);
+        expect(existsSync(restored.path)).toBe(true);
     });
 
     test('the sweep keeps what an invocation writes while it waits for that invocation', async () => {

@@ -42,7 +42,11 @@ async function listAssignableAgents(
         handle: agentsTable.handle,
     };
     // A retired Agent will never wake, so it must never be offered.
-    const active = and(eq(agentsTable.serverId, input.serverId), isNull(agentsTable.retiredAt));
+    const active = and(
+        eq(agentsTable.serverId, input.serverId),
+        isNull(agentsTable.retiredAt),
+        eq(agentsTable.kind, 'captain')
+    );
     const rows =
         input.kind === 'dm'
             ? input.dmAgentId

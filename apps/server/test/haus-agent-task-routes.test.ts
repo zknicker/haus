@@ -33,6 +33,8 @@ async function start(body: Record<string, unknown>) {
     const started = await call('/api/agent/tasks/start', {
         from: origin.body.message.id,
         target: '#product',
+        brief: 'Work it.',
+        machine: fixture.computerId,
         ...body,
     });
     expect(started.status).toBe(200);
@@ -63,6 +65,8 @@ describe('start and list', () => {
             from: 'msg_unused',
             priority: 'urgent',
             target: '#product',
+            brief: 'Work it.',
+            machine: fixture.computerId,
             title: 'Rich',
         });
         expect(refused.status).toBe(400);
@@ -77,6 +81,8 @@ describe('start and list', () => {
         const started = await call('/api/agent/tasks/start', {
             from: (origin.body.message.id as string).slice('msg_'.length, 'msg_'.length + 8),
             target: '#product',
+            brief: 'Work it.',
+            machine: fixture.computerId,
             title: 'From a short id',
         });
         expect(started.status).toBe(200);
@@ -126,7 +132,7 @@ describe('archive', () => {
 
 describe('show', () => {
     test('reads a Task with the messages and Reminders that reference it', async () => {
-        const task = await start({ description: 'The whole story.', title: 'Referenced' });
+        const task = await start({ title: 'Referenced' });
         const sent = await call('/api/agent/messages/send', {
             content: `Picking up [it](task://${task.shortId}) now.`,
             nonce: 'task_routes_ref',
@@ -136,7 +142,7 @@ describe('show', () => {
 
         const shown = await call(`/api/agent/tasks/show?task=${task.shortId}`);
         expect(shown.status).toBe(200);
-        expect(shown.body.description).toBe('The whole story.');
+        expect(shown.body.description).toBe('');
         expect(shown.body.task.shortId).toBe(task.shortId);
         expect(shown.body.reminders).toEqual([]);
         expect(shown.body.mentions).toEqual([

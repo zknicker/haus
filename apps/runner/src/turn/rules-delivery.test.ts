@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { planRulesDelivery } from '@haus/agent-prompt';
+import { type RunnerSessionPolicy, taskWarmIdleMs } from '@haus/api';
 import { driveRoutes } from '../runner-drive-routes.ts';
 import {
     cleanups,
@@ -126,9 +127,53 @@ test('a rules file deleted mid-session is announced once', async () => {
     expect(await turn(true)).toBe('Start.');
 });
 
-async function agentDrive(initial: Record<string, string>) {
+test('a crew Task reads the Haus and Project rules and its Captain’s WORKER.md, and no memory', async () => {
+    const workerRules = 'agents/blippy/WORKER.md';
+    const { server, turn } = await agentDrive(
+        {
+            'agents/blippy/MEMORY.md': '# Memory\n- Captain only.\n',
+            [agentRules]: '- Captain only.\n',
+            [hausRules]: '# Haus\n- Answer in the Task.\n',
+            [workerRules]: '- Open a draft pull request.\n',
+        },
+        {
+            idleCompaction: false,
+            kind: 'task',
+            memoryPath: null,
+            rulePaths: [hausRules, projectRules, workerRules],
+            warmIdleMs: taskWarmIdleMs,
+        }
+    );
+
+    expect(await turn(false)).toBe(
+        [
+            '<haus-rules>',
+            header(hausRules),
+            '',
+            '# Haus',
+            '- Answer in the Task.',
+            '</haus-rules>',
+            '',
+            '<haus-rules>',
+            header(workerRules),
+            '',
+            '- Open a draft pull request.',
+            '</haus-rules>',
+            '',
+            'Start.',
+        ].join('\n')
+    );
+    expect(
+        server.requests
+            .filter((request) => request.path.startsWith('/api/agent/artifacts/by-path'))
+            .map((request) => decodeURIComponent(request.path.split('path=')[1] ?? ''))
+            .toSorted()
+    ).toEqual([hausRules, workerRules, projectRules].toSorted());
+});
+
+async function agentDrive(initial: Record<string, string>, session?: RunnerSessionPolicy) {
     const files = new Map(Object.entries(initial));
-    const server = serverStandIn(driveRoutes('blippy', files, 'PROD'));
+    const server = serverStandIn(driveRoutes('blippy', files, 'PROD', session));
     const agentDir = await mkdtemp(join(tmpdir(), 'haus-runner-rules-'));
     cleanups.push(() => rm(agentDir, { force: true, recursive: true }));
     return { files, server, turn: (isResume: boolean) => runnerTurn(server, agentDir, isResume) };

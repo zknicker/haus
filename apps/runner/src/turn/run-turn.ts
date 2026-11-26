@@ -82,6 +82,7 @@ export async function runTurn(input: RunTurnInput) {
         connection: input.connection,
         instructions: composed.instructions,
         modelId: start.modelId,
+        ...(context.policy ? { policy: context.policy } : {}),
         reasoningEffort: input.reasoningEffort,
         runId: start.runId,
         runtimeId: start.runtimeId,

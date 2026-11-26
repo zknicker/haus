@@ -1,5 +1,5 @@
 import { existsSync, realpathSync } from 'node:fs';
-import { stat, utimes, writeFile } from 'node:fs/promises';
+import { readFile, stat, utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as z from 'zod';
 import { gitOutput, WorkerCheckoutError } from '../workers/computer/git.ts';
@@ -9,6 +9,7 @@ const markerSchema = z.object({ branch: z.string().min(1), ref: z.string().min(1
 export type WorktreeMarker = z.infer<typeof markerSchema>;
 
 const markerFile = 'haus-worktree.json';
+const generationFile = 'haus-session-generation';
 
 export async function readMarker(path: string) {
     const dirs = await worktreeGitDirs(path);
@@ -33,6 +34,25 @@ export async function touchWorktree(path: string, at = new Date()) {
     if (dirs !== null && existsSync(join(dirs.admin, markerFile))) {
         await utimes(join(dirs.admin, markerFile), at, at);
     }
+}
+
+export async function markSessionGeneration(path: string, generation: number) {
+    const dirs = await worktreeGitDirs(path);
+    if (dirs === null) {
+        return;
+    }
+    const newest = Math.max(generation, (await readSessionGeneration(path)) ?? 0);
+    await writeFile(join(dirs.admin, generationFile), `${newest}\n`);
+}
+
+export async function readSessionGeneration(path: string) {
+    const dirs = await worktreeGitDirs(path);
+    if (dirs === null) {
+        return null;
+    }
+    const raw = await readFile(join(dirs.admin, generationFile), 'utf8').catch(() => null);
+    const generation = Number(raw?.trim());
+    return Number.isInteger(generation) && generation > 0 ? generation : null;
 }
 
 export async function lastUseMs(path: string) {

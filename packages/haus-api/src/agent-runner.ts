@@ -64,6 +64,17 @@ export const agentResetCommandSchema = z
 
 export type AgentResetCommand = z.infer<typeof agentResetCommandSchema>;
 
+/**
+ * Server→runner reset. Beside the Computer's scopes, `archive` frees an archived Task's session:
+ * it closes the process and deletes its directory as `full` does, and leaves the agent id usable,
+ * so the unarchived Task's newer generation runs (ADR 0062).
+ */
+export const runnerAgentResetCommandSchema = agentResetCommandSchema
+    .extend({ kind: z.enum(['archive', 'full', 'session']) })
+    .strict();
+
+export type RunnerAgentResetCommand = z.infer<typeof runnerAgentResetCommandSchema>;
+
 /** Retires one Agent and erases only that Agent's Computer-local execution state. */
 export const agentRetireCommandSchema = z
     .object({

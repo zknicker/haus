@@ -44,3 +44,30 @@ test('a run applies the full reset the runner missed, and runs a reset, restart 
     sessions.announce('agt_alpha', { scope: 'retire' });
     expect(await sessions.enter(run(6, 'session'), 0)).toBe(false);
 });
+
+test('an archive frees the session without retiring it: a stale run is refused, a newer one runs', async () => {
+    dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-sessions-'));
+    const agentDir = (agentId: string) => join(dataDir, 'agents', agentId);
+    const released: string[] = [];
+    const sessions = agentSessions({
+        agentDir,
+        dataDir,
+        release: (agentId) => released.push(agentId),
+    });
+    const run = (sessionGeneration: number) => ({
+        sessionResetKind: 'full' as const,
+        start: { agentId: 'agt_task', sessionGeneration },
+    });
+    expect(await sessions.enter(run(1), 0)).toBe(true);
+    await mkdir(join(agentDir('agt_task'), 'claude'), { recursive: true });
+
+    const archive = { scope: 'archive', sessionGeneration: 2 } as const;
+    expect(sessions.supersedes(archive, 1)).toBe(true);
+    sessions.announce('agt_task', archive);
+    await sessions.apply('agt_task', archive);
+
+    expect(released).toEqual(['agt_task']);
+    expect(await readdir(join(dataDir, 'agents'))).toEqual([]);
+    expect(await sessions.enter(run(1), 0)).toBe(false);
+    expect(await sessions.enter(run(3), 0)).toBe(true);
+});

@@ -88,7 +88,8 @@ Wire shapes live in `packages/haus-api/src/task.ts`. The tRPC surface is
   branch `haus/k3mq7xta-<slug>`, and the trailer `Haus-Task: k3mq7xta`. Full ids resolve
   everywhere a short id does.
 - **Title.** A Task gets its title automatically from its first message (Capy's
-  `regenerate-title`), as a short summary of at most 80 characters, with `titleCustom: false`. A
+  `regenerate-title`): its first line, cut at a word to at most 80 characters, with
+  `titleCustom: false`. A title given at start (`--title`, `task.start`'s `title`) is custom. A
   person, its Captain, or the Task itself may rename it (`task.rename`, `haus task rename`), which
   sets `titleCustom: true`; a later regenerate never replaces a custom title.
 - People refer to a Task by title. The @ picker searches active Tasks by title, shows each with
@@ -113,6 +114,11 @@ Capy's thread status, derived by the Server from the Task's session and never wr
 `needsYou` is true exactly while the Task waits on a person's answer. Passive waits (a pull
 request's checks, a background process, a reminder) are `idle`: their wake starts a turn when it
 comes. Archive is separate from activity: an archived Task shows its last activity, greyed.
+
+The Server reads activity from the Task agent's delivery state
+(`apps/server/src/tasks/task-activity.ts`): an active run is `working`; queued work is `working`
+while the Machine is online and `waiting` while it is offline; a last turn that failed is
+`failed`; anything else is `idle`. Until crew reports land (step 5b), `needsYou` is always false.
 
 ## Captains and the Captain chat
 
@@ -295,13 +301,17 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
     allows the Captain.
   - A person-started Task may use its Machine exactly while its starter is that Computer's
     attacher, or the Computer allows All Captains on this Server.
-  - The Task agent never gets the "own Machine" pass that Agent access gives an agent whose
-    `computer_id` is that Computer (`apps/server/src/computer-access/agent-access.ts:7`). The Task
-    agent row carries no `computer_id`; its Machine lives on the `tasks` row.
+  - The Task agent never gets the "own Machine" pass that Agent access gives a Captain whose
+    `computer_id` is that Computer (`apps/server/src/computer-access/agent-access.ts`). Its
+    Machine lives on the `tasks` row; the agent row repeats it as `computer_id` only because
+    delivery dispatches a run to the agent's `computer_id`, and the access check keys on
+    `kind = 'task'`, so the column grants nothing.
   - The invocation gate (`apps/server/src/agent-invocations/invocation-gate.ts`) checks this at
     every dispatch, on request and on resend. A revoke of the Captain's or starter's grant fences
     the Task's queued calls and stops its running one, as a revoke does for a Captain.
   - A per-call `computer` target other than the Task's Machine is refused `TASK_MACHINE_ONLY`.
+- **Removed.** Removing a Machine archives its active Tasks and clears every Task's
+  `computer_id` there; such a Task stays archived, since a Task's Machine never changes.
 - **Offline.** A tool call to an offline Machine fails fast, as today. A Task whose Machine is
   offline when a turn is due parks as `waiting` without holding a runner slot, and the turn starts
   when the Machine reconnects.
@@ -417,8 +427,11 @@ lease, and bumps the Task agent's session generation. Then:
 
 A runner or Computer offline at archive gets the reset on reconnect: each reports the agent
 directories or worktrees it still holds with their generation (today's `agent-held`), and the
-Server answers with the newest reset for each. Archive is not deletion; the chat and its history
-stay readable.
+Server answers with the newest reset for each. Until that report is built, archive and unarchive
+leave the agent's `session_reset_kind` at `full`, so the first run of the newer generation
+deletes whatever an offline runner still held. Archive also holds the agent's delivery and drops
+its queued chat work, so a restored Task starts no turn until a message reaches it. Archive is not
+deletion; the chat and its history stay readable.
 
 **Unarchive** clears `archived_at` and bumps the generation again (step 5). The next turn starts a
 fresh session whose first input is the composed Task input ([What a Task reads](#what-a-task-reads))
@@ -428,7 +441,8 @@ branch; otherwise `haus repo checkout` makes a new one on the same branch name f
 Issues handed back at archive stay handed back.
 
 **Project archive and delete.** Archiving a Project archives its active Tasks. Deleting a Project
-deletes its Tasks, their chats and their hidden agent rows with it
+deletes its Tasks and their chats, and retires their hidden agents with their queues and
+credentials, as deleting a Captain retires it
 ([projects.md](projects.md#archiving-and-deleting)).
 
 ## Ownership
@@ -444,13 +458,16 @@ deletes its Tasks, their chats and their hidden agent rows with it
 
 | Contract | Guard |
 | --- | --- |
-| A Task agent never appears in rosters, mention options, hearing candidates or access lists | `apps/server/test/task-agent-roster.test.ts` (shared fixture) |
+| A Task agent never appears in rosters, mention options, hearing candidates or access lists | `apps/server/test/task-agent-roster.test.ts` (shared fixture `task-agent.fixture.ts`) |
+| Removing a Machine archives its Tasks and clears their Machine; deleting a Project stops its Task sessions before their agents retire | `apps/server/test/task-removals.test.ts` |
 | A Task credential cannot post outside its chat or start a Task | `apps/server/test/task-agent-credential.test.ts` |
 | Steer, interrupt and queue deliver as their rows say | `apps/server/test/task-delivery-modes.test.ts`, `apps/runner/src/turn/turn-notices.test.ts` |
-| Archive then unarchive runs a fresh generation, and a stale-generation dispatch is refused | `apps/server/test/task-unarchive.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |
+| Archive then unarchive runs a fresh generation, and a stale-generation dispatch is refused | `apps/server/test/task-archive.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |
 | A Captain-directed turn without a report sends one `unreported` crew report | `apps/server/test/crew-report-delivery.test.ts` |
 | A Task's access follows its Captain's or starter's current grant, never its own Machine, and refuses other targets | `apps/server/test/task-machine-access.test.ts` |
-| Archive deletes the session, kills processes, removes clean worktrees and keeps unpushed ones | `apps/server/test/task-archive.test.ts`, `apps/computer/src/invocations/task-archive.test.ts` (step 5); the generation fence and process kill alone, `apps/computer/src/invocations/session.test.ts`, `apps/computer/src/invocations/processes/processes.test.ts` |
+| Archive deletes the session, kills processes, removes clean worktrees and keeps unpushed ones | `apps/server/test/task-archive.test.ts`, `apps/computer/src/repos/agent-worktrees.test.ts`; the generation fence and process kill, `apps/computer/src/invocations/session.test.ts`, `apps/computer/src/invocations/processes/processes.test.ts` |
+| A Task is one start: its Chat, its agent, the brief as its first message and first turn, `--issue` without a state change | `apps/server/test/task-agent-start.test.ts` |
+| A Task session parks for 5 minutes, reads the Haus and Project rules and its Captain's `WORKER.md`, and has no memory | `apps/runner/src/turn/warm-pool.test.ts`, `apps/runner/src/turn/rules-delivery.test.ts` |
 | A Task writes Drive only under its own folders | `apps/server/test/task-drive-write.test.ts` |
 | A second session's desktop call is refused `desktop-busy` | `apps/server/test/desktop-lease.test.ts` |
 | The Captain chat reaches only its Captain, even when another Captain is @mentioned | `apps/server/test/captain-chat.test.ts` |

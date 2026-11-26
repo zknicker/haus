@@ -38,6 +38,7 @@ describe('worktrees when a Server or an Agent goes', () => {
                 git: githubAppGit(dataRoot, serverId, { access: 'write', invocationId: 'inv_t' }),
                 ref: null,
                 repository: 'acme/app',
+                sessionGeneration: 1,
                 serverId,
             })
         ).path;
@@ -49,6 +50,7 @@ describe('worktrees when a Server or an Agent goes', () => {
             git: githubAppGit(dataRoot, serverId, { access: 'write', invocationId: 'inv_t' }),
             ref: null,
             repository: 'acme/app',
+            sessionGeneration: 1,
             serverId,
         });
         await mkdir(join(dataRoot, 'servers', serverId, 'agents', agentId), { recursive: true });
@@ -79,6 +81,7 @@ describe('worktrees when a Server or an Agent goes', () => {
             git: githubAppGit(dataRoot, serverId, { access: 'write', invocationId: 'inv_t' }),
             ref: null,
             repository: 'acme/app',
+            sessionGeneration: 1,
             serverId,
         });
 

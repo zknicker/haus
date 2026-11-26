@@ -18,10 +18,10 @@ import {
 import {
     agentDeliveryAckSchema,
     agentNoticeAckSchema,
-    agentResetCommandSchema,
     agentRestartCommandSchema,
     agentRetireCommandSchema,
     agentTurnSummarySchema,
+    runnerAgentResetCommandSchema,
     runnerTokenSchema,
 } from './agent-runner.ts';
 import { agentStopCommandSchema } from './agent-stop-commands.ts';
@@ -135,7 +135,7 @@ export const runnerDownFrameSchema = z.union([
     agentNoticeCommandSchema,
     agentStopCommandSchema,
     agentRestartCommandSchema,
-    agentResetCommandSchema,
+    runnerAgentResetCommandSchema,
     agentRetireCommandSchema,
     agentExecutionJournalAckSchema,
     invocationResultFrameSchema,
