@@ -70,7 +70,7 @@ and this list only.
   - [ ] D1, then D2, then D3 and D4 in parallel, then D5. D5 may start after D2.
   - [ ] R1 after D4 merges. Then R2 and R3 in parallel. R5 after R2 and R3. R4 after R5.
   - [ ] J1 after R4 merges. Then J2. Then J3 and J4 in parallel.
-  - [ ] W1 after J2 merges. Then W2. Then W3 and W4 in parallel.
+  - Superseded by ADR 0062: W1 after J2 merges. Then W2. Then W3 and W4 in parallel.
   - [ ] C1 and C2 after W3 merges. Both are independent.
   - [ ] E1 first among the Cove removals. E2 next; its last commit deletes J3's `COVE_HOME_FIXED` after PR 327 merges. E3 and E5 after E2. E4 after E2 and the Capy shell (PR 324). The E slices run before R4, while Agents still run on Computers.
 - [ ] Hold the file boundaries. Server PRs touch `apps/server/**` and `packages/haus-api/**`. Computer PRs touch `apps/computer/**`. App PRs touch `apps/website/**` and `apps/ios-swift/**`. Spec PRs touch `specs/**` and `docs/**` only. A PR that must cross a boundary says so in its brief.
@@ -210,14 +210,14 @@ ADR 0056 decisions 1 to 12. Superseded by
 by Task agents ([Tasks and Issues](#make-tasks-agent-sessions-and-add-issues-t1-to-t7)), and T7
 deletes them.
 
-- [ ] **W1. Write the Workers contract.** Rewrite `specs/cloud-agents.md` as Workers, and reconcile `specs/workers.md`.
-- [ ] **W2. Rename cloud agents to Workers.** `haus worker`, typed reports as inbox items, the `Haus-Task` trailer, PRs attached through reports, and supervision. Delete the cloud-agent noun in the same PR.
-- [ ] **W3. Run Workers on Computers.** Native Claude Code or Codex in a worktree with that machine's logins, the "Workers can run here" switch, the Project's default place, and `WORKER.md` at launch and on change.
-- [ ] **W4. Build Worker cards.** Place, status, newest report, cited files, PR, a follow-up composer between turns, and stop. Review-gated.
+- Superseded: **W1. Write the Workers contract.** Rewrite `specs/cloud-agents.md` as Workers, and reconcile `specs/workers.md`.
+- Superseded: **W2. Rename cloud agents to Workers.** `haus worker`, typed reports as inbox items, the `Haus-Task` trailer, PRs attached through reports, and supervision. Delete the cloud-agent noun in the same PR.
+- Superseded: **W3. Run Workers on Computers.** Native Claude Code or Codex in a worktree with that machine's logins, the "Workers can run here" switch, the Project's default place, and `WORKER.md` at launch and on change.
+- Superseded: **W4. Build Worker cards.** Place, status, newest report, cited files, PR, a follow-up composer between turns, and stop. Review-gated.
 
-**Verify, live, for the phase.** Walkthrough 1 from the proposal on the real stack, with Workers on two Computers and one cloud provider.
+Superseded: **Verify, live, for the phase.** Walkthrough 1 from the proposal on the real stack, with Workers on two Computers and one cloud provider.
 
-**Verify, perf, for the phase.** Task page render cost with six Worker cards, trunk first. Fail on any budget the render specs already enforce.
+Superseded: **Verify, perf, for the phase.** Task page render cost with six Worker cards, trunk first. Fail on any budget the render specs already enforce.
 
 ## Add computer use and the token panel (C1 and C2)
 
@@ -229,15 +229,20 @@ deletes them.
 [ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md), contracts in
 [specs/tasks.md](../../specs/tasks.md) and [specs/issues.md](../../specs/issues.md). No
 migration or compatibility code: one-off production scripts run with Zach's yes, outside the
-product code. Each step ships on its own.
+product code.
+
+**Build order, not release order.** T2 to T6 land on main one by one and are released together
+once they work end to end. There is no release between them, so no step has to keep production
+coherent alone. Each step still builds and passes its own tests. T7 follows once the release is
+proven.
 
 - [ ] **T1. Land ADR 0062 and its specs.**
-- [ ] **T2. Issues.** The record, codes on the ledger, comments, activity, sub-issues, CLI, API and UI. Tasks get short ids and lose state, priority, due date and labels.
-- [ ] **T3. Captains work from Issues.** `issue_assignment`, no ambient Task hearing, crew-report batching, with prompt and Manual changes gated by baseline evals.
+- [ ] **T2. Issues.** The record, codes on the ledger, comments, activity, sub-issues, CLI, API and UI. Tasks get short ids and `tasks.archived_at`, and lose state, priority, due date, labels and assignee.
+- [ ] **T3. Captains work from Issues.** `issue_assignment`, no ambient Task hearing, with prompt and Manual changes gated by baseline evals.
 - [ ] **T4. Mac side.** Per-session keying, the per-Computer concurrency cap, the desktop lease, background processes that wake on exit.
-- [ ] **T5. Task agents and the Captain chat.** The `task` agent kind, crew briefs and reports, `haus task send` with delivery modes, Machine access, archive as retire, and the shared Captain chat replacing Captain DMs.
+- [ ] **T5. Task agents and the Captain chat.** The `task` agent kind, crew briefs, `crew_report` and `haus task report`, `haus task send` with delivery modes, Machine access, archive and unarchive, `haus drive write`, and the shared Captain chat replacing Captain DMs.
 - [ ] **T6. App.** Home composer to Task, the Task page and side panel, the Tasks list, the Captain page, Issues list, board and page, the sidebar.
-- [ ] **T7. Delete Workers and the Cursor and Claude cloud hand-off**, once Task agents work end to end.
+- [ ] **T7. Delete Workers, `worker_report` and the Cursor and Claude cloud hand-off**, once Task agents work end to end in production.
 
 ## Close the program
 
