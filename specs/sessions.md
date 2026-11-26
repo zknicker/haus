@@ -5,7 +5,7 @@ read_when:
   - changing how a Captain's one session spans its Project chat, its Captain chat and mentions
   - changing Task sessions, their context, parking, archive, or unarchive on a fresh generation
   - changing instruction updates, MEMORY.md receipts, or context snapshots
-  - changing discretion guidance for private Captain chats
+  - changing discretion guidance now that Captain chats are shared
 ---
 
 # Sessions
@@ -92,9 +92,14 @@ does for Captains (`apps/runner/src/turn/agent-sessions.ts:7-79`). What differs:
   parking is a cold resume of the same native conversation
   ([runtime-drivers.md](runtime-drivers.md#session-kinds)). Whether a cold resume still hits the
   prompt cache is measured before the number is fixed.
-- **Archive ends it.** Archive deletes the session and its volume directory. A message to an
-  archived Task unarchives it and starts a fresh session generation, recorded in
-  `agent_session_rotations` with reason `unarchive`; the chat history is its context.
+- **Archive ends it, without retiring the agent.** Archive bumps the generation (reason
+  `archive` in `agent_session_rotations`) and deletes the session and its volume directory under
+  a generation-stamped `archive` reset; the agent id stays usable
+  ([tasks.md](tasks.md#archive)).
+- **Unarchive starts fresh.** Unarchive bumps the generation again (reason `unarchive`). The next
+  turn starts a new session from the composed Task input plus a bounded replay: the newest 50
+  chat messages, at most 24,000 characters, and the linked Issues' current state. Older history
+  stays readable through `haus message read`.
 - **Rotation.** Model switches are not offered for a Task in v1: a Task keeps the model it started
   with. Session reset and Full reset are Captain actions only.
 
@@ -236,9 +241,9 @@ the stamp are execution lineage, not conversation.
 The agent's knowledge is its own: anything learned in any chat may inform
 any other. There are no trust domains. The prompt teaches discretion — what
 was shared in a DM was shared with the agent, not with every room; don't
-volunteer private specifics elsewhere. Once the shared Captain chat replaces Captain DMs
-(ADR 0062, step 5), the same rule covers a `private` Captain chat: what its members said was shared
-with the Captain, not with the org. Hard isolation is a separate agent.
+volunteer private specifics elsewhere. The shared Captain chat that replaces Captain DMs
+(ADR 0062) is visible to everyone on the Server, so the DM discretion rule leaves the prompt with
+Captain DMs; person-to-person DMs never reach an agent. Hard isolation is a separate agent.
 Multi-human norm: don't tell an agent what you wouldn't tell everyone who
 can talk to it.
 

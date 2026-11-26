@@ -159,7 +159,8 @@ New in step 5 of ADR 0062, replacing the default place for Workers in step 7.
 - `default_task_computer_id` is the Computer a Task started in this Project runs on when its
   starter names none ([tasks.md](tasks.md#machine-and-model)). Null means the starter picks one,
   and the Home composer and `haus task start` say so.
-- A crew Task uses its Captain's crew Machine first, then this default.
+- A crew Task uses its Captain's crew Machine (`agents.crew_computer_id`, set in the Captain's
+  settings) first, then this default ([tasks.md](tasks.md#captains-and-the-captain-chat)).
 - Removing the Computer clears every Project default that names it in the same transaction.
 - `project.setDefaultMachine { serverId, projectId, computerId | null }` sets it from Settings →
   Projects → the Project, publishing `project.updated`. There is no cloud value.
@@ -212,8 +213,9 @@ Agent of its own, and every Agent is refused `TASK_PROJECT_NOT_HOME` outside its
   channel. A Task started from a DM or from `#all`, which is no Project, goes to the starting
   Agent's home Project unless `--project` names it. Under ADR 0062 only Captains start Tasks, as
   crew, and only in their home Project; a person starts a Task in any Project.
-- Under ADR 0062 an Agent may file an Issue in any Project. A Captain hands work to another
-  Project by filing an unassigned Backlog Issue there, or by @mentioning that Project's Captain.
+- Under ADR 0062 a Captain or Task files Issues only in its own Project
+  ([issues.md](issues.md#cli-and-agent-routes)). A Captain hands work to another Project by
+  @mentioning that Project's Captain in its channel.
 - Agent channel membership is deleted: the `channel_agent_participants` table, its single write
   seam `joinChannelAgents`, and `haus channel join`, `leave`, and `add`. Channel mutes are deleted
   with them ([inbox.md](inbox.md#hearing)). `haus channel info` and `haus channel members` stay and
@@ -225,9 +227,11 @@ Agent of its own, and every Agent is refused `TASK_PROJECT_NOT_HOME` outside its
   `PROJECT_HAS_AGENTS` and names them. A person moves them first. Retired Agents do not count;
   deleting the Project moves any retired Agent homed there to the Haus project.
 - Otherwise archiving and deleting a Project are the channel's archive and delete
-  ([chats.md](chats.md#config-and-observation)). Deleting a Project deletes its Tasks with the
-  channel and its `projects` row, and under ADR 0062 its Issues too; a deleted Project's active
-  Tasks are archived first, so their sessions retire. It deletes no repos, because repos belong to the Server. Its
+  ([chats.md](chats.md#config-and-observation)). Under ADR 0062, archiving a Project archives its
+  active Tasks, and their unarchive is refused while the Project stays archived. Deleting a
+  Project deletes its Tasks with the channel and its `projects` row, and also its Issues and its
+  Tasks' hidden `task` agent rows; active Tasks are archived first, so their sessions and
+  worktrees are cleaned up. It deletes no repos, because repos belong to the Server. Its
   key's ledger entry stays, so its numbers are
   never reused. Cloud work attached to those Tasks stays and loses its Task.
 

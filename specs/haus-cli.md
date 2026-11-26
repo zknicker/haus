@@ -116,30 +116,21 @@ presentation plus a Server-scoped handle for addressing and mentions.
 
 ```
 #channel                 channel by handle
-dm:@human                the caller's DM with that human (auto-created on first send)
-task:<KEY-n>             a Task's own conversation, like task:SEC-12       (ADR 0053)
+captain:@<handle>        a Captain's shared Captain chat                     (ADR 0062)
+task:<shortId>           a Task's chat by its short id, like task:k3mq7xta   (ADR 0062)
 ```
 
-ADR 0062 changes the grammar (step 2 for `task:`, step 5 for `captain:` and `dm:`):
-
-```
-task:<shortId>           a Task's chat by its short id, like task:k3mq7xta (ADR 0062)
-captain:@<handle>        a Captain's shared Captain chat                    (ADR 0062)
-```
-
-- `task:<KEY-n>` stops resolving when Tasks lose their codes; a code names an Issue, addressed by
-  `haus issue`, never a target.
-- `dm:@human` is deleted for agents when the Captain chat replaces Captain DMs. Person-to-person
-  DMs are a human surface.
-- A Task agent's credential resolves only its own `task:` target and the targets of `haus task
-  send` ([tasks.md](tasks.md#tasks-messaging-each-other)).
-
-- **A DM is human ↔ Agent.** `dm:@<agent-handle>` does not resolve; it fails
-  closed as `INVALID_TARGET` like any other unknown target. Agents reach each
-  other in the channels and Tasks they share.
+- **`captain:@<handle>`.** Every agent may read any Captain chat. Only that Captain sends to its
+  own; any other agent's send there fails `INVALID_TARGET`.
+- **`task:<shortId>`.** Every agent may read any Task's chat, anchor a one-time reminder on it,
+  and unfollow it. Only that Task's own agent sends to it with `message send`. Every other agent
+  messages a Task with `haus task send` ([§7a](#7a-issue-and-task-families)), the one way, and
+  `message send --target task:<id>` fails `INVALID_TARGET` for it.
+- An Issue code is never a target; `haus issue` addresses Issues.
+- Agents have no DM target. Person-to-person DMs are a human surface.
 - **A side conversation is inline replies** (`--reply-to <messageId>`) in its
-  Channel or DM. Haus has no Threads, so `<target>:<shortId>` does not resolve.
-- **A Task target** resolves for every Agent on the Server; Projects are open
+  Channel. Haus has no Threads, so `<target>:<shortId>` does not resolve.
+- Projects are open: every channel and Task target resolves for every Agent on the Server
   ([projects.md](projects.md#what-an-agent-may-do-outside-its-home)).
 
 - **Short message ids** are the first 8 hex chars of the id body: new message
@@ -420,7 +411,7 @@ per family:
 | claim | bare `claim`, `list create release assign unassign update` | WS5 (landed); renamed from `task` by [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) | D8 model: the bare group claims (`haus claim --target <t> --number N`): a first argument that is a flag runs the group's own action. `list [--target] [--mine] [--status all\|…]` defaults to unfinished work and caps at 50 rows with a `Truncated: N more` line; the bare claim takes `--number` (repeatable) or `--message-id` (converts + claims), one transaction answering one row per claim (claimed, already yours, refused) and exiting non-zero only when nothing was granted; `release` puts down a claim you hold (formerly `unclaim`); `create` takes repeatable `--title` or a stdin body; `assign --assignee @agent` / `unassign` move ownership to any Agent member of the Chat without touching status (optional `--expected-revision`, shown as `rev=` in `list`; one uniform not-assignable refusal, which the CLI pairs with the @mention hand-off because humans never hold claims, [ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); `update` is member-level along the status transition table |
 | task | `start list show state attach-pr update assign unfollow` | [ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md); replaced by [§7a](#7a-issue-and-task-families) under ADR 0062 | Tasks as places, addressed by key (`SEC-12`) with their own conversation at `task:SEC-12` (`message send`/`read --target task:SEC-12`). `start --target <#channel\|dm:@handle> --from <messageId> --title <text> [--project <KEY>] [--description <text\|->] [--assignee <me\|@handle>] [--state <todo\|open>] [--priority <priority>] [--due <date>]` starts a Task from a message in a channel or DM, in the Project `--project` names, else the origin's channel, else for a DM the caller's Project, `open` and assigned to the caller by default, and prints its `task:` target; it is not idempotent, a `task:` origin is refused before any request with `INVALID_ARG`, and a non-generalist starting outside its Project gets `TASK_PROJECT_NOT_HOME`. `list [--all] [--key <KEY>] [--assignee <me\|none\|@handle>] [--state <states>]` defaults to the caller's `todo` and `open` Tasks, printing most urgent then oldest, at most 50 rows with a `Truncated: N more` line; it sends `state` (always, defaulting to `todo,open`) and `key` straight to the route. `show <key>` prints the Task, its target, description, Mentioned in, and Reminders. `state <key> <todo\|open\|done\|canceled>` sets the state; `done` and `canceled` cancel the Task's pending reminders, and a post reopens it. `attach-pr <key> <url>` attaches a pull request opened another way; its changes wake the caller on the Task. `update <key>` takes `--title --description --priority --labels --due`, with `none` clearing `--labels` or `--due`; `assign <key> <handle\|me\|none>`. `unfollow --target task:<KEY-n>` stops following a Task, so its ordinary messages no longer wake the caller; direct @mentions still do. `state`, `update`, and `assign` take `--expected-version <n>` and otherwise last write wins. `--description -` reads stdin. `task create`, `task move`, and the whole `board` family went with boards and are unknown commands; `start` and `state` replace them |
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
-| drive | `versions view share` | [ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md), D4 | Read-only Drive commands; the Agent edits Drive in its `drive/` folder with native file commands, and the Computer pulls and pushes it around each turn ([Drive folder](drive-folder.md)). Each takes `<id\|link\|path>`: an artifact id, a `/artifacts/<id>` link, a `drive://<path>` citation, or a Drive path, with an optional leading `drive/`. `versions [--offset <n>]` lists retained revisions; `view [--revision-id <id>] [--output <path>]` returns a read-only cached path pinned for the turn; `share [--disable]` prints or disables the public link ([public links](artifact-public-links.md)). JSON output. `haus files` and its `list pull push mv delete` are unknown commands |
+| drive | `versions view share` (plus `write` for Task agents, [§7a](#7a-issue-and-task-families)) | [ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md), D4 | Read-only Drive commands; the Agent edits Drive in its `drive/` folder with native file commands, and the Computer pulls and pushes it around each turn ([Drive folder](drive-folder.md)). Each takes `<id\|link\|path>`: an artifact id, a `/artifacts/<id>` link, a `drive://<path>` citation, or a Drive path, with an optional leading `drive/`. `versions [--offset <n>]` lists retained revisions; `view [--revision-id <id>] [--output <path>]` returns a read-only cached path pinned for the turn; `share [--disable]` prints or disables the public link ([public links](artifact-public-links.md)). JSON output. `haus files` and its `list pull push mv delete` are unknown commands |
 | profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤280 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title [--description] (--delay-seconds \| --fire-at) [--repeat] (--message-id <id> \| --target task:<KEY-n>) [--script]`; `--title` is a short label (60 chars, one line) and `--description` the full instruction; `update` changes one thing, with title and description counting as one. Exactly one anchor: a message, or a Task ([ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md) decision 16), which the Server anchors itself and which wakes the Agent on that Task. A Task holds one-time reminders only: `--repeat` with a Task target is refused before any request, and the Server's refusal of a recurring Task reminder (on `schedule` or `update`), with `TASK_RECURRING_REMINDER`, gains the next action that recurring reminders belong on a Channel |
 | trigger | `create update preview list show enable disable rotate delete log` | ADR 0027, ADR 0045 (landed) | Outside-event wakes: `create --title --message-id [--instruction] [--kind webhook\|github]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds. `--kind github` takes `(--repo <owner/name>... \| --org <login>) --event <name>...` plus filters `--action --conclusion --branch --label --state --environment --workflow --check-name --authors`; repeatable flags also split on commas, each filter applies to every listed event that takes it and each value lands on the events that accept it, and a flag or value no listed event takes is `INVALID_ARG`. The CLI sends the repository owner or `--org` login as `account` without a lookup; the Server resolves the installation and its refusal names the reachable accounts and who installs the App. `create --help` carries the GitHub events, filters, and `--events-json` keys; an unknown `--events-json` key is `INVALID_ARG` listing that event's allowed keys. Flags only another kind takes are `INVALID_ARG` naming the kind. `update` reads the Trigger's kind first, then replaces its whole GitHub configuration. `list`/`show` print `[kind · status]`, adding `· degraded: <problem>` and, for `github`, scope, events, and the suppressed count (`show` also names the human fix); message anchors only and never a schedule; a webhook `create` and `rotate` require `--output <new-private-path>`, checked and created exclusively with mode 0600 before any request, write the bearer secret only to that file, and print the URL, the file, a test command that reads the file, and the rule never to post it in any chat, never the secret or the Server's `curl` line ([Triggers](triggers.md#surfaces-and-lifecycle)); `--output` on a `github` create is `INVALID_ARG`; `rotate` on `github` is the Server's `INVALID_ARG`; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent ([GitHub Triggers](github-triggers.md#agent-cli-and-manual)) |
@@ -442,13 +433,19 @@ a stable code and never fake data. Not copied from Raft: `agent login/bridge`,
 
 | Family | Verbs | Lands | v1 behavior |
 | --- | --- | --- | --- |
-| issue | `create update list show comment link unlink` | Step 2 | Issues addressed by code (`GEN-12`). `create --title [--project <KEY>] [--state] [--priority urgent\|high\|normal\|low] [--assignee <me\|@handle\|task:<id>\|none>] [--due] [--labels] [--parent <code>]` with the description on stdin. `update <code>` takes the same fields plus `--expect-assignee <none\|me\|@handle\|task:<id>>`, which fails `ISSUE_TAKEN` naming the holder, and `--expected-version`. `list` defaults to open Issues assigned to the caller or its crew, by priority then age, at most 50 rows with a `Truncated: N more` line. `show <code>` prints the Issue, sub-issues, links and newest activity. `comment <code> [--reply-to <id>]` reads stdin. `link`/`unlink <code> (--task <id> \| --pr <url>)` |
-| task | `start send report archive list show attach-pr unfollow` | Step 2 (ids), step 3 (`report`), step 5 (the rest) | Tasks addressed by short id (`k3mq7xta`) or full id; a short id that matches nothing is `NOT_FOUND`. `start --title [--repo <owner/name>] [--ref] [--machine <name>] [--model <id>] [--issue <code>] [--request-id <id>]` with the brief on stdin, Captains only, refused for a Task agent; it passes the freshness hold, is idempotent by request id, and prints the short id and "queued". `send <id> [--delivery steer\|interrupt\|queue]` posts stdin in that Task's chat as the caller and wakes it, unarchiving an archived Task; it spends the automation chain. `report --outcome done\|needs-you\|failed [--ask] [--person <handle>] [--pr <url>]...` with the text on stdin, from a Task agent about its own turn. `archive [<id>]` archives a Task (the caller's own when a Task agent calls it). `list [--all] [--archived] [--project <KEY>]` defaults to the caller's crew, or for a Task agent its Project's active Tasks. `show <id>` prints the Task, its activity, Machine, model, linked Issues and pull requests. `attach-pr <id> <url>` and `unfollow --target task:<id>` stay. `state`, `update` and `assign` are deleted with the Task's backlog fields |
+| issue | `create update list show comment link unlink` | Step 2 | Issues addressed by code (`GEN-12`). Any Captain or Task creates Issues in its own Project, and edits Issues there or assigned to it; other writes fail `ISSUE_PROJECT_NOT_HOME`. `create --title [--state] [--priority urgent\|high\|normal\|low] [--assignee <me\|@handle\|task:<id>\|none>] [--due] [--labels] [--parent <code>]` with the description on stdin. `update <code>` takes the same fields plus `--expect-assignee <none\|me\|@handle\|task:<id>>`, which fails `ISSUE_TAKEN` naming the holder, and `--expected-version`. `list` defaults to open Issues assigned to the caller or its crew, by priority then age, at most 50 rows with a `Truncated: N more` line. `show <code>` prints the Issue, sub-issues, links and newest activity. `comment <code> [--reply-to <id>]` reads stdin. `link`/`unlink <code> (--task <id> \| --pr <url>)` |
+| task | `start send report rename archive unarchive list show attach-pr unfollow` | Step 2 (ids, `archive`), step 5 (the rest) | Tasks addressed by short id (`k3mq7xta`) or full id; a short id that matches nothing is `NOT_FOUND`. `start --title [--target <current-chat>] [--from <messageId>] [--repo <owner/name>] [--ref] [--machine <name>] [--model <id>] [--issue <code>] [--request-id <id>]` with the brief on stdin, Captains only (`TASK_START_NOT_CAPTAIN`), always in the Captain's home Project; `--target` names the chat being answered, whose freshness hold the start passes, and `--from` a message there that becomes the origin, as `haus agent create --target` works. With `--issue` it checks the Issue is assigned to the caller or nobody (`ISSUE_TAKEN`), links and assigns it, and never changes its state; an Issue in another Project fails `TASK_PROJECT_NOT_HOME`. It takes no `--expect-assignee`. It is idempotent by request id and prints the short id and "queued". `send <id> [--delivery steer\|interrupt\|queue]` posts stdin in that Task's chat as the caller and wakes it; from a Captain it unarchives an archived Task, from a Task it fails `TASK_ARCHIVED`; it spends the automation chain and is the one way an agent messages another Task. `report --outcome done\|needs-you\|failed [--ask] [--person <handle>] [--pr <url>]...` with the text on stdin, from a Task agent about its own turn. `rename <id> <title>` sets a custom title. `archive [<id>]` archives a Task (the caller's own when a Task agent calls it); `unarchive <id>` restores one without starting a turn, Captains only. `list [--all] [--archived] [--project <KEY>]` defaults to the caller's crew, or for a Task agent its Project's active Tasks. `show <id>` prints the Task, its activity, Machine, model, linked Issues and pull requests. `attach-pr <id> <url>` and `unfollow --target task:<id>` stay. `state`, `update` and `assign` are deleted with the Task's backlog fields |
+
+`haus drive` gains `write <path> [--from <file>]` (step 5) for Task agents: stdin or a file on
+the Task's Machine becomes a new revision under the Task's own folders, and the receipt prints
+its `drive://` citation ([tasks.md](tasks.md#drive)). Outside them it fails
+`DRIVE_WRITE_OUTSIDE_TASK`; a Captain gets `DRIVE_WRITE_USE_FOLDER`.
 
 Refusals are typed and say what to do: `ISSUE_TAKEN`, `ISSUE_PARENT_PROJECT`,
-`ISSUE_PARENT_CYCLE`, `TASK_PROJECT_NOT_HOME`, `TASK_START_NOT_CAPTAIN`, `TASK_MACHINE_NO_ACCESS`
-(naming the attacher and linking the Device page), `TASK_MODEL_UNAVAILABLE`, and
-`TASK_PERSON_UNKNOWN`. A start on an offline Machine is not refused: the Task waits for it.
+`ISSUE_PARENT_CYCLE`, `ISSUE_PROJECT_NOT_HOME`, `ISSUE_ASSIGNEE_ARCHIVED`, `TASK_PROJECT_NOT_HOME`,
+`TASK_START_NOT_CAPTAIN`, `TASK_ARCHIVED`, `TASK_PROJECT_ARCHIVED`, `TASK_MACHINE_NO_ACCESS`
+(naming the attacher and linking the Device page), `TASK_MACHINE_ONLY`, `TASK_MODEL_UNAVAILABLE`,
+and `TASK_PERSON_UNKNOWN`. A start on an offline Machine is not refused: the Task waits for it.
 
 ## 8. Server API (`/api/agent/*`)
 
@@ -522,8 +519,9 @@ ADR 0062 replaces the `tasks` routes above with these (steps 2 to 5):
 ```
 GET  /api/agent/issues             ?assignee=&state=&project=&parent=&query= → { issues, omitted }
 GET  /api/agent/issues/show        ?code= → { issue, subIssues, links, activity }
-POST /api/agent/issues/create      { title, description?, project?, state?, priority?, assignee?,
+POST /api/agent/issues/create      { title, description?, state?, priority?, assignee?,
                                      dueOn?, labels?, parent? } → { issue }
+                                   (in the caller's Project)
 POST /api/agent/issues/update      { code, …fields, expectAssignee?, expectedVersion? } → { issue }
                                    (409 ISSUE_TAKEN)
 POST /api/agent/issues/comment     { code, body, replyTo? } → { comment }
@@ -531,11 +529,15 @@ POST /api/agent/issues/link        { code, taskId? , pullRequestUrl? } → { iss
 POST /api/agent/issues/unlink      { code, taskId? , pullRequestUrl? } → { issue }
 GET  /api/agent/tasks              ?archived=&project= → { tasks, omitted }
 GET  /api/agent/tasks/show         ?id= → { task, issues, pullRequests }
-POST /api/agent/tasks/start        { requestId, title, brief, repo?, ref?, machine?, model?,
-                                     issue? } → { task } (403 TASK_PROJECT_NOT_HOME)
+POST /api/agent/tasks/start        { requestId, title, brief, target?, from?, repo?, ref?,
+                                     machine?, model?, issue? } → { task }
+                                   (403 TASK_PROJECT_NOT_HOME only for an Issue elsewhere)
 POST /api/agent/tasks/send         { id, body, delivery? } → { message }
 POST /api/agent/tasks/report       { outcome, text, ask?, person?, pullRequestUrls? } → { report }
+POST /api/agent/tasks/rename       { id, title } → { task }
 POST /api/agent/tasks/archive      { id } → { task }
+POST /api/agent/tasks/unarchive    { id } → { task }
+POST /api/agent/drive/write        { path, content | attachmentId } → { revision, citation }
 ```
 
 - Sends are idempotent by `nonce` (existing message dedupe rules).
