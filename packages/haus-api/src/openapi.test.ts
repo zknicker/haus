@@ -70,6 +70,7 @@ describe('Haus OpenAPI contract', () => {
             '/api/agent/tasks/show',
             '/api/agent/tasks/start',
             '/api/agent/tasks/archive',
+            '/api/agent/tasks/unarchive',
             '/api/agent/tasks/attach-pr',
             '/api/triggers/{trigger_id}',
             '/api/agent/triggers',

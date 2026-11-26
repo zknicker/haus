@@ -55,13 +55,14 @@ test('REST messages may carry resolved task links', () => {
     expect(validate('MessageTaskLink', { ...link, taskId: 'tsk_12' })).toBe(false);
 });
 
-test('Agent API starts Tasks from a Channel message and archives them', () => {
-    const start = { from: 'msg_origin', target: '#security', title: 'Rotate' };
+test('Agent API starts crew with a brief and archives it', () => {
+    const start = { brief: 'Rotate the key.', from: 'msg_origin', target: '#security' };
     expect(validate('AgentTaskStartRequest', start)).toBe(true);
     expect(validate('AgentTaskStartRequest', { ...start, state: 'open' })).toBe(false);
     expect(validate('AgentTaskStartRequest', { target: '#security', title: 'Rotate' })).toBe(false);
-    expect(validate('AgentTaskStartResponse', { target: 'task:k3mq7xta', task })).toBe(true);
-    expect(validate('AgentTaskStartResponse', { target: 'task:SEC-12', task })).toBe(false);
+    const started = { state: 'started', target: 'task:k3mq7xta', task };
+    expect(validate('AgentTaskStartResponse', started)).toBe(true);
+    expect(validate('AgentTaskStartResponse', { ...started, target: 'task:SEC-12' })).toBe(false);
     const pr = { task: 'k3mq7xta', url: 'https://github.com/zknicker/haus/pull/42' };
     expect(validate('AgentTaskAttachPullRequestRequest', pr)).toBe(true);
     expect(
