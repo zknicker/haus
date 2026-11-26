@@ -236,7 +236,7 @@ Chat-family events are published today through `emitDurableChatEvent` from: `age
 `cloud-agent-routes`), `computers/cloud-agent-reports.ts`, `claims/close-stale-claims.ts`,
 `triggers/operator-trigger-create.ts`, `agent-delivery/delivery.ts`, `voice/voice-agent-bridge.ts`,
 `reminders/` (`operator-reminders`, `scheduler`, `reminders`, `mutations`, `reschedule`), and
-`haus-api/` (`chat/` archive, unarchive, update, create, ensure-dm, ensure-agent-dm, delete,
+`haus-api/` (`chat/` archive, unarchive, update, create, ensure-dm, delete,
 send, react, mark-read; `agent/` create, delete; `claim/` assign, promote, create, update;
 `task/` set-state, set-follow, assign, update; `task-label/` create, update, delete;
 `cloud-agent-work/cancel`). Each

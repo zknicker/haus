@@ -57,9 +57,9 @@ reports **effective** state. The two are never conflated.
   snapshot `agents.effective_runtime_id`/`effective_model_id`/
   `effective_missing` (jsonb string list)/`effective_reported_at`. A
   `CHECK` keeps Computer assignment and desired runtime/model all-or-nothing.
-- The Owner↔Agent DM is an ordinary `dm` chat whose peer is an Agent
-  (`chats.dm_agent_id`) rather than a second human member. Its `chats_shape`
-  branch requires exactly one human member and one Agent.
+- A Captain's one Captain chat is a `captain` chat (`chats.captain_agent_id`)
+  with per-person `member` and `subscribed` flags in `captain_chat_members`
+  ([tasks.md](tasks.md)). `dm` chats are person-to-person only.
 
 ## Transport
 
