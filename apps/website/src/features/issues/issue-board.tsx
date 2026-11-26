@@ -3,13 +3,20 @@ import { Kanban } from '@heroui-pro/react';
 import * as React from 'react';
 import { type DropItem, isTextDropItem, useDragAndDrop } from 'react-aria-components';
 import {
+    type IssueMove,
+    type IssueMoves,
+    settleMove,
+    startMove,
+    withMoves,
+} from './issue-board-moves.ts';
+import {
     IssueAssigneeMark,
     IssueDueDate,
     IssueLabelChips,
     IssueSubProgress,
 } from './issue-facts.tsx';
 import { IssuePriorityMark, IssueStateDisc } from './issue-glyphs.tsx';
-import { issueStateLabels, issueStateRef } from './issue-state.ts';
+import { issueStateLabels } from './issue-state.ts';
 import { issueBoardColumns, type IssueStateGroup } from './issues-page-model.ts';
 import { useIssuePatch } from './use-issue-patch.ts';
 import { useOpenIssue } from './use-open-issue.ts';
@@ -18,24 +25,20 @@ const issueDragType = 'application/x-haus-issue-id';
 
 export function IssueBoard({ issues }: { issues: readonly Issue[] }) {
     const patch = useIssuePatch();
-    const [moving, setMoving] = React.useState<ReadonlyMap<string, IssueState>>(() => new Map());
+    const [moving, setMoving] = React.useState<IssueMoves>(() => new Map());
     const shown = React.useMemo(() => withMoves(issues, moving), [issues, moving]);
     const move = (issueId: string, state: IssueState) => {
         const issue = issues.find((candidate) => candidate.id === issueId);
-        if (!issue || (moving.get(issueId) ?? issue.state.id) === state) {
+        if (!issue || (moving.get(issueId)?.state ?? issue.state.id) === state) {
             return;
         }
-        setMoving((current) => new Map(current).set(issueId, state));
+        const entry: IssueMove = { state };
+        setMoving((current) => startMove(current, issueId, entry));
         patch(
             issue,
             { state },
             {
-                onSettled: () =>
-                    setMoving((current) => {
-                        const next = new Map(current);
-                        next.delete(issueId);
-                        return next;
-                    }),
+                onSettled: () => setMoving((current) => settleMove(current, issueId, entry)),
             }
         );
     };
@@ -122,11 +125,4 @@ function IssueCard({ issue }: { issue: Issue }) {
 async function droppedIssueIds(items: readonly DropItem[]) {
     const texts = items.filter(isTextDropItem).filter((item) => item.types.has(issueDragType));
     return await Promise.all(texts.map((item) => item.getText(issueDragType)));
-}
-
-function withMoves(issues: readonly Issue[], moving: ReadonlyMap<string, IssueState>) {
-    return issues.map((issue) => {
-        const state = moving.get(issue.id);
-        return state ? { ...issue, state: issueStateRef(state) } : issue;
-    });
 }

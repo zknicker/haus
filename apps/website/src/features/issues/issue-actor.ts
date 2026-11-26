@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
+import { useTaskList } from '../../hooks/tasks/use-task-list.ts';
 import { useTasksById } from '../../hooks/tasks/use-tasks-by-id.ts';
 import { humanDisplayName } from '../servers/human-identity.ts';
 
@@ -85,6 +86,7 @@ export function useIssueActor(serverId: string, actor: IssueActor | null) {
 export function useIssueAssigneeChoices(serverId: string) {
     const agents = useAgentAppearances(serverId);
     const members = useMembers(serverId).data?.members;
+    const tasks = useTaskList(serverId, {}).data;
     return React.useMemo(
         () => [
             ...agents.map((agent) => ({
@@ -97,7 +99,12 @@ export function useIssueAssigneeChoices(serverId: string) {
                 key: issueActorKey({ kind: 'user', userId: member.userId }),
                 label: humanDisplayName(member),
             })),
+            ...(tasks ?? []).map((task) => ({
+                avatarUrl: null,
+                key: issueActorKey({ kind: 'task', taskId: task.id }),
+                label: task.title,
+            })),
         ],
-        [agents, members]
+        [agents, members, tasks]
     );
 }

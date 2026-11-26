@@ -24,11 +24,11 @@ export function IssuePage({ code }: { code: string }) {
         <div className="min-h-0 flex-1 overflow-y-auto">
             <PageColumn className="issue-page">
                 <IssueHeader detail={data} />
-                <IssueDescription issue={data.issue} />
+                <IssueDescription issue={data.issue} key={data.issue.id} />
                 <IssueLinkedTasks issue={data.issue} />
                 <IssuePullRequests pullRequests={data.pullRequests} />
                 <IssueSubIssues subIssues={data.subIssues} />
-                <IssueActivity detail={data} />
+                <IssueActivity detail={data} key={data.issue.id} />
             </PageColumn>
         </div>
     );
