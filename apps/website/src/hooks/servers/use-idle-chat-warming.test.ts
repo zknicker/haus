@@ -65,6 +65,7 @@ function chat(id: string, lastActivityAt: string | null, unreadCount: number): C
     return {
         archivedAt: null,
         archivedByUserId: null,
+        captainChat: null,
         color: null,
         createdAt: '2026-01-01T00:00:00Z',
         description: null,

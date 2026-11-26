@@ -73,7 +73,7 @@ export function ChatView({
     const visibleSequence = useVisibleChatSequenceSource();
     const ensureDm = useDmEnsure(onOpenChat);
     const humans = useHumanDirectory(chat.serverId);
-    const peerRetired = chat.kind === 'dm' && chat.peerAgentRetired;
+    const peerRetired = chat.kind === 'captain' && chat.peerAgentRetired;
     const chatName =
         chat.kind === 'channel'
             ? (chat.name ?? 'project')

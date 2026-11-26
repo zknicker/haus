@@ -83,7 +83,7 @@ export function useServerMentionComposer({
                       agentId: targetAgentId,
                       agentIds: [...scaffold.skillScopeAgentIds],
                       serverId,
-                      targetKind: 'agent-dm' as const,
+                      targetKind: 'captain' as const,
                   }
                 : {
                       agentIds: [...scaffold.skillScopeAgentIds],

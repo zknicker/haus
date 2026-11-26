@@ -98,7 +98,7 @@ export async function submitChatComposer({
                       content,
                       nonce,
                       serverId,
-                      targetKind: 'agent-dm',
+                      targetKind: 'captain',
                   }
                 : {
                       attachmentIds: uploaded.map((attachment) => attachment.id),

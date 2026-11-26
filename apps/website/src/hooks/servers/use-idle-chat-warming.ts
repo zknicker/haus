@@ -53,7 +53,7 @@ export function useIdleChatWarming(
 /** Unread Chats first, then the most recently active, without repeats. */
 export function chatsToWarm(chats: readonly Chat[], recentCount: number): string[] {
     const byActivity = chats
-        .filter((chat) => chat.kind === 'channel' || chat.kind === 'dm')
+        .filter((chat) => chat.kind === 'channel' || chat.kind === 'dm' || chat.kind === 'captain')
         .sort((left, right) => activityTime(right) - activityTime(left));
     const unread = byActivity.filter((chat) => chat.unreadCount > 0);
     return [...new Set([...unread, ...byActivity.slice(0, recentCount)].map((chat) => chat.id))];

@@ -29,7 +29,7 @@ export function ChatTopbar({
 }) {
     const agents = useAgents(chat.serverId);
     const peerAgent =
-        chat.kind === 'dm' && chat.peerAgentId
+        chat.kind === 'captain' && chat.peerAgentId
             ? (agents.data?.find((agent) => agent.id === chat.peerAgentId) ?? null)
             : null;
 
@@ -107,7 +107,7 @@ export function ChatTopbarMeta({
 }: {
     chat: Pick<Chat, 'archivedAt' | 'kind' | 'peerAgentRetired'>;
 }) {
-    if (chat.kind === 'dm' && chat.peerAgentRetired) {
+    if (chat.kind === 'captain' && chat.peerAgentRetired) {
         return <Chip size="sm">Retired</Chip>;
     }
     if (chat.archivedAt) {

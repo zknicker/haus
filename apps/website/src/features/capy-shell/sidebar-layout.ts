@@ -79,7 +79,7 @@ export function personChatIds(chats: readonly Chat[]) {
 export function agentDmChatIds(chats: readonly Chat[]) {
     const byAgent: Record<string, string> = {};
     for (const chat of chats) {
-        if (chat.kind === 'dm' && chat.peerAgentId && !(chat.peerAgentId in byAgent)) {
+        if (chat.kind === 'captain' && chat.peerAgentId && !(chat.peerAgentId in byAgent)) {
             byAgent[chat.peerAgentId] = chat.id;
         }
     }

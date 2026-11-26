@@ -12,7 +12,7 @@ test('omits live Agent availability copy from the DM topbar', () => {
 
 test('keeps durable chat states in the topbar', () => {
     const retired = renderToStaticMarkup(
-        <ChatTopbarMeta chat={{ archivedAt: null, kind: 'dm', peerAgentRetired: true }} />
+        <ChatTopbarMeta chat={{ archivedAt: null, kind: 'captain', peerAgentRetired: true }} />
     );
     const archived = renderToStaticMarkup(
         <ChatTopbarMeta
