@@ -32,16 +32,16 @@ export function optionalInteger(
 export function assertAgentTarget(target: string): void {
     refuseRemovedThreadTarget(target);
     const channel = /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
-    const dm = /^dm:@[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
-    if (!(channel.test(target) || dm.test(target) || TASK_TARGET_PATTERN.test(target))) {
+    const captain = /^captain:@[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
+    if (!(channel.test(target) || captain.test(target) || TASK_TARGET_PATTERN.test(target))) {
         throw new AgentCliError('INVALID_TARGET', `Invalid target "${target}".`, {
-            nextAction: 'Use #channel, dm:@peer, or task:<shortId>.',
+            nextAction: 'Use #channel, captain:@handle, or task:<shortId>.',
         });
     }
 }
 
 export function refuseRemovedThreadTarget(target: string): void {
-    const match = /^(#[^:]+|dm:@[^:]+):([^:]+)$/u.exec(target.trim());
+    const match = /^(#[^:]+|captain:@[^:]+):([^:]+)$/u.exec(target.trim());
     if (!match) {
         return;
     }

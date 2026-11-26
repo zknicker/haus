@@ -45,7 +45,6 @@ export const agentInboxConversationsResponseSchema = z.object({
     nextBefore: z.string().min(1).max(200).nullable(),
     totals: z.object({
         conversations: z.number().int().nonnegative(),
-        dms: z.number().int().nonnegative(),
         mentions: z.number().int().nonnegative(),
     }),
     view: z.enum(agentInboxViews),

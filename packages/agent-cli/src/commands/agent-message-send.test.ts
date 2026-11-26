@@ -135,7 +135,7 @@ test('send carries --cause alongside attachments', async () => {
 
     await runSend(
         sendArgs(
-            { '--target': 'dm:@richard', '--cause': 'rmf_9a8b7c6d', '--attachment-id': 'att_2' },
+            { '--target': 'captain:@orbit', '--cause': 'rmf_9a8b7c6d', '--attachment-id': 'att_2' },
             {},
             { '--attachment-id': ['att_1', 'att_2'] }
         ),
@@ -147,7 +147,7 @@ test('send carries --cause alongside attachments', async () => {
         cause: 'rmf_9a8b7c6d',
         content: 'chart attached',
         nonce: 'nonce',
-        target: 'dm:@richard',
+        target: 'captain:@orbit',
     });
 });
 

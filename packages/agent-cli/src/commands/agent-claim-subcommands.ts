@@ -15,7 +15,7 @@ const statusFlag = {
     valueName: '<status>',
 };
 const targetFlag = {
-    description: "Channel or DM target, e.g. '#general' or 'dm:@zach'",
+    description: "Channel or Captain chat target, e.g. '#general' or 'captain:@orbit'",
     name: '--target',
     valueName: '<target>',
 };

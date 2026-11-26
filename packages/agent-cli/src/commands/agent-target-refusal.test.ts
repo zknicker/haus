@@ -15,7 +15,7 @@ const neverAsked = (calls: string[]): AgentApiRequester => ({
 test('a send to a thread-shaped target is refused with the inline-reply and Task steps', async () => {
     for (const [target, parent] of [
         ['#general:1a2b3c4d', '#general'],
-        ['dm:@zach:1a2b3c4d', 'dm:@zach'],
+        ['captain:@orbit:1a2b3c4d', 'captain:@orbit'],
     ] as const) {
         const calls: string[] = [];
         const failure = await runSend(args({ '--target': target }), {

@@ -17,7 +17,7 @@ const actorSchema = z.object({
     type: z.enum(['agent', 'human']),
 });
 
-const taskRowSchema = z.object({
+export const taskRowSchema = z.object({
     archivedAt: z.string().nullable(),
     createdAt: z.string(),
     createdBy: actorSchema,
