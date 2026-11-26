@@ -8,7 +8,6 @@ import type {
 } from '@haus/api';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { formatUtcTime } from '../agent-format.ts';
-import { clip } from './agent-reminder-view.ts';
 
 export interface IssueDeps {
     client: AgentApiRequester;
@@ -77,7 +76,7 @@ export function formatIssueDetail(detail: AgentIssueShowResponse) {
 
 export function commentLine(comment: AgentIssueCommentRow) {
     const reply = comment.replyToCommentId ? ` reply-to=${comment.replyToCommentId}` : '';
-    return `- [id=${comment.id}${reply} time=${formatUtcTime(comment.createdAt)}] ${issueActorLabel(comment.author)}: ${clip(comment.body)}`;
+    return `- [id=${comment.id}${reply} time=${formatUtcTime(comment.createdAt)}] ${issueActorLabel(comment.author)}: ${indentContinuationLines(comment.body)}`;
 }
 
 function activityLine(row: AgentIssueActivityRow) {

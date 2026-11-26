@@ -8,6 +8,8 @@ import type { IssueWake } from './issue-wakes.ts';
 
 export type IssueTx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
+export type IssueWriteGuard = (tx: IssueTx, issue: Issue) => Promise<void>;
+
 export interface IssueWriteResult {
     events: PreparedRealtimeEvent[];
     issue: Issue;

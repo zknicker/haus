@@ -14,8 +14,9 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { actorColumns, requireIssueActor, requiredActorFromColumns } from './issue-actor.ts';
 import { IssueInvariantError, IssueNotFoundError } from './issue-errors.ts';
 import { subscribeToIssue } from './issue-fields.ts';
-import { readIssue } from './issue-read.ts';
+import { lockIssue } from './issue-read.ts';
 import { deriveIssueComment } from './issue-wakes.ts';
+import type { IssueWriteGuard } from './issue-write.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 type CommentRow = typeof issueCommentsTable.$inferSelect;
@@ -23,13 +24,15 @@ type CommentRow = typeof issueCommentsTable.$inferSelect;
 export async function addIssueComment(
     db: HausDatabase,
     actor: IssueActor,
-    input: IssueCommentInput
+    input: IssueCommentInput,
+    guard?: IssueWriteGuard
 ) {
     return await db.transaction(async (tx) => {
         const { serverId } = input;
         await lockServerRow(tx, serverId);
         await requireIssueActor(tx, serverId, actor);
-        const issue = await readIssue(tx, serverId, input.issueId);
+        const issue = await lockIssue(tx, serverId, input.issueId);
+        await guard?.(tx, issue);
         const reply = input.replyToCommentId
             ? await readComment(tx, serverId, input.replyToCommentId)
             : null;

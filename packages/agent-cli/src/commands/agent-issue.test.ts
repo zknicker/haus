@@ -140,6 +140,33 @@ describe('haus issue', () => {
         expect(text).toContain('@ada state changed: todo → in_progress');
     });
 
+    test('show prints whole comment bodies, line breaks and all', async () => {
+        const body = `${'The deploy key rotates weekly. '.repeat(6)}\n\nSteps:\n1. Revoke the old key.`;
+        const stub = issueHarness(() => ({
+            activity: [],
+            comments: [
+                {
+                    author: { handle: 'orbit', kind: 'captain' },
+                    body,
+                    createdAt: '2026-11-26T09:40:00.000Z',
+                    id: 'icm_1',
+                    parentCommentId: null,
+                    replyToCommentId: null,
+                },
+            ],
+            description: '',
+            issue,
+            pullRequests: [],
+            subIssues: [],
+        }));
+        await stub.exec(runIssueShow, args({ positionals: ['GEN-12'] }));
+        const text = stub.lines.join('');
+        expect(text).toContain('The deploy key rotates weekly. '.repeat(6).trim());
+        expect(text).toContain('Steps:');
+        expect(text).toContain('1. Revoke the old key.');
+        expect(text).not.toContain('…');
+    });
+
     test('a comment needs a body and an Issue code', async () => {
         const stub = issueHarness(() => ({}));
         await expect(stub.exec(runIssueComment, args({ positionals: ['gen-12'] }))).rejects.toThrow(

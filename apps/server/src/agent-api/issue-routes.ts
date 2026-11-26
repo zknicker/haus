@@ -7,6 +7,7 @@ import {
     agentIssueListQuerySchema,
     agentIssueShowQuerySchema,
     agentIssueUpdateInputSchema,
+    type Issue,
     type IssuePatch,
     openIssueStates,
 } from '@haus/api';
@@ -19,7 +20,7 @@ import { linkIssueTask, unlinkIssueTask } from '../issues/issue-links.ts';
 import { getIssueDetail, listIssues } from '../issues/issue-list.ts';
 import { findIssueByCode } from '../issues/issue-read.ts';
 import { updateIssue } from '../issues/issue-update.ts';
-import type { IssueWriteResult } from '../issues/issue-write.ts';
+import type { IssueTx, IssueWriteResult } from '../issues/issue-write.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import {
@@ -92,20 +93,24 @@ export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase)
         async (runner, input) => {
             const { serverId } = runner;
             const issue = await findIssueByCode(db, serverId, input.code);
-            await requireIssueWriter(db, runner, issue);
             const patch = await resolvePatch(db, runner, input);
             const expectAssignee = await resolveExpected(db, runner, input.expectAssignee);
             const result = await withImplicitIssueVersion(
                 input.expectedVersion,
                 issueVersion(serverId, input.code),
                 (expectedVersion) =>
-                    updateIssue(db, agentIssueActor(runner), {
-                        ...(expectAssignee === undefined ? {} : { expectAssignee }),
-                        expectedVersion,
-                        issueId: issue.id,
-                        patch,
-                        serverId,
-                    })
+                    updateIssue(
+                        db,
+                        agentIssueActor(runner),
+                        {
+                            ...(expectAssignee === undefined ? {} : { expectAssignee }),
+                            expectedVersion,
+                            issueId: issue.id,
+                            patch,
+                            serverId,
+                        },
+                        writerGuard(runner)
+                    )
             );
             return await commit(runner, result);
         }
@@ -118,14 +123,18 @@ export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase)
         async (runner, input) => {
             const { serverId } = runner;
             const issue = await findIssueByCode(db, serverId, input.code);
-            await requireIssueWriter(db, runner, issue);
             const actor = agentIssueActor(runner);
-            const result = await addIssueComment(db, actor, {
-                body: input.body,
-                issueId: issue.id,
-                ...(input.replyTo ? { replyToCommentId: input.replyTo } : {}),
-                serverId,
-            });
+            const result = await addIssueComment(
+                db,
+                actor,
+                {
+                    body: input.body,
+                    issueId: issue.id,
+                    ...(input.replyTo ? { replyToCommentId: input.replyTo } : {}),
+                    serverId,
+                },
+                writerGuard(runner)
+            );
             publishRealtime(result.events);
             const name = await nameIssueActors(db, serverId, [actor]);
             return { comment: toAgentComment(result.comment, name) };
@@ -143,21 +152,29 @@ export function registerAgentIssueRoutes(app: FastifyInstance, db: HausDatabase)
             async (runner, input) => {
                 const { serverId } = runner;
                 const issue = await findIssueByCode(db, serverId, input.code);
-                await requireIssueWriter(db, runner, issue);
                 const result = await withImplicitIssueVersion(
                     undefined,
                     issueVersion(serverId, input.code),
                     (expectedVersion) =>
-                        write(db, agentIssueActor(runner), {
-                            expectedVersion,
-                            issueId: issue.id,
-                            serverId,
-                            taskId: input.taskId,
-                        })
+                        write(
+                            db,
+                            agentIssueActor(runner),
+                            {
+                                expectedVersion,
+                                issueId: issue.id,
+                                serverId,
+                                taskId: input.taskId,
+                            },
+                            writerGuard(runner)
+                        )
                 );
                 return await commit(runner, result);
             }
         );
+    }
+
+    function writerGuard(runner: ResolvedRunner) {
+        return (tx: IssueTx, issue: Issue) => requireIssueWriter(tx, runner, issue);
     }
 
     function issueVersion(serverId: string, code: string) {
