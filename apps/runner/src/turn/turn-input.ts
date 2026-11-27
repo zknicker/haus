@@ -10,7 +10,7 @@ import {
     composeTurnContent,
     composeUnknownToolCalls,
 } from '@haus/agent-prompt';
-import type { AgentStartCommand } from '@haus/api';
+import type { AgentStartCommand, RunnerSessionPolicy } from '@haus/api';
 
 export interface TurnSessionView {
     readonly isColdStart: boolean;
@@ -23,6 +23,10 @@ export interface TurnInput {
     readonly drained: readonly AgentInboxItem[];
     readonly notice: string | null;
     readonly turnContent: string;
+}
+
+export function sessionKindOf(policy: RunnerSessionPolicy | null) {
+    return policy?.kind ?? null;
 }
 
 export function composeTurnInput(

@@ -25,7 +25,7 @@ import { readAgentSession, resolveTurnSession, writeAgentSession } from './sessi
 import { composeTaskOpening } from './task-opening.ts';
 import type { RuntimeTokenUsage } from './turn-event.ts';
 import { TurnStalledError } from './turn-failure.ts';
-import { composeTurnInput } from './turn-input.ts';
+import { composeTurnInput, sessionKindOf } from './turn-input.ts';
 import { openTurnNotices } from './turn-notices.ts';
 import type { TurnTimings } from './turn-timings.ts';
 import { unknownToolCalls } from './unknown-tool-calls.ts';
@@ -153,7 +153,7 @@ export async function runTurn(input: RunTurnInput) {
             isColdStart: !live.isResume,
             resumesInterruptedTurn: live.isResume && session.interruptedTurn,
             sessionGeneration: session.generation,
-            sessionKind: context.policy?.kind ?? null,
+            sessionKind: sessionKindOf(context.policy),
         },
         await unknown.read()
     );
