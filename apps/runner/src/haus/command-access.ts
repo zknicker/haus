@@ -48,6 +48,7 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         share: serverOnly,
         versions: serverOnly,
         view: { kind: 'workspace', nextAction: readDriveFolder },
+        write: reads('--from'),
     },
     image: { generate: reads('--reference'), models: serverOnly, wait: writes('--out') },
     inbox: { check: serverOnly },

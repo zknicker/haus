@@ -101,8 +101,10 @@ does for Captains (`apps/runner/src/turn/agent-sessions.ts:7-79`). What differs:
   ([tasks.md](tasks.md#archive)).
 - **Unarchive starts fresh.** Unarchive bumps the generation again (reason `unarchive`). The next
   turn starts a new session from the composed Task input plus a bounded replay: the newest 50
-  chat messages, at most 24,000 characters, and the linked Issues' current state. Older history
-  stays readable through `haus message read`.
+  chat messages before the ones that woke it, at most 24,000 characters, plus the brief, and the
+  linked Issues' current state. The runner composes it on any fresh Task session, so a recovery
+  reset rebuilds the same way ([tasks.md](tasks.md#archive)). Older history stays readable
+  through `haus message read`.
 - **Rotation.** Model switches are not offered for a Task in v1: a Task keeps the model it started
   with. Session reset and Full reset are Captain actions only.
 

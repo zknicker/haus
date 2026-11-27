@@ -48,6 +48,14 @@ After a turn, the machine pushes the turn's Drive changes under the run id:
 `base_revision_id`, `request_id`), and `POST /api/agent/drive/push/close` (JSON `push_id`). Each
 put or delete answers one push outcome and never a `REVISION_CONFLICT`; a failed merge keeps both
 versions in a `.conflict-<handle>` copy. The code is `apps/server/src/drive/push/`.
+
+A Task has no `drive/` folder. `haus drive write` calls `POST /api/agent/drive/write` with JSON
+`{ path, contentBase64, contentType?, requestId }` (at most 50 MB of content,
+`packages/haus-api/src/task-drive-write.ts`) and answers `{ artifact, citation }`. It lands one
+revision with `replace` semantics, authored by the Task agent and naming the Task. A path outside
+the Task's own folders is `403 DRIVE_WRITE_OUTSIDE_TASK`, the same check every Drive write makes
+for a Task agent (`apps/server/src/drive/task-folders.ts`); a Captain is
+`409 DRIVE_WRITE_USE_FOLDER`. The code is `apps/server/src/drive/task-drive-write.ts`.
 [Artifact drive](../../specs/artifact-drive.md) owns path rules, folders, moves, error codes, and
 the migration from names. Raft's `name` upserts; Haus has no name, and a path never upserts
 blindly: `replace` is the only overwrite. Members publish through `PUT /artifacts/:serverId/publish`

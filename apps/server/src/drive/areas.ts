@@ -4,6 +4,7 @@ import type { ArtifactAccess } from '../artifacts/access.ts';
 import { ArtifactError } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
+import { readTaskDriveFolders, requireTaskDriveFolder } from './task-folders.ts';
 
 export interface DriveArea {
     area: DriveAreaId;
@@ -56,7 +57,7 @@ export async function writableDrivePath(
     access: Pick<ArtifactAccess, 'agentId' | 'serverId'>,
     path: string
 ) {
-    return requireDriveWrite(access, await driveAreaOfPath(tx, access.serverId, path));
+    return await requireWritable(tx, access, await driveAreaOfPath(tx, access.serverId, path));
 }
 
 export async function writableDriveFolder(
@@ -64,7 +65,20 @@ export async function writableDriveFolder(
     access: Pick<ArtifactAccess, 'agentId' | 'serverId'>,
     folder: string
 ) {
-    return requireDriveWrite(access, await driveAreaOfFolder(tx, access.serverId, folder));
+    return await requireWritable(tx, access, await driveAreaOfFolder(tx, access.serverId, folder));
+}
+
+async function requireWritable(
+    tx: HausDatabase,
+    access: Pick<ArtifactAccess, 'agentId' | 'serverId'>,
+    placement: DrivePlacement
+) {
+    const task = await readTaskDriveFolders(tx, access);
+    if (!task) {
+        return requireDriveWrite(access, placement);
+    }
+    requireTaskDriveFolder(task.folders, placement.path);
+    return placement;
 }
 
 export async function serverDriveAreas(db: HausDatabase, serverId: string) {

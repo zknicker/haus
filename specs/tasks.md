@@ -134,7 +134,10 @@ all Captains (`apps/server/src/postgres/schema/agents.ts:75-78`). Task rules key
 - A Task agent's run credential reaches its own chat, its Project's Issues (create, edit,
   comment) and Issues assigned to it, Drive reads and its own [Drive writes](#drive), and the
   `haus task` verbs a Task may call. It cannot post in another chat, start a Task, or edit a
-  Project.
+  Project. Reads stay open; the agent API refuses a Task credential `TASK_CREDENTIAL_SCOPE` (403)
+  on every route that changes agents, profiles, channels, claims, connections, Triggers, or
+  Drive outside `haus drive write` (`apps/server/src/tasks/task-credential-scope.ts`), and the
+  routes it may call check their own targets.
 - A Captain keeps memory, its home Project and hearing it, its crew, recurring reminders, claims,
   its changeable Machine ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
   amendment 2026-11-23, changed in its settings) and its one session across every chat
@@ -228,10 +231,13 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
 - `haus drive write <path> [--from <file>]` writes one file, from stdin or from a file on the
   Task's Machine, whose path follows the call's target as every `haus` file path does
   ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)). It
-  creates a new revision attributed to the Task and prints its `drive://` citation.
+  creates a new revision attributed to the Task (its author is the Task agent and the revision
+  names the Task), replacing whatever revision is current, and prints its `drive://` citation.
+  One write carries at most 50 MB.
 - A Task writes only under its own folders: for crew, its Captain's
-  `agents/<handle>/reports/<shortId>/`, `renders/<shortId>/` and `handoffs/<shortId>/`; for a person's Task, `projects/<key>/tasks/<shortId>/`. Anything else is refused
-  `DRIVE_WRITE_OUTSIDE_TASK`.
+  `agents/<handle>/reports/<shortId>/`, `renders/<shortId>/` and `handoffs/<shortId>/`; for a
+  person's Task, `projects/<key>/tasks/<shortId>/`. Anything else is refused
+  `DRIVE_WRITE_OUTSIDE_TASK`. The session policy names these folders, so the Task prompt does.
 - Captains keep editing Drive in their `drive/` folder; `haus drive write` from a Captain is
   refused `DRIVE_WRITE_USE_FOLDER`.
 
@@ -244,7 +250,7 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   | Mode | What happens |
   | --- | --- |
   | `steer` (default) | A busy Task gets the message at its next tool boundary, with nothing cancelled, as today's busy notice (`apps/server/src/agent-delivery/busy-notice.ts:23`). If the turn ends before a boundary, the message starts the next turn |
-  | `interrupt` | The running turn is aborted, its unseen items return to the queue as Stop does today, and the next turn runs with this message first |
+  | `interrupt` | The running turn is aborted, its unseen items return to the queue as Stop does today, and the next turn runs with this message first: the start frame lists `interrupt` rows ahead of the rest (`apps/server/src/agent-delivery/interrupt-lead.ts`) |
   | `queue` | The message posts at once and reaches the agent as the next turn's input, after the current turn settles |
 
   To an idle Task every mode starts a turn at once. The composer sends `steer`; its menu offers
@@ -348,8 +354,11 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   id as Captain worktrees are today (`apps/computer/src/invocations/worktree-use.ts`), through
   `haus repo checkout` ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)).
   `haus task start --repo [--ref]` records the repo on the Task (`tasks.repo`, `tasks.repo_ref`),
-  and the Task prompt opens with checking it out through `haus repo checkout`; the Server cannot
-  run a checkout on the Computer before the first turn.
+  and the session policy carries it. Before a fresh session's first turn (the Task's first turn,
+  after unarchive, or after a recovery reset) the runner runs `haus repo checkout <repo> [--ref]`
+  for it on its Machine, through the same invocation path as the Task's own call, and opens the
+  turn with the receipt (`apps/runner/src/turn/task-opening.ts`). A failed checkout opens the
+  turn with the refusal and the command to run once its cause is fixed; the turn still runs.
 - Its branch is `haus/<shortId>-<slug>`, the slug from the title, lower-cased and at most 40
   characters, fixed at the first checkout.
 - Every commit ends with `Haus-Task: <shortId>`, plus `Haus-Issue: <code>` for each linked Issue.
@@ -396,7 +405,9 @@ Step 6 builds these:
 
 A Task holds one-time reminders only (`--target task:<shortId>`); a recurring one is refused
 `TASK_RECURRING_REMINDER`, as today ([reminders.md](reminders.md)). A reminder wakes the Task's own
-agent. Archive cancels pending reminders (`apps/server/src/tasks/task-close-reminders.ts`);
+agent: one anchored in a Task's chat belongs to the Task agent whoever set it, so it lists under
+the Task's `haus reminder list`, not its Captain's. A Task sets reminders only in its own chat;
+anywhere else is `INVALID_TARGET`. Archive cancels pending reminders (`apps/server/src/tasks/task-close-reminders.ts`);
 unarchive does not restore them.
 
 ## Archive
@@ -438,8 +449,13 @@ deletion; the chat and its history stay readable.
 **Unarchive** clears `archived_at` and bumps the generation again (step 5). The next turn starts a
 fresh session whose first input is the composed Task input ([What a Task reads](#what-a-task-reads))
 plus the newest 50 messages of the Task's chat, cut to at most 24,000 characters from the oldest
-end, and the current state of its linked Issues. If a worktree was kept, it resumes there on its
-branch; otherwise `haus repo checkout` makes a new one on the same branch name from the remote.
+end, and the current state of its linked Issues. The runner rereads the chat on every fresh Task
+session (`GET /api/agent/tasks/replay?before=<sequence>`, Task credentials only): the brief (the
+chat's first message), always and apart, then the newest 50 messages after it and before the ones
+that woke it, oldest first; the 24,000-character cut drops whole messages and never the brief.
+The linked Issues ride the Task instructions, read fresh each turn. If a worktree was kept, the
+checkout Haus runs resumes there on its branch; otherwise it makes a new one on the same branch
+name from the remote.
 Issues handed back at archive stay handed back.
 
 **Project archive and delete.** Archiving a Project archives its active Tasks. Deleting a Project
@@ -462,8 +478,10 @@ credentials, as deleting a Captain retires it
 | --- | --- |
 | A Task agent never appears in rosters, mention options, hearing candidates or access lists | `apps/server/test/task-agent-roster.test.ts` (shared fixture `task-agent.fixture.ts`) |
 | Removing a Machine archives its Tasks and clears their Machine; deleting a Project stops its Task sessions before their agents retire | `apps/server/test/task-removals.test.ts` |
-| A Task credential cannot post outside its chat or start a Task | `apps/server/test/task-agent-credential.test.ts` |
-| Steer, interrupt and queue deliver as their rows say | `apps/server/test/task-delivery-modes.test.ts`, `apps/runner/src/turn/turn-notices.test.ts` |
+| A Task credential cannot post outside its chat, start a Task, or change what is not its own | `apps/server/test/task-agent-credential.test.ts` |
+| Steer, interrupt and queue deliver as their rows say, an interrupting message first | `apps/server/test/task-delivery-modes.test.ts`, `apps/runner/src/turn/turn-notices.test.ts` |
+| A fresh Task session opens with Haus's `--repo` checkout, then its chat so far within the bounds | `apps/runner/src/turn/task-opening.test.ts`, `apps/server/test/task-replay.test.ts`, `packages/agent-prompt/src/task-replay-format.test.ts` |
+| A reminder on a Task belongs to the Task agent; a Task sets none outside its chat | `apps/server/test/haus-task-reminder-origin.test.ts` |
 | Archive then unarchive runs a fresh generation, and a stale-generation dispatch is refused | `apps/server/test/task-archive.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |
 | A Captain-directed turn without a report sends one `unreported` crew report | `apps/server/test/crew-report-delivery.test.ts` |
 | A Task's access follows its Captain's or starter's current grant, never its own Machine, and refuses other targets | `apps/server/test/task-machine-access.test.ts` |

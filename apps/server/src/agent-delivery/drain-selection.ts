@@ -8,6 +8,7 @@ import {
     isConcreteInboxSource as isConcreteSource,
     isNoticelessInboxSource,
 } from './inbox-lanes.ts';
+import { leadWithInterrupts } from './interrupt-lead.ts';
 import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
 import { readTaskContexts, taskContextChars } from './task-context.ts';
@@ -51,7 +52,8 @@ export async function startFrame(
     if (chatlessRows.length > 0) {
         return chatlessStartFrame(state, config, chatlessRows);
     }
-    const noticeRows =
+    const noticeRows = await leadWithInterrupts(
+        db,
         runRows.length === 0 && state.activeRunId
             ? (
                   await store.listNoticedItemsForRun(db, {
@@ -59,7 +61,8 @@ export async function startFrame(
                       runId: state.activeRunId,
                   })
               ).filter((row) => !isNoticelessInboxSource(row.source))
-            : [];
+            : []
+    );
     const humanDrain = await humanDrainSets(db, noticeRows);
     return {
         agentId: state.agentId,
@@ -69,7 +72,11 @@ export async function startFrame(
         drainItemIds: [...runRows, ...humanDrain.drainRows].map((row) => row.dedupeKey),
         ...(greets ? { greets: true as const } : {}),
         homeTimezone: config.homeTimezone,
-        inbox: await buildInboxItems(db, runRows.length > 0 ? runRows : noticeRows, state.agentId),
+        inbox: await buildInboxItems(
+            db,
+            runRows.length > 0 ? await leadWithInterrupts(db, runRows) : noticeRows,
+            state.agentId
+        ),
         inboxDelivery: runRows.length > 0 ? 'concrete' : 'notice',
         modelId: state.activeRunModelId ?? '',
         runId: state.activeRunId ?? '',
@@ -108,11 +115,14 @@ export async function claimRunItems(
         });
         return { drainRows: selected, greets, noticeRows: [], selected, warmDrainRows: [] };
     }
-    const noticeRows = noticeWindow(
-        (await store.listQueuedItems(tx, agentId, 1000)).filter(
-            (row) => !isConcreteSource(row.source)
-        ),
-        selected
+    const noticeRows = await leadWithInterrupts(
+        tx,
+        noticeWindow(
+            (await store.listQueuedItems(tx, agentId, 1000)).filter(
+                (row) => !isConcreteSource(row.source)
+            ),
+            selected
+        )
     );
     await store.markInboxItemsNoticed(tx, {
         agentId,

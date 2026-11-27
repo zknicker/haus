@@ -131,6 +131,8 @@ export const artifactErrorCodeSchema = z.enum([
     'PUSH_CLOSED',
     'AGENT_RESET',
     'AGENT_MOVED',
+    'DRIVE_WRITE_OUTSIDE_TASK',
+    'DRIVE_WRITE_USE_FOLDER',
 ]);
 export type ArtifactErrorCode = z.infer<typeof artifactErrorCodeSchema>;
 

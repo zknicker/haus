@@ -24,6 +24,8 @@ export {
     renderAgentInstructions,
 } from './managed-instructions.ts';
 export { managedSkillChangeText } from './managed-skill-notice.ts';
+export { composeTaskCheckout, taskCheckoutCommand } from './task-checkout-format.ts';
+export { composeTaskReplay } from './task-replay-format.ts';
 export { renderTaskInstructions, type TaskPromptRenderInput } from './task-session-instructions.ts';
 export { formatMemoryBlock, memoryCharacterCap, memoryFileName } from './memory-block.ts';
 export { formatRulesBlock, type RulesChange } from './rules-block.ts';

@@ -44,13 +44,15 @@ function runtimeSection(input: TaskPromptRenderInput) {
 
 function workSection(task: TaskFacts, target: string) {
     const repo = task.repo
-        ? `\n- Start by checking out ${task.repo.name}: \`haus repo checkout ${task.repo.name}${task.repo.ref ? ` --ref ${task.repo.ref}` : ''}\`.`
+        ? `\n- Haus checks out ${task.repo.name}${task.repo.ref ? ` at ${task.repo.ref}` : ''} for you when your session starts; your first input says where.`
         : '';
+    const folders = task.driveFolders.map((folder) => `\`${folder}/\``).join(', ');
     return `## How you work
 
 - Your chat is your only place. Post there with \`haus message send --target ${target}\`; text outside a \`haus\` command reaches no one. Every message in your chat wakes you.
 - People there see everything you post. Keep it short: what you did, what you found, what you need.
 - Work in your own worktree with \`haus repo checkout <owner/name>\`, on the branch \`haus/${task.shortId}-<slug>\`. End every commit with \`Haus-Task: ${task.shortId}\`${task.issues.map((issue) => ` and \`Haus-Issue: ${issue.code}\``).join('')}.${repo}
+- Put deliverables in Drive with \`haus drive write <path> < file\` under ${folders}, and cite the link it prints.
 - You have no memory file. Your chat, your Issues and your pull requests are the record.
 - \`haus task send <shortId>\` messages another active Task of your Project. Work in another Project goes through an Issue.
 - Archive yourself with \`haus task archive\` only when your work is finished and nobody is waiting on you.`;
@@ -86,7 +88,7 @@ const cliSection = `## haus CLI
 - **Task**: \`haus task report\`, \`haus task send\`, \`haus task show\`, \`haus task attach-pr\`, \`haus task archive\`.
 - **Issues**: \`haus issue list\`, \`haus issue show\`, \`haus issue create\`, \`haus issue update\`, \`haus issue comment\`.
 - **Repos**: \`haus repo list\`, \`haus repo checkout\`.
-- **Drive**: \`haus drive versions\`, \`haus drive view\`, \`haus drive share\`.
+- **Drive**: \`haus drive write\`, \`haus drive versions\`, \`haus drive view\`, \`haus drive share\`.
 - **Manual**: \`haus manual get\`, \`haus manual search\`, each with \`--intent\` and \`--reason\`.
 
 Run any subcommand with \`--help\` for syntax. Prefer one \`haus\` command per tool call, and read its result before the next.`;
