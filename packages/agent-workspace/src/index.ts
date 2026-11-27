@@ -13,4 +13,4 @@ export {
     type StarterMemoryInput,
     seedAgentWorkspace,
 } from './starter-kit.ts';
-export { starterAgentRules, starterHausRules, starterWorkerRules } from './starter-rules.ts';
+export { starterAgentRules, starterHausRules, starterCrewRules } from './starter-rules.ts';

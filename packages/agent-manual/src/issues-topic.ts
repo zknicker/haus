@@ -24,7 +24,7 @@ An Issue is a card in a Project's backlog: what needs doing, who has it, and whe
 Errors: \`ISSUE_NOT_FOUND\` names a code the Server does not have. \`ISSUE_CONFLICT\` means the Issue changed after the version you named; read it again. \`ISSUE_PARENT_PROJECT\` and \`ISSUE_PARENT_CYCLE\` refuse a parent in another Project or under the Issue itself.`,
     id: 'issues',
     kind: 'overview',
-    related: ['tasks', 'claims', 'workers'],
+    related: ['tasks', 'claims'],
     summary:
         'Work the open Issues assigned to you by priority, take one with --expect-assignee, move its state by editing it, and comment to reach its assignee.',
     title: 'Issues',

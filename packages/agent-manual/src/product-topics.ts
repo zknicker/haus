@@ -67,7 +67,7 @@ Use \`haus message unfollow --target <target> --message-id <id>\` to leave an ex
 Explicit claim updates record completion. If a later reply requests new work after the earlier claim finished, claim that new request. The earlier result and claim remain complete. When a conversation is already happening in a Task, keep using its existing target.`,
         id: 'replies',
         kind: 'overview',
-        related: ['haus-cli-overview', 'tasks', 'workers'],
+        related: ['haus-cli-overview', 'tasks'],
         summary:
             'Answer inline, acknowledge with a reaction, and control attention for an exchange.',
         title: 'Replies',

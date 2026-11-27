@@ -17,7 +17,6 @@ import { REPO_SUBCOMMANDS } from './commands/agent-repo.ts';
 import { SKILL_SUBCOMMANDS } from './commands/agent-skill.ts';
 import { TASK_SUBCOMMANDS } from './commands/agent-task.ts';
 import { TRIGGER_SUBCOMMANDS } from './commands/agent-trigger.ts';
-import { WORKER_SUBCOMMANDS } from './commands/agent-worker.ts';
 import { UsageError } from './parse.ts';
 import { dispatchSubcommand, type SubCommand } from './subcommand.ts';
 import { errorBlock } from './ui.ts';
@@ -27,7 +26,6 @@ export const commandGroups = {
     attachment: ATTACHMENT_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,
     claim: CLAIM_SUBCOMMANDS,
-    worker: WORKER_SUBCOMMANDS,
     computer: COMPUTER_SUBCOMMANDS,
     connection: CONNECTION_SUBCOMMANDS,
     drive: DRIVE_SUBCOMMANDS,
@@ -141,7 +139,7 @@ function bareUsage(subcommands: SubCommand[]): string[] {
 
 /**
  * Every family has a Manual topic named after its noun (the Manual resolves
- * `worker` and `claim` to their plural ids); the Manual itself starts at
+ * `claim` to its plural id); the Manual itself starts at
  * its index.
  */
 function manualDetails(group: string): string {

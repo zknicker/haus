@@ -68,34 +68,3 @@ test('a Drive conflict run renders one line per file and the guidance its outcom
         ].join('\n')
     );
 });
-
-test('a Worker push names the Worker and its Task in the header', () => {
-    expect(
-        composeDriveConflictInput(
-            {
-                ...base,
-                files: [
-                    {
-                        copyPath: 'haus/a.conflict-blippy.md',
-                        currentAuthorHandle: null,
-                        currentRevisionId: 'rev_1',
-                        outcome: 'kept_both',
-                        path: 'haus/a.md',
-                        reason: 'both_created',
-                    },
-                ],
-                writer: {
-                    agentId: 'agt_blippy',
-                    taskId: 'tsk_1',
-                    type: 'worker',
-                    workerId: 'wrk_1',
-                },
-            },
-            'blippy'
-        ).split('\n')
-    ).toEqual([
-        "[drive conflict · 1 file · your Worker wrk_1's push in task tsk_1, after run_8f2]",
-        'haus/a.md · someone created it too · yours: haus/a.conflict-blippy.md',
-        'Each original holds the current version and each copy holds yours. Merge what you still want into the original with ordinary file commands in drive/, then delete the copy.',
-    ]);
-});

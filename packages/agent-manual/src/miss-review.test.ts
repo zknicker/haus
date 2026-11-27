@@ -12,8 +12,8 @@ const record = (operation: 'get' | 'search', lookup: string): ManualLookupRecord
 
 test('miss review keeps only lookups the current corpus still cannot answer', () => {
     const records = [
-        record('search', 'cloud agent model'),
-        record('search', 'cursor'),
+        record('search', 'schedule a follow up'),
+        record('search', 'upload a file'),
         record('get', 'reminders'),
         record('get', 'merchbase'),
         record('search', 'merchbase sales tools'),

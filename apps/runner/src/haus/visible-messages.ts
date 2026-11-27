@@ -17,7 +17,6 @@ const messageRowSchema = z.object({ message: messageSchema }).transform((row) =>
 const heldSchema = z.object({ shownMessages: z.array(messageSchema), state: z.literal('held') });
 
 const visibleByPath: Readonly<Record<string, z.ZodType<VisibleMessage[]>>> = {
-    '/api/agent/workers': heldSchema.transform((body) => body.shownMessages),
     '/api/agent/events': z
         .object({ messages: z.array(messageRowSchema) })
         .transform((body) => body.messages),

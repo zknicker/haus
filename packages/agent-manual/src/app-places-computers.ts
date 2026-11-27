@@ -96,19 +96,6 @@ export const computerAppPlaces: readonly AppPlace[] = [
     },
     {
         area: 'connections-and-computers',
-        task: 'Let Captains run Workers on a device',
-        path: ['Settings', 'Devices', '(your device)', 'Workers', 'Run Workers here'],
-        who: 'attacher',
-        note: 'An Owner or Admin can lower the limit or turn it off.',
-        anchors: [
-            settingsEntry(),
-            computers(),
-            label('features/computers/computer-workers-section.tsx', 'Workers'),
-            label('features/computers/computer-workers-section.tsx', 'Run Workers here'),
-        ],
-    },
-    {
-        area: 'connections-and-computers',
         task: 'Add a repo folder to a Computer',
         path: ['Settings', 'Devices', '(your device)', 'Folders', 'Add folder'],
         who: 'anyone',
@@ -157,18 +144,6 @@ export const computerAppPlaces: readonly AppPlace[] = [
                 'features/settings/image-generation/image-generation-group.tsx',
                 'Image generation'
             ),
-        ],
-    },
-    {
-        area: 'connections-and-computers',
-        task: 'Choose the model each Worker place uses',
-        path: ['Settings', 'Models', 'Workers'],
-        who: 'owner-or-admin',
-        note: 'Every member can read it.',
-        anchors: [
-            settingsEntry(),
-            settingsSection('models'),
-            label('features/settings/models/cloud-agent-model-group.tsx', 'Workers'),
         ],
     },
 ];

@@ -5,13 +5,12 @@ const body = getManualTopic('repos')?.body ?? '';
 
 test('repos belong to the Server and haus repo list shows the folders on each Computer', () => {
     expect(body).toContain(
-        "A repo is a GitHub `owner/name` on the Server's list, and any Agent or Worker in any Project can use any of them."
+        "A repo is a GitHub `owner/name` on the Server's list, and any Agent in any Project can use any of them."
     );
     expect(body).toContain(
         '`haus repo list` shows each repo and the Computers with a folder for it.'
     );
     expect(body).toContain('`haus-computer repo add <path>`');
-    expect(body).toContain('A Worker can use a repo with no folder: its Computer clones it first');
 });
 
 test('haus repo checkout makes your own worktree on a named branch, only where a folder exists', () => {

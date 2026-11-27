@@ -6,7 +6,7 @@ export const rulesTopic: ManualNavigationTopic = {
     title: 'Rules',
     summary:
         'The rule files in Drive (the team and Project AGENTS.md, your own AGENTS.md and WORKER.md) beside MEMORY.md: who reads each and when, editing them in your drive/ folder, revisions, and citing them.',
-    related: ['drive', 'workers'],
+    related: ['drive', 'tasks'],
     body: `# Rules
 
 Rules are the standing instructions people give for future work. They live in Drive as plain Markdown files, one per audience, and everyone on the team can read and edit them.
@@ -14,9 +14,9 @@ Rules are the standing instructions people give for future work. They live in Dr
 ## The files
 
 - \`drive/haus/AGENTS.md\` holds the team's rules. People own it. Haus puts it in your turn input whenever it changed.
-- \`drive/projects/<key>/AGENTS.md\` holds a Project's rules for everyone working in it. Haus puts your Project's file in your turn input whenever it changed, and hands a Task's Project file to its Workers in their first turn.
+- \`drive/projects/<key>/AGENTS.md\` holds a Project's rules for everyone working in it. Haus puts your Project's file in your turn input whenever it changed, and a crew Task reads its Project's file too.
 - \`drive/agents/<your handle>/AGENTS.md\` holds your own rules: how you work, reply, and decide. Haus puts it in your turn input whenever it changed, and again after a reset or compaction, the way it delivers MEMORY.md.
-- \`drive/agents/<your handle>/WORKER.md\` holds the rules your Workers follow. Workers are the scoped runs you start for a Task. Haus hands it to each of your Workers in its first turn and again after it changes, so your brief does not repeat it (see workers).
+- \`drive/agents/<your handle>/WORKER.md\` holds the rules your crew Tasks follow. Haus hands it to each Task you start in its turn input and again after it changes, so your brief does not repeat it (see tasks).
 - \`drive/agents/<your handle>/MEMORY.md\` holds what you know: facts, your active context, the preferences people show in passing, and the index of your notes. It can point at your rule files without repeating them.
 
 ## Editing

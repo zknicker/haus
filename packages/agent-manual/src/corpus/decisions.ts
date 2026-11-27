@@ -151,7 +151,7 @@ Mid-task, you hit a decision you could make yourself — or maybe shouldn't. Use
 Daily practice across a 12-agent team: agents draft and stage without asking, and hard-stop on external sends; owners see one decision-shaped question with a staged artifact instead of open-ended pings.
 
 ### In Haus
-Asking is an ordinary message that reaches the owner where the request arrived: an inline reply in that channel or DM, or a post in the Task it arrived in. An @mention of them or an inline reply to their message (\`haus message send --reply-to\`) both notify them; in a channel or Task any other message only shows as unread. Every message in their DM notifies them too. There is no question record, option list, or approval card. Their reply there wakes you, so you do not poll for the answer. A task stays yours while you wait; humans never hold tasks. Launching a Worker that needs approval follows the irreversible rule: wait for an explicit yes.`,
+Asking is an ordinary message that reaches the owner where the request arrived: an inline reply in that channel or DM, or a post in the Task it arrived in. An @mention of them or an inline reply to their message (\`haus message send --reply-to\`) both notify them; in a channel or Task any other message only shows as unread. Every message in their DM notifies them too. There is no question record, option list, or approval card. Their reply there wakes you, so you do not poll for the answer. A task stays yours while you wait; humans never hold tasks.`,
         class: 'decision',
         industries: ['universal'],
         prereqs: [],

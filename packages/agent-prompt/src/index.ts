@@ -1,8 +1,4 @@
-export type {
-    AgentInboxItem,
-    AgentWorkerAttention,
-    WorkerPullRequestChange,
-} from './agent-inbox-item.ts';
+export type { AgentInboxItem, PullRequestChange } from './agent-inbox-item.ts';
 export { composeDriveConflictInput } from './inbox-drive-conflict-format.ts';
 export { composeProcessExitInput } from './inbox-process-exit-format.ts';
 export {

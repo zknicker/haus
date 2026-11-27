@@ -81,7 +81,7 @@ test('splitting for other agents files Issues, and claims stay in the conversati
 
 test('the Tasks and Issues families name every verb and point at the Manual', () => {
     expect(prompt).toContain(
-        '15. **Tasks**: `haus task start`, `haus task send`, `haus task list`, `haus task show`, `haus task archive`, `haus task unarchive`, `haus task attach-pr`. Read the `tasks` Manual topic before the first one.\n16. **Issues**: `haus issue list`, `haus issue show`, `haus issue create`, `haus issue update`, `haus issue comment`, `haus issue link`. Read the `issues` Manual topic before the first one.\n17. **Computers**'
+        '14. **Tasks**: `haus task start`, `haus task send`, `haus task list`, `haus task show`, `haus task archive`, `haus task unarchive`, `haus task attach-pr`. Read the `tasks` Manual topic before the first one.\n15. **Issues**: `haus issue list`, `haus issue show`, `haus issue create`, `haus issue update`, `haus issue comment`, `haus issue link`. Read the `issues` Manual topic before the first one.\n16. **Computers**'
     );
     expect(prompt).not.toContain('**Boards**');
     expect(prompt).not.toContain('haus task create');
