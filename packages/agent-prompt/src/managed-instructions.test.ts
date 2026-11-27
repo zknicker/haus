@@ -175,9 +175,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // teaches catching up with inbox check and read --unread; +135 an @mention wakes and interrupts in any
     // Project (corrects a false isolation-boundary claim); +329 what read prints counts as seen, and a
     // repeat delivery with a handled msg= id is handled; +35 send nothing comes first among the draft paths.
-    // Raised by exactly 84 (→ 37,776): crew reports are gone, so a Captain hears a crew turn end and
-    // reads the Task's chat with message read --unread.
-    expect(prompt.length).toBeLessThanOrEqual(37_776);
+    // Raised by exactly 93 (→ 37,785): crew reports are gone, so a Captain hears a crew turn end and
+    // reads what is new in the Task's chat with message read --unread.
+    expect(prompt.length).toBeLessThanOrEqual(37_785);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');

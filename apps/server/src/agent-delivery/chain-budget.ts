@@ -46,10 +46,11 @@ const automationInboxSources = [
     'subagent',
     'drive_conflict',
     'process_exit',
+    'crew_finish',
 ] as const;
 
 export function isAutomationAuthored(row: AuthoredWork): boolean {
-    // A crew finish is a Task agent's turn reaching its Captain, so it always spends the chain.
+    // A crew finish is a Task agent's turn reaching its Captain: it always spends the chain and never resets it.
     if (row.source === 'crew_finish') {
         return true;
     }

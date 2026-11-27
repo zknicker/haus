@@ -38,7 +38,7 @@ test('a crew Task works in its one chat and its Captain reads it when a turn end
         'Your Captain hears when each of your turns ends and reads your chat for what you did, so a question for it goes there like anything else. Your last message in a turn says where the work stands, with links.'
     );
     expect(prompt).toContain(
-        'To ask a person, @mention them in your chat; you show as waiting on them until they answer, and their answer wakes you. `haus task attach-pr k3mq7xta <url>` attaches each pull request you open.'
+        'To ask a person, @mention them in your chat; you show as waiting until a person posts there, and their answer wakes you. `haus task attach-pr k3mq7xta <url>` attaches each pull request you open.'
     );
     expect(prompt).toContain(
         'a message body goes in a heredoc, and a file goes by its flag, such as `--from`.'
@@ -87,5 +87,5 @@ test('a Task working an Issue carries its code, title and description, and its t
 });
 
 test('keeps the Task prompt within its reviewed size budget', () => {
-    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2602);
+    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2603);
 });

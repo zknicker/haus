@@ -39,7 +39,7 @@ test('Tasks start in the home Project, and other Projects get an @mention in the
 
 test('the Captain hears crew turns end and reads their chats, the asker talks to it, and task send messages a Task', () => {
     expect(tasks).toContain(
-        "You hear when a crew Task's turn ends; `haus message read --target task:<shortId> --unread` reads what it posted. The person who asked talks to you. `haus task send <shortId>` messages a Task and brings back an archived one. Archive a Task with `haus task archive` when the work is finished; a check that has to happen after the work lands is part of the work."
+        "You hear when a crew Task's turn ends; `haus message read --target task:<shortId> --unread` reads what is new in its chat. The person who asked talks to you. `haus task send <shortId>` messages a Task and brings back an archived one. Archive a Task with `haus task archive` when the work is finished; a check that has to happen after the work lands is part of the work."
     );
     // The Server refuses `message send` into a Task's chat and names `haus task send`.
     expect(prompt).not.toContain('never `message send`');

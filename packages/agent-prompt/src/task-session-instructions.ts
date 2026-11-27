@@ -64,7 +64,7 @@ function standingSection(task: TaskFacts) {
         : 'Whoever started you reads your chat.';
     return `## Where the work stands
 
-${reader} Your last message in a turn says where the work stands, with links. To ask a person, @mention them in your chat; you show as waiting on them until they answer, and their answer wakes you. \`haus task attach-pr ${task.shortId} <url>\` attaches each pull request you open.`;
+${reader} Your last message in a turn says where the work stands, with links. To ask a person, @mention them in your chat; you show as waiting until a person posts there, and their answer wakes you. \`haus task attach-pr ${task.shortId} <url>\` attaches each pull request you open.`;
 }
 
 function issuesSection(task: TaskFacts) {

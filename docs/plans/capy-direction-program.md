@@ -240,7 +240,7 @@ proven.
 - [ ] **T2. Issues.** The record, codes on the ledger, comments, activity, sub-issues, CLI, API and UI. Tasks get short ids and `tasks.archived_at`, and lose state, priority, due date, labels and assignee.
 - [ ] **T3. Captains work from Issues.** `issue_assignment`, no ambient Task hearing, with prompt and Manual changes gated by baseline evals.
 - [ ] **T4. Mac side.** Per-session keying, the per-Computer concurrency cap, the desktop lease, background processes that wake on exit.
-- [ ] **T5. Task agents and the Captain chat.** The `task` agent kind, crew briefs, `crew_report` and `haus task report`, `haus task send` with delivery modes, Machine access, archive and unarchive, `haus drive write`, and the shared Captain chat replacing Captain DMs.
+- [ ] **T5. Task agents and the Captain chat.** The `task` agent kind, crew briefs, `crew_finish` notices (`haus task report` was deleted 2026-11-28), `haus task send` with delivery modes, Machine access, archive and unarchive, `haus drive write`, and the shared Captain chat replacing Captain DMs.
 - [ ] **T6. App.** Home composer to Task, the Task page and side panel, the Tasks list, the Captain page, Issues list, board and page, the sidebar.
 - [ ] **T7. Delete Workers, `worker_report` and the Cursor and Claude cloud hand-off**, once Task agents work end to end in production.
 
