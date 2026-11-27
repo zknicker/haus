@@ -13,8 +13,8 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A Task request in the Captain chat starts one crew Task whose brief carries the input; the Task files exactly one done report carrying the result; the Captain tells the person the result in the Captain chat; neither agent posts in a channel.',
-    name: 'crew-report-reaches-person',
+        'A Task request in the Captain chat starts one crew Task whose brief carries the input; the Task posts the result in its own chat and its Captain hears the turn finish; the Captain tells the person the result in the Captain chat; neither agent posts in a channel.',
+    name: 'crew-finish-reaches-person',
     run: withRoutingEvidence(async ({ agents, evidence, expect, kit, log, settleTurn }) => {
         const [captain] = agents;
         const channel = await kit.createChannel({ agentIds: [captain.id] });
@@ -45,31 +45,36 @@ export default defineScenario({
 
             log(`waiting for Task ${task.shortId}`);
             await turnsSince(kit, task.agentId, task.createdAt);
-            const reports = await ledger.reports(task.id);
-            log(`reports: ${reports.map((report) => report.outcome).join(', ') || 'none'}`);
-            expect(reports, 'reports the Task filed').toHaveLength(1);
-            const [report] = reports;
-            expect(report.outcome, 'report outcome').toBe('done');
-            expect(report.content, 'the report carries the digest').toContain(digest);
+            const taskPosts = await ledger.postsBy(task.agentId);
+            expect(
+                taskPosts.some(
+                    (post) => post.chatId === task.chatId && post.content.includes(digest)
+                ),
+                'the Task posts the digest in its chat'
+            ).toBe(true);
+            const finishes = await ledger.finishes(captain.id, task.shortId);
+            log(`finishes: ${finishes.map((finish) => finish.ending).join(', ') || 'none'}`);
+            expect(finishes.length >= 1, 'the Captain hears the Task turn end').toBe(true);
+            const [finish] = finishes;
+            expect(finish.ending, 'how the first turn ended').toBe('finished');
 
-            log('waiting for the Captain to hear the report');
-            await turnsSince(kit, captain.id, report.createdAt, { within: 300_000 });
+            log('waiting for the Captain to hear the finish');
+            await turnsSince(kit, captain.id, finish.createdAt, { within: 300_000 });
             const captainPosts = await ledger.postsBy(captain.id, {
                 since: asked.message.createdAt,
             });
-            const taskPosts = await ledger.postsBy(task.agentId);
             expect(
                 postsOutside(captainPosts, [chatId, task.chatId]),
                 'Captain posts outside the Captain chat and its Task'
             ).toHaveLength(0);
             expect(
-                postsOutside(taskPosts, [task.chatId]),
+                postsOutside(await ledger.postsBy(task.agentId), [task.chatId]),
                 'Task posts outside its chat'
             ).toHaveLength(0);
             const summaries = captainPosts.filter(
                 (post) =>
                     post.chatId === chatId &&
-                    Date.parse(post.createdAt) >= Date.parse(report.createdAt) &&
+                    Date.parse(post.createdAt) >= Date.parse(finish.createdAt) &&
                     post.content.toLowerCase().includes(digest)
             );
             const { followed } = await kit.trpc('task.get', {

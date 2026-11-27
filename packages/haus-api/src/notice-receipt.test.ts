@@ -11,7 +11,12 @@ test('a notice receipt covers its inbox items, Issue items and crew finishes', (
         })
     ).toEqual({
         runId: 'run_busy',
-        workIds: ['aib_maya', 'issue-assign:iss_1:2', 'crew-finish:tsk_1:run_1', 'crew-finish:tsk_1:run_2'],
+        workIds: [
+            'aib_maya',
+            'issue-assign:iss_1:2',
+            'crew-finish:tsk_1:run_1',
+            'crew-finish:tsk_1:run_2',
+        ],
     });
 });
 

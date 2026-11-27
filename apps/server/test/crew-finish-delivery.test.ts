@@ -39,6 +39,7 @@ test('a crew turn that settles sends its Captain one content-free finish', async
         {
             ending: 'finished',
             id: `crew-finish:${crew.id}:${runId}`,
+            issueCodes: [],
             taskShortId: crew.shortId,
             title: expect.any(String),
         },
@@ -117,7 +118,7 @@ test('finishes from several Tasks of one Captain ride one run', async () => {
     expect(start).toMatchObject({ chatId: null, inboxDelivery: 'concrete' });
 });
 
-test('an Issue assigned to a Task wakes the Task agent, and its own edits wake no one', async () => {
+test('an Issue assigned to a Task wakes the Task agent; its own edits wake no one, and its finish names the Issue', async () => {
     const filed = await call(orbit, '/api/agent/issues/create', { title: 'Rotate the API key' });
     const { code } = filed.body.issue as { code: string };
     const [stored] = (await fixture.harness.sql`
@@ -139,6 +140,10 @@ test('an Issue assigned to a Task wakes the Task agent, and its own edits wake n
     });
     expect(moved.status).toBe(200);
     expect(await issueItems(fixture.orbitAgentId)).toEqual([]);
+    await connection.db.transaction((tx) =>
+        settleCrewTurn(tx, { ...ids(crew), runId, status: 'completed' })
+    );
+    expect((await finishesOf(crew)).map((item) => item.issueCodes)).toEqual([[issue.code]]);
 });
 
 async function issueItems(agentId: string) {

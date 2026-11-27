@@ -1,15 +1,11 @@
 import type { CrewFinish } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { inboxWork } from '../agent-delivery/inbox-work.ts';
+import { readIssues } from '../issues/issue-read.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { tasksTable } from '../postgres/schema.ts';
+import { issuesTable, issueTaskLinksTable, tasksTable } from '../postgres/schema.ts';
 import { taskNeedsYouSql } from './task-activity.ts';
 
-/**
- * A crew Task's turn settled: its Captain gets one `crew_finish` item naming the Task and how
- * the turn ended (specs/inbox.md#crew-finishes). An interrupted turn has a successor, so it
- * sends nothing.
- */
 export async function settleCrewTurn(
     tx: HausDatabase,
     input: {
@@ -39,6 +35,7 @@ export async function settleCrewTurn(
     const finish: CrewFinish = {
         ending: turnEnding(input.status, task.needsYou),
         id: `crew-finish:${task.id}:${input.runId}`,
+        issueCodes: await readLinkedIssueCodes(tx, input.serverId, task.id),
         taskShortId: task.shortId,
         title: task.title,
     };
@@ -59,4 +56,26 @@ function turnEnding(status: 'completed' | 'failed', needsYou: boolean) {
         return 'failed' as const;
     }
     return needsYou ? ('waiting' as const) : ('finished' as const);
+}
+
+async function readLinkedIssueCodes(tx: HausDatabase, serverId: string, taskId: string) {
+    const links = await tx
+        .select({ issueId: issueTaskLinksTable.issueId })
+        .from(issueTaskLinksTable)
+        .where(
+            and(eq(issueTaskLinksTable.serverId, serverId), eq(issueTaskLinksTable.taskId, taskId))
+        )
+        .limit(20);
+    if (links.length === 0) {
+        return [];
+    }
+    const issues = await readIssues(
+        tx,
+        serverId,
+        inArray(
+            issuesTable.id,
+            links.map((link) => link.issueId)
+        )
+    );
+    return issues.map((issue) => issue.code);
 }

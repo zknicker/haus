@@ -127,10 +127,10 @@ test('crew work passes on an acknowledgement and one completion, and fails on na
         evidence.rootChatId = 'cht_own';
         const root = await temporaryRoot();
         await writeRun(root, '20261015T100000', [
-            { evidence, name: 'crew-report-reaches-person', ok: true },
+            { evidence, name: 'crew-finish-reaches-person', ok: true },
         ]);
         const [grade] = await gradeBuild({
-            names: ['crew-report-reaches-person'],
+            names: ['crew-finish-reaches-person'],
             profiles: crewProfiles,
             root,
             runs: [{ pass: 1, stamp: '20261015T100000' }],

@@ -9,7 +9,7 @@ export function composeCrewFinishInput(finishes: readonly CrewFinish[]) {
         `${formatCrewFinishesNotice(finishes.length)}:`,
         ...finishes.map(
             (finish) =>
-                `[Haus crew ${formatTaskTarget(finish.taskShortId)} ${finish.ending}] ${flattened(finish.title)}`
+                `[Haus crew ${formatTaskTarget(finish.taskShortId)}${finish.issueCodes.map((code) => ` ${code}`).join('')} ${finish.ending}] ${flattened(finish.title)}`
         ),
         '',
         finishGuidance,

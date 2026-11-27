@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { issueCodeSchema } from './issue.ts';
 import { taskShortIdSchema } from './task-short-id.ts';
 import { taskTitleSchema } from './task.ts';
 
@@ -16,13 +17,14 @@ export type CrewFinishEnding = z.infer<typeof crewFinishEndingSchema>;
 
 /**
  * One crew Task turn that settled, for its Captain (specs/inbox.md#crew-finishes). It names the
- * Task and carries no content: the Task's chat holds what it did. `id` is its inbox identity,
- * `crew-finish:<taskId>:<runId>`.
+ * Task, with the codes of the Issues it works, and carries no content: the Task's chat holds what
+ * it did. `id` is its inbox identity, `crew-finish:<taskId>:<runId>`.
  */
 export const crewFinishSchema = z
     .object({
         ending: crewFinishEndingSchema,
         id: idSchema,
+        issueCodes: z.array(issueCodeSchema).max(20),
         taskShortId: taskShortIdSchema,
         title: taskTitleSchema,
     })

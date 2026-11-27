@@ -2,7 +2,6 @@ import type { TaskActivity } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { tasksTable } from '../postgres/schema.ts';
 
-/** The Task's newest message @mentions a person, and no person has posted since. */
 export const taskNeedsYouSql = sql<boolean>`exists (
     select 1
     from chat_messages asked

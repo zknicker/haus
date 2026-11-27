@@ -28,23 +28,21 @@ export function openCrewLedger() {
             .filter((post) => since === null || Date.parse(post.createdAt) >= Date.parse(since));
     }
 
-    async function reports(taskId) {
+    async function finishes(captainId, taskShortId) {
         const rows = await sql`
-            select r.outcome, r.created_at, r.run_id, m.content
-            from task_reports r
-            join chat_messages m on m.server_id = r.server_id and m.id = r.message_id
-            where r.task_id = ${taskId}
-            order by r.created_at
+            select content, created_at from agent_inbox
+            where agent_id = ${captainId} and source = 'crew_finish'
+            order by created_at
         `;
-        return rows.map((row) => ({
-            content: row.content,
-            createdAt: new Date(row.created_at).toISOString(),
-            outcome: row.outcome,
-            runId: row.run_id,
-        }));
+        return rows
+            .map((row) => ({
+                ...JSON.parse(row.content),
+                createdAt: new Date(row.created_at).toISOString(),
+            }))
+            .filter((finish) => finish.taskShortId === taskShortId);
     }
 
-    return { close: () => sql.close(), postsBy, reports };
+    return { close: () => sql.close(), finishes, postsBy };
 }
 
 export async function awaitQuiet(kit, agentId, { within = 120_000 } = {}) {

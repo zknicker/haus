@@ -7,7 +7,9 @@ test('the tasks topic says a Task is crew with its own chat (ADR 0062)', () => {
     expect(body).not.toContain('When to start one');
     expect(body).toContain('A Task does not mark work as yours; claim the request first');
     expect(body).toContain('It is unread only for its followers');
-    expect(body).toContain('You do not follow your own crew; you hear when their turns end instead.');
+    expect(body).toContain(
+        'You do not follow your own crew; you hear when their turns end instead.'
+    );
 });
 
 test('a Task starts with its brief on stdin, in the home Project', () => {
