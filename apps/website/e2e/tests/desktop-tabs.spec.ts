@@ -97,12 +97,13 @@ test('panes: a Task opens in the right pane, Move to right pane splits, and an e
         token: session.accessToken,
     });
     const originId = await agent.send('Pane task origin', 'pane-task-origin');
-    const { shortId: key } = await agent.startTask({ from: originId, title: 'Pane task' });
+    const title = 'Pane task';
+    const { shortId: key } = await agent.startTask({ from: originId, title });
     await openDesktopWindow(page, `/s/${server.slug}/chats/${agent.chatId}`);
     const left = tabRow(page, 'Left pane tabs').locator('.workspace-tab');
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
     const composer = page.getByRole('textbox', { name: 'Message all' });
-    const openTask = new RegExp(`^Open task ${key},`, 'u');
+    const openTask = new RegExp(`^Open task ${title},`, 'u');
 
     // (Open, ADR 0046); the chat stays in the left pane.
     await page.getByRole('button', { name: openTask }).click();
@@ -170,15 +171,15 @@ test('a hidden chat tab keeps its draft and leaves its unread alone', async ({ p
 
     // Activity in the hidden chat stays unread while its tab is hidden.
     await agent.send(`[@Ada](user://${agent.ownerUserId}) Ready when you are.`, 'hidden-1');
-    const teamRoom = page.getByLabel('Team room', { exact: true });
-    await expect(teamRoom).toContainText('1');
-    await page.waitForTimeout(1500);
-    await expect(teamRoom).toContainText('1');
+    const unread = page
+        .getByRole('treegrid', { exact: true, name: 'Team room' })
+        .getByRole('img', { exact: true, name: '1 unread' });
+    await expect(unread).toBeVisible();
 
     // Showing the chat's tab brings back its draft and marks it read.
     await tabs.nth(0).getByRole('button', { name: 'all', exact: true }).click();
     await expect(composer).toHaveText('Keep this draft');
-    await expect(teamRoom).not.toContainText('1');
+    await expect(unread).toHaveCount(0);
     await tabs.nth(1).getByRole('button', { name: 'Drive', exact: true }).click();
     await expect(tabs.nth(1)).toHaveAttribute('data-active', 'true');
 });

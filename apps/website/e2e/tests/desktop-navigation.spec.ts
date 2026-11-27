@@ -20,13 +20,14 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
         token: session.accessToken,
     });
     const originId = await agent.send('Navigation task origin', 'navigation-task-origin');
-    const { shortId: key } = await agent.startTask({ from: originId, title: 'Navigation task' });
+    const title = 'Navigation task';
+    const { shortId: key } = await agent.startTask({ from: originId, title });
     await openDesktopWindow(page, `/s/${server.slug}/chats/${agent.chatId}`);
     const left = tabRow(page, 'Left pane tabs').locator('.workspace-tab');
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
     const openTask = page
         .locator('.desktop-tab-frame[data-frame-pane="primary"]:visible')
-        .getByRole('button', { name: new RegExp(`^Open task ${key},`, 'u') });
+        .getByRole('button', { name: new RegExp(`^Open task ${title},`, 'u') });
 
     await openTask.click();
     await expect(right).toHaveCount(1);

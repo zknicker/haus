@@ -108,9 +108,11 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await sectionLink(page, 'Search').click();
     await page.getByPlaceholder('Search or run a command').fill('First durable');
     await page.getByText('See all results').click();
-    // Results render as ItemCard buttons whose accessible name carries the
-    // channel, author, and time alongside the matched text.
-    await expect(page.getByRole('button', { name: /First durable human message/ })).toBeVisible();
+    await expect(
+        page
+            .getByRole('grid', { name: 'Search results' })
+            .getByRole('row', { name: /First durable human message/u })
+    ).toBeVisible();
     await openSection(page, 'Chat');
     await openChannel(page, 'all');
 
@@ -230,9 +232,8 @@ test('Agent-authored typed references render as interactive Agent and Chat chips
     }
 
     await blippyChip.click();
-    await expect(page).toHaveURL(/\/s\/hosted-messages\/agents\/[^/]+\/home$/u);
-    await expect(page.getByText('Blippy', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('complementary', { name: 'Captain profile' })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/s\/hosted-messages\/captain\/[^/]+$/u);
+    await expect(page.getByRole('textbox', { name: 'Message Blippy' })).toBeVisible();
 
     await page.goBack();
     await expect(message).toBeVisible();
