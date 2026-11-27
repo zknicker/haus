@@ -41,7 +41,7 @@ test('crew reports render one head per Task with the text, edits and guidance', 
             'It ended a turn you directed without a report. Its last message:',
             '> Halfway there.',
             '',
-            "Each report is already posted in its Task's chat, so post only what it does not say. Answer a Task with `haus task send <id>`, or move its Issue on with `haus issue update`.",
+            "Each report is also posted in its Task's chat. The person who asked you for the work hears from you only in what you write to them, where they asked. Answer a Task with `haus task send <id>`, or move its Issue on with `haus issue update`.",
         ].join('\n')
     );
 });

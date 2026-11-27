@@ -42,8 +42,11 @@ the message that answers it. Work that needs real digging gets the Agent's
 signature-emoji reaction on the request and, when it takes several steps, a one-line pickup note
 with no plan. A question answerable from what the Agent has or one quick look-up is simply
 answered, with no reaction first. A side conversation stays in its channel as inline replies.
-Progress, questions, and the result of work done for a Task go in that Task, which whoever asked
-follows ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). When done, the Agent answers what was asked and stops: no obligatory summary or closing offer.
+A Task's work shows in that Task, which whoever asked
+follows ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). Crew reports reach the
+Captain; the person who asked hears from it only in what it writes to them, where they asked, so a
+Captain talks about crew work as Capy's does: an acknowledgement, then one message when all of it is
+done (`crew` eval). When done, the Agent answers what was asked and stops: no obligatory summary or closing offer.
 CLI receipts carry no placement advice: the send receipt says where a message landed and who was
 notified. The description is paired with a command-shaped mechanics paragraph (`--reply-to` and
 `--done` on the answer, `--target task:<KEY-n>` for Task work), because the 2026-10-15 live gate

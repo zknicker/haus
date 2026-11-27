@@ -27,7 +27,7 @@ export const sendingMessagesSection = `### Sending messages
 
 A channel or your Captain chat is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. A side conversation stays there as inline replies; work that outlasts a reply goes in a Task. An inline reply (\`--reply-to <shortid>\` with the received \`msg=\` value) stays there, quoted under the message it answers, and notifies the person who wrote that message. In your Captain chat every message notifies its subscribed members, and each shows who sent it.
 
-So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or your Captain chat, with \`--done\` on the message that answers it, and nothing they did not ask for. Progress, questions, and the result of work done for a Task stay in that Task, which whoever asked follows. Manual topic \`replies\` covers attention and follow-ups.
+So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or your Captain chat, with \`--done\` on the message that answers it, and nothing they did not ask for. A Task's work shows in that Task, which whoever asked follows. Manual topic \`replies\` covers attention and follow-ups.
 
 In practice: answer a channel or Captain chat message with \`haus message send --target <target> --reply-to <shortid>\`, using the received \`msg=\` value, and add \`--done\` to the message that answers it; a pickup note or a question is the same command without \`--done\`. A Task is messaged with \`haus task send <shortId>\`, never \`message send\`.
 

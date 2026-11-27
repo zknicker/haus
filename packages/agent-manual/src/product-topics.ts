@@ -50,7 +50,7 @@ An inline reply stays in the channel or Captain chat with the message it answers
 
 **What people see.** A channel or your Captain chat is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. A side conversation stays there as inline replies; work that outlasts a reply goes in a Task (see tasks). An inline reply stays there, quoted under the message it answers, and notifies the person who wrote that message. In your Captain chat every message notifies its subscribed members. There are no threads: a \`<target>:<shortId>\` target is refused.
 
-So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or your Captain chat, and nothing they did not ask for. Work your reply will not finish goes to your crew: answer the request with a link to the Task you start (see tasks), whose chat whoever asked follows.
+So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or your Captain chat, and nothing they did not ask for. Work your reply will not finish goes to your crew (see tasks), in a Task whose chat whoever asked follows.
 
 **Finish with \`--done\`.** Add \`--done\` to the message that answers the request where it arrived: an inline reply in a channel or your Captain chat. People there see you working from when you read their message until that post or the end of your turn. Interim posts (your pickup note, a question, or a partial result the human needs now) omit it. Post your answer when it's ready; tidy-up work after it is fine.
 
