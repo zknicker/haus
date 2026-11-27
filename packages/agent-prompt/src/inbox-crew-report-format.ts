@@ -1,7 +1,7 @@
 import { type CrewReportAttention, formatTaskTarget } from '@haus/api';
 
 const reportGuidance =
-    "Each report is already posted in its Task's chat, so post only what it does not say. Answer a Task with `haus task send <id>`, or move its Issue on with `haus issue update`.";
+    "Each report is already posted in its Task's chat, but whoever asked you for the work is waiting where they asked: give them the outcome there in a line or two (`haus message send --target <that chat> --reply-to <their message>`). Answer a Task with `haus task send <id>`, or move its Issue on with `haus issue update`.";
 
 /** One line per crew report, its text, and the guidance, as the Captain's turn input. */
 export function composeCrewReportInput(reports: readonly CrewReportAttention[]) {
