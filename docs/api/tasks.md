@@ -46,7 +46,7 @@ step 5 has null `agentId`, `computerId` and `model`.
 | `task.listActive` (query) | `taskListActiveInputSchema`: `serverId` | Every active Task with a Chat whose Project channel the reader can see |
 | `task.get` (query) | `taskGetInputSchema`: `{ serverId, taskId }` or `{ serverId, shortId }` | `TaskDetail`: the Task plus `mentions`, `reminders`, attached work, pull requests, and the reader's `followed` and `unreadCount` |
 | `task.update` | `taskUpdateInputSchema`: `serverId`, `taskId`, `expectedVersion`, `patch { title?, description? }` | `{ task }` |
-| `task.archive` | `taskArchiveInputSchema`: `serverId`, `taskId`, `expectedVersion` | `{ task }`; sets `archivedAt`, cancels pending one-time reminders, closes the Task's Workers, and resets its agent's session under a new generation: the runner gets an `archive` reset and the Machine `task-archive`. Archiving an archived Task changes nothing |
+| `task.archive` | `taskArchiveInputSchema`: `serverId`, `taskId`, `expectedVersion` | `{ task }`; sets `archivedAt`, cancels pending one-time reminders, and resets its agent's session under a new generation: the runner gets an `archive` reset and the Machine `task-archive`. Archiving an archived Task changes nothing |
 | `task.unarchive` | `taskArchiveInputSchema` | `{ task }`; clears `archivedAt`, bumps the session generation again, and starts no turn. Canceled reminders stay canceled. `CONFLICT` while the Project is archived |
 | `task.setFollow` | `taskSetFollowInputSchema`: `serverId`, `taskId`, `followed` | `{ serverId, taskId, followed }` |
 

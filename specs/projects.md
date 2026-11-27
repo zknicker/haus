@@ -1,8 +1,8 @@
 ---
-summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one key, which prefixes its Issue codes under ADR 0062 (its Tasks take none), its home Agents (Captains), its `AGENTS.md`, its Issue board, and the default Machine for its Tasks (the default place for Workers until step 7); it has no repos, which belong to the Server (ADR 0060). Every Agent has exactly one Project. Covers the data shape, settings and who edits them, `#all`, Agent placement, and the one-time migration from channels.
+summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one key, which prefixes its Issue codes under ADR 0062 (its Tasks take none), its home Agents (Captains), its `AGENTS.md`, its Issue board, and the default Machine for its Tasks; it has no repos, which belong to the Server (ADR 0060). Every Agent has exactly one Project. Covers the data shape, settings and who edits them, `#all`, Agent placement, and the one-time migration from channels.
 read_when:
   - creating, configuring, archiving, or listing Projects or their channels
-  - changing a Project's key, its Agents, its `AGENTS.md`, its default Machine for Tasks, or its default Worker place
+  - changing a Project's key, its Agents, its `AGENTS.md`, or its default Machine for Tasks
   - changing which Project an Issue or a Task belongs to, or how a Project's key numbers its Issues
   - deciding whether a Project should list repos (it does not: ADR 0060)
   - changing an Agent's Project
@@ -16,12 +16,11 @@ read_when:
 **Project** is the home of an effort: one channel, the Tasks filed in it, the Agents that own it,
 and the settings its work runs with. Tasks are [tasks.md](tasks.md). What reaches an Agent is
 [inbox.md](inbox.md#hearing). Drive areas are [artifact-drive.md](artifact-drive.md#areas).
-Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md).
 
 [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md) amends this spec:
 a Project owns its [Issues](issues.md), which take its key (step 2); its Tasks are agent sessions
 that take no number; its home Captains stop hearing its Tasks ambiently (step 3); and the default
-place for Workers becomes the [default Machine](#default-machine) for its Tasks (step 5). Where a
+place for Workers became the [default Machine](#default-machine) for its Tasks (step 7). Where a
 section below says Task key or Task numbers, read Issue codes from step 2.
 
 ## A Project is its channel
@@ -36,8 +35,7 @@ section below says Task key or Task numbers, read Issue codes from step 2.
   | `chat_id` | The channel's Chat id, primary key, references `chats` |
   | `server_id` | The Server |
   | `task_key_id` | The Project's key, a `task_keys` row, unique across Projects |
-  | `default_worker_place` | `computer`, `cursor`, `claude`, or null |
-  | `default_worker_computer_id` | The Computer when the place is `computer`, else null |
+  | `default_task_computer_id` | The [default Machine](#default-machine) for its Tasks, or null |
 
   The everyone channel `#all` is the chat whose `chats.is_all` is true, exactly one per Server and
   always named `all`. It has no `projects` row: `projects.chat_is_all` joins the composite
@@ -75,7 +73,7 @@ section below says Task key or Task numbers, read Issue codes from step 2.
 
 Settings live on the Project's page in the App, Settings → Projects → the Project
 (`settings/projects/:projectId`, the id being the channel's Chat id). The Projects list shows every
-open Project with its key, home Agents, and default Worker place, and its archived Projects with
+open Project with its key, home Agents, and default Machine, and its archived Projects with
 Restore. Every Project menu (sidebar row, tab, header) has one **Project settings** item that
 opens the page; `#all`, which has no page, keeps its own name, description, icon, and color
 dialogs. There is no Overview pane.
@@ -86,7 +84,7 @@ dialogs. There is no Overview pane.
 | Key | `projects.task_key_id` | J2 |
 | Agents | `agents.home_project_id` | J3 |
 | `AGENTS.md` | A link that opens `projects/<key>/AGENTS.md` in Drive | J2 |
-| Default place for Workers | `projects.default_worker_place` | W3 (API), W4 (UI) |
+| Default Machine | `projects.default_task_computer_id` | ADR 0062 step 7 |
 
 - Any person who can open the Project edits its settings, as channel editing works today. Agents
   never edit Project settings.
@@ -145,16 +143,16 @@ A Project has no repos
 ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)).
 `project_repos` and `project_repo_links` retired in migration `0152_repos-belong-to-the-server`.
 
-- A repo is a Server-level `repos` row, a lower-cased GitHub `owner/name`. Any Agent or Worker in
-  any Project may use any repo. A repo joins the list only after a Computer's repo folder is added,
-  a Computer clones it for a Worker, or a cloud provider starts a Worker on it.
+- A repo is a Server-level `repos` row, a lower-cased GitHub `owner/name`. Any Agent in any
+  Project may use any repo. A repo joins the list only after a Computer's repo folder is added.
 - Each Computer lists where its repos live as `repo_folders`, added by its attacher from the
-  Device page or `haus-computer repo add`. [Workers](workers.md#layout) owns how Workers use them,
+  Device page or `haus-computer repo add`. [tasks.md](tasks.md) owns how Tasks work in them,
   and [docs/api/projects.md](../docs/api/projects.md#repos-and-repo-folders) the API.
 
 ### Default Machine
 
-New in step 5 of ADR 0062, replacing the default place for Workers in step 7.
+ADR 0062 step 7 replaced the default place for Workers with it: migration `0165_delete-workers`
+renamed `default_worker_computer_id` to `default_task_computer_id` and cleared cloud defaults.
 
 - `default_task_computer_id` is the Computer a Task started in this Project runs on when its
   starter names none ([tasks.md](tasks.md#machine-and-model)). Null means the starter picks one,
@@ -164,20 +162,6 @@ New in step 5 of ADR 0062, replacing the default place for Workers in step 7.
 - Removing the Computer clears every Project default that names it in the same transaction.
 - `project.setDefaultMachine { serverId, projectId, computerId | null }` sets it from Settings →
   Projects → the Project, publishing `project.updated`. There is no cloud value.
-
-### Default place for Workers
-
-Superseded by the [default Machine](#default-machine); deleted in step 7.
-
-- `default_worker_place` is where a Worker of this Project's Tasks runs unless the Agent names a
-  place. Null means the Agent must name one, and the Worker CLI says so.
-- A `computer:` place must name a Computer whose Run Workers here setting is on. Turning the
-  switch off clears every Project default that names it, and removing the Computer clears them
-  first in the same transaction. This replaces the per-Computer **Make default** provider setting.
-- `project.setDefaultWorkerPlace { serverId, projectId, place | null }` sets it, publishing
-  `project.updated`, from Settings → Projects → the Project → Workers. A Project with no default
-  never falls back to a Computer's cloud default
-  ([Workers](workers.md#w3-transitional-decisions)).
 
 ## The Haus project
 

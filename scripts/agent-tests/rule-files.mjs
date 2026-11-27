@@ -18,7 +18,7 @@ export const ruleFileCases = Object.freeze({
     },
     worker: {
         file: 'WORKER.md',
-        message: 'from now on, every Worker attaches before/after screenshots.',
+        message: 'from now on, every crew Task you start attaches before/after screenshots.',
         pattern: /screenshot/iu,
     },
 });

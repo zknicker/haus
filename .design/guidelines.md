@@ -917,10 +917,6 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   becomes the key (`automation-mark` in `default-theme.css`), keeping its stock box and radius. A
   listed Reminder's key shows its next hour in the viewer's zone; a listed Trigger's key shows its
   source glyph (GitHub or webhook) in the trigger ink instead of the bolt.
-  A Cloud Agent is the same key everywhere it appears (`CloudAgentKeycap`): a solid terminal in
-  `--cloud-agent-mark`, with its provider's logo badged in the lower corner on keys 28px and up
-  (the 40px work card, the 32px Inbox row, the Automations list). Keys under 28px print the
-  terminal alone. A cloud agent reference chip uses the same terminal glyph, without the key.
   The recipient and cancel action remain visible; the original excerpt is available on hover.
   The header uses the lighter background token, with cancel aligned above Send. The selected
   message row, including its avatar and header, uses `--reply-highlight` (70% of accent-soft)
@@ -949,11 +945,11 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   and it never takes pointer events. Only file drags show it, only on the pane under the
   pointer. Composer attachments stay stock `ChatAttachment` tiles and cards; file cards read
   "PDF · 243 KB", and tiles pop in and out while neighbors slide closed.
-- **Chat card backgrounds:** Task previews and Cloud Agent cards share
+- **Chat card backgrounds:** Task previews share
   `nested-surface`: `rgb(189 189 219 / 10%)` in dark mode and solid `surface` in light mode.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
   Recalibrate it when those colors change.
-  **In-chat column:** every attachment under a message — Action cards (Cloud Agent work), Task
+  **In-chat column:** every attachment under a message — Task
   previews, page cards, the working log, workspace changes — is `w-full` up to one shared cap,
   `--chat-card-width` (36rem) in `default-theme.css`, on every message whether or not other
   attachments are present, so stacked attachments share both edges. Use `max-w-(--chat-card-width)`;
@@ -961,8 +957,7 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   An Agent's HTML fence card is a stock `ItemCard`
   with `.item-card--message-object`: the `nested-surface` fill and ring, the shell corner, the
   Task preview's density, and the library's 40px kind icon as mark. A linked shared-library file
-  is a media strip tile instead (see Chat attachments). The Cloud Agent card is the same card in the transcript and on the
-  Task page. Message hover lightens the fill without dimming content;
+  is a media strip tile instead (see Chat attachments). Message hover lightens the fill without dimming content;
   clickable Task previews strengthen to 12% opacity on hover. Light-mode canvas rows use
   `--background-hover`: a 50% `background-secondary` wash, including messages in Task views.
 - **Image generation tile:** one fixed tile box, the attachment tile's (`--chat-media-tile-*`,

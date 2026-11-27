@@ -1,9 +1,7 @@
 # Tool Access
 
 Haus does not expose interactive tool approval prompts. Settings grant permissions, and
-conversations only ask questions. A Worker asks clarifying questions with its harness's question
-tool, shown as a card on the Worker page ([Workers](workers.md#questions)), and Haus denies every
-other prompt its harness raises. Computer use is a per-Device switch,
+conversations only ask questions. Computer use is a per-Device switch,
 Computer use allowed ([Computer use](computer-use.md)), not a prompt. The switch is consent for
 the `desktop` tool, not a sandbox: a Captain's `bash` on its machine already has the machine
 user's full power ([what the setting guards](computer-use.md#what-the-setting-guards)).

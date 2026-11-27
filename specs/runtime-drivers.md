@@ -1,5 +1,5 @@
 ---
-summary: Normative runtime contract after ADR 0057. Each Agent's loop runs in the runner, a sandboxed Server-side process, on the Claude Agent SDK or Pi Durable, with sessions on the runner's volume. Every dispatch (a machine invocation, a runner-side haus command, an execute MCP call) is keyed by (runId, toolCallId, seq), recorded as accepted before it runs, and never runs twice; unknown is terminal. Machine invocations have fixed outcomes (completed, failed, timed-out, cancelled, unknown, offline), and payloads over 1 MiB move as attachment references. Covers the tool set, the `haus` CLI on the runner, inbox delivery to the runner, logins, the frames that change, and what stays on Computers for Workers.
+summary: Normative runtime contract after ADR 0057. Each Agent's loop runs in the runner, a sandboxed Server-side process, on the Claude Agent SDK or Pi Durable, with sessions on the runner's volume. Every dispatch (a machine invocation, a runner-side haus command, an execute MCP call) is keyed by (runId, toolCallId, seq), recorded as accepted before it runs, and never runs twice; unknown is terminal. Machine invocations have fixed outcomes (completed, failed, timed-out, cancelled, unknown, offline), and payloads over 1 MiB move as attachment references. Covers the tool set, the `haus` CLI on the runner, inbox delivery to the runner, logins, the frames that change, and what stays on Computers.
 read_when:
   - changing where an Agent's loop runs, the runner, its container, its volume, or its credentials
   - changing the Claude Agent SDK or Pi Durable harness, harness pinning, or session reset
@@ -8,7 +8,6 @@ read_when:
   - changing how inbox items, notices, steering, or turn reports move between the Server and the runner
   - changing model logins, runner settings, or which models an Agent can use
   - changing the Computer or runner protocol frames for Agents, drive pulls, or pushes
-  - changing the native Claude Code or Codex drivers that run Workers on Computers
   - changing runner session kinds (Captain and Task), their policy, admission order, warm parking, archive resets, or retire (ADR 0062)
   - changing how a Task agent's tool calls are gated by its Captain's or starter's Computer access
 ---
@@ -30,7 +29,7 @@ An Agent has three parts in three places:
 | State | The Server | Everything canonical: chats, inbox items, Drive, invocation records, the Agent's machine setting, and every id |
 
 The runner never talks to a Computer. Every frame between them passes through the Server, which
-owns routing. Workers keep the old shape, a native harness on a machine (Workers below).
+owns routing.
 
 ## The runner
 
@@ -256,8 +255,7 @@ cold-starts once.
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`;
 ported, see [Execution journal](#execution-journal)),
-thoughts, rich-reference projection of message content, Claude plan usage after a turn, and
-`haus worker start`, which the Computer's proxy handled.
+thoughts, rich-reference projection of message content, and Claude plan usage after a turn.
 
 R4c moved idle compaction ([Idle compaction](#idle-compaction)).
 
@@ -304,7 +302,6 @@ credential.
 | --- | --- |
 | `bootstrapFingerprint(signal)` | Hash of the harness version and its launch options. Drift parks and restarts a resumed session. |
 | `openSession({ sessionId, resumeFrom, signal })` | Fresh session, or a native resume of `resumeFrom`. A resume the harness proves unusable throws `RuntimeResumeRejectedError`, and nothing else does. |
-| `openSession({ onQuestion })` | A Worker driver given `onQuestion` turns its harness's question tool on when its version supports it, captures one question set per turn, awaits `onQuestion`, then ends the turn itself. Without it, the tool stays off ([Workers](workers.md#questions)). |
 
 A `RuntimeSession` keeps `isResume`, `sessionId`, `startTurn({ prompt, signal })`, `steer(text)`,
 `detach()`, `stop()`, and `destroy()` with their current meanings. `startTurn` loses `wake`,
@@ -628,7 +625,7 @@ empty `HOME`.
 
 The machine has no `haus` wrapper, proxy, or runner token for Agents. The Computer's loopback
 proxy, its local inbox answers, its visibility receipts, and its send-outcome tracking move into
-the runner's `haus` handler. Workers get their own CLI scope (W1).
+the runner's `haus` handler.
 
 The Agent CLI lives in `packages/agent-cli` (`@haus/agent-cli`). The runner runs its `bin`
 entry (`@haus/agent-cli/bin`) as a child process against a runner-local loopback proxy. The proxy
@@ -752,9 +749,9 @@ fingerprint, so turning it off or on restarts warm sessions. A Pi Agent without 
 These end at R4 and are named here as intentional capability removals:
 
 - **Sub-agents.** `Task`/`Agent` is off. Parallel work goes to
-  Workers ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
+  [Tasks](tasks.md).
 - **Background shells.** A command runs within its invocation's timeout. Work longer than ten
-  minutes goes to a Worker.
+  minutes runs as a background process (Computer protocol 51).
 - **Everything that served them:** the sub-agent wake, `agent-background-work`, the background
   work reporter, the warm-pool exemption, the `subagent` inbox kind, and `agent-stop-background`.
 - **Codex native image generation.** Agents generate images with `haus image`
@@ -961,8 +958,8 @@ On reconnect the Server sends `invoke-cancel` for every open invocation whose ru
 When the shell exits, the Computer kills what is left of its process group before it reports
 the result, as Claude Code's Bash tool does, so a `&` background job never outlives its
 invocation or escapes its timeout and cancel. A process that leaves the group with `setsid`
-survives, as it would in any shell, and Haus does not track it. Long-running work goes to a
-Worker.
+survives, as it would in any shell, and Haus does not track it. Long-running work runs as a
+background process.
 
 A payload upload or download runs under the invocation's abort signal, so a cancel or timeout
 during a transfer settles as `cancelled` or `timed-out` and the Agent's next invocation runs.
@@ -1166,6 +1163,11 @@ operations. `task-archive` and `process-exit-ack` go down; `process-exit` comes 
 connect until acknowledged. The `desktop-busy` refusal is the Server's own and never reaches a
 Computer.
 
+**Computer protocol 52 (ADR 0062 step 7).** Every Worker and cloud agent frame goes: the
+`worker-*` turn, observation, reconcile, held and close frames, `cloud-agent-capability-request`
+and `-result`, and the inventory's `cloudAgentProviders` and `workerRuntimes`. A protocol 51
+Computer attaches update-required.
+
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,
 `agent-execution-journal-ack`, `agent-restart`, `agent-configure`, `agent-background-work`,
@@ -1180,42 +1182,21 @@ and only clear the Agent's directory on that machine. A session reset no longer 
 Computer.
 
 **Computer protocol, unchanged:** `browser-request` and `browser-result` for Browser settings,
-`reminder-script`, inventory, disk, update, secrets, heartbeat, and Worker frames.
+`reminder-script`, inventory, disk, update, secrets, and heartbeat frames.
 
 **Runner protocol.** The runner socket carries the Agent frames removed above, with the same
 schemas, except the sub-agent and background-work frames, which are deleted. It adds
 `invocation-request`, `invocation-result`, `invocation-cancel`, and `runner-inventory`. The runner
 protocol has no version of its own, since the runner ships with the Server.
 
-## Workers
+## Deleted with Workers
 
-Superseded by [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md):
-Tasks run on the runner as [Task sessions](#session-kinds), and step 7 deletes the Worker drivers
-and everything below once Task agents work end to end. History until then.
-
-Computers keep what Workers import: `workers/` (including the Claude Code and Codex Worker
-drivers in `runtime/claude-code/claude-worker-driver.ts` and `runtime/codex/codex-worker-driver.ts`),
-and the connection, session, turn, normalizer, install and credential code under `runtime/` those
-drivers build on. The driver contract (`runtime/driver.ts`) is what a Worker turn uses: open or
-resume a session, run a turn, steer it, stop or destroy it. R4d-4 deleted the Claude Code Agent
-driver, the driver factory, runtime prewarm and the runtime context. The Worker driver split then
-deleted what only Agents used: the warm pool, idle compaction, background-work tracking and
-self-started turn adoption, plan-usage reads, the host-tool MCP server, the Codex Agent driver and
-its launch config, Agent HOME auth profiles, and legacy harness resume state. Workers never parked
-a process between turns. A Worker runs a fresh native session in a worktree with that machine's logins
-([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decision 7). The Workers
-contract (W1) owns what changes for them: their CLI scope, reports, and drive folder.
-Workers do not use Grok Build in v1, so R4 deletes the Grok Build driver with the Agent runtime
-([specs/workers.md](workers.md#deferred)).
-
-R4d-4 deleted from Computers what only served Agent sessions: the Agent executor and turn runner,
-`session.json` and the session store, the idle compaction reporter, the background-work
-reporter, the sub-agent wake, the inbox store, the `haus` wrapper injection and loopback proxy,
-the Server MCP client, managed-skill seeding, prompt composition, Agent configuration and
-effective state, and the Grok Build driver.
-
-Computers keep the invocation handler and ledger, the `drive/` folders, agent-browser and Browser
-settings, reminder scripts, host skill discovery, inventory, updates, and Workers.
+ADR 0062 step 7 deleted Workers: the Claude Code and Codex Worker drivers, `runtime/driver.ts`
+and the connection, session, turn, and normalizer code under `runtime/` they built on, the Cursor
+SDK provider, and Haus's own repo clones. R4d-4 had already deleted what only served Agent
+sessions on Computers. Computers keep the invocation handler and ledger, the `drive/` folders,
+agent-browser and Browser settings, reminder scripts, host skill discovery, the Claude Code and
+Codex installs and inventory, and updates.
 
 ## Verification
 

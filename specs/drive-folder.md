@@ -1,12 +1,11 @@
 ---
-summary: The machine half of Drive. Each Agent keeps its own plain drive/ folder on its machine (and each Worker on a Computer keeps one), pulled at turn start while the turn runs and pushed after every turn with the revision each file started from. Covers what waits for the pull, how a failed pull stays safe, how push outcomes land in the folder, and how the Computer pulls before the turn until the runner ships.
+summary: The machine half of Drive. Each Agent keeps its own plain drive/ folder on its machine, pulled at turn start while the turn runs and pushed after every turn with the revision each file started from. Covers what waits for the pull, how a failed pull stays safe, how push outcomes land in the folder, and how the Computer pulls before the turn until the runner ships.
 read_when:
   - changing the drive/ folder on a Computer, its layout, its location, or its state file
   - changing turn-start pull, what waits for it, or what a failed pull leaves behind
   - changing the push after a turn, deletes, renames, or how a machine applies push outcomes
   - changing how instruction composition, MEMORY.md delivery, or rule delivery reads the drive/ folder before the runner
   - retiring or replacing haus files pull and push
-  - changing a Worker's drive/ folder on a Computer, its pull, or its daemon push
 ---
 
 # Drive folder
@@ -18,9 +17,7 @@ turn starts and a push after the turn settles. Nothing runs between turns.
 ## One folder per writer
 
 Each Agent keeps its own `drive/` folder in its working directory on its machine
-(`agents/<agent-id>/workspace/drive/`, per [workspace](workspace.md)). Each Worker on a Computer
-keeps its own folder outside its checkout, at `servers/<serverId>/workers/<worker-id>/drive/`
-([Workers](workers.md#layout)). Two writers
+(`agents/<agent-id>/workspace/drive/`, per [workspace](workspace.md)). Two writers
 never share a folder. So every change in a push belongs to one writer, and two turns never edit
 one folder at once.
 
@@ -45,7 +42,7 @@ Agent's purge, remove `drive.json` before anything else and make read-only folde
 removing them, so a reset that stops partway never leaves records for files it removed. A file name in decomposed
 Unicode is renamed to its NFC form, the form Drive paths take.
 `apps/computer/src/drive/` owns the folder on a Computer. A runner-hosted Agent works in Drive
-through the runner, and the Computer syncs a machine folder for invocations and Workers
+through the runner, and the Computer syncs a machine folder for invocations
 ([Drive folder](runtime-drivers.md#drive-folder)).
 
 The Agent uses `ls`, `cat`, `rg`, its edit tool, `mv`, and `rm`. There are no sync commands. D4
@@ -282,59 +279,6 @@ After R4 the runner composes from the Server's current revisions
 10), and only machine tool calls wait for the pull. The runtime contract (R1) names the message that
 starts a machine's pull.
 
-## Workers
-
-A Worker on a Computer keeps its own folder, with its bookkeeping in that Worker's
-`runtime/drive.json` and refused files in `servers/<serverId>/worker-drive-refused/<worker-id>/`,
-outside the Worker's folder, so closing the Worker never removes them
-([Workers](workers.md#layout)). The folder's writer is the delegating Agent, so it reads and
-writes exactly what that Agent does. Each revision it pushes names the Worker as author with its
-Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the Worker.
-
-- **Seeded, then a full listing.** A new Worker folder first seeds from the freshest other Worker
-  folder in its Server's partition on the machine, the one with the highest change counters. Under
-  that folder's sync lock the Computer copies each recorded file to scratch, keeps only a copy whose
-  bytes hash to the file's record, places it with this writer's read-only rule, and carries that
-  record. An unpushed edit, a pending create, or a missing file never matches its record, so it is
-  never copied, and another writer's edits cannot leak in. The seed lands in a staging folder, its
-  records are written, and only then is the folder renamed into place, so a crash in between
-  leaves records with no folder, which the next pull discards as orphaned. The folder's counters stay at zero, so its
-  first pull still lists every path's latest change and tombstone, and downloads only what the seed
-  did not hold or what changed since. A folder that already exists is never seeded, and with no
-  sibling the first pull is a full one.
-- **Pull before launch.** Each turn pulls after its checkout is ready and before the harness
-  starts, with the turn credential, so the Worker's first tool call sees the pulled folder.
-- **Daemon push.** When the harness process ends, the daemon pushes under the turn id with a push
-  credential it mints itself, which never enters the harness environment, then closes the push
-  before it reports the turn ended. A Worker push never closes the Agent's own run push or another
-  Worker's, because open pushes are keyed by source (`drive_pushes.worker_id`).
-- **Push before end.** A push that cannot finish, from a network failure, a 5xx, 401, 408, 429 or
-  `UPLOAD_CONFLICT`, a failed mint, or any file it could not send, leaves the turn `pushing` and
-  sends no end, and its push stays open so the next attempt lands under the same turn id. Only a
-  file the Server says this turn can never write (`AGENT_RESET`, `AGENT_MOVED`, `FORBIDDEN`,
-  `NOT_FOUND`) or a record under a symlinked folder lets the turn end with it unsent. The Computer keeps the turn and pushes
-  again under the same turn id after 5 seconds, 30 seconds, 2 minutes, then every 10 minutes, and
-  a connect, restart, or `worker-stop` pushes at once. The first push that finishes ends the turn.
-  `worker-close` and shutdown cancel the wait and leave the turn for the next connect or restart. A per-file `refused` outcome is a result, not a
-  failure, and does not hold the end. A refused mint means the turn is no longer this Computer's,
-  so the turn ends without a push. `worker-close` leaves a Worker whose turn is `pushing` in place,
-  and the next `worker-held` round closes it.
-- **Nothing unsent is lost.** Before a push lets the turn end, every file whose bytes Drive does not
-  hold is copied into the Worker's `worker-drive-refused/` folder under its Drive path: after a
-  refused mint, a never-write failure, or a `PUSH_CLOSED` answer, which a closed Worker push always
-  gives because it never reopens under the same turn id. The copy is its own file, never a link,
-  so nothing done later at the path changes it. After `PUSH_CLOSED` the Computer also
-  closes the push again with those paths as `unsent`, and the Server queues one `drive_conflict`
-  item for the Agent (`drive-conflict:<turn id>:unsent`) listing each as `refused` with reason
-  `PUSH_CLOSED`. Then the original leaves the Worker's folder: a new file is removed with its
-  pending create, and an edited one goes back to Drive's version (its record is marked unplaced
-  and restored from the head, now or on the next push), so a later turn never sends it. The Agent
-  decides what to do with the set-aside files; nothing pushes them automatically. A close that
-  fails holds the end like any other push failure, before the originals leave, and the repeat
-  sends the same note, which the item's dedupe key absorbs.
-
-A cloud Worker has no folder ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
-
 ## Regression guards
 
 D2 and D4 add these guards.
@@ -360,8 +304,6 @@ D2 and D4 add these guards.
 | A symbolic link in a parent folder is never followed by a pull or a push | `apps/computer/src/drive/symlinked-folders.test.ts` |
 | A reconnect pushes under the last dispatched run whose push is open, never an idle compaction or a closed push | `apps/server/test/drive-reconcile.test.ts` |
 | A Machine flush that had a file refused never closes, on the first send or any resend | `apps/computer/src/drive/machine-change.test.ts` |
-| A Worker push that could not send a file, transient or per file, retries and never ends the turn | `apps/computer/src/workers/computer/drive-sync.test.ts` |
-| A Worker whose push was closed sets unsent files aside outside its folder and its Agent gets one `drive_conflict` item naming them | `apps/computer/src/workers/computer/drive-sync.test.ts`, `apps/server/test/worker-drive-push.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |
@@ -369,7 +311,6 @@ D2 and D4 add these guards.
 | Full reset deletes the Agent's area, restorable from Recently deleted, and session reset leaves it | `apps/server/test/agent-full-reset-drive.test.ts` |
 | Full reset and retirement remove other Agents' read-only folders and `drive.json` | `apps/computer/src/agent-reset.test.ts`, `apps/computer/src/agent-retirement.test.ts` |
 | A delete under a spelling a case-only rename replaced leaves the renamed file live | `apps/server/test/drive-push-case-rename.test.ts` |
-| A Worker deletes as itself, and a Worker dispatched before a full reset pushes nothing | `apps/server/test/worker-drive-fences.test.ts` |
 | A handle passed to a new Agent moves the retired owner's files to `agents/<handle>.retired-<id>/` and seeds the new one fresh | `apps/server/test/drive-areas.test.ts` |
 | A clean merge keeps a BOM | `apps/server/test/drive-push-bom.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |

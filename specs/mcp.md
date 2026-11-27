@@ -148,8 +148,6 @@ edit:
 - The Agent's machine runs no harness, so `claude mcp add`, `.mcp.json`, and similar files there
   configure nothing for the Agent.
 
-Workers run native harnesses on machines, and the Workers contract (W1) owns what MCP they load.
-
 Server is the MCP client, so it picks one form of every tool result instead of forwarding both. A
 result carrying `structuredContent` reaches the Agent without the text block that duplicates it as
 serialized JSON; non-text content blocks and `isError` results arrive exactly as the upstream sent

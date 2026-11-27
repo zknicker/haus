@@ -85,18 +85,17 @@ export const evals = {
         summary:
             'A "from now on" rule lands in WORKER.md or AGENTS.md by its audience, never MEMORY.md, while a plain fact still lands in MEMORY.md.',
     },
-    // Work that leaves the chat: Workers, MCP connections, Triggers, and Files.
+    // Work that leaves the chat: MCP connections, Triggers, and Files.
     tools: {
         judge: null,
         profiles: {},
         scenarios: [
-            'cloud-worker-start-and-stop',
             'mcp-granted-lookup',
             'webhook-secret-stays-out-of-chat',
             'shared-artifact-discovery',
         ],
         summary:
-            'Agents start Workers on Tasks, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
+            'Agents use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
     },
     // GitHub Triggers on a GitHub installation seeded on the eval stack itself:
     // no GitHub account. Serial: the scenarios share an `acme` installation.
@@ -115,12 +114,10 @@ export const evals = {
         scenarios: [
             'task-intake-quick-fact-replies',
             'task-intake-small-fix-in-turn',
-            'task-intake-cloud-launch-on-task',
             'task-intake-reminder-short-post',
             'task-intake-trigger-needs-fix',
             'task-intake-trigger-acknowledge',
             'task-intake-findings-sibling-tasks',
-            'task-intake-cloud-finish-reports-in-task',
         ],
         summary:
             "Work the reply will not finish becomes a Task opened where the work belongs, from a human, a Reminder, a Trigger, or the Agent's own findings; work the reply finishes is just answered, and a claim, not a Task, marks ownership.",

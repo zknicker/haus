@@ -33,7 +33,7 @@ the Server and Computer implementation.
   HOME, skills, durable inbox acceptance, session state, and a Haus proxy
   (`apps/runner/src/turn/`, `apps/runner/src/haus/`). The Computer owns none of this. Its
   remaining Agent role is machine tools (invocations), Drive folder sync, reminder scripts,
-  Workers, and clearing an Agent's directory on a full reset or retire.
+  and clearing an Agent's directory on a full reset or retire.
 - Haus runtime drivers are the execution implementation
   ([Runtime drivers](../../specs/runtime-drivers.md)). A settled turn detaches its session,
   parking resume state (and, while it stays warm, the native process) for the next delivery.
@@ -347,8 +347,8 @@ commits. Start, Restart, a session reset, and a configure that changes runtime
 or model also lift it, without rotating the session beyond what that action
 already does. Outside a pause, a human message releases a counted hold only
 after its window passes and never cuts a short or rate-limit backoff short.
-Agent-authored, reminder, trigger, claim-assignment, Worker, onboarding, and
-greeting work never lifts a pause or releases a hold; it waits behind it. `agent.get`
+Agent-authored, reminder, trigger, claim-assignment, pull request, onboarding,
+and greeting work never lifts a pause or releases a hold; it waits behind it. `agent.get`
 and `agent.list` project the pause as `wakePause` (failure count, last failure
 kind, code, and time, `pausedAt`, and `nextProbeAt`, null while the probe runs);
 availability stays `error`. Raw failure evidence remains Computer-local; only the

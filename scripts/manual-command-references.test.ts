@@ -1,18 +1,12 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-import { workerCommandGroups } from '../apps/computer/src/worker-cli/worker-cli.ts';
 import { commandGroups } from '../packages/agent-cli/src/agent-cli.ts';
 import type { SubCommand } from '../packages/agent-cli/src/subcommand.ts';
 import { manualTopics, resolveManualTopic } from '../packages/agent-manual/src/index.ts';
 import { renderAgentInstructions } from '../packages/agent-prompt/src/index.ts';
 
-// A Worker turn's `haus` is its own scope (`haus worker report`), and guidance names both.
-const workerGroups: Record<string, SubCommand[]> = workerCommandGroups(() => {
-    throw new Error('The reference check never runs a command.');
-});
-const scopes: Record<string, SubCommand[]>[] = [commandGroups, workerGroups];
+const scopes: Record<string, SubCommand[]>[] = [commandGroups];
 
-// Validate executable references against the registries that dispatch Agent and Worker commands.
 test('Manual and prompt guidance reference registered Haus subcommands and flags', () => {
     const texts = [
         ...manualTopics.map((topic) => topic.body),

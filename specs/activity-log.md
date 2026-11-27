@@ -75,7 +75,7 @@ than chatter.
 
 Most activity events should be recorded programmatically at the point they happen.
 
-- Worker and task lifecycle changes should emit events directly.
+- Task lifecycle changes should emit events directly.
 - Cron and scheduled-job outcomes should emit events directly.
 - Memory-save and memory-lifecycle actions should emit events directly.
 - Delivery and system transitions should emit events directly.

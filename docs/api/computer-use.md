@@ -1,5 +1,5 @@
 ---
-summary: The Agent access and computer use tRPC surface (`computer.grantAgentAccess`, `computer.revokeAgentAccess`, `computer.setAgentAccessScope`, `computer.setComputerUse`, `computer.stewards`, `computer.desktopActivity`, `computer.onDesktopActivity`, `computer.stopDesktopInput`, and the `computer.list` fields), the Agent's `GET /api/agent/computers`, its refusal codes, how the Server answers a refused invocation, and the Worker start refusal `WORKER_PLACE_NO_ACCESS`.
+summary: The Agent access and computer use tRPC surface (`computer.grantAgentAccess`, `computer.revokeAgentAccess`, `computer.setAgentAccessScope`, `computer.setComputerUse`, `computer.stewards`, `computer.desktopActivity`, `computer.onDesktopActivity`, `computer.stopDesktopInput`, and the `computer.list` fields), the Agent's `GET /api/agent/computers`, its refusal codes, and how the Server answers a refused invocation.
 read_when:
   - calling or changing any computer use or Agent access procedure, or the `computerUse*` and `agentAccess*` fields of `computer.list`
   - changing `GET /api/agent/computers` (`haus computer list`)
@@ -76,10 +76,3 @@ session holds that Computer's desktop lease is refused `desktop-busy` the same w
 holder ([Tasks](../../specs/tasks.md#long-work-and-the-desktop)). Only `desktop` invocations get
 those causes; other kinds are refused only `not-found`, `no-access`, or `offline`.
 
-## Worker starts
-
-`haus worker start` on a `computer:` place, named with `--on` or taken from the Project default,
-is refused `WORKER_PLACE_NO_ACCESS` (403) when Agent access does not allow the Agent there. The
-message names the attacher and links the Device page's Access section. Cloud places need no
-access. A Worker already running there keeps running, and its follow-ups are not re-checked.
-`haus worker places` marks each Computer `allowed`.

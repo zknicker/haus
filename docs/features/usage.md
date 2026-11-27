@@ -3,7 +3,6 @@ summary: Usage surfaces for Agent token volume, Computer plan capacity, spend si
 read_when:
   - changing Agent usage, plan capacity, spend, provider activity, or runtime health views
   - changing where operational usage appears in the App
-  - changing the Device page Workers section's cloud rows, Connect/Disconnect, or Claude's environment picker
 ---
 
 # Usage
@@ -45,40 +44,6 @@ while you read it.
   SuperGrok and API-key connections show none. See
   [Model connections](../../specs/model-connections.md#plan-capacity).
 
-* **Workers.** The same Computer page carries a **Workers** section: Run Workers here, a
-  **Claude Code** and a **Codex** row with their weekly plan usage as one line when ready ("97% of
-  the week left", marked out of date when stale) or their exception and a **Fix** popover, then
-  one **Cursor Cloud** row and one **Claude Cloud** row; a healthy cloud row is quiet and one that
-  needs a look states it in plain text under the title. A row no longer chooses any Worker's place: a `haus worker start` without `--on`
-  uses the Task's Project default (Settings → Projects) and refuses when there is none. Claude uses the Computer's own Claude Code sign-in, so its row offers **Recheck** instead of a Connect flow. The Claude row also carries an environment picker that
-  pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
-  **Claude's default (not pinned)**; a pin that goes stale (removed or archived) fails the next
-  launch outright instead of silently falling back to Claude Code's own choice. The
-  Cursor row has **Connect** and **Disconnect** behind its overflow menu once connected. Connect opens a compact dialog with **Continue in Cursor** and **Copy sign-in
-  link**. Sign-in happens in the user's local browser while Computer waits for approval and
-  stores the credential. Haus updates automatically when connected; no code needs to be pasted.
-  Closing the dialog preserves the pending flow, and **Continue sign-in** reopens it. **Cancel
-  sign-in** stops the wait, while expiry or failure offers **Try again**. Offline Computers
-  cannot start sign-in. Haus never starts it during an Agent turn, and no provider credential
-  reaches Server. Cloud Agent access is separate from the Cursor runtime because the
-  Cursor CLI and the Cursor SDK use different credential stores even for one account.
-
-* **Cloud Agent model.** Settings → Models carries a Server-wide **Model** row for each provider
-  under **Cloud Agents**; the rest of this entry describes Cursor's (Claude's row reads **Default** when no model is saved, which sends no model so
-  the account default applies, and its catalog offers Sonnet, Opus, and Haiku). Owners and Admins pick **Auto** (the default: Cursor picks a model for each run, whatever
-  the account's own default model is) or a model from Cursor's catalog, as the
-  freshest Computer report lists it, with "Updated … ago" dating that read. The picker searches
-  inside its popover, matching a model's name or Cursor id, and groups models into Claude, GPT,
-  Gemini, Grok, Composer, and Other sections in Cursor's order. When the chosen model offers them,
-  an **Effort** row (that model's levels, its default marked "Default") and a **Fast** switch
-  follow; both start at the model's defaults, every pick of a new model resets them, and each
-  change saves at once. Choosing a model's default leaves the param unset so Cursor's default
-  keeps applying. Other members see model, effort, and fast as read-only facts. Until a Computer
-  with Cursor connected reports a catalog, the picker offers only Auto and is disabled.
-  A saved model Cursor no longer lists shows by its raw id with a warning that runs use Auto
-  until someone picks an available model; a saved effort the model no longer offers shows
-  the model's default, which is what runs use.
-
 The atomic Haus token reporting unit is Agent × runtime × model, with input, output, cache-read,
 and cache-write counts. Computer-local Claude Code and Grok Build ledgers are runtime × model
 because those runtime transcripts do not carry a Haus Agent id.
@@ -95,7 +60,7 @@ counted only a turn's last model request, so no reliable correction exists.
 
 Computer settings includes **Refresh** beside Plan usage in Diagnostics. Owners and Admins can ask an online
 Computer to rescan installed runtimes and their models without restarting it. The scan replaces
-only runtime inventory, preserving the Computer name, skills, and Cloud Agent readiness. Server
+only runtime inventory, preserving the Computer name and skills. Server
 events update runtime rows, Agent runtime/model choices, and usage views together; the App does
 not poll for installed software. Background discovery also runs when Computer connects and after
 Agent configuration or execution changes. Grok discovery includes its native `~/.grok/bin` install.
@@ -118,12 +83,6 @@ reports only sources it can actually read. The Server stores the latest timestam
 each Computer. Disconnecting a Computer changes freshness and health; it does not erase its last
 report.
 
-Each runtime row uses its provider snapshot's capture time, independently of the Computer's report
-time. After 30 minutes, or once a displayed allowance window has reset, the row labels its retained
-numbers **Usage out of date** and omits the reset date. Runtime rows do not show capture timestamps. A
-snapshot the Computer has already reported as retained is labelled immediately rather than waiting
-for that 30-minute mark, since it is known to be out of date rather than guessed to be.
-
 Codex usage uses the Computer's native Codex session. Claude Code plan usage comes primarily from
 the structured usage data exposed by an already-running managed Claude Code SDK session. Computer
 leases that collection once per 15-minute interval and persists the result; the App never polls
@@ -131,30 +90,12 @@ Anthropic. When no fresh snapshot is available, Computer may make one guarded OA
 including before the first managed Claude turn. Failures trigger durable exponential backoff.
 Fresh SDK evidence suppresses that fallback; a retained old snapshot never suppresses future retries.
 On macOS, that fallback prefers Claude Code's current Keychain session and rejects expired credential-file tokens. Grok Build plan usage uses its
-local login and the same credits billing request as the official Grok Build client. Computer cards
-use the provider's all-model weekly allowance as their shared primary metric. A compact header
-indicator conditionally shows an enforced 5-hour window; model-specific windows stay out of this
-comparative surface. A runtime whose snapshot carries no weekly window shows no weekly meter: a
-5-hour allowance stays in the 5-hour column rather than standing in for a weekly one, and a session
-window too long to be a 5-hour allowance is reported as unavailable rather than mislabelled. A
-runtime whose last authentication attempt failed shows an **Authentication failed** badge beside its
-name. A help icon in the Details column reveals instructions on hover or keyboard focus for
-signing in on that Computer, including a copyable
-runtime-specific command. Computer-reported execution issues take precedence over successful
-usage reads. Last-known meters remain visible with their capture time. A plan-usage failure alone,
-including an expired usage credential, shows **Usage unavailable** with details, without claiming
-execution is blocked. Runtime rows own
-these notices; a Computer without a usage report retains the standalone execution warning.
-Malformed Claude credential documents are authentication failures, distinct from malformed usage
+local login and the same credits billing request as the official Grok Build client. No App surface shows
+these runtime snapshots since the Device page lost its Workers section (ADR 0062 step 7); the
+Server still stores them. Malformed Claude credential documents are authentication failures, distinct from malformed usage
 responses. The usage reader checks the credential file before macOS Keychain, matching the execution
 adapter's discovery order; a valid file does not require interactive Keychain access.
 Authentication and raw provider responses remain Computer-local.
-
-Worker usage is per turn rather than per window. Each terminal turn observation carries the
-input and output tokens Cursor reports plus its optional cost, which is eventually consistent and
-can lag a settled turn. Haus makes no claim about a Cursor plan's capacity, remaining allowance, or
-reset time: Cursor exposes no supported public personal-account surface for them, so the Cloud
-Agents row shows readiness only and never a meter.
 
 Computer reads plan limits only from the providers' own usage responses. It never scans runtime
 transcripts such as `~/.claude/projects/**/*.jsonl` or `~/.grok/sessions/**/updates.jsonl`: a

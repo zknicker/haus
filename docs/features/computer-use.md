@@ -1,12 +1,11 @@
 ---
-summary: The Device page's layout — a warning with one Fix button and a macOS permissions section only while computer use is on and a permission is missing, with its setup steps in a Modal, Access (Captains, an avatar stack of who has access and a + chooser with All Captains on this Server at its top; Computer use, one switch for every Captain with access), Workers (Run Workers here, Claude Code and Codex with plan usage or a Fix popover, the cloud providers), then Folders, Tools, Captains using this device by default, and Diagnostics — plus Stop Agent Input and what a refused Captain is told. Rows stay quiet when healthy; a row that needs a look states it in plain text beside its button, or with a status chip when it has no button.
+summary: The Device page's layout — a warning with one Fix button and a macOS permissions section only while computer use is on and a permission is missing, with its setup steps in a Modal, Access (Captains, an avatar stack of who has access and a + chooser with All Captains on this Server at its top; Computer use, one switch for every Captain with access), then Folders, Tools, Captains using this device by default, and Diagnostics — plus Stop Agent Input and what a refused Captain is told. Rows stay quiet when healthy; a row that needs a look states it in plain text beside its button, or with a status chip when it has no button.
 read_when:
   - changing the Device page's sections, its ⋯ menu, or when its Software update row shows
   - changing Settings → Devices → (Device) → Access, the Captains chooser, or what a Captain sees when it lacks access
-  - changing Run Workers here, the Worker runtime rows, or the cloud provider rows on the Device page
   - changing the Computer use switch
   - changing the macOS permissions section, its deep links, or its setup Modal
-  - changing Stop Agent Input or what a person sees when a Captain is refused computer use or a Worker start
+  - changing Stop Agent Input or what a person sees when a Captain is refused computer use
 ---
 
 # Computer use
@@ -29,10 +28,9 @@ contract and [Computer use API](../api/computer-use.md) lists the procedures.
    couldn't be checked. When everything is granted, or computer use is off, it is not there at
    all.
 4. **Access**.
-5. **Workers**: "Coding sessions using this Mac's logins."
-6. **Folders**, **Tools** (Chrome and 1Password), and **Captains using this device by default**,
+5. **Folders**, **Tools** (Chrome and 1Password), and **Captains using this device by default**,
    whose rows open each Captain's profile.
-7. **Diagnostics** (the system log and recovery commands), closed until opened.
+6. **Diagnostics** (the system log and recovery commands), closed until opened.
 
 Refresh status, Check for updates, and Remove device live in the page's `⋯` menu. The page never
 calls a Device a Captain's home.
@@ -74,22 +72,6 @@ Descriptions never change with the value. Refusals link here (`#access`).
 A change shows at once and rolls back with a toast if the Server refuses it. A member who opens a
 refusal's link for a Device they can't see reads who attached it and who can change it.
 
-## Workers
-
-- **Run Workers here**: "How many Workers can run here at once." **Off**, or **Up to N** (default 4). It
-  gates local Workers only. Only the attacher turns it on or raises the limit; Owners and Admins
-  lower it or turn it off. A Captain starts a Worker here only if Captain access allows it.
-- **Claude Code** and **Codex**: when ready, the plan's weekly usage as one line, "97% of the week
-  left" with a small bar, marked "out of date" when the Device last reported long ago. Otherwise
-  Not signed in or Sign-in failed, with a **Fix** popover that has the sign-in command, or Not
-  installed.
-- **Cursor Cloud**: the account email when connected, with Disconnect in its `⋯` menu; otherwise
-  **Connect** or **Continue sign-in**. An expired key keeps Connect again and Disconnect in the
-  `⋯` menu.
-- **Claude Cloud**: the Environment select when ready, or **Recheck** when Claude Code isn't
-  signed in. The cloud rows don't depend on Run Workers here, because carrying a cloud Worker
-  needs no switch.
-
 ## macOS permissions
 
 agent-desktop ships inside Haus Computer, so nobody installs it. Like Haus Computer itself, it runs
@@ -121,8 +103,7 @@ Computer on this Mac."
 ## When a Captain is refused
 
 The Captain gets a reason it can act on, and asks once in the chat with a link to this page's
-Access section: it has no access to the Device, computer use is off, a Worker can't start there,
-the Device is offline or isn't a Mac, a macOS permission is missing, or the Mac is locked, at the
+Access section: it has no access to the Device, computer use is off, the Device is offline or isn't a Mac, a macOS permission is missing, or the Mac is locked, at the
 login window, or switched to another user. The text names the attacher by @handle and never names
 other Captains. A Captain refused again for the same reason is told it already asked and to wait
 for a reply, and a second refusal in one turn tells it to stop.
@@ -134,3 +115,8 @@ retired the per-Captain computer use list. On upgrade, a Mac whose list covered 
 with access stayed on; any other Mac that had computer use on turned off until its attacher turns
 it on again. A Captain can no longer run shell on a Mac while kept off its desktop when computer
 use is on there.
+
+## Changed 2026-11-26
+
+ADR 0062 step 7 deleted Workers, so the Device page lost its Workers section: Run Workers here,
+the Claude Code and Codex plan usage rows, and the Cursor Cloud and Claude Cloud rows.

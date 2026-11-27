@@ -171,33 +171,14 @@ Rules:
   full id in `msg=`.
 - Suffixes, in order: attachments
   (`[2 attachments: a.png (id:att_…), … — use haus attachment view to download]`, WS5),
-  claim (`[claim #N status=… assignee=…]`, WS5; named task until ADR 0051),
-  cloud agent work (`[cloud-agent-work status=… title=… pr=#N]`, one per work the message links,
-  the pull request omitted until the Run reports one).
+  claim (`[claim #N status=… assignee=…]`, WS5; named task until ADR 0051).
 - The turn-drain envelope carries the same work facts compressed inside the
   bracket instead of as trailing suffixes, in the same order:
   `claim=#N:status:assignee` (`unassigned` when nobody owns it), then
   `mentioned=true`. The attachment suffix is not a work fact and
   stays a trailing suffix on the drain envelope too. Suffix and marker grammars
-  share one formatting owner (`packages/agent-prompt/src/inbox-format.ts`), except the
-  Cloud Agent suffix, which is owned beside its schema in `@haus/api` because
-  every layer prints it.
+  share one formatting owner (`packages/agent-prompt/src/inbox-format.ts`).
 - Every message also carries `body_kind` (`text | agent-created`) on the wire.
-  A message that links Cloud Agent work carries each linked work the reader can
-  see under `cloud_agent_works`, in link order (`id`, `provider`, `status`,
-  `title`, `repository`, `starting_ref`, `provider_url`, `activity`, and the
-  `latest_run` with its status, summary, error code, and branches), so a reader
-  can act without a second call. The single `cloud_agent_work` field still names
-  the first for released CLIs.
-- `haus cloud-agent start` prints the Work ID, the posted message, the Task
-  target, and a `Link: [<title>](cloud-agent://<workId>)` line;
-  `haus cloud-agent inspect` prints the same `Link:` line per work. An Agent
-  pastes that line into `haus message send` to show the work in another
-  conversation and never builds a link itself.
-- A settled Cloud Agent Run arrives as its own bodiless attention envelope —
-  `[Haus cloud agent attention status=… work=… run=… target=…]` with the
-  title, repository, summary, error code, branches, and provider URL. Its `msg=`
-  prints `-`: a Run id addresses no Chat message.
 
 ## 5. Output and error contract (AX law)
 
@@ -352,7 +333,6 @@ agent shells are ephemeral, and haus.chat must survive machine hops.
 The flag is optional and accepted on every send mode, a `--send-draft` release
 included, so a held message still names its cause when it finally commits. The
 fire id is the one the wake envelope's final `reply with:` line printed.
-`cloud-agent start --cause <fireId>` does the same for a fire answered by delegating.
 
 The Server validates it before committing: the fire must exist in this Server,
 its automation must be owned by the sending Agent, and a Trigger fire's Trigger
@@ -480,11 +460,6 @@ POST /api/agent/agents             { avatarConcept?, content, description, displ
                                        sequence, target }
 POST /api/agent/agents/update      { agent, description } → { agent }
 POST /api/agent/agents/avatar      { agent, concept } → { agent, avatar }
-POST /api/agent/cloud-agents       { content, nonce, provider, repository, startingRef,
-                                     target, task, title, cause? }
-                                   → { chatId, idempotent, messageId, runId, sequence,
-                                       target, work }
-POST /api/agent/cloud-agents/cancel { workId } → { work }
 GET  /api/agent/claims             ?target=&status=&mine= → { claims, omitted }
 POST /api/agent/claims/create      { target, nonce, titles?, content?, assignee? } → { claims }
 POST /api/agent/claims/claim       { target, numbers?, messageId? } → { results }
@@ -565,8 +540,8 @@ POST /api/agent/drive/write        { path, content | attachmentId } → { revisi
   additive, never a protocol bump: an older Computer must keep working
   without it. The CLI parses a response schema it does not control the other
   side of (`agent-api-client.ts`'s `request`) with a schema built to tolerate
-  an unknown key at every nesting level — `cloud-agent-work-response-schema.ts`
-  is the cloud-agent example — never the `.strict()` schema `@haus/api` uses
+  an unknown key at every nesting level — `agent-trigger-response-schema.ts`
+  is one example — never the `.strict()` schema `@haus/api` uses
   to construct and validate that same shape on the Server. A response that
   fails this tolerant parse for a reason other than an unknown field is a real
   shape mismatch and surfaces as `UNEXPECTED_RESPONSE_SHAPE`, distinct from

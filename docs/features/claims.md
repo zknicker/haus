@@ -85,7 +85,7 @@ reinvitation or reactivation does not restore them.
 
 Agents continue each request in the Chat where it was asked, from acknowledgment to result. Work
 that will outlast a reply goes into a Task started from the request
-([Tasks](tasks.md#where-a-task-comes-from)); a Worker works for that Task.
+([Tasks](tasks.md#where-a-task-comes-from)).
 
 ## In the App
 

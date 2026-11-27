@@ -71,8 +71,7 @@ changes its stream (Runtime drivers, "Recording fixtures"); the fixture diff is 
 surface. Each driver launches with `HOME` set to the Agent home, so a runtime's own state
 (`.claude/`, `.codex/`, `.grok/`) never lands in the operator's home.
 
-Adding an Agent model is one entry in `apps/runner/src/model-catalog.ts` (a
-Worker's native CLI models stay in `apps/computer/src/inventory.ts`). Nothing
+Adding an Agent model is one entry in `apps/runner/src/model-catalog.ts`. Nothing
 validates a model id against the vendor, so prove a new one end to end before
 shipping it: add it to the visuals lab lineup (`scripts/visuals-lab/models.mjs`),
 start the lab (`bun run visuals:lab`), and run the new model on one question.
@@ -127,8 +126,8 @@ seeds the activity the Inbox is a lens over: unread lines in both Channels and
 both Agent DMs (Tiny's DM ends on its unanswered stale-copy question; Blippy's DM line already has
 your reply), and Blippy @mentioning you with its rename question in `#product`. It also
 seeds one claim Blippy left stalled (shown
-on Blippy's profile under **Needs you**), one
-settled Worker, and seven days of Agent turns. That activity is idempotent and separate,
+on Blippy's profile under **Needs you**), and
+seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.
 
 Another idempotent seed (`seed-artifact-message.ts`) gives fresh and existing demo workspaces a
@@ -138,19 +137,10 @@ both files into Blippy's workspace under `HAUS_COMPUTER_DATA_ROOT` when they are
 card, the link, and desktop workspace tabs have real files to open.
 
 A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
-messages cover human @mentions in Channels and Tasks, every Task state, hidden claims, claims
-with replies, every Worker status, cancelling and stale work, follow-ups waiting or running
-behind a finished Run and waiting behind a failed one, and a Task holding several Workers
-and an inline human @mention. Toggle **Show tasks in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic; its pull request link points at a nonexistent
-`demo/ui-gallery` repository. The gallery's queued/running work appears in Inbox too.
-
-Gallery runs belong to a dedicated **UI gallery (unattached samples)** Computer whose randomly
-created credential is discarded. The attached development Computer never receives these runs for
-reconciliation, and the seed creates no deliveries or external jobs. Running timestamps age
-naturally into stale states; these are static examples, not a simulated provider. The bootstrap
-always resolves the real Computer by its deterministic local attachment credential, so adding the
-gallery cannot replace its attachment. Restarting and opening the dev workspace adds missing gallery data without resetting
-existing messages; subsequent bootstraps leave it alone.
+messages cover human @mentions in Channels and Tasks, hidden claims in every state, claims with
+replies, and an inline human @mention. Toggle **Show claims in chat** to compare hidden claims.
+Restarting and opening the dev workspace adds missing gallery data without resetting existing
+messages; subsequent bootstraps leave it alone.
 
 An idempotent seed (`seed-automation-causes.ts`) adds **#automations**: Blippy and Tiny answers
 to Reminder and Trigger fires, recorded through the Server's own cause path, so every cause-line

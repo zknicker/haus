@@ -38,10 +38,10 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   content-free notice in its live turn. Bodies remain Computer-local until an
   explicit pull. Chain budgets follow model-visible Agent traffic
   ([inbox.md](inbox.md)).
-- A settled Cloud Agent Run is the typed concrete exception: the Agent that delegated
-  it gets a distinct continuation carrying the Run's status, summary, and branches. A
-  busy Agent receives only the notice at the safe boundary and gets the concrete item on
-  the next turn. The item has no Chat cursor or visible Chat receipt.
+- A pull request change or a crew report is the typed concrete exception: its recipient gets a
+  distinct continuation carrying the item. A busy Agent receives only the notice at the safe
+  boundary and gets the concrete item on the next turn. The item has no Chat cursor or visible
+  Chat receipt.
 - A sub-agent wake is a chatless run: it reports background work the Agent started that finished
   or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)). Its start frame carries
   `chatId: null` and a `subagentWake` attention instead of inbox items, it publishes no Chat

@@ -73,12 +73,11 @@ again before each delivery; the audience column is the additional rule.
 | Procedure | Payload schema (file) | Payload fields | Audience | App response |
 | --- | --- | --- | --- | --- |
 | `chat.onMessageCreated` | `messageCreatedEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `parentChatId` (a Task message's origin Channel), `messageId`, `sequence`, `taskId` (Task message only), notification facts `authorUserId`, `conversationKind`, `mentionedUserIds`, `replyToAuthorUserId` | Chat access (`findChatAccess`) | **Tail read** every cached transcript list for `chatId`; for a Task message refresh the Task's reads (`hooks/realtime/task-reads.ts`: its `task.get` entries and the origin Channel's loaded pages, which carry its preview); **invalidate** `chat.list`, `chat.search` |
-| `chat.onMessageReactionUpdated` | `messageReactionUpdatedEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId` | Chat access | **Invalidate** the `chat.message` entry, `chat.search`, `cloudAgentWork.listActive`, `claim.list` |
+| `chat.onMessageReactionUpdated` | `messageReactionUpdatedEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId` | Chat access | **Invalidate** the `chat.message` entry, `chat.search`, `claim.list` |
 | `chat.onRead` | `chatReadEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `parentChatId`, `sequence`, `taskId` (Task read only) | The reader only | **Invalidate** `chat.list`, skipped when the settled list already shows zero unread for the Chat. A Task read also refreshes the Task's reads (its unread count) |
 | `chat.onLifecycle` | `chatLifecycleEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `action` (`created`, `updated`, `archived`, `unarchived`, `deleted`) | Chat access, except `deleted`, which reaches every Server member (7a873a99e) | **Invalidate** `chat.list`, `chat.listArchived`, `chat.get` (chatId), `agent.chats`; `deleted` also runs the Chat-loss purge (Refusal classes) |
 | `claim.onChanged` | `claimChangedEventSchema` (`claim.ts`) | `serverId`, `chatId`, `messageId`, `kind` (`created`, `updated`) | Chat access of `chatId` | **Invalidate** the `chat.message` entry, `claim.list` |
 | `taskLabel.onUpdated` | `taskLabelUpdatedEventSchema` (`task-labels.ts`) | `serverId`, `labelId` | Every member | **Invalidate** `taskLabel.list`; no message carries a label |
-| `cloudAgentWork.onUpdated` | `cloudAgentWorkUpdatedEventSchema` (`cloud-agent.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId`, `workId`; one event per linking message in a live Chat, naming that message | Chat access | **Invalidate** the linking message's `chat.message` entry, the work's Task (`task.get`, which carries its attached work), `cloudAgentWork.listActive` |
 | `imageGeneration.onUpdated` | `imageGenerationUpdatedEventSchema` (`image-generation.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId`, `generationId`; one event per linking message in a live Chat, naming that message | Chat access | **Invalidate** the linking message's `chat.message` entry |
 | `reminder.onUpdated` | `reminderUpdatedEventSchema` (`reminders.ts`) | `serverId`, `reminderId`, `ownerAgentId`, `action` (`scheduled`, `updated`, `snoozed`, `canceled`, `fired`) | Owner/Admin (`requireReminderOperator`), rechecked per delivery | **Invalidate** `reminder.list` (agentId), `reminder.runs`, `reminder.history` (agentId) |
 
@@ -116,13 +115,12 @@ These replace `server.onUpdate` and its `scope` enum. All payloads live in
 | --- | --- | --- | --- |
 | `agent.onUpdated` | `{ serverId, agentId \| null }` | Every member | `server.bySlug` (this slug), `agent.get` + `agent.deliveryState` (agentId, else every `agent.get`), `agent.conversationStyle` (agentId, else all), `agent.skillFile`, `agent.workspaceFile`, `agent.workspaceFiles` (agentId, else all), `agent.list`, `chat.list` |
 | `agent.onContextUpdated` | `{ serverId, agentId }` | Every member | `agent.context` (agentId). Published when the runner stores a newer snapshot of the Agent's current session (specs/sessions.md, "Context") |
-| `computer.onUpdated` | `{ serverId, computerId \| null }` | Every member | `server.bySlug`, `computer.list`, `computer.systemLog` (computerId, else all), `agent.activeActivity`, `agent.deliveryState`, `agent.list`, `stats.live`, `cloudAgentSettings.get` (a report can carry a new model catalog) |
+| `computer.onUpdated` | `{ serverId, computerId \| null }` | Every member | `server.bySlug`, `computer.list`, `computer.systemLog` (computerId, else all), `agent.activeActivity`, `agent.deliveryState`, `agent.list`, `stats.live` |
 | `computer.onDesktopActivity` | `{ serverId, computerId }` | Every member | `computer.desktopActivity` (computerId). Volatile: published when a `desktop` invocation is sent to that Device and when it settles, is refused on resend, or expires (specs/computer-use.md#stop-agent-input). Mounted by the Device page's Access section only |
 | `mcp.onUpdated` | `{ serverId }` | Every member | `mcp.list`, `mcp.amazonProduct`, `mcp.amazonProductDetail` |
 | `server.onUpdated` | `{ serverId }` | Every member | `server.bySlug`, `server.list` |
 | `member.onUpdated` | `{ serverId, memberId }` | Every member | `member.get` (memberId), `member.list`, `chat.list` (rows name human authors and participants), `server.bySlug` |
 | `invitation.onUpdated` | `{ serverId }` | Owner/Admin, the same authority as `invitation.list` | `invitation.list` |
-| `cloudAgentSettings.onUpdated` | `{ serverId }` | Every member | `cloudAgentSettings.get` |
 | `modelConnections.onUpdated` | `{ serverId }` | Every member | `modelConnections.list`, `modelConnections.signIn` |
 | `artifact.onUpdated` | `{ serverId, artifactId \| null }` | Every member | `artifact.list` (every folder), `artifact.creators`, `artifact.get` + `artifact.versions` + `artifact.publicLink` (artifactId, else all). Published after a Files publish, move (null for a folder move), delete, version delete, public link enable or disable, batched move or delete (null, once per batch), and retention prune (null, once per affected Server per sweep). The App throttles the list and creators invalidation per Server (leading, then trailing at most every 300 ms); per-file reads stay immediate |
 
@@ -232,14 +230,13 @@ payloads.
 ### Publish call sites
 
 Chat-family events are published today through `emitDurableChatEvent` from: `agent-api/`
-(`reaction-routes`, `channel-routes`, `claim-routes`, `agent-routes`, `message-send-route`,
-`cloud-agent-routes`), `computers/cloud-agent-reports.ts`, `claims/close-stale-claims.ts`,
+(`reaction-routes`, `channel-routes`, `claim-routes`, `agent-routes`, `message-send-route`),
+`claims/close-stale-claims.ts`,
 `triggers/operator-trigger-create.ts`, `agent-delivery/delivery.ts`, `voice/voice-agent-bridge.ts`,
 `reminders/` (`operator-reminders`, `scheduler`, `reminders`, `mutations`, `reschedule`), and
 `haus-api/` (`chat/` archive, unarchive, update, create, ensure-dm, delete,
 send, react, mark-read; `agent/` create, delete; `claim/` assign, promote, create, update;
-`task/` set-state, set-follow, assign, update; `task-label/` create, update, delete;
-`cloud-agent-work/cancel`). Each
+`task/` set-state, set-follow, assign, update; `task-label/` create, update, delete). Each
 prepares the focused event before commit and publishes it after.
 
 `server.updated` call sites map to the new topics:
@@ -256,7 +253,6 @@ prepares the focused event before commit and publishes it after.
 | `member/departure-signals` | `member.updated` (with the departed `memberId`) and `server.updated` (the sentinel ends the departed member's `server.onUpdated`) |
 | `invitation/create`, `invitation/revoke` | `invitation.updated` |
 | `invitation/accept` | `invitation.updated` and `member.updated` (the new member) |
-| `cloud-agent-settings/set-model` | `cloudAgentSettings.updated` |
 | `model-connections/` add, rename, make default, remove, sign-in progress; runner connection status, refreshed credential and finished sign-in | `modelConnections.updated` |
 | `artifacts/` publish, move, delete, retention | `artifact.updated` (new; never part of `server.onUpdate`) |
 
@@ -279,7 +275,7 @@ receives no realtime traffic.
   | Group | Streams | Count |
   | --- | --- | --- |
   | Every accessible Server | `server.onUpdated`, `member.onUpdated` | 2 × accessible Servers |
-  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings`, `artifact` `.onUpdated`; `modelConnections`, `project` `.onUpdated`; `agent.onContextUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `chat.onLifecycle`, `claim.onChanged`, `taskLabel.onUpdated`, `worker.onUpdated`, `imageGeneration.onUpdated`, `task.onCreated`, `task.onUpdated`, `task.onFollowUpdated` | 19 |
+  | Active Server, every role | `agent`, `computer`, `mcp`, `artifact` `.onUpdated`; `modelConnections`, `project` `.onUpdated`; `agent.onContextUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `chat.onLifecycle`, `claim.onChanged`, `taskLabel.onUpdated`, `imageGeneration.onUpdated`, `task.onCreated`, `task.onUpdated`, `task.onFollowUpdated`; `issue.onCreated`, `issue.onUpdated`, `issue.onCommented`, `issue.onSubscriptionUpdated` | 21 |
   | Active Server, Owner/Admin only | `reminder.onUpdated`, `invitation.onUpdated` | 2 |
   | Active Server, kept Server-rooted | `agent.onLifecycle`, `agent.onActivity` (one mount each per window; the slice hoists duplicates) | 2 |
   | Per mounted Chat view (shown or kept, at most 5 kept) | `chat.onEngagement`, `chat.onThought`, `chat.onComposition` | 3 × mounted Chat views |
@@ -292,7 +288,7 @@ receives no realtime traffic.
 
   A unit test mounts the shell with three Servers, one shown and one kept Chat view, as a member
   and as an Admin (`features/servers/realtime-budget.test.tsx`), and asserts the exact stream
-  count (6 + 19 + 2 + 6 = 33 as a member; 35 as an Admin), that the hidden kept view holds zero active `chat.message` observers, and that a
+  count (6 + 21 + 2 + 6 = 35 as a member; 37 as an Admin), that the hidden kept view holds zero active `chat.message` observers, and that a
   reconnect's starts reconcile owned reads through the coalescer only (no `chat.message`, no
   direct reads beyond the volatile projections).
 
@@ -302,10 +298,10 @@ Each stream has one hook under `apps/website/src/hooks/realtime/` (or beside its
 that owns its subscription and its exact cache response: `useMessageCreatedStream`,
 `useMessageReactionStream`, `useChatReadStream`, `useChatLifecycleStream`,
 `useClaimChangeStream`, `useTaskLabelStream`, `useTaskCreatedStream`, `useTaskUpdatedStream`,
-`useTaskFollowStream`, `useCloudAgentWorkStream`, `useImageGenerationStream`,
+`useTaskFollowStream`, `useImageGenerationStream`,
 `useReminderStream`, `useAgentUpdateStream`, `useComputerUpdateStream`, `useMcpUpdateStream`,
 `useServerUpdateStream`, `useMemberUpdateStream`, `useInvitationUpdateStream`,
-`useCloudAgentSettingsStream`, `useArtifactUpdateStream`.
+`useArtifactUpdateStream`.
 
 Desktop and web message notifications consume `chat.onMessageCreated` and `chat.onRead` through
 the same single subscriptions: those hooks take an optional `onEvent` callback that

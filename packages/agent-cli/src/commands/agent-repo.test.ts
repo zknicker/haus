@@ -48,7 +48,6 @@ test('repo list shows each repo with the Computers that have a folder for it', a
             `haus/haus: folders on mini (computer:${mini}), computer:${laptop}`,
             'acme/app: no folder on any Computer',
             '',
-            'A Worker on any Computer place can still use a repo with no folder there: the Computer clones it first.',
             'haus repo checkout needs a folder for the repo on the Computer it runs on.',
             '',
         ].join('\n')
@@ -62,7 +61,7 @@ test('an empty repo list says how a repo joins', async () => {
         write: (text) => output.push(text),
     });
     expect(output.join('')).toBe(
-        'This Server has no repos yet. A repo joins when a Computer gets a folder for it or a Worker starts on it.\n'
+        'This Server has no repos yet. A repo joins when a Computer gets a folder for it.\n'
     );
 });
 

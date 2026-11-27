@@ -31,8 +31,7 @@ new Machine for each Captain on it instead of refusing
 A Computer's attacher may create an Agent there, and so may any Owner or Admin
 when that Computer allows All Captains on this Server. A tool call may also
 name another Computer with its `computer` field, and it runs there when that
-Computer's Agent access allows the Agent; a Worker starts there under the same
-rule ([Computer use](computer-use.md#access)). The App changes
+Computer's Agent access allows the Agent ([Computer use](computer-use.md#access)). The App changes
 desired configuration through Server APIs; it never chooses workspace paths or
 writes Computer-local files.
 

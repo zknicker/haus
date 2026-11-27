@@ -36,7 +36,7 @@ or the Electron desktop shell; Electron adds native window, credential, deep-lin
 _Avoid_: Server UI, website, Electron-only App
 
 **Pull request reading**:
-The Server's evidence of one pull request some Worker reported or a Task holds, kept live
+The Server's evidence of one pull request a Task holds, kept live
 from GitHub. Haus never acts on a pull request through it.
 _Avoid_: Pull request record, PR state
 
@@ -50,7 +50,7 @@ servers. The physical installation shares only installed software and native run
 _Avoid_: Hosted Computer, Haus server, tenant, Haus Computer installation, agent runtime, model provider
 
 **Agent access**:
-The per-Computer setting for which Agents may run tools and start Workers there: selected Agents,
+The per-Computer setting for which Agents may run tools there: selected Agents,
 or every Agent on the Server. An Agent whose Machine is that Computer always has it. Only the
 person who attached the Computer widens it. Computer use is one switch over every Agent it allows.
 The UI calls it Captain access; the Device page shows it as the Captains row under Access.
@@ -263,12 +263,11 @@ _Avoid_: chat entry, timeline item, post, card
 
 **Message body**:
 The typed Haus product act carried by a Message: text or a created Agent. It may project a
-separately mutable Server record but never replaces the Message's readable content. A
-Worker report or a person's follow-up to a Worker is a body that projects its turn.
+separately mutable Server record but never replaces the Message's readable content.
 _Avoid_: generic action, card payload, arbitrary content block, provider event
 
 **Card**:
-The Haus App presentation of a Message body, a Worker, or recognized reference. A card has no durable
+The Haus App presentation of a Message body or recognized reference. A card has no durable
 identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
@@ -288,7 +287,7 @@ _Avoid_: Needs you alert, attention, escalation
 
 **Inbox**:
 The Haus App page below Search where one human sees the week's active Agents, their Unread Chats
-and followed Tasks, and Agents and Workers running now. It is a lens over existing
+and followed Tasks, and Agents running now. It is a lens over existing
 records; unread is the viewer's read marker.
 _Avoid_: Agent inbox, notification center, activity feed, task list
 
@@ -302,7 +301,7 @@ _Avoid_: Task, message task
 **Task**:
 A place for one piece of work: a Chat of kind `task`, started by an Agent from an origin Message in
 a Channel, with its own conversation, a state (`todo`, `open`, `done`, `canceled`), at most one
-assignee, and attached Workers and pull requests (ADR 0053). Only Agents start Tasks; a human
+assignee, and attached pull requests (ADR 0053). Only Agents start Tasks; a human
 asks one. It ends when an Agent or a person marks it done or canceled, never by deletion, and
 posting in it reopens it.
 _Avoid_: Claim, issue, ticket, Thread, work Thread, board card
@@ -345,56 +344,19 @@ until they save it, and an Agent reaches it only through `haus agent create --av
 `haus agent avatar`, which assign the result in the same operation.
 _Avoid_: avatar repository, automatic profile update, transient avatar file
 
-**Worker**:
-Bounded repository work an Agent delegates for one Task to a place (a Computer, `cursor`, or
-`claude`), recorded by the Server ([Workers](specs/workers.md), ADR 0056). It runs in turns: each
-turn's report posts in the Task as a Message and reaches the delegating Agent as an inbox item. It
-closes when its Task is done or canceled. Cursor's and Claude's own Cloud Agents products are
-places, not the noun.
-_Avoid_: cloud agent, Cloud Agent work, Run, harness subagent, named teammate
-
-**Computer place**:
-The place `computer:<computerId>`: a Worker that runs as a native Claude Code or Codex session on
-that Computer, with the machine user's own logins, in its own `git worktree` and branch of each
-of its repos' folders there (ADR 0060), and its own drive folder. It is usable only while the
-Computer's **Run Workers here** setting is on, the Computer is online, and some runtime there
-is ready. An Agent starts a Worker there only where Agent access allows it.
-_Avoid_: local cloud agent, device place, machine Worker
-
-**Run Workers here**:
-The per-Computer setting (Off, or Up to N), Server state on the Computer record, that lets Agents run unattended
-Worker sessions there. Only the person who attached the Computer turns it on or raises the limit; that person,
-an Owner, or an Admin turns it off or lowers the limit (ADR 0057 decision 4). It is off for a newly attached Computer. Turning it off
-refuses new starts and follow-ups there, settles queued turns `place-off`, lets working turns
-finish, and clears Project defaults that name the Computer. Carrying a cloud place needs no switch.
-_Avoid_: Workers can run here (its label before 2026-11-23), local execution toggle, Worker mode, enable Workers
-
 **Repo**:
 A GitHub repository (`owner/name`) known to the Server, once a folder for it was added or a clone
-of it succeeded. Any Agent or Worker in any Project may use it
+of it succeeded. Any Agent in any Project may use it
 ([ADR 0060](docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md), which
 retires the per-Project `project_repos` rows).
 _Avoid_: Project repo, workspace repo, Project repository setting
 
 **Repo folder**:
-Where one repo lives on one Computer: an existing checkout the Computer's attacher added, or Haus's
-own clone in the Server's partition (`servers/<server-id>/repos/<owner>/<name>`), made the first
-time a Worker needs the repo there. Workers and Agents work in git worktrees of it, which share
-its `.git` (ADR 0060, which retires `project_repo_links`).
+Where one repo lives on one Computer: an existing checkout the Computer's attacher added, or a
+clone Haus made earlier in the Server's partition (`servers/<server-id>/repos/<owner>/<name>`).
+Agents work in git worktrees of it, which share its `.git` (ADR 0060, which retires
+`project_repo_links`).
 _Avoid_: repo link, linked repo, checkout setting, repo mapping
-
-**Turn credential**:
-The short-lived, model-visible credential (`HAUS_WORKER_TOKEN`) a Computer mints for one Worker
-turn and attempt with its Computer credential. Minting it is the launch fence: the Server refuses
-for a settled, stopped, closing, stale, switched-off, or misdirected turn, and nothing launches.
-It reaches only `haus worker report` for that turn and the Drive reads, and dies when the turn
-settles. The Drive push uses a separate host-only push credential the harness never sees.
-_Avoid_: Worker token, Agent runner credential, push credential
-
-**Worker history link**:
-A `worker://<workerId>` rich reference to a Worker from before Tasks, kept read-only. A Worker with
-a Task is never linked: a Message points at its Task.
-_Avoid_: work copy, embedded work, cloud-agent link
 
 **Image generation**:
 One image an Agent renders through `haus image generate`, kept as a standalone Server record that

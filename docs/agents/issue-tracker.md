@@ -36,8 +36,8 @@ Several findings become one message and one Task each, all started from that mes
 ## Working and closing
 
 - `haus task archive <shortId>` archives a finished or unneeded Task; it cancels its pending
-  reminders and closes its Workers.
-- `haus task attach-pr <shortId> <url>` attaches a pull request opened outside a Worker.
+  reminders.
+- `haus task attach-pr <shortId> <url>` attaches a pull request the Task did not open itself.
 - Report progress and results in the Task with `haus message send --target task:<shortId>`.
 
 ## Fetching work

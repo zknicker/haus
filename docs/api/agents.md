@@ -8,7 +8,7 @@ read_when:
   - changing Agent homes (`agent.setHome`, creation's home Project) or the channel info routes
   - changing an Agent's Machine (`agent.machine`, `agent.setMachine`) or removing a Device's Captains
   - changing the Agent Task routes (`/api/agent/tasks/*`) or claim routes
-  - changing the `haus worker` routes, Worker refusal codes, dispatch, settlement, or Worker inbox items
+  - changing the per-model effort and feature lists a Computer reports
 ---
 
 # Agents API
@@ -103,7 +103,7 @@ quiet, not evidence of a lost run.
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'claim', chatId, messageId, preview }` (the claim's message), or
-`{ kind: 'reminder' | 'trigger' | 'worker' | 'onboarding' | 'greeting', chatId }` (`greeting`
+`{ kind: 'reminder' | 'trigger' | 'pull_request' | 'onboarding' | 'greeting', chatId }` (`greeting`
 is a new Agent's one-time `#all` wake when it led the run alone; `onboarding` is a past turn of
 the retired Server onboarding flow that nothing writes anymore), or one of the chatless
 sources, whose runs need no Chat visibility to read:
@@ -234,7 +234,7 @@ statement; any failure is `503 INBOX_UNAVAILABLE` with `retryable: true`, never 
 Contract: `agentInboxConversationsResponseSchema` in `@haus/api`.
 
 `GET /api/agent/inbox` is the pending-queue peek; each row's `firstSequence` is the Chat sequence
-of its first pending message, or null when only fires, assignments, or Worker results wait.
+of its first pending message, or null when only fires, assignments, or pull request changes wait.
 
 `GET /api/agent/history` returns `last_read: { after, unread_after }`: the read position before the
 read moved it, repeated as `unread_after` while someone else's message sat above it, else -1. A plain page
@@ -480,184 +480,9 @@ reply wakes it through ordinary delivery
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). The mention writes the Message's
 `mentioned_user_ids` (an inline reply its `reply_to_message_id`); either notifies that human
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). Every Agent-facing Message states its `body_kind`
-(`text | agent-created | worker-report | worker-follow-up`). A Message that links read-only
-Worker history from before Tasks also carries `workers`, every linked Worker the reading Agent can
-see in link order. New Workers are never linked: a Message points at their Task.
+(`text | agent-created`).
 
-### Workers
-
-A managed Agent delegates bounded repository work for a Task to a Worker
-([Workers](../../specs/workers.md)) with `haus worker start`. The brief rides stdin:
-
-```sh
-haus worker start --task SEC-12 --on cursor --repo haus/haus --ref main \
-  --title "Fix the flaky delivery test" <<'BRIEF'
-Reproduce the flake in delivery.test.ts, make it deterministic, and open a pull request.
-BRIEF
-```
-
-`POST /api/agent/workers` takes `{ brief, nonce, place?, repository, runtime?, model?, startingRef,
-task?, title }` (`agentWorkerStartInputSchema`). `place` is the object form or a string:
-`computer:<id>`, `cursor`, `claude`, or a Computer name, bare or after `computer:`. Without `place`
-the start uses the Task's Project default, and a Project with none refuses. The Server refuses before writing anything: `WORKER_TASK_REQUIRED` (no Task, or one the
-Agent cannot reach), `WORKER_TASK_CLOSED`, `WORKER_PLACE_REQUIRED` (no usable place, or a Project
-default that cannot take one now; the message lists the usable places), `WORKER_PLACE_UNAVAILABLE`
-(an unknown or offline place, or no online carrier with it ready), `WORKER_PLACE_OFF` (the
-Computer's switch is off), `WORKER_PLACE_AMBIGUOUS` (two Computers share the name; the message lists
-their `computer:<id>` forms), `WORKER_RUNTIME_UNAVAILABLE`,
-`WORKER_MODEL_UNAVAILABLE` (the runtime there cannot run that `model`, or reports none; the message
-lists the ones it can; an omitted `model` is the Agent's own when it runs there, else the first
-reported), and `WORKER_OPTION_CLOUD` (`runtime` or `model` on a cloud place). `repository` is a
-required GitHub `owner/name`, lower-cased, and any repo works on any place
-([ADR 0060](../adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)). A start then passes the
-Task Chat's freshness hold like `haus message send` and answers `held` with the newer messages.
-Otherwise it records the Worker (`wkr_`) and its first turn (`wkt_`, input `[{ kind: 'brief' }]`),
-follows the Task for the Agent, posts no Message, and answers
-`{ state: 'started' | 'queued', worker }`. `started` means the turn went to its carrier; `queued`
-means it waits for a slot. A retried start with the same `nonce` returns the same Worker; a
-different start under that nonce is `WORKER_IDEMPOTENCY_CONFLICT`. The carrier is the Agent's own
-Computer when it reports the place ready and is online, else the online one attached longest.
-
-`GET /api/agent/workers/places?task=<KEY-n>` answers `workerPlacesResponseSchema`: every cloud
-place and every Computer, usable or not, with its switch, online state, runtimes, `repoFolders`
-(the repos it has a folder for), limit, free slots, and whether it is the Task's Project default.
-
-**Dispatch.** A turn goes to its carrier when every earlier turn of its Worker has settled, its
-input is recorded, and its place has a free slot: `worker_place_limits` per Server and cloud place,
-default 10, and each Computer's `worker_limit`, counting dispatched unsettled turns, first come
-first served. A Computer place dispatches only while its switch is on and it is online. The Server
-composes the input at dispatch (`compose-worker-input.ts`): the Worker instructions (a Computer
-variant that reports with `haus worker report`), then on the first turn `haus/AGENTS.md`,
-`projects/<key>/AGENTS.md`, and `agents/<handle>/WORKER.md` read from Drive, each with its path and
-revision; a later turn carries `WORKER.md` only when its revision differs from the one the Worker
-last received. It sends `worker-turn-start` with `agentId`, `attempt` (bumped on every send),
-`workerMdRevisionId`, and for a Computer place the `runtime`, the `checkout` (the link's path or
-null, the `haus/<worker-id>/<key>-<n>` branch, the starting ref), and `resumeSessionId`;
-`worker-turn-accepted` records the acknowledgement. Dispatch runs after start, follow-up, settle, stop, accept, and reconnect.
-On reconnect the Server resends every unaccepted start, then `worker-reconcile` frames (at most 200
-entries) for accepted unsettled turns and migrated turns whose input still sits on the Computer,
-with `stopRequested` and the turn's current `attempt` (null when no start was sent). A Computer
-that holds no journal record and no live process for an attempted Computer-place turn answers
-its entry with `worker-turn-ended` `uncertain`, detail `journal-missing`.
-
-**Settlement.** A `worker-observation` applies idempotently (a stale, duplicate, or
-post-terminal one changes nothing; the schema stays non-`.strict()` for version skew). The first
-settled reading maps to a `WorkerOutcome` through `workerOutcomeOf`, resolving `Haus-Person` to a
-member who can read the Task (`personRefused` otherwise). A report with text posts one
-Agent-authored Message in the Task with body `{ kind: 'worker-report', workerId, turnId, outcome }`
-(the text, the ask with its mention, then pull request links), attaches its pull requests to the
-Task, and queues one `worker_report` inbox item (`worker-report:<turnId>`). A turn that ends with
-no report settles failed `no-report` and posts nothing. A `stopped` outcome queues nothing unless
-the Worker is closing. Reports of one Task ride one run, up to 20, as inbox items carrying
-`workerReport`; a busy Agent's notice carries `workerReports: { taskKey, ids, total }`. A stall
-queues one `worker_stall` item per window, and a pull request change after the newest turn
-settled queues a `pull_request` item ([Workers](../../specs/workers.md#pull-request-readings)).
-
-**Workers on a Computer.** After journaling a turn the Computer calls
-`POST /computer/workers/turn-credential { attempt, credentialHash, turnId }`. This launch fence
-refuses with `not-dispatched-here`, `settled`, `stop-requested`, `stale-attempt`,
-`earlier-turn-stopping` (an earlier turn the Server settled after launch, stopped or failed `machine-offline`, has not been reported ended), `closing`,
-or `place-off`; a re-mint for the same attempt revokes the earlier token. The minted token is the
-Worker's `HAUS_WORKER_TOKEN` and reaches only `POST /api/worker/report` and the Drive reads
-(`/api/agent/drive/changes`, `/api/agent/artifacts/by-path`, `/api/agent/artifacts/:id/download`).
-`POST /computer/workers/push-credential { credentialHash, turnId }` mints the daemon's push token
-for `/api/agent/drive/push/*` with `push_id` = the turn id; it also reads Drive. A Worker push
-closes only that Worker's earlier open pushes, writes revisions authored
-`{ type: 'worker', worker_id, agent_id }` with the Worker's Task, and sends its conflicts to the
-Agent as `drive_conflict`. `POST /api/worker/report` (`workerReportInputSchema`) replaces the turn's
-draft; it refuses a needs-you report without an ask, a `person` who is not a human member who can
-read the Task (`WORKER_PERSON_UNKNOWN`, listing the Task's followers), a closing Worker
-(`WORKER_CLOSED`), and a settled turn (`WORKER_TURN_SETTLED`). Settling revokes both tokens.
-`worker-turn-input-accepted` marks the turn working and delivers its `WORKER.md` revision only
-for the current attempt; `worker-turn-session` stores the native session once;
-`worker-turn-activity` updates the Worker at most every 5 seconds and posts nothing.
-`worker-turn-ended` settles the current attempt from its exit, draft, and any stop (`exited` with a
-draft is the report, with a stop and no draft `stopped`, else `no-report`; `crashed-before-launch`
-is `harness-error`; `uncertain` is the draft or `no-report`; `refused` is `launch-refused`;
-`stopped` is the draft or `stopped`; a failure keeps the frame's `detail`), posts the report with citations
-bound to the turn's own push outcomes, attaches pull requests, seeds readings from `branches`, and
-queues `worker_report`. `worker-held` is answered with `worker-close` for each closed or unknown
-Worker, and its `keptWorktrees` set `workers.kept_worktree_path` (the Worker's `keptWorktree`) for
-that Computer's Workers and clear it on the rest, and a Worker that closes gets `worker-close`. A Computer-place turn whose Computer has
-been disconnected for 30 minutes fails `machine-offline`.
-
-**Follow-ups and stop.** `POST /api/agent/workers/send` takes `{ workerId, nonce, text, interrupt }`
-and answers `{ idempotent, turnId, worker }`. It queues the text into the Worker's waiting next
-turn, or a new one, and posts nothing; `interrupt` first stops the working turn and drops queued
-follow-ups. `POST /api/agent/workers/stop` takes `{ workerId }` and answers `{ worker }`.
-Undispatched turns settle `stopped` at once; dispatched ones get `worker-stop`, or settle on the
-Server at once while the carrier is offline. A Computer-place turn settled that way after its turn
-credential was minted stays in reconcile with `stopRequested` until its `worker-turn-ended`
-arrives, and the Worker's later turns wait for it. Both routes are the
-delegating Agent's own (`WORKER_STOP_DENIED`), refuse a closing Worker (`WORKER_CLOSED`), send
-refuses a Worker whose carrier Computer was removed (`WORKER_CARRIER_REMOVED`) or whose Computer
-place switched Workers off (`WORKER_PLACE_OFF`), and stop
-answers `WORKER_NOT_LIVE` when nothing is queued or working. A Worker with no Task is read-only
-history: every write answers `WORKER_HISTORY_READ_ONLY`.
-
-`GET /api/agent/workers` reads `{ workers }` for the caller's Workers, or one with `workerId`.
-
-**People.** `worker.get`, `worker.stop`, and `worker.sendFollowUp({ serverId, workerId, text, nonce })`
-are open to anyone who can read the Worker's Task. `sendFollowUp` posts a person-authored Message
-with body `{ kind: 'worker-follow-up', workerId }` in the Task, delivered as ordinary Task traffic,
-and queues the same text. With `answersTurnId` it is the Worker card's answer to that turn's
-[questions](../../specs/workers.md#questions), refused (CONFLICT) once another answer, a dismissal,
-a stop, or the Task's close got there first. `worker.dismissQuestion({ serverId, workerId, turnId })`
-closes open questions for everyone, attributed, and starts no turn. `worker.stop` on a Worker with
-open questions and no live turn closes them. `worker.listActive` lists open Workers with a queued or working turn,
-each opening its Task. `worker.onUpdated` publishes `{ serverId, taskId, chatId, workerId }`,
-scoped to readers of the Task's Chat. Setting a Task `done` or `canceled` closes its Workers
-([Workers](../../specs/workers.md#closing)). The Task's Workers ride `task.get`
-([Tasks API](tasks.md)).
-
-#### Cloud Agent provider access
-
-Cloud Agent provider access is a Computer capability with its own credential store, separate from
-the Cursor runtime harness even when both belong to one Cursor account. Each Computer reports it in
-its inventory as `cloudAgentProviders: [{ provider, isDefault, ready, reason, models }]` (`provider` is `cursor` or
-`claude`), where an unready reason is
-`not-connected`, `expired`, or `provider-unavailable`. `models` is the provider's model catalog for
-the connected account, `{ autoAvailable, models: [{ id, displayName, description, family, order,
-effort, fast }], refreshedAt }`, or `null`; `autoAvailable` says Cursor listed its Auto entry
-(see [Cloud Agents → Model](../../specs/cloud-agents.md#model)).
-
-`cloudAgentSettings.get({ serverId, provider })` (`provider` defaults to `cursor`; each provider
-keeps its own Server-wide model) answers any member with
-`{ model, catalog, savedModelUnavailable }`. `model` is `{ kind: "auto" }`, shown as Auto
-(Haus sends Cursor's `default` id, so Cursor picks a model for each turn), or
-`{ kind: "model", id, params: { effort?, fast? } }`, where an absent param is the model's default.
-`catalog` is the freshest catalog any of the Server's Computers reported (or `null`).
-`cloudAgentSettings.setModel({ serverId, model })` is Owner/Admin only (`FORBIDDEN` otherwise),
-refuses an unlisted id or a param value that model does not offer with `BAD_REQUEST`, returns the
-same shape, and emits a `server` scope update. Each turn in a `Worker` carries
-`model: { id, params, fallbackFrom, droppedParams }`: the model id sent to the provider (`default`
-for Auto, or `null` when the launching Computer's catalog lacked Auto and Haus sent none), the params
-sent with a catalog model (`[{ name, providerParamId, value }]`), the saved model that fell back to
-Auto when the launching Computer's catalog did not list it, and the
-saved params dropped because that model no longer offered them.
-
-`cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect` take
-`{ computerId, provider, serverId }` and answer with the Computer's own
-`{ accountEmail, expiresAt, provider, ready, reason, signIn? }`. Server verifies current membership
-plus Owner or Admin authority and that the Computer belongs to that Server, then relays a
-`cloud-agent-capability-request` over its outbound socket. The Computer answers with
-`cloud-agent-capability-result`; the App never touches a Computer socket.
-
-`connect` starts one Computer-owned sign-in and returns as soon as Cursor supplies the browser
-link. Repeated connects reuse the active attempt. The optional `signIn` is either
-`{ status: "waiting", url, expiresAt }` or `{ status: "failed", message }`. The App opens the
-HTTPS Cursor link on the user's current device and reads `get` every second while waiting.
-Computer polls Cursor for approval and stores the resulting key in Cursor's credential store.
-No browser opens on Computer, and no code needs to be pasted back. Only the public sign-in link,
-expiry, bounded status, and account metadata cross Server; credentials and the login verifier
-remain on Computer. Sign-in state is held in memory and never written to Server records.
-
-Closing the dialog preserves sign-in and lets the user resume it from the row, including after
-an App reload. `cancelSignIn` aborts the provider wait; it does not disconnect an existing
-credential. Sign-in expires after five minutes and offers a fresh link through retry.
-`disconnect` cancels pending sign-in and forgets the stored credential; the key stays revocable
-from Cursor's dashboard. Haus never starts sign-in during an Agent turn. This contract uses
-Computer protocol 21 so an older Computer cannot fall back to opening its own browser.
+### Model capabilities
 
 Computer protocol 23 adds per-model `reasoningEfforts` and `defaultReasoningEffort` to inventory and supports `default`,
 `low`, `medium`, `high`, `xhigh`, and `max`. Computer maintains the capability list beside its

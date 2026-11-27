@@ -106,8 +106,8 @@ export const githubTriggerProfiles = {
 };
 
 /**
- * "From now on" (ADR 0054 decision 10). Told "from now on, every Worker attaches
- * before/after screenshots", a good teammate adds one terse line to its
+ * "From now on" (ADR 0054 decision 10). Told "from now on, every crew Task you
+ * start attaches before/after screenshots", a good teammate adds one terse line to its
  * WORKER.md, leaves MEMORY.md alone, and confirms once inline, naming the file so
  * the human can open it. Told "from now on, keep replies under three
  * sentences", it does the same in its own AGENTS.md, and the confirmation obeys
