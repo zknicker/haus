@@ -1,15 +1,11 @@
-import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 import { sendChatMessage } from '../src/chats/send-message.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import {
-    agentsTable,
-    channelParticipantsTable,
-    usersTable,
-} from '../src/postgres/schema.ts';
+import { agentsTable, channelParticipantsTable, usersTable } from '../src/postgres/schema.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import {
     type BackgroundClaim,

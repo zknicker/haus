@@ -31,7 +31,6 @@ export function ChatComposer(props: {
     );
 }
 
-/** A Task chat's composer: steer by default, interrupt or queue for one send. */
 export function TaskComposer(props: {
     chatId: string;
     chatName: string;

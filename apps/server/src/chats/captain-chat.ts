@@ -11,10 +11,6 @@ export class RetiredCaptainChatSendError extends Error {
     }
 }
 
-/**
- * The Captain chat the `agents_captain_chat` trigger made with the Captain's row
- * (migration 0166), with its read and its owner's membership.
- */
 export async function requireCaptainChatId(
     db: Reader,
     input: { agentId: string; serverId: string }

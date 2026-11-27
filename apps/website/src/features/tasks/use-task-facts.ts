@@ -25,8 +25,8 @@ export function useModelLabels(serverId: string) {
     );
 }
 
-export function useTaskIssueCodes(serverId: string) {
-    const issues = useIssueList(serverId, {}).data;
+export function useTaskIssueCodes(serverId: string, options: { enabled?: boolean } = {}) {
+    const issues = useIssueList(serverId, {}, options).data;
     return React.useMemo(() => {
         const codes = new Map<string, string>();
         for (const issue of issues ?? []) {

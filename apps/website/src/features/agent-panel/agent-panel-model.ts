@@ -2,7 +2,9 @@ import type { Chat } from '@haus/api';
 import * as z from 'zod';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 
-export type AgentPanelSubject = { agentId: string; kind: 'captain' } | { kind: 'task'; shortId: string };
+export type AgentPanelSubject =
+    | { agentId: string; kind: 'captain' }
+    | { kind: 'task'; shortId: string };
 
 export const captainPanelTabs = ['overview', 'issues', 'agents-md'] as const;
 export type CaptainPanelTab = (typeof captainPanelTabs)[number];
@@ -69,9 +71,7 @@ export function agentPanelSubject(chat: Pick<Chat, 'kind' | 'peerAgentId'>) {
 }
 
 export function agentPanelKey(subject: AgentPanelSubject) {
-    return subject.kind === 'captain'
-        ? `captain:${subject.agentId}`
-        : `task:${subject.shortId}`;
+    return subject.kind === 'captain' ? `captain:${subject.agentId}` : `task:${subject.shortId}`;
 }
 
 export function drillParent(drill: CaptainDrill) {

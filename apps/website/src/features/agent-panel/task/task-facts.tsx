@@ -49,7 +49,11 @@ export function TaskFacts({ server, task }: { server: ServerDetail; task: TaskDe
     ] satisfies TaskFact[];
     return (
         <CaptainListGroup title="Details">
-            <ListView aria-label="Details" className="captain-facts captain-facts--panel" variant="secondary">
+            <ListView
+                aria-label="Details"
+                className="captain-facts captain-facts--panel"
+                variant="secondary"
+            >
                 {facts.map((fact) => (
                     <ListView.Item id={fact.id} key={fact.id} textValue={fact.label}>
                         <ListView.ItemContent>

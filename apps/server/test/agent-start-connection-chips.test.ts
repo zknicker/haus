@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -15,7 +16,6 @@ import { testAgentHome } from './agent-home.ts';
 import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { RecordingRunner } from './recording-runner.ts';
-import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;

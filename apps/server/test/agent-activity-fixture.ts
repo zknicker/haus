@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -13,7 +14,6 @@ import {
 import { testAgentHome } from './agent-home.ts';
 import { deliverHumanMessage } from './human-message.fixture.ts';
 import { RecordingRunner } from './recording-runner.ts';
-import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 
 export function activityFrame(
     seed: Pick<AgentActivityFrame, 'agentId'>,

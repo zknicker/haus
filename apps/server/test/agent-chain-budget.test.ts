@@ -4,6 +4,7 @@ import type { AgentTurnSummary, RunnerDownFrame, RunnerStartFrame } from '@haus/
 import { eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import type { RunnerWire } from '../src/agent-delivery/loop-host.ts';
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -17,7 +18,6 @@ import {
 import { testAgentHome } from './agent-home.ts';
 import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
-import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 
 // The automation chain budget through real delivery: Trigger wakes spend it,
 // human work resets it, the ceiling holds until a human speaks, and a chain

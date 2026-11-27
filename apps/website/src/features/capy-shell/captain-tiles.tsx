@@ -1,4 +1,3 @@
-import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
 import { HoverCard } from '@heroui-pro/react';
 import { Badge } from '@heroui/react';
 import * as React from 'react';
@@ -10,6 +9,7 @@ import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
+import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
 import { AgentHoverCardContent } from '../members/agent-hover-card.tsx';
 import { serverChatRoute } from '../servers/server-routes.ts';
 import { DmNavigationContextMenu } from '../shell/dm-navigation-context-menu.tsx';

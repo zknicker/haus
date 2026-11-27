@@ -23,7 +23,11 @@ function TaskPullRequests({ task }: { task: Pick<TaskDetail, 'pullRequests'> }) 
         return null;
     }
     return (
-        <CaptainListGroup collapse={collapse} count={task.pullRequests.length} title="Pull requests">
+        <CaptainListGroup
+            collapse={collapse}
+            count={task.pullRequests.length}
+            title="Pull requests"
+        >
             <PullRequestRows readings={task.pullRequests} />
         </CaptainListGroup>
     );

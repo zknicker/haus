@@ -1,4 +1,3 @@
-import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
 import { Sidebar } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
@@ -10,6 +9,7 @@ import {
     resolveSelectedCaptainId,
     resolveSelectedChatId,
 } from '../../routes/app/server-route-state.ts';
+import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
 import { serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { ListedChatNavigationRow } from '../shell/chat-navigation-row.tsx';

@@ -3,6 +3,7 @@ import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layo
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import type { InlineReplyNavigation } from '../../chats/transcript-reply-contract.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
+import type { TimelineNote } from './timeline-notes.ts';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 export interface ChatTranscriptInput {
@@ -20,6 +21,8 @@ export interface ChatTranscriptInput {
     pendingMessages?: readonly PendingChatMessage[];
     replyTargetMessageId?: string;
     serverId: string;
+    /** Quiet lines between messages, such as a Captain's crew finishing. */
+    timelineNotes?: readonly TimelineNote[];
     turnDetailsAccess?: 'journal' | 'summary';
     viewerUserId?: string;
 }

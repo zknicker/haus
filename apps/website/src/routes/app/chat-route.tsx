@@ -27,5 +27,10 @@ export function CaptainChatRoute() {
     if (chatId === undefined) {
         return <ChatPagePending agent={agent} />;
     }
-    return <Navigate replace to={chatId ? serverChatRoute(server.slug, chatId) : serverRoute(server.slug)} />;
+    return (
+        <Navigate
+            replace
+            to={chatId ? serverChatRoute(server.slug, chatId) : serverRoute(server.slug)}
+        />
+    );
 }
