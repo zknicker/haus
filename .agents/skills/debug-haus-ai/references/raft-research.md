@@ -15,14 +15,12 @@ primary diagnosis.
 Prefer:
 
 1. Raft's public source at https://github.com/botiverse/raft-source, pinned at commit
-   `26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6` (release `v1.21.2-source.1`, daemon `1.0.43`, the
-   pin in `specs/raft-alignment/prompt-divergences.md`) — clone or browse it for exact behavior, rather than reconstructing it from the installed binary/CLI;
+   `26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6` (release `v1.21.2-source.1`, daemon `1.0.43`) — clone or browse it for exact behavior, rather than reconstructing it from the installed binary/CLI;
 2. the installed local implementation and exact runtime symbols, when a question is about what is
    actually deployed rather than what the pinned source says;
 3. current public Raft documentation;
 4. current Raft blog posts describing product intent;
-5. Haus's checked-in Raft-alignment notes and captured recipes;
-6. inference, labeled explicitly.
+5. inference, labeled explicitly.
 
 Source starting points (at the pinned commit):
 
@@ -89,8 +87,7 @@ Adapt this without inserting a favored diagnosis:
 > `packages/daemon/src` for the agent loop/drivers/system prompt, `packages/server/src/services`
 > for delivery/tasks/reminders, `packages/cli/src/commands` for the CLI, `manual/agent-knowledge`
 > and `manual/recipes` for the Manual. Research current primary sources on raft.build,
-> docs.raft.build, and the Raft blog for product intent the source doesn't state directly; read
-> Haus's specs/raft-alignment material; and inspect the installed local implementation read-only
+> docs.raft.build, and the Raft blog for product intent the source doesn't state directly; and inspect the installed local implementation read-only
 > only to confirm what's actually deployed. Do not expose credentials or unrelated message
 > contents. Return:
 > (1) a source-backed behavioral model, (2) exact local symbols or paths supporting it,

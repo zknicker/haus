@@ -211,51 +211,19 @@ so `docs:list` routes future agents correctly.
 
 ## Agent System Prompt Changes
 
-The composed agent system prompt is a guarded contract. Its text lives in
-`packages/agent-prompt/` (`@haus/agent-prompt`), which the Computer and the runner both render,
-with focused coverage in `managed-instructions.test.ts` there and the Computer's
-`instructions.test.ts`.
+The composed agent system prompt lives in `packages/agent-prompt/` (`@haus/agent-prompt`), which
+the runner renders. Every sentence in it changes the behavior of every Agent.
 
-Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
-reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 37,648
-characters). The cap is a ratchet that forces a deliberate decision, not a hard limit, and no
-adapter enforces a prompt length. A justified addition raises the cap to the measured render in
-the same change, with a one-line reason in the register. Never delete, trim, merge, or
-deduplicate other prompt text just to make room: that silently changes other behavior. Shrinking
-the prompt is its own intentional change with its own justification, and lowers the cap. Prefer
-moving guidance out of the prompt over adding to it — the prompt is a pointer to the
-[Haus Manual](docs/adr/0021-cove-onboards-and-agents-share-a-manual.md) for mechanics, and a
-change should move things around and simplify rather than expand. Following Raft's own rule,
-standing principles stay in the prompt; event formats, delivery mechanics, and event-specific
-actions ride the event input (for example the inbox notice in `packages/agent-prompt/src/inbox-format.ts`).
-
-Haus tracks the **current** Raft release from source. The
-[divergence register](specs/raft-alignment/prompt-divergences.md) pins the Raft source commit;
-re-pin by updating that commit and re-diffing every row. Two kinds of text share the cap:
-
-- **Raft-verbatim text is the fixed part.** It is text present in the current Raft prompt at the
-  pinned source commit, and it is never trimmed, paraphrased, or reordered to make room. Adopting
-  or restoring a current Raft clause raises the cap by exactly that amount, with the register row
-  and a one-line commit rationale. When Raft deletes a clause, the Haus copy becomes Haus-only and
-  must justify itself like any other Haus-only text.
-- **Haus-only text is the variable part.** Each Haus-only addition justifies itself with a
-  register row and raises the cap; mechanics belong in Manual topics, skills, or event input, per
-  [ADR 0012](docs/adr/0012-design-guidance-is-skill-carried.md), rather than the prompt.
-
-When changing prompt text or that contract test:
-
-1. Run the focused Computer harness tests and inspect the rendered prompt change.
-2. Never delete or weaken a requirement merely to make tests pass. Name intentional capability
-   removals explicitly to the operator.
-3. Add or update executable coverage with every prompt-taught capability change.
-4. Update the [divergence register](specs/raft-alignment/prompt-divergences.md) with a new,
-   changed, or removed row, and run `bun run test:prompt-contract`. The register's
-   "TODO — no owner" rows are the current debt.
-
-Write every sentence an Agent reads in the house style of `.agents/skills/write-agent-text/SKILL.md`:
-describe what things are, what they do, and what people see, not routing ladders. For any Agent
-behavior change (prompt, Manual, CLI receipts, inbox text) and its baseline eval and report, use
-`.agents/skills/tune-agent-behavior/SKILL.md`.
+- **Style.** Write every sentence an Agent reads (prompt, Task prompt, Manual, CLI help and
+  receipts, inbox and event text) with `.agents/skills/write-agent-text/SKILL.md`: what things
+  are, what they do, and what people see, with each fact where it is true.
+- **Size cap.** `managed-instructions.test.ts` asserts the Captain prompt's size, and
+  `task-session-instructions.test.ts` the Task prompt's. The cap is a ratchet: a change that adds
+  text raises it to the measured render with a one-line reason in the commit or PR, and a change
+  that shrinks the prompt lowers it. Never trim other text just to make room.
+- **Proof.** Prove a behavior change with a baseline eval through
+  `.agents/skills/tune-agent-behavior/SKILL.md`, and run `bun run test:prompt-contract`. Never
+  weaken a requirement to make a test pass; name a capability removal to the operator.
 
 ## Agent skills
 

@@ -15,7 +15,6 @@ choice is wrong.
 Run `bun run docs:list` and read the docs whose `read_when` matches. Always read:
 
 - AGENTS.md, "Agent System Prompt Changes" (the guarded prompt contract and cap ratchet).
-- `specs/raft-alignment/prompt-divergences.md` (the divergence register).
 - `docs/features/agent-conversation-behavior.md` (the current behavior contract).
 - The eval sections of `docs/operations/testing.md` ("Agent Tests", "Evals").
 
@@ -58,9 +57,8 @@ Artifact: the hypothesis and its disproof condition, written before any edit.
 
 ## 4. Change the text
 
-Prompt edits follow AGENTS.md "Agent System Prompt Changes" exactly: Raft-verbatim text stays
-untouched, every Haus-only sentence earns a register row, the cap moves to the measured render in
-the same change, and docs move with it.
+Prompt edits follow AGENTS.md "Agent System Prompt Changes": the cap moves to the measured render
+in the same change, and docs move with it.
 
 Write the text with `.agents/skills/write-agent-text/SKILL.md`, which owns the house style: what
 to describe, where each fact goes (prompt, Manual, receipt, event input, or code), the recipe
@@ -82,7 +80,7 @@ Then review the change adversarially with both an Opus reviewer and Codex
 this process found 16 real defects across four changes; measuring an unreviewed change wastes the
 eval budget.
 
-Artifact: the diff, its register rows, and the review findings resolved.
+Artifact: the diff, its cap change, and the review findings resolved.
 
 ## 5. Scenarios and grader
 

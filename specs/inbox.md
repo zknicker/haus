@@ -21,8 +21,7 @@ The agent inbox is the only lane that carries work no human sees, and `agent_inb
 is the table that holds it (ADR 0026). Everything an Agent is given to act on is an
 inbox item: a delivery planner queues items per attention rules, notice turns preserve
 Agent pull discretion, and exact visibility plus a verified contiguous boundary are the
-only truth about what an agent has seen. Decisions I1–I4 in
-[raft-alignment/README.md](raft-alignment/README.md); wire surface in
+only truth about what an agent has seen. Decisions I1–I4 of the Raft alignment program; wire surface in
 [haus-cli.md](haus-cli.md).
 
 **Delivery host.** Every Agent runs on the runner ([Runtime drivers](runtime-drivers.md), R4d), so

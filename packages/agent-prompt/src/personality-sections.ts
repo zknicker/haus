@@ -1,6 +1,5 @@
 /**
- * Haus-only voice sections of the Agent system prompt (register rows "Personality" and
- * "Conversation style" in specs/raft-alignment/prompt-divergences.md). The house personality
+ * Voice sections of the Agent system prompt. The house personality
  * renders for every Agent; the conversation style layers on top only when one is set.
  */
 

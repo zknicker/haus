@@ -12,7 +12,7 @@ read_when:
 ## Status
 
 Accepted, 2026-09-22. Amends the I2 carve-outs in
-[Raft alignment](../../specs/raft-alignment/README.md) and the delivery-planning
+Raft alignment (removed 2026-11-27) and the delivery-planning
 contract in [the Agent inbox](../../specs/inbox.md). ADR 0026's inbox lane,
 ADR 0030's routing gate, and the cause-inference rule are unchanged.
 

@@ -20,7 +20,7 @@ The production artifact is `Haus Computer.app`, an Apple Silicon macOS app bundl
 executable, `Contents/MacOS/haus-computer`, is the compiled Computer. It ships as a zip. There is
 no Intel (x64) build: the embedded agent-desktop binaries are `darwin-arm64` only, and the
 installer exits with a clear message on any other machine. The bundle exists so macOS charges
-Accessibility and Screen Recording to a named app ([Computer use](../computer-use.md#macos-permissions)):
+Accessibility and Screen Recording to a named app ([Computer use](computer-use.md#macos-permissions)):
 its id is `chat.haus.computer`, it carries the App's `AppIcon.icns`, and `LSUIElement` keeps it
 out of the Dock.
 
@@ -172,7 +172,7 @@ curl -fsSL https://releases.haus.chat/computer/install.sh | sh
 The installer replaces the bare executable with the symlink, drops its `.prev`, rewrites the
 LaunchAgent to run the app, and keeps `~/.haus` and every attachment. Rollback cannot return to the
 bare executable. macOS never moves a grant to a new holder, so the Device page asks for
-Accessibility and Screen Recording again ([Computer use](../computer-use.md#macos-permissions)).
+Accessibility and Screen Recording again ([Computer use](computer-use.md#macos-permissions)).
 
 ## Transition from the pre-publisher build
 
@@ -272,7 +272,7 @@ do not auto-upgrade, so every such release would otherwise strand whichever Comp
 updated yet until a human does. The receiving side parses that payload tolerant of a field it
 predates (an unknown key passes through unparsed rather than failing validation) and only bumps
 `computerProtocolVersion` for a change the old shape cannot represent at all, such as a renamed or
-removed required field. See [Haus CLI §8](../haus-cli.md#8-server-api-apiagent) for the Agent
+removed required field. See [Haus CLI §8](haus-cli.md#8-server-api-apiagent) for the Agent
 API's version of this rule and `cloud-agent-work-response-schema.ts` for a worked Computer-side
 implementation.
 

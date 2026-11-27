@@ -7,7 +7,7 @@ read_when:
   - changing the typing strip, thought phrasing, or mid-turn notices
   - changing when an Agent starts a Task, where it reports Task work, or what wakes it on a Task
   - changing where an Agent writes a "from now on" rule, or what it keeps in MEMORY.md
-  - editing specs/raft-alignment/prompt-divergences.md rows for Personality, Communication style, Startup step 4, Sending messages, Conversation etiquette, or Formatting
+  - editing the prompt sections for Personality, Communication style, Startup step 4, Sending messages, Conversation etiquette, or Formatting
   - reviewing an Agent transcript that "feels off" and looking for which contract it broke
 ---
 
@@ -63,8 +63,7 @@ showed the description alone lost `--done` and `--reply-to`.
   (`scripts/agent-tests/scenarios/`); `managed-instructions.test.ts` ("the inline reply that answers the request carries
   --done", "claim updates follow the requesting conversation"),
   `personality-instructions.test.ts` ("the pickup bullet replaces the Raft acknowledge-and-outline
-  and progress bullets"); `packages/agent-manual/src/product-topics.test.ts`; register rows
-  "Sending messages" and "Communication style".
+  and progress bullets"); `packages/agent-manual/src/product-topics.test.ts`.
 
 Never run two `test:agents` processes against one stack: each
 startup sweeps the other's Agents, and the victim fails within seconds with `No Agent exists`.
@@ -84,8 +83,7 @@ facts, privacy, and editing rules live in [Agents](agents.md#identity-and-instru
   layering, "no em dash outside the real envelope header examples"); `instructions.test.ts`;
   `launch-start-conversation-style.test.ts`; `apps/server/test/haus-agent-conversation-style.test.ts`,
   `haus-agent-create-signature-emoji.test.ts`, `agent-conversation-style-frame.test.ts`;
-  `packages/haus-api/src/agent-conversation-style.test.ts`; register rows "Personality" and
-  "Conversation style"; the shared voice gate (`scripts/agent-tests/voice-gate.mjs`, rules in
+  `packages/haus-api/src/agent-conversation-style.test.ts`; the shared voice gate (`scripts/agent-tests/voice-gate.mjs`, rules in
   `agent-voice.mjs`), which checks every model-authored top-level channel message in a live scenario for em
   dashes, closing offers, service-desk openers, and bold-label walls; live scenario
   `room-pickup-reaction-on-it` (`bun run eval room`), which asserts the signature-emoji pickup
@@ -105,8 +103,7 @@ an answer. Silence is deliberate in DMs too.
 - Guards: live scenarios `ack-reaction-thanks` (`bun run eval placement`) and `fyi-silence-dm`
   (`bun run eval attention`);
   `managed-instructions.test.ts` (step 4 text, and no literal emoji elsewhere that would become
-  every Agent's default); `agent-message-react.test.ts`; `apps/server/test/agent-reaction-emoji.test.ts`;
-  register rows "Startup step 4" and "Conversation etiquette".
+  every Agent's default); `agent-message-react.test.ts`; `apps/server/test/agent-reaction-emoji.test.ts`.
 
 ## 4. Chat register: plain sentences, structure only for data
 
@@ -119,8 +116,7 @@ visual; a visual does only what text cannot.
   (`packages/agent-workspace/src/visuals-skill/SKILL.md`, [ADR 0012](../adr/0012-design-guidance-is-skill-carried.md)).
 - Guards: `personality-instructions.test.ts` ("teaches a chat register for Markdown formatting");
   `managed-instructions.test.ts` (GFM tables sentence); `packages/agent-workspace/src/managed-skills.test.ts`
-  ("visuals skill sends tables to the reply", "No mid-sentence bolding in the reply"); register row
-  "Formatting — Mentions & Channel Refs"; the voice gate's bold-label-wall rule on live output.
+  ("visuals skill sends tables to the reply", "No mid-sentence bolding in the reply"); the voice gate's bold-label-wall rule on live output.
 
 ## 5. The right Agent answers; the others stay quiet
 
@@ -173,11 +169,10 @@ skipped for Agent housekeeping, paced by workstream, never persisted. Details li
 
 ## 7. Supporting reliability
 
-Agents follow the current Raft prompt by default, pinned at Raft `v1.21.2-source.1`
-(`specs/raft-alignment/repin-v1.21.2.md`). A message that arrives mid-turn reaches runtimes that
+The prompt is Haus's own, written in the house style of `.agents/skills/write-agent-text`. A message that arrives mid-turn reaches runtimes that
 can steer as an inbox notice, so the settled reply reflects it.
 
-- Owner: [Prompt divergences](../../specs/raft-alignment/prompt-divergences.md);
+- Owner: `packages/agent-prompt/src/managed-instructions.ts`;
   `apps/runner/src/turn/turn-notices.ts`, `packages/agent-prompt/src/inbox-format.ts`.
 - Guards: `bun run test:prompt-contract` (size cap ratchet in `managed-instructions.test.ts`);
   `apps/runner/src/turn/turn-notices.test.ts`; the `freshness` case in `bun run eval:sessions`.

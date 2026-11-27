@@ -37,7 +37,7 @@ Start with [release targets and promotion](../../../docs/operations/releases.md)
 contract when the target is selected:
 
 - Server: [Haus Server deployment](../../../docs/operations/haus-server-deploy.md)
-- Computer: [Computer release and update spec](../../../specs/raft-alignment/computer-release-and-update.md)
+- Computer: [Computer release and update spec](../../../specs/computer-release-and-update.md)
 - iOS: [iOS TestFlight](../../../docs/operations/ios-testflight.md)
 - Login, setup, attachment, or protocol cutover: [Computer login cutover](../../../docs/operations/computer-login-cutover.md)
 

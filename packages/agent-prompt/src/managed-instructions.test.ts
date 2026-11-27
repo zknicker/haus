@@ -167,65 +167,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
         supportsSubagents: true,
     });
 
-    // Review ratchet, not a runtime limit. Never trim prompt text to fit this cap;
-    // additions need measured budgets and a reason in specs/raft-alignment/prompt-divergences.md.
-    // Lowered from 40,270 on the Raft 1.0.25 re-baseline (render 40,270 → 32,359): notice
-    // mechanics moved into the inbox notice, task mechanics into the `tasks` Manual topic, and
-    // clauses Raft deleted were cut. Raised by exactly 42 when Haus gained task assign/unassign
-    // and restored Raft's `task assign` / `task unassign` family entries (32,359 → 32,401).
-    // Lowered when Asks were deleted (ADR 0037): the `haus ask` family entry gave way to one
-    // shorter Haus-only @mention rule in `## @Mentions` (32,401 → 32,395). Ratcheted to the
-    // measured render (32,395 → 32,393) when that rule learned to mention even the asker, paid for by
-    // cutting the capability section's redundant surface bullet. Lowered (32,393 → 32,281) when an
-    // inline reply to a human's message came to address them like a mention, so the
-    // "even when replying to whoever asked" clause was cut. Lowered (32,281 → 32,220) when step 4 and the
-    // DM silence rule came to require one acknowledgement reaction whose emoji fits the message,
-    // paid for by relocating the Workers section's `worker send` and work-thread
-    // sentences to the `workers` Manual topic. Raised by operator decision (32,220 → 32,444)
-    // when the Formatting section gained a chat-register rule against bold-as-emphasis and
-    // structure-only lists, headings, and tables. Lowered (32,444 → 32,416) when Sending messages
-    // moved solo step-by-step progress into a thread on the acknowledgment (ADR 0029 amendment,
-    // 2026-10-02), paid for by relocating the Workers section's requester-update and
-    // work-thread sentences to the `workers` Manual topic and shortening the Tasks
-    // conversation rule. Lowered (32,416 → 32,399) when the Haus-only `## Personality` section
-    // arrived (measured here with a one-word personality), paid for by shortening the Cloud
-    // agents section's delivery sentences. Raised (32,399 → 32,529) for reminder title guidance:
-    // Reminders gained the Haus-only `--title` label / `--description` sentence. Lowered
-    // (32,529 → 32,496) when Workspace & Memory learned hot-memory-plus-index, topic-note,
-    // chat-is-history, and rewrite-Active-Context rules, with a tighter template and no notes/
-    // example list. Raised by operator decision (32,496 → 32,579) when Agents came to set their own
-    // finished tasks `done`, keeping `in_review` for requested sign-off or a pending human decision;
-    // the Raft review-then-done sentence and the same-turn `done` exception it made redundant went.
-    // Raised (32,579 → 33,513) on the Raft v1.21.2 re-pin: Raft's suspect-the-CLI-first paragraph adopted verbatim, and Discovering's `server info` sentences rewritten for its paged listing.
-    // Lowered (33,513 → 33,056) when Raft's three private-channel clauses (Discovering's two, the Visibility bullet) were omitted: Haus has no private channels.
-    // Raised by exactly 332 (33,056 → 33,388): the Inbox entry adopted Raft's `inbox check` text.
-    // Raised by 522 (33,388 → 33,910) for quiet agreements, one confirmation and reaction-only acknowledgments.
-    // Raised by 1,201 (33,910 → 35,111) by the 2026-10-06 personality work (house Personality,
-    // Conversation style, signature-emoji pickup rule, em-dash scrub); steps in the register.
-    // Raised (35,111 → 37,309; +2,198) when Claude Code Agents gained Raft v1.21's conditional
-    // `## Working through sub-agents` section, adapted for Haus; measured here with it on.
-    // Raised by exactly 29 (37,309 → 37,338): the Standing Preferences placeholder now says
-    // terse imperative rules, merged not appended, after live Agents wrote verbose preferences.
-    // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their runtime's native web tools with no gate and no prompt text, as in Raft.
-    // Lowered by exactly 704 (38,457 → 37,753) by the owner-approved Tasks rewrite: a deliberate shrink, not room-making.
-    // Raised by exactly 12 (37,753 → 37,765) when the Workers sentence named "a Worker's run" for "its run".
-    // Raised by exactly 145 (37,765 → 37,910) when MEMORY.md and notes/ moved into Drive at drive/agents/<handle>/ (ADR 0054, D3).
-    // Raised by exactly 13 (37,910 → 37,923) when the Files entry became Drive: edits happen in the drive/ folder, not haus files pull/push.
-    // Lowered by exactly 79 (37,923 → 37,844): only people create Projects, so `haus channel create`
-    // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
-    // Lowered by exactly 100 (37,844 → 37,744) when cloud agents became Workers (ADR 0056, W2): reports post in the Task and reach the Agent as inbox items, and `start` names `--on`.
-    // Lowered by exactly 13 (37,744 → 37,731) when `--on` became optional again: a start without it runs on the Computer's default place.
-    // Raised by exactly 232 (37,731 → 37,963): How to organize memory describes AGENTS.md (standing
-    // rules, delivered on change) and WORKER.md beside MEMORY.md (ADR 0054 decisions 7 and 10, +208);
-    // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
-    // lines; the rules people set live in AGENTS.md and WORKER.md" (+24).
-    // J3 (ADR 0055): -265 (37,963 → 37,698) for hearing by Project, +130 (→ 37,828) then -232 (→ 37,596) as generalists came and went, -6 (→ 37,590) when "home" left the prose.
-    // E2d (ADR 0059): -1 for the #all welcome rule, +37 for "You always hear #all, the team room."; W3: +22 for `haus worker places`. Measured after all three: 37,648.
-    // Raised by exactly 128 (37,648 → 37,776) for the Computers entry (ADR 0057), 116 (→ 37,892) for Repos (ADR 0060).
-    // Raised by exactly 59 (37,892 → 37,951): web sources are cited as Markdown links (ADR 0061).
-    // Lowered by exactly 38 (37,951 → 37,913): Tasks name `archive` (ADR 0062). Raised by exactly 364 (→ 38,277): Captains work from Issues (step 3). Lowered by exactly 198 (→ 38,079): Captain chat, crew Tasks (step 5b).
-    // Lowered by exactly 469 (38,079 → 37,610): Workers deleted (ADR 0062 step 7): the `### Workers` section (-262) and family entry (-177), the sub-agent separate-tools sentence (-33), and WORKER.md names crew Tasks (+3).
-    // Lowered by exactly 698 (37,610 → 36,912) by the house-style rewrite (write-agent-text skill): the Tasks section, Sending messages, Discovering and six Raft-origin passages describe the world instead of routing rules; a deliberate shrink.
+    // Review ratchet, not a runtime limit. Never trim other prompt text to fit this cap: an
+    // addition raises it to the measured render with a one-line reason in the commit or PR, and a
+    // shrink lowers it. Its history is in git (`git log -L` on this line).
+    // Lowered by exactly 698 (37,610 → 36,912) by the house-style rewrite (write-agent-text).
     expect(prompt.length).toBeLessThanOrEqual(36_912);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');

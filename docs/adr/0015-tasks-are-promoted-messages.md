@@ -10,8 +10,7 @@ read_when:
 
 ## Status
 
-Accepted (2026-07-22, WS5 of the Raft-alignment program; decision D8 in
-`specs/raft-alignment/README.md`, ruled 2026-07-20/21). Supersedes the retired
+Accepted (2026-07-22, WS5 of the Raft-alignment program; decision D8, ruled 2026-07-20/21). Supersedes the retired
 pre-flip tracker (tasks/epics/T-numbers/dispatch).
 
 Superseded in part by [ADR 0051](0051-tasks-are-boards-and-claims-are-the-lock.md) (accepted
@@ -28,8 +27,7 @@ Thread message is the task: `message_tasks.chat_id` stays the top-level Chat (nu
 access, lenses), the new `thread_chat_id` records the Thread, and that Thread is the work surface.
 People still create and convert tasks on top-level messages only, `haus task create` stays
 top-level, and an Agent's self-assigned `create` is `origin` `claimed`, since `composed` means a
-person made it. This diverges from Raft's top-level-only rule
-([register](../../specs/raft-alignment/prompt-divergences.md)).
+person made it. This diverges from Raft's top-level-only rule.
 
 Amended 2026-09-29 by [ADR 0037](0037-humans-are-addressed-by-mention.md): tasks are Agent
 work. Only an Agent holds a task — `message_tasks.assignee_user_id` is gone, humans never claim,

@@ -20,7 +20,6 @@ turn-notices, composed-drain, agent-sessions) and `apps/runner/src/haus/`. For t
 frames, and cutover, [Runtime drivers](../../specs/runtime-drivers.md) is the owner.
 
 The product contract lives in
-[Raft alignment](../../specs/raft-alignment/README.md),
 [Agent Inbox](../../specs/inbox.md), and
 [Sessions](../../specs/sessions.md). This document maps those principles to
 the Server and Computer implementation.

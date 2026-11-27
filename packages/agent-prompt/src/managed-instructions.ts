@@ -1,6 +1,6 @@
 /**
- * Haus-composed Agent system prompt body. It tracks the current Raft prompt at the source commit
- * pinned in specs/raft-alignment/prompt-divergences.md; every difference has a register row.
+ * Haus-composed Agent system prompt body, written in the house style of
+ * .agents/skills/write-agent-text.
  *
  * Product language only: the Agent reads this as its own operating context, so
  * it must not describe engine plumbing. Standing principles live here; event formats and

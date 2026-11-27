@@ -159,7 +159,7 @@ churn and filler before the release PR.
 
 When the Computer protocol changes, Server and Computer ship in the same release, and the compatible
 Computer artifact must be published and publicly verified before the Server is promoted. Use the
-[Computer release and update spec](../../specs/raft-alignment/computer-release-and-update.md) for
+[Computer release and update spec](../../specs/computer-release-and-update.md) for
 the signed standalone artifact, descriptor, updater, rollback, and acceptance contract.
 
 Use the [Computer login cutover](computer-login-cutover.md) for the expanded-Server → Computer →

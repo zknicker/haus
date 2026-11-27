@@ -42,7 +42,7 @@ Most drift comes from routing facts written into the prompt when they belong in 
 
 1. **Cold read.** Give a fresh subagent only the rendered text plus one situation the text doesn't mention, and ask what it would do. If it can't say, the description is missing something. Add the missing fact; don't add a rule.
 2. **Eval.** Prove the behaviour with `.agents/skills/tune-agent-behavior`. The **grader** holds the outcome you want; the **text** only describes the world.
-3. **Contract.** Follow the prompt contract in AGENTS.md: register rows, the cap, and `bun run test:prompt-contract`.
+3. **Contract.** Follow the prompt contract in AGENTS.md: the cap and `bun run test:prompt-contract`.
 
 Sources:
 - Anthropic, "Effective context engineering for AI agents": the right altitude, and against "hardcoding complex, brittle logic".

@@ -5,8 +5,7 @@ read_when:
 
 # Reminders and follow-up — 2026-07-30
 
-The comparison baseline is recorded in
-`specs/raft-alignment/tranche-6-audit.md`. It used ordinary business requests
+The comparison baseline was the tranche 6 audit (removed 2026-11-27). It used ordinary business requests
 with GPT-5.6 Terra and separated scheduling from the later business result.
 
 Stable user-visible gates are:

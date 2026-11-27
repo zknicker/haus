@@ -35,9 +35,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
         'There are no threads: a `<target>:<shortId>` target is refused.'
     );
     expect(topic?.body).not.toContain('one-line preview');
-    expect(topic?.body).toContain(
-        'Work that outlasts your reply goes to your crew (see tasks).'
-    );
+    expect(topic?.body).toContain('Work that outlasts your reply goes to your crew (see tasks).');
     expect(topic?.body).not.toContain('`#channel:<noteShortId>`');
     expect(topic?.body).not.toContain('Sidebars go in threads');
     expect(topic?.body).not.toContain('final answer in order');

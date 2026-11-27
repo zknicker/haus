@@ -8,7 +8,7 @@ read_when:
 # ADR 0009: Memory And Wiki Are Separate Markdown Knowledge Surfaces
 
 **Status:** Superseded by
-[Raft alignment D3](../../specs/raft-alignment/README.md), then by
+Raft alignment D3 (removed 2026-11-27), then by
 [ADR 0021](0021-cove-onboards-and-agents-share-a-manual.md) for the current
 workspace and Manual contract. Memory delivery follows
 [ADR 0052](0052-memory-is-one-capped-file-and-heartbeats-retire.md).
