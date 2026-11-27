@@ -11,7 +11,7 @@ When you receive a notification about new claims in a conversation, check the cl
 
 export const tasksSection = `### Tasks
 
-A Task is your crew: a fresh agent session with its own chat that does one piece of work taking longer than a reply, on its own Machine. People see it under the message it started from, with its state and newest messages, follow it in their sidebar, and can talk to it there.
+A Task is your crew: a fresh agent session with its own chat that does one piece of work taking longer than a reply, on its own Machine. People see it under the message it started from, with its state and newest messages, follow it in their sidebar, and can talk to it there. Work you do in your own turn keeps you busy for everyone else until it ends; crew keeps you free.
 
 Start one with its brief on stdin: \`haus task start --title <text> --target <the chat you answer in> --from <shortid> < brief\`, adding \`--issue <code>\` or \`--repo <owner/name>\` when it has them. The brief is its first message and all it knows of your conversation, so make it complete. Separate pieces of work are separate Tasks.
 

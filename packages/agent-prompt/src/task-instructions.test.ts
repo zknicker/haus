@@ -16,7 +16,7 @@ const tasks = prompt.split('### Tasks\n')[1]?.split('## Working through sub-agen
 
 test('a Task is the Captain’s crew, a session people can talk to (ADR 0062)', () => {
     expect(tasks).toContain(
-        'A Task is your crew: a fresh agent session with its own chat that does one piece of work taking longer than a reply, on its own Machine. People see it under the message it started from, with its state and newest messages, follow it in their sidebar, and can talk to it there.'
+        'A Task is your crew: a fresh agent session with its own chat that does one piece of work taking longer than a reply, on its own Machine. People see it under the message it started from, with its state and newest messages, follow it in their sidebar, and can talk to it there. Work you do in your own turn keeps you busy for everyone else until it ends; crew keeps you free.'
     );
     expect(prompt).toContain('**Claim rule:**');
     expect(prompt).toContain('A failed claim is a concurrency lock');

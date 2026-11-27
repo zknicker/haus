@@ -170,8 +170,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Review ratchet, not a runtime limit. Never trim other prompt text to fit this cap: an
     // addition raises it to the measured render with a one-line reason in the commit or PR, and a
     // shrink lowers it. Its history is in git (`git log -L` on this line).
-    // Lowered by exactly 698 (37,610 → 36,912) by the house-style rewrite (write-agent-text). Raised by exactly 36 (→ 36,948): a Task shows its state and newest messages under its origin, so a start needs no status post.
-    expect(prompt.length).toBeLessThanOrEqual(36_948);
+    // Lowered by exactly 698 (37,610 → 36,912) by the house-style rewrite (write-agent-text). Raised by exactly 36 (→ 36,948): a Task shows its state and newest messages under its origin, so a start needs no status post. Raised by exactly 98 (→ 37,046): work in a Captain's own turn keeps it busy; crew keeps it free.
+    expect(prompt.length).toBeLessThanOrEqual(37_046);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');
