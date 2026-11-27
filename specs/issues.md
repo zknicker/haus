@@ -134,8 +134,8 @@ from the assignee in the same transaction:
 - A Task assignee wakes the Task agent itself, never its Captain.
 - No agent follows an Issue, and no other agent is woken by an Issue change. Linked Tasks other
   than the assignee are context only. To reach another agent, @mention it in a chat it hears.
-- A change made by a Captain's own crew Task rides that Task's crew report instead of waking the
-  Captain separately ([inbox.md](inbox.md#crew-reports)).
+- A change made by a Captain's own crew Task wakes no one; the Captain hears that Task's turn end
+  as a crew finish naming the Issue ([inbox.md](inbox.md#crew-finishes)).
 
 **What wakes the derived agent.** An assignment to it, a state change, and a comment, each made
 by someone else, plus one wake when its Issue's last open sub-issue closes. Title, description,
