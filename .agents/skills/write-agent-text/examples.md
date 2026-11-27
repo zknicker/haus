@@ -9,7 +9,7 @@ The "good" passages come from Haus 19.0.0 (`f547eee2c`). The "drift" passages we
 
 ## Crew reports
 - **Drift:** "End each turn your Captain directed … with a report; a turn a person drove needs one only when it failed or needs your Captain."
-- **Direction:** "Your report is how your Captain hears from you; the person who asked sees it in this chat." Who reads what is the description; when to report follows from it.
+- **Direction:** "Your Captain hears when each of your turns ends and reads your chat." Who reads what is the description; the report command went away with the rule (ADR 0062, amended 2026-11-28).
 
 ## Wake conditions
 - **Drift:** "You are woken … when someone else assigns you an Issue, moves one of yours out of `backlog`, comments on it, changes its state, or closes its last open sub-issue. Assigning in `backlog` wakes nobody…"
