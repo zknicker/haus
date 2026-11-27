@@ -209,7 +209,9 @@ with the brief on stdin (step 5).
   to the Captain's crew model, else the Captain's own.
 - `--issue` links and assigns atomically, and never changes the Issue's state
   ([issues.md](issues.md#claiming)).
-- The receipt says the Task is queued or starting, never that it started, and prints its short id.
+- The receipt prints its short id, says it is starting (never that its work began), and says who
+  sees it: under its origin message, whose author follows it, as its Issue's assignee, and in
+  Crew in the Captain panel.
 
 ## What a Task reads
 
