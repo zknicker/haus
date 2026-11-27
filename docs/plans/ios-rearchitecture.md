@@ -352,30 +352,8 @@ Follow Apple's [Designing for iPhone Duo](https://developer.apple.com/design/hum
 HIG. Use the stock `TabView` and toolbars, which move to the side on their own. Displays: outer is about 466×678 pt
 (compact width); inner is about 951×669 pt in landscape and 669×951 in portrait (regular in both dimensions).
 
-- [ ] **D1. Outer display.**
-  - In every pose, the tab bar, toolbar, and navigation controls sit in a column on the trailing edge under the
-    camera, with Back or Close at the top. Content gets the full height.
-  - The accessory and composer stay at the bottom of the content area.
-  - Insets are asymmetric; never assume the sides match.
-- [ ] **D2. Inner display, fully open.**
-  - Landscape: controls stay on the trailing edge.
-  - Mail's pattern: a narrower list pane leading, with its controls at the top of that pane, and a wider content
-    pane trailing. Projects list | Project chat, Tasks | Task chat.
-  - Portrait: horizontal bars return. The tab bar is at the bottom of the leading pane, and the composer is at the
-    bottom of the content pane.
-  - Layout follows size classes, never orientation (the inner display ignores supported orientations).
-- [ ] **D3. Half-open.**
-  - Like a book (landscape): two equal panes either side of the reserved folding region. Task chat sits leading;
-    its Worker view sits trailing with its own composer and Stop Worker.
-  - On a surface (portrait): the conversation sits above the fold, and turn details plus the composer sit below it.
-  - No control crosses the folding region. Custom chrome uses `ReservedRegion`. Alerts, menus, and sheets clear the
-    fold on their own.
-  - Avoid big layout jumps while folding. Drafts, scroll anchors, and the open sheet carry across every pose
-    change.
-  - Use the `app-resizability` Xcode skill if it is installed.
-
-**Gate.** Device Hub's iPhone Duo Simulator: closed, open, rotated, and half-open, with drafts and the open chat
-surviving every change.
+[The iPhone Duo layout plan](ios-duo-layout.md) holds this phase: decisions from the accepted design, slices D0 to
+D5, and the Device Hub pass. It replaces the old D1 to D3, and its Task mode replaces the Worker side pane.
 
 ## Later
 
@@ -398,5 +376,5 @@ I0 ─┬─ I1 ── V1
     └────────────────────┴─ S1a ── S1b ─┬─ H1, P1, T1→T2, Y1, Q1 ── S1c
                                        ├─ C1, C2, C4, C5 ── C3 (after H1, C2, Y1)
                                        ├─ W1 (after C2, T2) → W2, W3, W4 → W5
-                                       └─ D1, D2 → D3
+                                       └─ D0 → D1 → D2, D3 → D4 → D5 (ios-duo-layout.md)
 ```

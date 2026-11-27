@@ -194,21 +194,38 @@ its tab and replaces that tab's stack with the route on top of the tab's root.
 ## iPhone Duo
 
 Per Apple's [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo).
-Layout follows size classes, never orientation.
+Layout follows size classes and the system's bar placement, never orientation or screen bounds.
+[The Duo layout plan](../docs/plans/ios-duo-layout.md) builds it.
 
-- **Outer display** (compact width): in every pose, the tab bar, toolbar, and navigation controls sit in a column on
-  the trailing edge, with Back or Close at the top. The accessory and composer stay at the bottom of the content.
+- **Bars:**
+  - Wherever the system lays bars out vertically, the stock tab bar and toolbars sit in the trailing rail as glass
+    capsules, with Back or Close at the top. That covers the outer display in every pose, the inner display in
+    landscape, and Split View.
+  - At regular width the stock bars are used in every orientation.
+  - `HausBottomChrome` is drawn only on compact displays with horizontal bars.
+  - Nothing Haus draws spans more than one pane.
+- **Ask anything:** on vertical bars and at regular width, it is the list column's compose button.
+- **Toolbar items** carry a title and a symbol. A detail column's items share one capsule. Search lives only in
+  the Search tab.
 - **Inner display, fully open** (regular × regular):
-  - A narrower list pane leads, with its controls at the top of the pane. A wider content pane trails.
-  - In landscape, controls sit on the trailing edge. In portrait, top and bottom bars return.
+  - A list column leads and a detail column trails. The list column is flush with the screen edges, its controls
+    sit at its top, and the detail column owns its composer.
+  - Dragging the list column's edge snaps it to full width, a 76 pt icon rail of recent conversations, or hidden.
+- **Task mode:**
+  - A Task opened from its card in a conversation opens beside that conversation. The two get equal panes meeting
+    at the fold, and the list steps aside to the rail.
+  - The conversation's composer gets a target chip for that Task and sends to it as steer. The chip's × sends to
+    the conversation again.
+  - Stop is in the toolbar, and Close is at the top of the Task pane.
 - **Half-open:**
   - Two equal panes either side of the reserved folding region: side by side like a book, or above and below on a
     surface.
-  - No control crosses the fold. Custom chrome uses `ReservedRegion`.
-- **Pose changes** keep drafts, scroll anchors, and the open sheet.
-- **Routing at regular width:** Home, Projects, and Tasks split; You and Search keep their stacks.
-  - The bottom of the tab's stack is the selection in the content pane, and the rest stacks over it. Folding and
+  - No control comes within 28 pt of the fold. Custom chrome uses `ReservedRegion`.
+- **Closing the Duo** with a Task open beside its conversation shows the Task on the outer display, and Back returns
+  to the conversation. The stack never changes.
+- **Pose changes** keep the selection, drafts and their targets, scroll anchors, and the open sheet.
+- **Routing at regular width:** every tab splits.
+  - The bottom of the tab's stack is the selection in the detail column, and the rest stacks over it. Folding and
     unfolding never rewrite a stack.
   - A conversation opened inside a split tab replaces the selection. Anything else stacks over it.
-  - A Worker opened straight from its Task sits in an equal pane beside the Task, and the list steps aside. That
-    Task is the visible conversation.
+  - A Task opened from its card in the conversation directly beneath it becomes the side pane.
