@@ -8,7 +8,7 @@ read_when:
   - changing mid-turn notices, drain batching, or chain limits
   - changing how the Server infers which fire caused an Agent's message
   - changing Agent status surfaces derived from inbox delivery, including chat engagement (typing)
-  - changing crew reports, `issue_assignment`, `issue_event`, `process_exit`, or what a Captain hears from Tasks (ADR 0062)
+  - changing crew finishes, `issue_assignment`, `issue_event`, `process_exit`, or what a Captain hears from Tasks (ADR 0062)
   - changing how the Captain chat or `haus task send` reaches an agent, or what an Issue reference wakes
 ---
 
@@ -107,7 +107,7 @@ for Tasks and Captain chats (steps 3 and 5, released together; step 3 built no a
 
 - **No ambient Task hearing.** A Project's hearers do not hear its Tasks. A Captain hears a Task
   chat only when a message @mentions it, when it follows the Task, or through its own crew's
-  [reports](#crew-reports). `hearersOf` (`agent-delivery/hearing.ts:26`) does not apply to `task`
+  [finishes](#crew-finishes). `hearersOf` (`agent-delivery/hearing.ts:26`) does not apply to `task`
   chats, and the Task branch of the recipient planner (`agent-delivery/message-recipients.ts:60-73`)
   keeps only mentions and follows.
 - **Task agents hear their own chat only.** Every message in a Task's chat reaches its Task agent,
@@ -494,8 +494,8 @@ Each follows the one lifecycle above, is concrete, never appears in a notice bod
 | `issue_event` | A comment, a state change, or a closed last sub-issue on an Issue whose derived agent this is | `issue-event:<issueId>:<timelineEventId>` | Coalesces per agent, up to 50 |
 
 Both spend the automation chain when an agent caused them, and wait at the ceiling instead of
-being refused. A change made by a Captain's own crew Task rides that Task's crew report and queues
-no separate item for the Captain. Pull request changes on a linked pull request are never an
+being refused. A change made by a Captain's own crew Task queues no item for the Captain, which
+hears that Task's turn end as a [crew finish](#crew-finishes) instead. Pull request changes on a linked pull request are never an
 `issue_event`; they ride the existing `pull_request` item ([issues.md](issues.md#links-and-pull-requests)).
 
 Built in step 3 (`apps/server/src/issues/issue-inbox.ts`):
@@ -517,22 +517,29 @@ Built in step 3 (`apps/server/src/issues/issue-inbox.ts`):
   [Haus issue assignment GEN-9 priority=normal state=todo] Patch the host
   ```
 
-### Crew reports
+### Crew finishes
 
-`crew_report` (step 5) is how crew Tasks report. Recipient: the crew Task's Captain. Identity
-`crew-report:<taskId>:<runId>`, so one per Task turn. Its typed attention carries the Task's short
-id and title, the linked Issue codes, the outcome (`done`, `needs-you`, `failed`, or `unreported`
-when a Captain-directed turn ended with no report), the report text and ask, the person named, its
-pull requests with readings, and the Issue edits the Task made in that turn
-([tasks.md](tasks.md#crew-reports)).
+`crew_finish` is how a Captain hears its crew. Every crew Task turn that settles `completed` or
+`failed` queues one for the Task's Captain, whoever drove the turn; an interrupted turn queues
+nothing, because its successor settles instead. Identity `crew-finish:<taskId>:<runId>`, so one per
+Task turn. Like every other inbox item it is a notice, not the content: its typed attention
+(`crewFinishSchema` in `packages/haus-api/src/crew-finish.ts`) carries the Task's short id, title
+and linked Issue codes, and how the turn ended, read from the Task's activity when it settled:
+`finished`, `failed`, or `waiting` (`needsYou`: the Task asked a person in its chat). The Captain
+reads what the Task did with `haus message read --target task:<shortId> --unread`
+([tasks.md](tasks.md#crew-finishes)). Built in `apps/server/src/tasks/crew-finish.ts`.
 
-- **Batched across the whole crew.** Every queued `crew_report` for one Captain rides one run, up
-  to 50 and within a 24,000-character text budget; the rest wait for the next run.
-- A turn a person drove queues a `crew_report` only when it settles `failed` or reports
-  `needs-you` with no person named. Otherwise it queues nothing.
-- A busy Captain gets `N crew reports` in its notice, and the reports on its next run.
-- A report posts in the Task as the Task's own message, so the Captain never pulls the chat to
-  read it. The formatter's guidance rides the item, not the standing prompt.
+- **Batched across the whole crew.** Every queued `crew_finish` for one Captain rides one run, up
+  to 50; the rest wait for the next run.
+- A busy Captain gets `N crew Tasks ended a turn` in its notice, and the items on its next run.
+- The formatter (`packages/agent-prompt/src/inbox-crew-finish-format.ts`) prints one line per item
+  and its own guidance, so the standing prompt only names the read command:
+
+  ```text
+  2 crew Tasks ended a turn:
+  [Haus crew task:k3mq7xta GEN-12 finished] Rotate the signing key
+  [Haus crew task:p2r8ndvw waiting] Audit the copy
+  ```
 - Spends the automation chain and waits at the ceiling, as `drive_conflict` does.
 
 ### Process exits
@@ -549,7 +556,7 @@ without queueing it.
 
 | Contract | Guard |
 | --- | --- |
-| Crew reports from several Tasks of one Captain ride one run, up to 50 | `apps/server/test/crew-report-delivery.test.ts` |
+| Every settled crew turn queues one content-free crew finish, and several Tasks' ride one Captain run, up to 50 | `apps/server/test/crew-finish-delivery.test.ts` |
 | A Project's Captain does not hear an unaddressed message in a Task of its Project | `apps/server/test/agent-hearing.test.ts` |
 | The Captain chat reaches its Captain on a cold start and no other Captain | `apps/server/test/captain-chat.test.ts` |
 | A background process exit wakes its idle session once | `apps/server/test/process-exit-delivery.test.ts` |

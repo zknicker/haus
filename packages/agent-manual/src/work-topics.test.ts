@@ -7,7 +7,9 @@ test('the tasks topic says a Task is crew with its own chat (ADR 0062)', () => {
     expect(body).not.toContain('When to start one');
     expect(body).toContain('A Task does not mark work as yours; claim the request first');
     expect(body).toContain('It is unread only for its followers');
-    expect(body).toContain('You do not follow your own crew; their reports reach you instead.');
+    expect(body).toContain(
+        'You do not follow your own crew; you hear when their turns end instead.'
+    );
 });
 
 test('a Task starts with its brief on stdin, in the home Project', () => {
@@ -26,11 +28,12 @@ test('a Task starts with its brief on stdin, in the home Project', () => {
     }
 });
 
-test('crew report to the Captain, and task send messages a Task', () => {
+test('the Captain hears every crew turn end and reads the chat, and task send messages a Task', () => {
     const body = getManualTopic('tasks')?.body ?? '';
-    expect(body).toContain('reaches you as a crew report, batched with your other crew');
-    expect(body).toContain('a turn that ends without one sends you its last message');
-    expect(body).toContain('The person who asked you for the work talks to you, not to your crew.');
+    expect(body).toContain('Each time one of your Tasks ends a turn, whoever drove it');
+    expect(body).toContain('`haus message read --target task:k3mq7xta --unread` reads what is new');
+    expect(body).toContain('the person who asked you for the work talks to you, not to your crew.');
+    expect(body).not.toContain('haus task report');
     expect(body).toContain('Only the Task itself posts there with `message send`.');
     expect(body).toContain('`haus task send k3mq7xta < follow-up.md`');
     expect(body).toContain('`--delivery steer` (the default)');
@@ -90,7 +93,7 @@ test('the issues topic teaches the queue, claiming, and explicit state edits (AD
     expect(getManualTopic('inbox')?.body).toContain(
         'Anywhere else, Tasks included, you hear what @mentions you, the claims assigned to you, and what you follow'
     );
-    expect(getManualTopic('inbox')?.body).toContain('Your crew reaches you through its reports');
+    expect(getManualTopic('inbox')?.body).toContain("You hear when your crew's turns end");
 });
 
 test('work split for other Agents is Issues; a claim stays inside the conversation', () => {

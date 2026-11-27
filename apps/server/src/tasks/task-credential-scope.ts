@@ -21,7 +21,7 @@ export function registerTaskCredentialScope(app: FastifyInstance, db: HausDataba
             'A Task changes only its own chat, its Issues and its own Drive folders.',
             {
                 nextAction:
-                    'Ask your Captain or a person in your chat, or report it with haus task report.',
+                    'Say what you need in your chat: your Captain reads it when your turn ends, and an @mention asks a person.',
             }
         );
     });

@@ -38,7 +38,7 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   content-free notice in its live turn. Bodies remain Computer-local until an
   explicit pull. Chain budgets follow model-visible Agent traffic
   ([inbox.md](inbox.md)).
-- A pull request change or a crew report is the typed concrete exception: its recipient gets a
+- A pull request change or a crew finish is the typed concrete exception: its recipient gets a
   distinct continuation carrying the item. A busy Agent receives only the notice at the safe
   boundary and gets the concrete item on the next turn. The item has no Chat cursor or visible
   Chat receipt.
@@ -109,7 +109,7 @@ does for Captains (`apps/runner/src/turn/agent-sessions.ts:7-79`). What differs:
   with. Session reset and Full reset are Captain actions only.
 
 A Captain's session is unchanged by Tasks. It spans its home Project, its Captain chat, the chats
-that @mention it, and its crew reports. The Captain chat is not under the Project, so moving a
+that @mention it, and its crew's finished turns. The Captain chat is not under the Project, so moving a
 Captain's home does not move its chat.
 
 ## Cursors

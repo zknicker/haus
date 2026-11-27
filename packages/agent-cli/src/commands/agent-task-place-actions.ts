@@ -57,7 +57,7 @@ export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<nu
                       `Started from message ${shortMessageId(from)} in ${target}; people there see the Task, its state and newest messages under it.`,
                   ]
                 : []),
-            'Its report reaches you as a crew report when its turn ends.',
+            'You hear when each of its turns ends; its chat holds what it did.',
             '',
         ].join('\n')
     );

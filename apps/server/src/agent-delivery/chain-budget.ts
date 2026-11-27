@@ -46,11 +46,12 @@ const automationInboxSources = [
     'subagent',
     'drive_conflict',
     'process_exit',
+    'crew_finish',
 ] as const;
 
 export function isAutomationAuthored(row: AuthoredWork): boolean {
-    // A crew report is a Task agent's work reaching its Captain, so it always spends the chain.
-    if (row.source === 'crew_report') {
+    // A crew finish is a Task agent's turn reaching its Captain: it always spends the chain and never resets it.
+    if (row.source === 'crew_finish') {
         return true;
     }
     if (isBatchedChatlessInboxSource(row.source)) {

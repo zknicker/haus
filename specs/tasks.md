@@ -1,11 +1,11 @@
 ---
-summary: The Tasks contract (ADR 0062). A Task is one fresh agent session with its own chat, a Machine and a model, started by a person or by a Captain as crew, active or archived (`tasks.archived_at`), with Capy's activity status (working, waiting, idle, failed, plus needs-you) and no backlog fields or code; it has an auto title and a separate 8-character short id. Covers the hidden Task agent, the shared agent base with Captains, the org-visible Captain chat and its owner, starting a Task, what it reads and writes in Drive, delivery modes (steer, interrupt, queue), archive, restore and unarchive on message, Tasks messaging each other, crew reports, Computer access (always the Captain's or starter's grant), background processes, the desktop lease, worktrees, trailers and pull requests, followers, and the side panel. Folds in what survived from the deleted Workers contract.
+summary: The Tasks contract (ADR 0062). A Task is one fresh agent session with its own chat, a Machine and a model, started by a person or by a Captain as crew, active or archived (`tasks.archived_at`), with Capy's activity status (working, waiting, idle, failed, plus needs-you) and no backlog fields or code; it has an auto title and a separate 8-character short id. Covers the hidden Task agent, the shared agent base with Captains, the org-visible Captain chat and its owner, starting a Task, what it reads and writes in Drive, delivery modes (steer, interrupt, queue), archive, restore and unarchive on message, Tasks messaging each other, crew finishes, Computer access (always the Captain's or starter's grant), background processes, the desktop lease, worktrees, trailers and pull requests, followers, and the side panel. Folds in what survived from the deleted Workers contract.
 read_when:
   - changing what a Task is, its record, its title, its short id, its activity status, or archive, restore and unarchive
   - changing how a person or a Captain starts a Task, its Machine, its model, or `haus task start`
   - changing the `task` agent kind, how Task agents stay out of rosters, or Task credentials
   - changing the Captain kind, its crew Machine and model, the Captain chat, its owner, or member and subscribed flags
-  - changing what a Task reads (rules, WORKER.md, the brief), what it writes to Drive, crew reports, or `haus task report`
+  - changing what a Task reads (rules, WORKER.md, the brief), what it writes to Drive, or what its Captain hears when a turn ends
   - changing message delivery to a Task (steer, interrupt, queue) or `haus task send`
   - changing Computer access for Tasks, per-call targets, background processes, or the desktop lease
   - changing Task worktrees, branches, commit trailers, pull requests, or the Task side panel
@@ -110,7 +110,7 @@ Capy's thread status, derived by the Server from the Task's session and never wr
 | Activity | When |
 | --- | --- |
 | `working` | A turn is running, or admitted and waiting for a runner slot ("starting") |
-| `waiting` | The Task is blocked on a person's answer (its newest report is `needs-you` and no person has posted since), or a turn is due and its Machine is offline ("waiting for MacBook") |
+| `waiting` | The Task is blocked on a person's answer (its newest message @mentions a person and no person has posted since), or a turn is due and its Machine is offline ("waiting for MacBook") |
 | `idle` | The last turn settled and nothing blocks it. Its last message holds the result |
 | `failed` | The last turn ended in an error. The chat shows how far it got |
 
@@ -121,8 +121,8 @@ comes. Archive is separate from activity: an archived Task shows its last activi
 The Server reads activity from the Task agent's delivery state
 (`apps/server/src/tasks/task-activity.ts`): an active run is `working`; queued work is `working`
 while the Machine is online and `waiting` while it is offline; a last turn that failed is
-`failed`; anything else is `idle`. `needsYou` is true while the Task's newest report
-(`task_reports`) is `needs-you` and no person has posted in its chat since; it then reads `waiting`.
+`failed`; anything else is `idle`. `needsYou` is true while the Task's newest message
+@mentions a person and no person has posted in its chat since; it then reads `waiting`.
 
 ## Captains and the Captain chat
 
@@ -173,7 +173,7 @@ all Captains (`apps/server/src/postgres/schema/agents.ts:75-78`). Task rules key
   (`apps/server/src/agent-delivery/message-recipients.ts:52`), and **no other agent**: an @mention
   of another Captain there wakes nothing.
 - Only people and the Captain itself post there. Other agents reach a Captain by @mention in a
-  Project, or as crew through reports.
+  Project, or as crew when their turns end.
 - The agent target is `captain:@<handle>`. `dm:@<human>` is deleted for agents; person-to-person
   DMs are unchanged. The shared chats start fresh; the one-off script handles old Captain DM rows
   and the reminders, Triggers and claims anchored in them.
@@ -216,7 +216,7 @@ with the brief on stdin (step 5).
 The Server composes a Task's turn input; the runner runs it (step 5, carried from the deleted Worker
 contract):
 
-1. The Haus Task instructions: how to work, how to report, the trailer, where deliverables go.
+1. The Haus Task instructions: how to work, who reads its chat, the trailer, where deliverables go.
    One checked-in text with its own size-cap test, under the guarded prompt contract.
 2. `haus/AGENTS.md`.
 3. `projects/<key>/AGENTS.md` for the Task's Project.
@@ -282,24 +282,26 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   person's post resets it ([inbox.md](inbox.md)).
 - A `task://` link to a Task in any other chat is a reference (Mentioned in) and wakes nothing.
 
-## Crew reports
+## Crew finishes
 
-- A crew Task ends each Captain-directed turn (the brief, or a Captain's `task send`) with
-  `haus task report --outcome done|needs-you|failed [--ask <text>] [--person <handle>] [--pr <url>]...`
-  and the report text on stdin, at most 8,000 characters (step 5; the shape was the deleted Worker
-  report's).
-- The report posts in the Task's chat as the Task's message and reaches the Captain as a
-  `crew_report` inbox item ([inbox.md](inbox.md#crew-reports)).
-- A Captain-directed turn that settles with no report sends the Captain one `crew_report` with
-  outcome `unreported`, carrying the Task's last message and a link to the chat.
-- A turn a person drove sends the Captain a `crew_report` only when it settles `failed`, or when
-  its report is `needs-you` with no `--person`. Otherwise the Captain hears nothing of it.
-- `needs-you --person` @mentions that person in the Task and does not wake the Captain, so they
-  don't race. A handle that is not a human who can read the Task is refused
-  `TASK_PERSON_UNKNOWN`, listing the Task's followers.
-- `--pr` attaches each named pull request to the Task ([Pull requests](#worktrees-commits-and-pull-requests)).
-- A person-started Task may report too; its report wakes nobody, and `needs-you` makes it
-  `waiting` on its starter.
+Capy's model: a crew Task works and talks in its own chat, and its Captain hears that it finished
+(`OVER-7 and OVER-8 finished`), then reads the chat if it wants to. There is no report command.
+
+- Every crew Task turn that settles `completed` or `failed` sends its Captain one `crew_finish`
+  inbox item naming the Task (short id, title, linked Issue codes) and how the turn ended:
+  `finished`, `failed`, or `waiting` when it settled with `needsYou`
+  ([inbox.md](inbox.md#crew-finishes)). An interrupted turn sends nothing; its successor does.
+- It fires whoever drove the turn: the brief, a Captain's `task send`, a person's message, a pull
+  request or a reminder. The item carries no content, so a turn that needs nothing from the
+  Captain costs it one short read.
+- The Captain reads what the Task did with `haus message read --target task:<shortId> --unread`.
+- A Task asks a person by @mentioning them in its chat, an ordinary message. That sets `needsYou`
+  until a person posts there ([Activity status](#activity-status)), and their answer wakes the
+  Task. A question for its Captain is an ordinary message too; the Captain reads it after the
+  turn ends.
+- A Task attaches its pull requests with `haus task attach-pr <shortId> <url>`
+  ([Pull requests](#worktrees-commits-and-pull-requests)).
+- A person-started Task has no Captain, so its turns notify nobody; its starter follows its chat.
 
 ## Machine and model
 
@@ -373,7 +375,7 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   which step 7 deleted.
 - It pushes and opens pull requests as the Server's Haus GitHub App bot, with the person who
   asked as co-author ([github-app-connection.md](github-app-connection.md#git-on-a-computer)).
-- **Pull requests** attach in `task_pull_requests` when a report names them, or by
+- **Pull requests** attach in `task_pull_requests` by
   `haus task attach-pr`. A change after the turn settled reaches the active Task that attached it
   first through the existing `pull_request` item, once per change and head commit
   (`apps/server/src/github/pull-request-task-wakes.ts`, re-pointed from Task state to
@@ -390,7 +392,7 @@ Unchanged except where noted (`apps/server/src/tasks/task-follows.ts`). Follower
 
 - A Task is unread only for its followers: its starter, the author of and anyone mentioned in its
   origin message, and anyone who posts in it. A crew Task's Captain does not follow it; it hears
-  its crew through reports. Anyone can follow or unfollow by hand.
+  its crew when their turns end. Anyone can follow or unfollow by hand.
 - An unread Task appears in a follower's lists as an unread Channel does. There is no attention
   tier ([ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)).
 - What reaches a Captain is [inbox.md](inbox.md#hearing). Project hearers do not hear Tasks
@@ -475,7 +477,7 @@ credentials, as deleting a Captain retires it
 
 | Layer | Owns |
 | --- | --- |
-| Haus Server | Task, Captain and agent records, the Captain chat, short ids and titles, composed turn input, delivery modes, reports, access checks, the desktop lease, archive generations |
+| Haus Server | Task, Captain and agent records, the Captain chat, short ids and titles, composed turn input, delivery modes, crew finishes, access checks, the desktop lease, archive generations |
 | Runner | The Task's session, its turns, admission and parking |
 | Haus Computer | Tool invocations, worktrees, background processes, change summaries, generation fences |
 | Haus App | The Home composer, Tasks list, Task page and side panel, Captain page |
@@ -491,7 +493,7 @@ credentials, as deleting a Captain retires it
 | A fresh Task session opens with Haus's `--repo` checkout, then its chat so far within the bounds | `apps/runner/src/turn/task-opening.test.ts`, `apps/server/test/task-replay.test.ts`, `packages/agent-prompt/src/task-replay-format.test.ts` |
 | A reminder on a Task belongs to the Task agent; a Task sets none outside its chat | `apps/server/test/haus-task-reminder-origin.test.ts` |
 | Archive then unarchive runs a fresh generation, and a stale-generation dispatch is refused | `apps/server/test/task-archive.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |
-| A Captain-directed turn without a report sends one `unreported` crew report | `apps/server/test/crew-report-delivery.test.ts` |
+| Every settled crew turn, whoever drove it, sends its Captain one crew finish; a Task's @mention of a person makes it wait on them | `apps/server/test/crew-finish-delivery.test.ts` |
 | A Task's access follows its Captain's or starter's current grant, never its own Machine, and refuses other targets | `apps/server/test/task-machine-access.test.ts` |
 | Archive deletes the session, kills processes, removes clean worktrees and keeps unpushed ones | `apps/server/test/task-archive.test.ts`, `apps/computer/src/repos/agent-worktrees.test.ts`; the generation fence and process kill, `apps/computer/src/invocations/session.test.ts`, `apps/computer/src/invocations/processes/processes.test.ts` |
 | A Task is one start: its Chat, its agent, the brief as its first message and first turn, `--issue` without a state change | `apps/server/test/task-agent-start.test.ts` |

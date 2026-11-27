@@ -74,18 +74,18 @@ export const placementProfiles = {
  * and leaves the Issue's state alone except for moving it to in progress. Wrong: doing the work
  * in its own turn, a channel post, or closing the Issue.
  *
- * Report (C2): asked in its Captain chat for crew work, a good Captain behaves as Capy's does. It
- * may say once, right away, that crew is on it. When all the work it started for the request is
- * done, it tells the person in one message in the Captain chat, with the result. A decision or
- * blocker that is theirs reaches them too. Wrong: a pickup note and a separate start note, a post
- * per Task or per report, silence after the work is done, or an offer.
+ * Finish (C2): asked in its Captain chat for crew work, a good Captain behaves as Capy's does. It
+ * may say once, right away, that crew is on it. When it hears its crew finished, it reads the
+ * Task's chat and tells the person in one message in the Captain chat, with the result. A
+ * decision or blocker that is theirs reaches them too. Wrong: a pickup note and a separate start
+ * note, a post per Task or per turn, silence after the work is done, or an offer.
  *
  * Home Task (C4): a Task a person started answers in its own chat, briefly, with nothing extra,
  * and posts nowhere else. Both graded profiles read the last post carrying the result.
  */
 export const crewProfiles = {
     // At most an acknowledgement and the completion; the completion carries the 12-hex digest.
-    'crew-report-reaches-person': {
+    'crew-finish-reaches-person': {
         cap: 30,
         channel: [1, 2],
         inChat: true,

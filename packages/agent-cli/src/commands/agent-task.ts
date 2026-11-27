@@ -7,7 +7,7 @@ import {
     runTaskShow,
     runTaskUnarchive,
 } from './agent-task-actions.ts';
-import { TASK_REPORT_SUBCOMMAND, TASK_SEND_SUBCOMMAND } from './agent-task-messages.ts';
+import { TASK_SEND_SUBCOMMAND } from './agent-task-messages.ts';
 import { runTaskAttachPullRequest, runTaskStart } from './agent-task-place-actions.ts';
 import { TASK_UNFOLLOW_SUBCOMMAND } from './agent-task-unfollow.ts';
 import type { TaskDeps } from './agent-task-view.ts';
@@ -80,7 +80,6 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         usage: 'haus task start [--title <text>] [--target <chat>] [--from <messageId>] [--repo <owner/name>] [--ref <ref>] [--machine <name>] [--model <id>] [--issue <code>] [--request-id <id>] < brief',
     },
     TASK_SEND_SUBCOMMAND,
-    TASK_REPORT_SUBCOMMAND,
     {
         examples: [
             'haus task list',

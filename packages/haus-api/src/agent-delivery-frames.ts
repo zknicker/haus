@@ -13,7 +13,7 @@ import { processExitAttentionSchema } from './agent-processes.ts';
 import { timestampSchema } from './chat-contract-primitives.ts';
 import { idSchema } from './chat.ts';
 import { connectionChipKindSchema } from './connection-chips.ts';
-import { crewReportsNoticeSchema, crewReportsSchema } from './crew-report.ts';
+import { crewFinishesNoticeSchema, crewFinishesSchema } from './crew-finish.ts';
 import { traceCarrierSchema } from './trace-context.ts';
 
 /**
@@ -82,8 +82,8 @@ export const agentStartCommandSchema = z
         chatId: idSchema.nullable(),
         /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent must write. */
         connectionChips: z.array(connectionChipKindSchema).max(16).default([]),
-        /** Present only on a crew report run: the Captain's queued crew reports. */
-        crewReports: crewReportsSchema.optional(),
+        /** Present only on a crew finish run: the Captain's crew Tasks whose turns settled. */
+        crewFinishes: crewFinishesSchema.optional(),
         /** Present only on a Drive conflict run: one push's kept-both, kept-edit, or refused files. */
         driveConflict: driveConflictAttentionSchema.optional(),
         /** Drainable on any start: concrete work, and human work addressed to this Agent. */
@@ -118,7 +118,7 @@ export const agentStartCommandSchema = z
     .refine(
         (frame) => {
             const attentions = [
-                frame.crewReports,
+                frame.crewFinishes,
                 frame.driveConflict,
                 frame.issueAssignments,
                 frame.issueEvents,
@@ -139,7 +139,7 @@ export const agentStartCommandSchema = z
         },
         {
             message:
-                'Only a sub-agent wake, Drive conflict, process exit, Issue item or crew report run is chatless, and it carries nothing but its attention.',
+                'Only a sub-agent wake, Drive conflict, process exit, Issue item or crew finish run is chatless, and it carries nothing but its attention.',
             path: ['chatId'],
         }
     );
@@ -155,7 +155,7 @@ export type AgentStartCommand = z.infer<typeof agentStartCommandSchema>;
 export const agentNoticeCommandSchema = z
     .object({
         agentId: idSchema,
-        crewReports: crewReportsNoticeSchema.optional(),
+        crewFinishes: crewFinishesNoticeSchema.optional(),
         inbox: z.array(agentInboxItemSchema).max(100),
         issueItems: agentIssueWakeNoticeSchema.optional(),
         runId: idSchema,
@@ -167,10 +167,10 @@ export const agentNoticeCommandSchema = z
     .refine(
         (frame) =>
             frame.issueItems !== undefined ||
-            frame.crewReports !== undefined ||
+            frame.crewFinishes !== undefined ||
             (frame.inbox.length > 0 && frame.totalPending > 0),
         {
-            message: 'A notice carries inbox work, Issue items, or crew reports.',
+            message: 'A notice carries inbox work, Issue items, or crew finishes.',
             path: ['inbox'],
         }
     );
@@ -179,7 +179,7 @@ export type AgentNoticeCommand = z.infer<typeof agentNoticeCommandSchema>;
 
 /** Every work id a delivered notice covers, which its host acks back to the Server. */
 export function noticeReceipt(notice: {
-    readonly crewReports?: { readonly ids: readonly string[] };
+    readonly crewFinishes?: { readonly ids: readonly string[] };
     readonly inbox: readonly { readonly id: string }[];
     readonly issueItems?: { readonly ids: readonly string[] };
     readonly runId: string;
@@ -189,7 +189,7 @@ export function noticeReceipt(notice: {
         workIds: [
             ...notice.inbox.map((item) => item.id),
             ...(notice.issueItems?.ids ?? []),
-            ...(notice.crewReports?.ids ?? []),
+            ...(notice.crewFinishes?.ids ?? []),
         ],
     };
 }

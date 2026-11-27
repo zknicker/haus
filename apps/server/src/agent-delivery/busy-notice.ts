@@ -12,7 +12,7 @@ import { readUnreadElsewhere } from './unread-elsewhere.ts';
 /**
  * The content-free notice for a busy Agent, when the active run has work it has
  * not been told about: the window of Chat rows, plus a count of queued Issue
- * items and of crew reports. Neither has its bodies
+ * items and of crew finishes. Neither has its bodies
  * in a notice; they wait for the Agent's next turn (specs/inbox.md).
  */
 export async function planBusyNotice(
@@ -27,7 +27,7 @@ export async function planBusyNotice(
         listed
     );
     const issues = await readBatchedNotice(tx, agentId, ['issue_assignment', 'issue_event']);
-    const crew = await readBatchedNotice(tx, agentId, ['crew_report']);
+    const crew = await readBatchedNotice(tx, agentId, ['crew_finish']);
     if (unnoticed.length === 0 && !issues?.fresh && !crew?.fresh) {
         return null;
     }
@@ -37,7 +37,7 @@ export async function planBusyNotice(
     );
     return {
         agentId,
-        ...(crew ? { crewReports: crew.notice } : {}),
+        ...(crew ? { crewFinishes: crew.notice } : {}),
         inbox: await buildInboxItems(tx, pending),
         runId: input.runId,
         ...(issues ? { issueItems: issues.notice } : {}),
@@ -53,7 +53,7 @@ export async function planBusyNotice(
 }
 
 /**
- * Every queued item of one batched chatless kind (Issue items, crew reports), the ones no notice
+ * Every queued item of one batched chatless kind (Issue items, crew finishes), the ones no notice
  * has named first, so an ack can reach them.
  */
 async function readBatchedNotice(

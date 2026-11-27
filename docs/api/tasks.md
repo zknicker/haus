@@ -32,7 +32,7 @@ A started Task carries its hidden `task` agent (`agentId`), its Machine (`comput
 message, cut at a word to 80 characters, until someone renames it (`titleCustom`). `activity` is
 derived from the agent's delivery: `working` while a run is active or work waits for an online
 Machine, `waiting` while work waits for an offline Machine, `failed` after a failed turn, else
-`idle`. `needsYou` is true while the newest report is `needs-you` and no person has posted since,
+`idle`. `needsYou` is true while the Task's newest message @mentions a person and no person has posted since,
 and the Task then reads `waiting`. A Task filed or started before
 step 5 has null `agentId`, `computerId` and `model`.
 

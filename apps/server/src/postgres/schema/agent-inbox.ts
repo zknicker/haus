@@ -246,7 +246,7 @@ export const agentInboxTable = pgTable(
         ),
         check(
             'agent_inbox_chat',
-            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event', 'crew_report'))`
+            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict', 'process_exit', 'issue_assignment', 'issue_event', 'crew_finish'))`
         ),
         check('agent_inbox_delivery', sql`${table.delivery} in ('steer', 'interrupt', 'queue')`),
         check(

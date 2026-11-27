@@ -374,11 +374,8 @@ while the Project is archived. `/attach-pr` takes `{ task, url }` and answers
 or `queue`), posts the body in that Task's chat as the caller, and wakes its agent under that mode;
 it answers `{ message, task }`. A Captain may message any Task and unarchives an archived one; a
 Task agent may message only Tasks of its own Project, and an archived one is `409 TASK_ARCHIVED`.
-`POST /api/agent/tasks/report` takes `{ outcome, text, ask?, person?, pullRequestUrls? }` from a
-Task agent about its own turn. It posts the text in the Task, attaches the pull requests, records the
-report in `task_reports`, and answers `{ message, reachesCaptain, task }`. `person` must be a person
-who can read the Task (`400 TASK_PERSON_UNKNOWN` lists its followers); a crew report reaches the
-Captain as a `crew_report` inbox item unless it is `needs-you` for a named person. Inputs are in
+A Task agent has no report route: it posts in its own chat with `POST /api/agent/messages/send`,
+and each settled turn reaches its Captain as a `crew_finish` inbox item (specs/inbox.md). Inputs are in
 `packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
 `agent-task-refusals.ts`.
 

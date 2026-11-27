@@ -11,7 +11,6 @@ import * as z from 'zod';
  *   one-time reminder may anchor on one (decision 16).
  * - `TASK_PROJECT_ARCHIVED`: a Task was restored while its Project is archived (ADR 0062).
  * - `TASK_ARCHIVED`: a Task sent to an archived Task; only people and Captains bring one back.
- * - `TASK_PERSON_UNKNOWN`: a needs-you report named no human who can read the Task.
  * - `TASK_START_NOT_CAPTAIN`: an agent other than a Captain started a Task.
  */
 export const agentTaskRefusalCodes = [
@@ -19,7 +18,6 @@ export const agentTaskRefusalCodes = [
     'TASK_RECURRING_REMINDER',
     'TASK_PROJECT_ARCHIVED',
     'TASK_ARCHIVED',
-    'TASK_PERSON_UNKNOWN',
     'TASK_START_NOT_CAPTAIN',
 ] as const;
 

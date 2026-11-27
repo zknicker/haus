@@ -43,8 +43,8 @@ signature-emoji reaction on the request and, when it takes several steps, a one-
 with no plan. A question answerable from what the Agent has or one quick look-up is simply
 answered, with no reaction first. A side conversation stays in its channel as inline replies.
 A Task's work shows in that Task, which whoever asked
-follows ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). Crew reports reach the
-Captain; the person who asked hears from it only in what it writes to them, where they asked, so a
+follows ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). A Captain hears when
+a crew Task's turn ends and reads its chat; the person who asked hears from it only in what it writes to them, where they asked, so a
 Captain talks about crew work as Capy's does: an acknowledgement, then one message when all of it is
 done (`crew` eval). When done, the Agent answers what was asked and stops: no obligatory summary or closing offer.
 CLI receipts carry no placement advice: the send receipt says where a message landed and who was
@@ -222,7 +222,7 @@ replies. A Task does not mark ownership; the claim on the request still does. It
 message in a channel, usually the request; a DM request, a reminder or Trigger fire, or the
 Agent's own finding first gets an origin message in the channel where the work belongs, and
 several findings become sibling Tasks from one message. Progress, questions, and the result go in
-the Task, where its followers see them as unread. Crew reports, pull request changes, and a
+the Task, where its followers see them as unread. Pull request changes and a
 one-time reminder set on the Task (`haus reminder schedule --target task:<KEY-n>`) wake the Agent
 there. A Task blocked on a person gets an @mention in the Task and goes back to `todo` while the
 Agent takes other work.

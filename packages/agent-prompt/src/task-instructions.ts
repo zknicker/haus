@@ -17,6 +17,6 @@ Start one with its brief on stdin: \`haus task start --title <text> --target <th
 
 You start Tasks in your Project. Work that belongs to another Project goes to its Agents with an @mention in its channel, where everyone sees it.
 
-Your crew reports to you, and the person who asked talks to you. \`haus task send <shortId>\` messages a Task and brings back an archived one. Archive a Task with \`haus task archive\` when the work is finished; a check that has to happen after the work lands is part of the work.
+You hear when a crew Task's turn ends; \`haus message read --target task:<shortId> --unread\` reads what is new in its chat. The person who asked talks to you. \`haus task send <shortId>\` messages a Task and brings back an archived one. Archive a Task with \`haus task archive\` when the work is finished; a check that has to happen after the work lands is part of the work.
 
 Work waiting to be done lives in Issues, cards in a Project's backlog coded like \`GEN-12\`. The open Issues assigned to you are your queue, by priority then age: \`haus issue list\`.`;

@@ -867,26 +867,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/report": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * A Task reports its turn.
-         * @description Posts the report in the Task's own chat. A Captain-directed turn's report reaches its Captain as a crew report; a person-driven turn's reaches it only when it is needs-you without a person. `needs-you` with `person` mentions that person instead.
-         */
-        post: operations["reportAgentTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/agent/tasks/archive": {
         parameters: {
             query?: never;
@@ -2052,21 +2032,6 @@ export interface components {
         };
         AgentTaskSendResponse: {
             message: Record<string, never>;
-            task: components["schemas"]["AgentTaskRow"];
-        };
-        /** @description A Task agent reports its own turn to its Captain (ADR 0062). */
-        AgentTaskReportRequest: {
-            ask?: string;
-            /** @enum {string} */
-            outcome: "done" | "needs-you" | "failed";
-            /** @description A human who can read the Task, asked by a needs-you report. */
-            person?: string;
-            pullRequestUrls?: string[];
-            text: string;
-        };
-        AgentTaskReportResponse: {
-            message: Record<string, never>;
-            reachesCaptain: boolean;
             task: components["schemas"]["AgentTaskRow"];
         };
         AgentTaskStartResponse: {
@@ -4086,31 +4051,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentTaskSendResponse"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    reportAgentTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgentTaskReportRequest"];
-            };
-        };
-        responses: {
-            /** @description The posted report. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentTaskReportResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

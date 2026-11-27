@@ -156,7 +156,7 @@ export const evals = {
         summary:
             'A tool call that names no Computer runs on the home Computer, and "a screenshot of my MacBook" goes to the MacBook.',
     },
-    // ADR 0062 crew: Issues, crew Tasks and their reports, and Tasks a person starts. These
+    // ADR 0062 crew: Issues, crew Tasks finishing, and Tasks a person starts. These
     // need Issues and Task agents, so a baseline from before ADR 0062 fails them at setup.
     crew: {
         judge: null,
@@ -164,7 +164,7 @@ export const evals = {
         profiles: crewProfiles,
         scenarios: [
             'captain-issue-starts-crew',
-            'crew-report-reaches-person',
+            'crew-finish-reaches-person',
             'home-task-works-with-person',
         ],
         summary:

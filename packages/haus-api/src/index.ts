@@ -85,7 +85,7 @@ export * from './agent-profile-text.ts';
 export * from './agent-runner.ts';
 export * from './agent-task.ts';
 export * from './agent-task-refusals.ts';
-export * from './crew-report.ts';
+export * from './crew-finish.ts';
 export * from './task-delivery.ts';
 export * from './task-crew-lifecycle.ts';
 export * from './agent-thought.ts';

@@ -1,11 +1,11 @@
 ---
 status: accepted
-summary: A Task is one fresh agent session with its own chat, a Machine and a model, active or archived, with Capy's activity status (working, waiting, idle, failed, plus needs-you) and no state, priority, due date, labels, assignee or code; it has a title and a separate short id. An Issue is the backlog card, coded with its Project's key (GEN-12), with fixed states, one assignee (a person, a Captain or a Task) from which the woken agent is derived, compare-and-swap claiming, sub-issues, comments and activity. A Captain stays its own kind on the shared agent base, with one org-visible Captain chat (a human owner, per-person member and subscribed flags) that replaces per-person Captain DMs, and it never archives. Messages reach a Task as steer (the default), interrupt or queue, and a message from a person or a Captain to an archived Task unarchives and wakes it. A Task's Mac access is always its Captain's or starter's current grant. Workers and the Cursor and Claude cloud hand-off are deleted. Steps 2 to 6 land on main one by one and release together once they work end to end. No migration or compatibility code. Supersedes ADRs 0056, 0041 and 0044; amends 0053, 0055, 0057, 0058 and 0060. Accepted 2026-11-26.
+summary: A Task is one fresh agent session with its own chat, a Machine and a model, active or archived, with Capy's activity status (working, waiting, idle, failed, plus needs-you) and no state, priority, due date, labels, assignee or code; it has a title and a separate short id. An Issue is the backlog card, coded with its Project's key (GEN-12), with fixed states, one assignee (a person, a Captain or a Task) from which the woken agent is derived, compare-and-swap claiming, sub-issues, comments and activity. A Captain stays its own kind on the shared agent base, with one org-visible Captain chat (a human owner, per-person member and subscribed flags) that replaces per-person Captain DMs, and it never archives. Messages reach a Task as steer (the default), interrupt or queue, and a message from a person or a Captain to an archived Task unarchives and wakes it. A Task's Mac access is always its Captain's or starter's current grant. Workers and the Cursor and Claude cloud hand-off are deleted. Steps 2 to 6 land on main one by one and release together once they work end to end. No migration or compatibility code. Supersedes ADRs 0056, 0041 and 0044; amends 0053, 0055, 0057, 0058 and 0060. Accepted 2026-11-26. Amended 2026-11-28: crew turns end in a content-free crew finish for the Captain, and `haus task report` is deleted.
 read_when:
   - changing what a Task is, how one starts, its chat, its Machine, its model, its activity status, archive or unarchive
   - adding or changing Issues, their states, assignee, claiming, sub-issues, comments, activity, or Issue codes
   - changing the Captain chat, Captain DMs, a Captain's owner, or what a Captain hears
-  - changing crew briefs, crew reports, how Tasks message each other, or message delivery modes
+  - changing crew briefs, crew finishes, how Tasks message each other, or message delivery modes
   - changing a Task's Computer access, runner session kinds, the admission cap, per-Computer concurrency, the desktop lease, or background processes
   - deleting Workers, `haus worker`, or the Cursor and Claude cloud hand-off
   - deciding whether a change needs migration or compatibility code, or when a step of this work releases
@@ -109,7 +109,7 @@ branches that outlived their reason.
 
 9. **A Captain works from Issues.** Its queue is `issue_assignment` inbox items, coalesced as
    `task_assignment` is today. It no longer hears every Task chat in its Project. It hears its own
-   crew's reports, @mentions, and chats it follows.
+   crew's finished turns, @mentions, and chats it follows.
 
 10. **Crew report back, batched.** A Captain's brief is the first message in a crew Task, authored
     by the Captain. A Captain-directed turn ends with `haus task report --outcome done|needs-you|failed`;
@@ -117,6 +117,12 @@ branches that outlived their reason.
     wake the Captain only on failure or an explicit ask. Reports batch across the Captain's whole
     crew, up to 50 within a text budget, deduplicated by Task and turn, and carry the Issue edits
     made in that turn.
+
+    *Amended 2026-11-28:* `haus task report` is deleted. A crew Task works and talks in its own
+    chat, and every turn of it that settles, whoever drove it, sends its Captain one content-free
+    `crew_finish` item (finished, failed or waiting) that the Captain follows with
+    `haus message read --unread`, as Capy's crew threads do. A Task asks a person by @mentioning
+    them, which sets `needsYou` ([tasks.md](../../specs/tasks.md#crew-finishes)).
 
 11. **Messages reach a Task three ways, as in Capy.** `steer`, the default, lands at the agent's
     next tool boundary with nothing cancelled, and starts the next turn if the turn ends first.

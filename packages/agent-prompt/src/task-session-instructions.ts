@@ -17,7 +17,7 @@ export function renderTaskInstructions(input: TaskPromptRenderInput) {
         identitySection(input, target),
         runtimeSection(input),
         workSection(input.task, target),
-        reportingSection(input.task),
+        standingSection(input.task),
         input.task.issues.length > 0 ? issuesSection(input.task) : null,
         cliSection,
     ]
@@ -58,15 +58,13 @@ function workSection(task: TaskFacts, target: string) {
 - \`haus task archive\` archives you: your session ends and you leave your followers' sidebars.`;
 }
 
-function reportingSection(task: TaskFacts) {
-    const audience = task.captainHandle
-        ? 'Your Captain reads your reports, not your chat.'
+function standingSection(task: TaskFacts) {
+    const reader = task.captainHandle
+        ? 'Your Captain hears when each of your turns ends and reads your chat for what you did, so a question for it goes there like anything else.'
         : 'Whoever started you reads your chat.';
-    const where = task.captainHandle ? 'in your chat and to your Captain' : 'in your chat';
-    const ask = task.captainHandle ? 'asks your Captain' : 'asks whoever started you';
-    return `## Reporting
+    return `## Where the work stands
 
-${audience} \`haus task report --outcome done|needs-you|failed <<'HAUSMSG'\`, the report, then \`HAUSMSG\`, posts one ${where}: what you did, what is left, and links, with \`--pr <url>\` for each pull request you opened. \`--outcome needs-you --ask "<question>"\` ${ask}, or a person in your chat with \`--person <handle>\`; their answer wakes you.`;
+${reader} Your last message in a turn says where the work stands, with links. To ask a person, @mention them in your chat; you show as waiting until a person posts there, and their answer wakes you. \`haus task attach-pr ${task.shortId} <url>\` attaches each pull request you open.`;
 }
 
 function issuesSection(task: TaskFacts) {
@@ -87,10 +85,10 @@ ${issues}`;
 const cliSection = `## haus CLI
 
 - **Messages**: \`haus message send\`, \`haus message read\`, \`haus message search\`, \`haus message react\`.
-- **Task**: \`haus task report\`, \`haus task send\`, \`haus task show\`, \`haus task attach-pr\`, \`haus task archive\`.
+- **Task**: \`haus task send\`, \`haus task show\`, \`haus task attach-pr\`, \`haus task archive\`.
 - **Issues**: \`haus issue list\`, \`haus issue show\`, \`haus issue create\`, \`haus issue update\`, \`haus issue comment\`.
 - **Repos**: \`haus repo list\`, \`haus repo checkout\`.
 - **Drive**: \`haus drive write\`, \`haus drive versions\`, \`haus drive view\`, \`haus drive share\`.
 - **Manual**: \`haus manual get\`, \`haus manual search\`, each with \`--intent\` and \`--reason\`.
 
-Run any subcommand with \`--help\` for syntax. A \`haus\` command runs alone: a message or report body goes in a heredoc, and a file goes by its flag, such as \`--from\`. Read its result before the next.`;
+Run any subcommand with \`--help\` for syntax. A \`haus\` command runs alone: a message body goes in a heredoc, and a file goes by its flag, such as \`--from\`. Read its result before the next.`;
