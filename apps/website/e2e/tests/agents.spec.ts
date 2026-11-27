@@ -56,25 +56,32 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await page.getByRole('option', { name: '🎉', exact: true }).click();
     await createDialog.getByRole('button', { name: 'Create Captain' }).click();
 
-    // A Captain made from the sidebar opens its DM; its profile is its own page.
+    // A Captain made from the sidebar opens its DM, with the Captain panel beside it.
     await expect(page).toHaveURL(/\/s\/agent-hq\/dm\/[^/]+$/u);
     const agentId = new URL(page.url()).pathname.split('/').at(-1);
     await page.goto(`/s/agent-hq/agents/${agentId}/home`);
-    await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
+    await expect(page).toHaveURL(/\/s\/agent-hq\/dm\/[^/]+$/u);
+    const panel = page.getByRole('complementary', { name: 'Captain panel' });
+    await expect(panel.getByRole('heading', { level: 2, name: /^Scout/u })).toBeVisible();
 
-    // The Captain card opens every setup section through a fact row, not titlebar tabs.
-    const setup = page.getByRole('grid', { name: 'Setup' });
-    for (const section of [
-        'Runs on',
-        'Model',
+    // Setup holds Runs on, Model and All settings; All settings opens every other editor.
+    const setup = panel.getByRole('grid', { name: 'Setup' });
+    for (const row of ['Runs on', 'Model', 'All settings']) {
+        await expect(setup.getByRole('row', { name: row, exact: true })).toBeVisible();
+    }
+    await setup.getByRole('row', { name: 'All settings', exact: true }).click();
+    const allSettings = panel.getByRole('grid', { name: 'All settings' });
+    for (const row of [
         'Automations',
         'Skills',
         'Connections',
+        'Permissions',
         'Workspace',
+        'Profile',
     ]) {
-        await expect(setup.getByRole('row', { name: section, exact: true })).toBeVisible();
+        await expect(allSettings.getByRole('row', { name: row, exact: true })).toBeVisible();
     }
-    await expect(page.getByRole('radio', { name: 'Overview' })).toHaveCount(0);
+    await panel.getByRole('button', { name: 'Back to Overview' }).click();
 
     // The one profile editor carries the private conversation style and signature emoji beside
     // the role line, and the description's 280-character budget blocks Save rather than truncating.
@@ -121,14 +128,9 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await resetConfirmation.getByRole('button', { name: 'Cancel' }).click();
     await expect(resetConfirmation).toBeHidden();
 
-    // Execution configuration lives behind Runs on, which owns its Edit dialog.
-    await setup.getByRole('row', { name: 'Runs on', exact: true }).click();
-    await expect(page).toHaveURL(/\/agents\/[^/]+\/runtime$/u);
-    await expect(
-        page
-            .getByRole('navigation', { name: 'Breadcrumb' })
-            .getByRole('link', { exact: true, name: 'Scout' })
-    ).toBeVisible();
+    // Execution configuration lives behind Model, which owns its Edit dialog.
+    await setup.getByRole('row', { name: 'Model', exact: true }).click();
+    await expect(panel.getByRole('button', { name: 'Back to Overview' })).toBeVisible();
     await expect(page.getByText('Applies when device reconnects')).toBeVisible();
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     // The runner's catalog is the only model list. Saving needs the provider's login in
@@ -142,7 +144,8 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await page.keyboard.press('Escape');
     await expect(modelDialog.getByRole('button', { name: 'Save' })).toBeDisabled();
     await modelDialog.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByRole('heading', { level: 2, name: 'Model' })).toBeHidden();
+    await expect(modelDialog).toHaveCount(0);
+    await panel.getByRole('button', { name: 'Back to Overview' }).click();
 
     // Deletion requires the exact Agent name. Cancel leaves this isolated
     // e2e Agent intact for the adjacent DM and contract assertions.

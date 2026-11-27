@@ -1,6 +1,9 @@
 import { expect, test } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
-import { agentSectionLabels } from '../apps/website/src/features/members/agent-profile/agent-sections.ts';
+import {
+    captainDrillLabels,
+    captainSettingDrills,
+} from '../apps/website/src/features/agent-panel/agent-panel-model.ts';
 import { settingsNavItems } from '../apps/website/src/features/settings/layout/navigation.ts';
 import { serverPageRoutes } from '../apps/website/src/routes/app/server-page-routes.tsx';
 import type { AppPlace, AppPlaceAnchor } from '../packages/agent-manual/src/app-place-model.ts';
@@ -71,31 +74,34 @@ test('the app topic renders each place as one line with its role and caveat', ()
         'Rename a channel or change its description: Project actions → Project settings → General.'
     );
     expect(body).toContain('## Common questions\n\n- What a Computer gives an Agent:');
-    expect(body).toContain('Its Captain profile shows the last error, with Restart');
+    expect(body).toContain('Its Captain panel shows the last error, with Restart');
     expect(body).toContain("synced into the Agent's `drive/` folder");
+    expect(body).toContain("Captain panel → Model shows its Computer's health and model status");
     expect(body).toContain(
-        "Captain profile → Runs on shows its Computer's health and model status"
-    );
-    expect(body).toContain(
-        "- Add a skill from a Computer to an Agent's library: Captain profile → Skills → Add Skills (Owner or Admin).\n"
+        "- Add a skill from a Computer to an Agent's library: Captain panel → All settings → Skills → Add Skills (Owner or Admin).\n"
     );
     expect(body).toContain('Haus App lists no support email, phone number, or response time');
     expect(
         body.length,
-        'raised from 5000 for the Models connection place, the Repositories place (ADR 0060), the Agent access place, its attacher role and the other-Computer answer (ADR 0057), the Project default place for Workers (Make default retired), Settings → Repositories (repo access), and the All Captains, computer use and Run Workers here places (ADR 0057, amended 2026-11-23)'
-    ).toBeLessThanOrEqual(6307);
+        'raised from 5000 for the Models connection place, the Repositories place (ADR 0060), the Agent access place, its attacher role and the other-Computer answer (ADR 0057), the Project default place for Workers (Make default retired), Settings → Repositories (repo access), and the All Captains, computer use and Run Workers here places (ADR 0057, amended 2026-11-23), and the Captain panel All settings step (specs/agent-panel.md)'
+    ).toBeLessThanOrEqual(6352);
 });
 
 function anchorRoot(anchor: AppPlaceAnchor): string {
-    return anchor.kind === 'agent-section' ? 'Captain profile' : 'Settings';
+    if (anchor.kind !== 'captain-setting') {
+        return 'Settings';
+    }
+    return captainSettingDrills.some((drill) => drill === anchor.id)
+        ? 'All settings'
+        : 'Captain panel';
 }
 
 function anchorLabel(anchor: AppPlaceAnchor): string | undefined {
     switch (anchor.kind) {
         case 'settings-section':
             return settingsNavItems.find((item) => item.id === anchor.id)?.label;
-        case 'agent-section':
-            return Object.entries(agentSectionLabels).find(([id]) => id === anchor.id)?.[1];
+        case 'captain-setting':
+            return Object.entries(captainDrillLabels).find(([id]) => id === anchor.id)?.[1];
         case 'label':
             return anchor.text;
         case 'page':

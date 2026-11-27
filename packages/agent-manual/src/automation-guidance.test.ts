@@ -41,7 +41,7 @@ test('webhook manual never sends a secret through chat', () => {
     const body = getManualTopic('recipes/technique/trigger-webhook')?.body ?? '';
     expect(body).toContain('Never post the secret in any chat, a DM included');
     expect(body).toContain(
-        'Captain profile → Automations → (the Trigger) → Rotate secret → Rotate'
+        'Captain panel → All settings → Automations → (the Trigger) → Rotate secret → Rotate'
     );
     expect(body).toContain('install the secret there yourself');
     expect(body).toContain('Never paste the curl line into chat');

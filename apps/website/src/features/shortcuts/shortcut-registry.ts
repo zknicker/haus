@@ -18,6 +18,7 @@ export const shortcutRegistry = [
     row('command-menu', 'Open command menu', 'Anywhere', [cmd('K')]),
     row('send', 'Send message', 'Composer', [key('enter')]),
     row('line-break', 'New line', 'Composer', [key('enter', 'shift')]),
+    row('toggle-agent-panel', 'Show or hide the chat panel', 'Anywhere', [cmd('.')]),
     row('settings', 'Open Settings', 'Desktop app', [cmd(',')]),
     row('new-window', 'New window', 'Desktop app', [cmd('N')]),
     row('new-tab', 'New tab', 'Desktop app', [cmd('T')]),

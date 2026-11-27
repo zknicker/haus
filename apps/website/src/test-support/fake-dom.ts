@@ -13,6 +13,7 @@ export function installFakeDom(): () => void {
     scope.IS_REACT_ACT_ENVIRONMENT = true;
     scope.HTMLElement = FakeElement;
     scope.HTMLIFrameElement = class {};
+    scope.localStorage = memoryStorage();
     return () => {
         for (const key of keys) {
             if (saved[key] === undefined) {
@@ -24,7 +25,23 @@ export function installFakeDom(): () => void {
     };
 }
 
-const keys = ['document', 'window', 'IS_REACT_ACT_ENVIRONMENT', 'HTMLElement', 'HTMLIFrameElement'];
+const keys = [
+    'document',
+    'window',
+    'IS_REACT_ACT_ENVIRONMENT',
+    'HTMLElement',
+    'HTMLIFrameElement',
+    'localStorage',
+];
+
+function memoryStorage() {
+    const values = new Map<string, string>();
+    return {
+        getItem: (key: string) => values.get(key) ?? null,
+        removeItem: (key: string) => values.delete(key),
+        setItem: (key: string, value: string) => values.set(key, value),
+    };
+}
 
 class FakeNode {
     childNodes: FakeNode[] = [];

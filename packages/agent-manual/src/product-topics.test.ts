@@ -102,7 +102,7 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(agent?.body).toContain('haus agent update --agent @handle --description <text>');
     expect(agent?.body).toContain('haus agent avatar --agent @handle --concept <text>');
     expect(agent?.body).not.toMatch(/\bCove\b/u);
-    expect(agent?.body).toContain('at Captain profile → Runs on');
+    expect(agent?.body).toContain('at Captain panel → Model');
     expect(agent?.body).not.toMatch(/action card|haus action prepare|Server role/iu);
     expect(
         searchManualTopics('create a new agent', { limit: 5, scope: 'all' }).map(

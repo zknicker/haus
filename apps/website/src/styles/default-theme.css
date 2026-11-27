@@ -799,6 +799,14 @@
         height: var(--workspace-tab-height);
     }
 
+    /* The row's far end: a shown chat's closed panel toggle (specs/agent-panel.md). */
+    .workspace-tab-row-end {
+        display: flex;
+        flex-shrink: 0;
+        margin-inline-start: auto;
+        padding-inline-end: calc(var(--spacing) * 2);
+    }
+
     /*
      * A Select inside a Toolbar is a filter, not form input: it opens a menu
      * and never takes typed text. HeroUI assigns chrome by component family,
@@ -4292,6 +4300,15 @@
         font-variant-numeric: tabular-nums;
     }
 
+    /* A collapsible group's title: the same words, as the disclosure button. */
+    .captain-list__bar-toggle {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+        border-radius: var(--radius);
+        cursor: var(--cursor-interactive);
+    }
+
     .captain-list__bar-action {
         gap: calc(var(--spacing) * 0.5);
         font-size: var(--text-sm);
@@ -4475,6 +4492,103 @@
 
     .captain-facts .list-view__title.captain-facts__value--unset {
         color: var(--muted);
+    }
+
+    /*
+     * The Captain panel's Setup rows share the panel list's geometry: the glyph column,
+     * 34px rows, the same inset, and no hairlines between rows.
+     */
+    .list-view--secondary.captain-facts--panel {
+        width: 100%;
+        margin-inline: 0;
+    }
+
+    .list-view--secondary.captain-facts--panel .list-view__item {
+        min-height: 34px;
+        padding-block: calc(var(--spacing) * 0.5);
+        padding-inline: calc(var(--spacing) * 4);
+    }
+
+    .list-view--secondary.captain-facts--panel .list-view__item:not(:last-child)::after {
+        display: none;
+    }
+
+    .captain-facts--panel .captain-list__glyph {
+        color: var(--muted);
+    }
+
+    /* The agent panel's tab row: bare tabs on the panel ground, glyph and count spaced off the label. */
+    .agent-panel__tabs :is(.tabs__list-container, .tabs__list) {
+        background: transparent;
+        padding: 0;
+    }
+
+    .agent-panel__tabs .tabs__list {
+        width: fit-content;
+        min-width: 0;
+    }
+
+    .agent-panel__tabs .tabs__tab {
+        flex: none;
+        width: auto;
+        height: calc(var(--spacing) * 7);
+        gap: calc(var(--spacing) * 1.5);
+        padding-inline: calc(var(--spacing) * 2.5);
+        font-size: var(--text-sm);
+    }
+
+    .agent-panel__tabs .tabs__indicator {
+        background: var(--default);
+        box-shadow: none;
+        border-radius: calc(var(--radius) * 1.5);
+    }
+
+    /* The rules file opens right under its edit line, not a page's top margin. */
+    .agent-panel__tabs .artifact-document {
+        padding-block: 0 calc(var(--spacing) * 6);
+    }
+
+    .agent-panel__tabs .artifact-document__prose h1 {
+        font-size: var(--text-xl);
+    }
+
+    .captain-list__note {
+        max-width: 11rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .captain-list__control,
+    .captain-list__person {
+        display: flex;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+    }
+
+    /* An Issue drill-in's facts: a muted label column beside the value, one line each. */
+    .issue-facts {
+        display: grid;
+        grid-template-columns: 5.5rem minmax(0, 1fr);
+        row-gap: calc(var(--spacing) * 2);
+        padding-inline: calc(var(--spacing) * 2.5);
+        font-size: var(--text-sm);
+    }
+
+    .issue-facts dt {
+        color: var(--muted);
+    }
+
+    .issue-facts dd {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: calc(var(--spacing) * 1.5);
+    }
+
+    @container (max-width: 36rem) {
+        .list-view--secondary.captain-facts--panel .list-view__item {
+            padding-inline: calc(var(--spacing) * 2.5);
+        }
     }
 
     /* The description's prose sits on the rail's text edge, its Edit button on the heading's. */

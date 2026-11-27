@@ -5,12 +5,12 @@ import {
 } from '@haus/api';
 import { useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenCaptain } from '../../../hooks/agents/use-open-captain.ts';
 import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
 import { serverChatMessageRoute } from '../server-routes.ts';
 
 export function useChatReferenceActivation(onOpenChat: (id: string) => void) {
-    const openAgentProfile = useOpenAgentProfile();
+    const openAgentProfile = useOpenCaptain();
     const navigate = useNavigate();
     const { slug = '' } = useParams();
     return useCallback(

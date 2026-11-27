@@ -65,7 +65,7 @@ test('an Owner wires a GitHub Trigger and sees its installation and problem', as
     );
     await page.reload();
     await expect(page.getByText('Sign in required', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: /CI failed on main/u }).click();
+    await page.getByRole('row', { name: /CI failed on main/u }).click();
     await expect(
         page.getByRole('dialog').getByText(/GitHub needs a fresh sign-in\./u)
     ).toBeVisible();

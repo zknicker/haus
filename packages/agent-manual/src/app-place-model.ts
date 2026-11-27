@@ -26,8 +26,11 @@ export interface AppPlace {
 export type AppPlaceAnchor =
     /** An id in `settingsNavItems`; its label is the segment after "Settings". */
     | { kind: 'settings-section'; id: string }
-    /** An id in `agentSections`; its label is the segment after "Captain profile". */
-    | { kind: 'agent-section'; id: string }
+    /**
+     * An id in `captainDrills`; its label is the segment after "All settings" for an editor
+     * All settings lists, else after "Captain panel".
+     */
+    | { kind: 'captain-setting'; id: string }
     /** A route in `serverPageRoutes`, under `/s/:slug`. Covers no segment. */
     | { kind: 'page'; path: string }
     /** A repo-relative App source file that renders `text` as a UI label. */
@@ -52,14 +55,15 @@ export function settingsSection(id: string): AppPlaceAnchor {
     return { kind: 'settings-section', id };
 }
 
-export function agentSection(id: string): AppPlaceAnchor {
-    return { kind: 'agent-section', id };
+export function captainSetting(id: string): AppPlaceAnchor {
+    return { kind: 'captain-setting', id };
 }
 
-export function agentProfile(): AppPlaceAnchor[] {
+/** The Captain panel beside a Captain's chat (specs/agent-panel.md). */
+export function captainPanel(): AppPlaceAnchor[] {
     return [
-        label('features/members/agent-profile/agent-profile-edit.tsx', 'Captain profile'),
-        { kind: 'page', path: 'agents/:agentId/:section' },
+        label('features/agent-panel/agent-panel.tsx', 'Captain panel'),
+        { kind: 'page', path: 'dm/:agentId' },
     ];
 }
 

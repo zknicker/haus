@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
-import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenCaptain } from '../../hooks/agents/use-open-captain.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { useAgentLifecycle } from '../servers/agent-lifecycle.tsx';
@@ -79,7 +79,7 @@ export function useActiveAgentRows(): ActiveAgent[] | null {
 export function useOpenActiveAgent(): (agent: Agent) => void {
     const { server } = useServerContext();
     const navigate = useNavigate();
-    const openAgentProfile = useOpenAgentProfile();
+    const openAgentProfile = useOpenCaptain();
     return (agent) => {
         if (agent.captainChatId) {
             navigate(serverChatRoute(server.slug, agent.captainChatId));

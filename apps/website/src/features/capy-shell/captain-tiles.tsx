@@ -3,6 +3,7 @@ import { Badge } from '@heroui/react';
 import * as React from 'react';
 import { Link } from 'react-aria-components';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { showCaptainPanel } from '../../hooks/agents/use-open-captain.ts';
 import { usePreloadAgentRecord } from '../../hooks/members/use-preload-agent-profile.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -84,7 +85,11 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
         preloadAgent();
     }, [preloadAgent, preloadChat]);
     const href = dmChatId ? serverChatRoute(slug, dmChatId) : serverAgentDmRoute(slug, agentId);
-    const pressRef = usePressNavigationWith(useSidebarNavigate(), href, preload);
+    const open = React.useCallback(() => showCaptainPanel(agentId), [agentId]);
+    const pressRef = usePressNavigationWith(useSidebarNavigate(), href, () => {
+        preload();
+        open();
+    });
     const [cardOffset, setCardOffset] = React.useState(cardGap);
     if (!tile) {
         return null;
@@ -123,6 +128,7 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
                         href={href}
                         onFocus={preload}
                         onHoverStart={preload}
+                        onPress={open}
                         ref={pressRef}
                         style={{ width: tileSize }}
                     >

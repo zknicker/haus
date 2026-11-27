@@ -1,19 +1,27 @@
 import { type Agent, artifactPathKey } from '@haus/api';
+import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
+import { Icon } from '../../../components/ui/icon.tsx';
 import { useDriveFolderFiles } from '../../../hooks/artifacts/use-drive-folder-files.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { artifactViewerHref, libraryHref } from '../../artifacts/library-params.ts';
 import { taskAge } from '../../tasks/tasks-page-model.ts';
-import { CaptainListGroup, CaptainListRow, CaptainListRows } from './captain-list.tsx';
+import {
+    CaptainListGroup,
+    CaptainListRow,
+    CaptainListRows,
+    useCaptainListCollapse,
+} from '../captain-list.tsx';
 
 const ruleFiles = ['AGENTS.md', 'WORKER.md', 'MEMORY.md'] as const;
 
-export function AgentDrive({ agent, server }: { agent: Agent; server: ServerDetail }) {
+export function CaptainDrive({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const navigate = useNavigate();
     const now = useRelativeNow(60_000);
     const folder = `agents/${agent.handle}`;
     const listing = useDriveFolderFiles(server.id, folder);
+    const collapse = useCaptainListCollapse();
     if (!listing.files) {
         return null;
     }
@@ -35,7 +43,8 @@ export function AgentDrive({ agent, server }: { agent: Agent; server: ServerDeta
     return (
         <CaptainListGroup
             action={{ label: 'All files', onPress: () => navigate(folderHref) }}
-            count={rows.length}
+            collapse={collapse}
+            count={listing.files.length}
             title="Drive"
         >
             <CaptainListRows
@@ -54,10 +63,21 @@ export function AgentDrive({ agent, server }: { agent: Agent; server: ServerDeta
                                 ? taskAge({ createdAt: row.updatedAt }, now)
                                 : 'Not created'
                         }
+                        glyph={
+                            <span className={row.updatedAt ? 'flex' : 'text-muted flex'}>
+                                <Icon aria-hidden="true" icon={File01Icon} size={14} />
+                            </span>
+                        }
                         id={row.name}
                         key={row.name}
                         textValue={row.name}
-                        title={row.name}
+                        title={
+                            row.updatedAt ? (
+                                row.name
+                            ) : (
+                                <span className="text-muted">{row.name}</span>
+                            )
+                        }
                     />
                 ))}
             </CaptainListRows>

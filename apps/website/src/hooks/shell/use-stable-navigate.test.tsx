@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import * as React from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { installFakeDom } from '../../test-support/fake-dom.ts';
-import { useOpenAgentProfile } from '../agents/use-open-agent-profile.ts';
+import { useOpenCaptain } from '../agents/use-open-captain.ts';
 import { useStableNavigate } from './use-stable-navigate.ts';
 
 let restoreDom: () => void;
@@ -17,11 +17,11 @@ test('router openers keep one identity across navigations and act on the latest 
     const { act } = React;
     const { createRoot } = await import('react-dom/client');
     const navigates: ((href: string) => void)[] = [];
-    const openers: ReturnType<typeof useOpenAgentProfile>[] = [];
+    const openers: ReturnType<typeof useOpenCaptain>[] = [];
     const paths: string[] = [];
     function Probe() {
         navigates.push(useStableNavigate());
-        openers.push(useOpenAgentProfile());
+        openers.push(useOpenCaptain());
         paths.push(useLocation().pathname);
         return null;
     }
@@ -39,7 +39,7 @@ test('router openers keep one identity across navigations and act on the latest 
     await act(() => navigates.at(-1)?.('/s/two/chats/b'));
     await act(() => openers.at(-1)?.('agt_tiny'));
 
-    expect(paths).toEqual(['/s/one/chats/a', '/s/two/chats/b', '/s/two/agents/agt_tiny/home']);
+    expect(paths).toEqual(['/s/one/chats/a', '/s/two/chats/b', '/s/two/dm/agt_tiny']);
     expect(new Set(navigates).size).toBe(1);
     expect(new Set(openers).size).toBe(1);
 

@@ -4,11 +4,13 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import type { PaneSide } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { openNewTabPage } from '../../hooks/desktop-tabs/use-desktop-tab-shortcuts.ts';
+import { TabRowPanelToggle } from '../agent-panel/tab-row-panel-toggle.tsx';
 import { SortableTabList } from './sortable-tab-list.tsx';
 
 /**
  * One pane's tab row in the window band (ADR 0039): its sortable tabs, then
- * New tab (the new tab page, in this pane). With two panes the focused one's
+ * New tab (the new tab page, in this pane), then at its far end the shown chat's panel
+ * toggle while that panel is closed (specs/agent-panel.md). With two panes the focused one's
  * row is marked (`data-focused`), so it is clear which pane the window's Back
  * and Forward, ⌘T, and ⌘W act on. The row always shows, even with one tab.
  * Pressing anywhere on it makes its pane the focused one. A dragged tab finds
@@ -42,6 +44,7 @@ export function WorkspaceTabStrip({ label, pane }: { label: string; pane: PaneSi
                     <Tooltip.Content>New tab</Tooltip.Content>
                 </Tooltip>
             </span>
+            <TabRowPanelToggle pane={pane} />
         </div>
     );
 }

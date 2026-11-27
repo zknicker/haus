@@ -2,7 +2,7 @@ import { captainsProjectId } from '../support/project.ts';
 import { attachComputer, captainTile, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('a cold Agent profile keeps identity and navigation available before its content arrives', async ({
+test('a cold Captain panel keeps identity and navigation available before its content arrives', async ({
     page,
 }) => {
     let release = () => {};
@@ -46,15 +46,21 @@ test('a cold Agent profile keeps identity and navigation available before its co
             await route.continue();
         }
     );
+    const panel = page.getByRole('complementary', { name: 'Captain panel' });
     try {
         await row.click({ button: 'right' });
         await page.getByRole('menuitem', { name: 'View Captain profile', exact: true }).click();
-        await expect(page.getByRole('heading', { name: 'Iris', exact: true })).toBeVisible();
-        await page
+        await expect(panel.getByRole('heading', { level: 2, name: /^Iris/u })).toBeVisible();
+        await panel
             .getByRole('grid', { name: 'Setup' })
+            .getByRole('row', { name: 'All settings', exact: true })
+            .click();
+        await panel
+            .getByRole('grid', { name: 'All settings' })
             .getByRole('row', { name: 'Automations', exact: true })
             .click();
-        await expect(page.getByRole('list', { name: 'Breadcrumbs' })).toContainText('Automations');
+        await expect(panel.getByRole('heading', { level: 2, name: 'Automations' })).toBeVisible();
+        await expect(panel.getByRole('button', { name: 'Back to All settings' })).toBeVisible();
         await expect(page.locator('.skeleton')).toHaveCount(0);
     } finally {
         release();

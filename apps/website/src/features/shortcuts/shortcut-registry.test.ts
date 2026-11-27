@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createRequire } from 'node:module';
+import { isAgentPanelKey } from '../agent-panel/agent-panel-key.ts';
 import {
     shouldInsertChatComposerLineBreak,
     shouldSubmitChatComposerKey,
@@ -41,7 +42,7 @@ const { browserShortcut } = require('../../../electron/browser-shortcuts.cjs') a
 const menuChords = new Map(menuItems().map((item) => [item.chord, item.id]));
 
 const handlersByContext: Record<ShortcutContext, (chord: KeyChord) => (string | null)[]> = {
-    Anywhere: (chord) => [commandMenuId(chord)],
+    Anywhere: (chord) => [commandMenuId(chord), agentPanelId(chord)],
     Composer: (chord) => [composerId(chord)],
     'Desktop app': (chord) => [menuChords.get(chordId(chord)) ?? null, pageId(chord)],
     'Web page': (chord) => [menuChords.get(chordId(chord)) ?? null, pageId(chord)],
@@ -153,6 +154,18 @@ function commandMenuId(chord: KeyChord) {
         : null;
 }
 
+function agentPanelId(chord: KeyChord) {
+    return isAgentPanelKey({
+        altKey: chord.modifiers.includes('option'),
+        ctrlKey: chord.modifiers.includes('ctrl'),
+        key: eventKey(chord),
+        metaKey: chord.modifiers.includes('command'),
+        shiftKey: chord.modifiers.includes('shift'),
+    })
+        ? 'toggle-agent-panel'
+        : null;
+}
+
 function pageInput(chord: KeyChord) {
     const shift = chord.modifiers.includes('shift');
     const pressed = eventKey(chord);
@@ -216,6 +229,7 @@ const namedKeys: Record<string, string> = {
 
 const keyCodes: Record<string, string> = {
     ',': 'Comma',
+    '.': 'Period',
     '-': 'Minus',
     '=': 'Equal',
     '[': 'BracketLeft',

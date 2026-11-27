@@ -34,13 +34,17 @@ test('agent DM menus work before the first message and on the selected conversat
     await expect(profile).toBeHidden();
     await expect(page.getByRole('heading', { name: 'No messages yet' })).toBeVisible();
 
+    const panel = page.getByRole('complementary', { name: 'Captain panel' });
+    await page.getByRole('button', { name: 'Hide panel', exact: true }).click();
+    await expect(panel).toHaveCount(0);
     await header.click();
     await expect(profile).toBeEnabled();
     await expect(page.getByRole('menuitem', { name: 'Attachments', exact: true })).toBeDisabled();
     await expect(page.getByRole('menuitem', { name: 'View tasks', exact: true })).toHaveCount(0);
     await profile.click();
-    await expect(page).toHaveURL(/\/agents\/agt_e2edmmenus000000/u);
-    await page.goBack();
+    await expect(profile).toBeHidden();
+    await expect(page).toHaveURL(/\/dm\/agt_e2edmmenus000000/u);
+    await expect(panel).toBeVisible();
     await expect(header).toBeVisible();
 
     for (const target of [row, header]) {

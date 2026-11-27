@@ -14,6 +14,8 @@ import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts
 import { WindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import { useViewportBelow } from '../../../hooks/use-viewport-below.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { agentPanelKey, agentPanelSubject } from '../../agent-panel/agent-panel-model.ts';
+import { AgentPanel } from '../../agent-panel/agent-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
@@ -86,6 +88,7 @@ export function ChatView({
         [chat.serverId, ensureDm.mutate]
     );
     const handleReferenceActivate = useChatReferenceActivation(onOpenChat);
+    const panelSubject = agentPanelSubject(chat);
     return (
         <section
             aria-label={chatName}
@@ -107,6 +110,7 @@ export function ChatView({
                         chatName={chatName}
                         onOpenFiles={filesPane.open}
                         onToggleArtifacts={artifactState.toggleVisible}
+                        panelKey={panelSubject ? agentPanelKey(panelSubject) : null}
                         server={server}
                     />
                 </PageTopbar>
@@ -190,6 +194,7 @@ export function ChatView({
                 )}
                 transcriptRef={transcriptRef}
             />
+            {panelSubject ? <AgentPanel server={server} subject={panelSubject} /> : null}
         </section>
     );
 }

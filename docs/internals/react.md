@@ -89,12 +89,9 @@ reuses the latest local snapshot while realtime invalidations refresh it.
 Profile loading follows the same rule. Human profiles reserve identity facts and load Created
 Agents independently. Profile settings keeps Identity rows and Account actions visible while
 the member directory resolves, with identity inputs disabled until the real member arrives.
-Computer profiles reserve their named sections during the first roster read. An Agent profile
-page stays blank while its Agent loads. Its hub then paints the Captain card's identity and fact
-labels at once, and its remote parts — the card's facts and the Needs you, Working on, Recent,
-and Drive list beside it — land as one
-reveal: immediately when every hub read is cached, else when they settle or after 150ms,
-whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves when they land.
+Computer profiles reserve their named sections during the first roster read. The Captain panel
+stays blank while its Agent loads; then its header paints, and each Overview section (Needs you,
+Crew, Setup, Drive) hides until its read lands and stays hidden when empty.
 
 * Keep route files thin.
 * Let route/page boundaries own `Suspense`, skeletons, and error boundaries.
@@ -113,11 +110,10 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   Suspense boundaries with neutral data regions, without skeletons or loading decoration.
   Share their cached module loaders with preloading. The persistent shell warms
   content while idle; sidebar-row hover warms the destination before selection.
-  The shared Agent profile frame also serves desktop tabs: identity, navigation cards,
-  and section trails remain available while activity, usage, workspace, or section code loads.
-  Once the shell has warmed the profile content module, the frame renders it directly in its
-  first commit (`readLoadedAgentProfileContent`); the lazy boundary is only a cold fallback,
-  decided once per mount so it never remounts.
+  The Captain panel's drill-in bodies (`CaptainDrillBody`) are code-split the same way: once the
+  shell has warmed that module, a drill-in renders it directly in its first commit
+  (`readLoadedAgentProfileContent`); the lazy boundary is only a cold fallback, decided once per
+  mount so it never remounts.
   Channel and existing DM rows also warm Chat detail, paginated history,
   and engagements on hover, keyboard focus, or press; once
   the shell is idle it warms the first paint of unread and recently active
@@ -198,8 +194,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   page: "Haus" links to the Inbox, every crumb but the last is a destination, the current page
   is the unlinked end, and a trail deeper than three crumbs folds its middle into one menu
   (`band-trail.ts`). Inbox, Tasks, Activity, Search, and Files are sections (Haus › Tasks);
-  a Settings record reads Haus › Settings › page › record, and an Agent Haus › Agent (› section),
-  the Agent and member crumbs wearing their face. A top-level Settings page draws no trail: the
+  a Settings record reads Haus › Settings › page › record, the member crumb wearing its face. A top-level Settings page draws no trail: the
   rail's current row, the page title and the tab (named for the page) already say where you are.
   The band carries no page glyph and no title apart from the trail: the trail is the one
   representation of where you are, beside a desktop tab too. A chat is the one exception: on the
@@ -339,23 +334,23 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   Server; that is a known wart, not a licence to file them under Server).
   Page titles match their sidebar labels, including Server and Skills. Computer
   titles use the same Computer name as the sidebar; health belongs in metadata.
-* **An Agent has its own page; a human is a record in Settings.** Agents are
-  first-class product records, so an Agent's page renders in the Server layout
-  at `/s/:slug/agents/:agentId/:section` (`routes/app/agent-page.tsx`) and keeps the
-  app's own navigation. Humans stay roster records under Settings → Members at
-  `settings/members/humans/:userId`. The old `settings/members/agents/…`
-  addresses redirect to the page; there is no second route for the same record.
-* **One command opens an Agent's profile.** Every surface — transcript avatars,
-  Agent chips, the Inbox's live Agent rows, the chat-rail and DM menus, the
-  Computer page's Agent table, Settings → Members — calls
-  `useOpenAgentProfile` (`hooks/agents/use-open-agent-profile.ts`), a push to
-  the profile route that the desktop tab router places like any link. The opener
-  keeps one identity across navigations; a transcript calls it once and hands it
-  to its avatars through the render context (`openAgentProfile`), so rows never
-  read the router. Real links use
-  `AgentProfileLink`, which keeps the href and routes its click through the
-  same command. Hover shows the Agent hover card; there is no profile pane
-  ([ADR 0038](../adr/0038-destinations-open-as-tabs.md)).
+* **A Captain opens as its chat with the Captain panel; a human is a record in Settings.**
+  The panel ([specs/agent-panel.md](../../specs/agent-panel.md), `features/agent-panel/`) sits
+  beside the transcript inside the chat surface on both platforms. Its subject is "this chat's
+  Captain" (`agentPanelSubject`), its open state, tab, and drill-in persist per subject in a
+  small external store, and one function maps a Captain to the chat it opens
+  (`captainChatRoute`). The retired `/s/:slug/agents/:agentId/:section` address
+  (`routes/app/agent-page.tsx`) sets the panel view and redirects there; the old
+  `settings/members/agents/…` addresses still chain into it. Humans stay roster records under
+  Settings → Members at `settings/members/humans/:userId`.
+* **One command opens a Captain.** Every surface — transcript avatars, Agent chips, the Inbox's
+  live Agent rows, the chat-rail and DM menus, the Computer page's Agent table, Settings →
+  Members — calls `useOpenCaptain` (`hooks/agents/use-open-captain.ts`): it opens the panel on
+  Overview or a named drill-in, then pushes the Captain's chat, which the desktop tab router
+  places like any link. The opener keeps one identity across navigations; a transcript calls it
+  once and hands it to its avatars through the render context (`openAgentProfile`), so rows
+  never read the router. Real links use `AgentProfileLink`, which keeps the chat's href and
+  routes its click through the same command. Hover shows the Agent hover card.
 * Usage is a dashboard, not a member. It is the Settings section
   `/s/:slug/settings/usage`, so the settings rail stays while you read it.
   The Agent tile and Computer detail build filtered links with `usageRoute`;

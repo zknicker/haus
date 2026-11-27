@@ -5,10 +5,10 @@ import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentTools as AgentConnections } from '../../../routes/app/agent-tools.tsx';
+import { canOpenCaptainDrill } from '../../agent-panel/agent-panel-model.ts';
 import { AgentMachineRow } from './agent-machine-row.tsx';
 import { AgentPermissions } from './agent-permissions.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
-import { canOpenAgentSection } from './agent-sections.ts';
 import { AgentSkills } from './agent-skills.tsx';
 import { ProfileListSection } from './profile-list-section.tsx';
 
@@ -17,26 +17,29 @@ import { ProfileListSection } from './profile-list-section.tsx';
  * while that query loads or fails, so a slow Computer never blanks the page.
  */
 
-/** Runs on: the Captain's Machine, then the model it runs. */
-export function AgentRuntimeSection({ agent, server }: { agent: Agent; server: ServerDetail }) {
+/** Runs on: the Captain's Machine. */
+export function AgentMachineSection({ agent, server }: { agent: Agent; server: ServerDetail }) {
+    const canEdit = server.role === 'owner' || server.role === 'admin';
+    return (
+        <ItemCardGroup variant="transparent">
+            <ItemCardGroup className="overflow-hidden">
+                <AgentMachineRow agent={agent} canEdit={canEdit} />
+            </ItemCardGroup>
+        </ItemCardGroup>
+    );
+}
+
+/** Model: the model, runtime and reasoning effort the Captain runs, with its Machine's health. */
+export function AgentModelSection({ agent, server }: { agent: Agent; server: ServerDetail }) {
     const computers = useComputers(server.id);
     const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
-    const canEdit = server.role === 'owner' || server.role === 'admin';
-
     return (
-        <>
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup className="overflow-hidden">
-                    <AgentMachineRow agent={agent} canEdit={canEdit} />
-                </ItemCardGroup>
-            </ItemCardGroup>
-            <AgentRuntime
-                agent={agent}
-                canEdit={canEdit}
-                computerHealth={computer?.health}
-                serverId={server.id}
-            />
-        </>
+        <AgentRuntime
+            agent={agent}
+            canEdit={server.role === 'owner' || server.role === 'admin'}
+            computerHealth={computer?.health}
+            serverId={server.id}
+        />
     );
 }
 
@@ -92,15 +95,15 @@ export function AgentSkillsSection({ agent, server }: { agent: Agent; server: Se
 }
 
 /**
- * What this Agent may manage for other Agents. The route already sends a
- * Member home (`canOpenAgentSection`); this check keeps the switches absent
- * should the page ever render for one anyway.
+ * What this Agent may manage for other Agents. All settings lists it only for an Owner or
+ * Admin (`canOpenCaptainDrill`); this check keeps the switches absent should it ever render
+ * for a Member anyway.
  */
 export function AgentPermissionsSection({ agent, server }: { agent: Agent; server: ServerDetail }) {
     return (
         <AgentPermissions
             agent={agent}
-            canManage={canOpenAgentSection('permissions', server.role)}
+            canManage={canOpenCaptainDrill('permissions', server.role)}
             serverId={server.id}
         />
     );

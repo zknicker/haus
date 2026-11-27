@@ -2,11 +2,12 @@ import { expect, test } from 'bun:test';
 import {
     agentSkillNames,
     countAgentAutomations,
+    formatAllSettingsFact,
     formatAutomationsFact,
     formatNameList,
     grantedAgentConnections,
     isUnsetFact,
-} from './agent-hub-model.ts';
+} from './captain-facts-model.ts';
 
 test('a fact that names nothing reads as unset', () => {
     expect(isUnsetFact(formatNameList([]))).toBe(true);
@@ -44,11 +45,8 @@ test('Connections is only what this Agent can use right now', () => {
     const granted = grantedAgentConnections(
         [
             usable,
-            // Granted but offline, so the Agent cannot call it.
             { connected: false, grants, name: 'offline', tools: [{ name: 'search' }] },
-            // Connected but toolless, so there is nothing to call.
             { connected: true, grants, name: 'toolless', tools: [] },
-            // Connected and useful, but granted to somebody else.
             {
                 connected: true,
                 grants: [{ agentId: 'agt_2' }],
@@ -58,7 +56,6 @@ test('Connections is only what this Agent can use right now', () => {
         ],
         'agt_1'
     );
-    // One selector, so the hub card and anything else naming this set agree.
     expect(granted).toEqual([usable]);
 });
 
@@ -77,4 +74,15 @@ test('a card names two members and counts the rest', () => {
     expect(formatNameList(['Visuals'])).toBe('Visuals');
     expect(formatNameList(['Atlas', 'BidBeacon'])).toBe('Atlas, BidBeacon');
     expect(formatNameList(['Atlas', 'BidBeacon', 'Cove', 'Drift'])).toBe('Atlas, BidBeacon +2');
+});
+
+test('All settings counts what stands behind it, dropping zero halves', () => {
+    const counts = { armedTriggers: 1, scheduledReminders: 3, total: 4 };
+    expect(formatAllSettingsFact(counts, 5)).toBe('3 reminders · 1 trigger · 5 skills');
+    expect(
+        formatAllSettingsFact({ ...counts, armedTriggers: 0, scheduledReminders: 0, total: 0 }, 1)
+    ).toBe('1 skill');
+    expect(
+        formatAllSettingsFact({ ...counts, armedTriggers: 0, scheduledReminders: 0, total: 0 }, 0)
+    ).toBe('Nothing scheduled');
 });

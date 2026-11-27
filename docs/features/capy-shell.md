@@ -45,8 +45,8 @@ Inbox page in J4; there is no flag.
   Automations (a menu of Captains, each opening its Automations), and Activity. Drive opens the
   Files route (`/s/<slug>/artifacts`), which D5 turns into the Drive page. Tasks, Drive and
   Activity are real links: a modified or middle click opens a tab, hover warms the route, and the
-  open one is the current page. Automations opens a Captain's profile through
-  `useOpenAgentProfile`. The update status
+  open one is the current page. Automations opens a Captain's chat with the panel on Automations through
+  `useOpenCaptain`. The update status
   and the offline Device chip stay above them, as in the old sidebar.
 - **Removed.** The Inbox row and page, the Direct messages section, the Files row, and the top
   Settings gear. `/inbox` redirects to Home, and nothing links there: the

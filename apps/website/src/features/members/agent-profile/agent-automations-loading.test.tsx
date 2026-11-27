@@ -6,7 +6,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { testAgent } from '../agent-fixtures.ts';
 import { AgentAutomations } from './agent-content.tsx';
-import { AgentRecent } from './agent-recent.tsx';
 
 test('pending profile lists keep headings and actions without premature empty states', () => {
     const queryClient = new QueryClient();
@@ -18,7 +17,6 @@ test('pending profile lists keep headings and actions without premature empty st
             <hausTrpc.Provider client={client} queryClient={queryClient}>
                 <MemoryRouter>
                     <AgentAutomations agent={testAgent()} server={server} />
-                    <AgentRecent agent={testAgent()} onSeeAll={() => undefined} server={server} />
                 </MemoryRouter>
             </hausTrpc.Provider>
         </QueryClientProvider>
@@ -29,8 +27,6 @@ test('pending profile lists keep headings and actions without premature empty st
     expect(markup).toContain('aria-label="View reminder history"');
     expect(markup).not.toContain('Nothing scheduled');
     expect(markup).not.toContain('No triggers yet');
-    expect(markup).not.toContain('Recent</h');
-    expect(markup).not.toContain('No activity yet');
     expect(markup.match(/aria-busy="true"/gu)).toHaveLength(2);
 });
 

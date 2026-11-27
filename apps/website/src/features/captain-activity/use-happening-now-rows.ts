@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
-import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenCaptain } from '../../hooks/agents/use-open-captain.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useAgentLifecycle } from '../servers/agent-lifecycle.tsx';
 import { useServerContext } from '../servers/server-context.ts';
@@ -33,6 +33,6 @@ export function useHappeningNowRows(): HappeningNowRow[] | null {
 }
 
 export function useOpenHappeningNowRow(): (row: HappeningNowRow) => void {
-    const openAgentProfile = useOpenAgentProfile();
+    const openAgentProfile = useOpenCaptain();
     return (row) => openAgentProfile(row.id);
 }

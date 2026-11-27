@@ -14,7 +14,7 @@ import { expect, test } from '../support/test.ts';
 // render path), so they are larger than the prod render audit's
 // (scripts/perf/render-audit.mjs) and only comparable with themselves.
 
-test('web: idle, realtime messages, a warm switch, and a profile stay within budget', async ({
+test('web: idle, realtime messages, a warm switch, and opening a Captain stay within budget', async ({
     page,
 }, testInfo) => {
     test.setTimeout(180_000);
@@ -40,10 +40,14 @@ test('web: idle, realtime messages, a warm switch, and a profile stay within bud
     const switchRenders = await readRenders(page);
     expect(switchRenders.byName.ServerUpdateStream ?? 0).toBe(0);
     expect(switchRenders.byName.MemberUpdateStream ?? 0).toBe(0);
-    await budget.measure('open-agent-profile', async () => {
+    await budget.measure('open-captain', async () => {
         await captainTile(page, 'Orbit').click({ button: 'right' });
         await page.getByRole('menuitem', { exact: true, name: 'View Captain profile' }).click();
-        await expect(page.getByRole('heading', { exact: true, name: 'Orbit' })).toBeVisible();
+        await expect(
+            page
+                .getByRole('complementary', { name: 'Captain panel' })
+                .getByRole('heading', { level: 2, name: /^Orbit/u })
+        ).toBeVisible();
     });
 
     // Bursts (specs/realtime-events.md, "Perf gates"): appended rows render,

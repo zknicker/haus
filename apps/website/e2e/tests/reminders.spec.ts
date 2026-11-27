@@ -5,7 +5,7 @@ import { expect, test } from '../support/test.ts';
 
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' });
 
-test('an Owner sees an Agent reminder on the Agent profile', async ({
+test('an Owner sees an Agent reminder in the Captain panel', async ({
     page,
     browser,
 }, testInfo) => {
@@ -32,18 +32,21 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     });
 
     await page.goto('/s/reminders/agents/agt_e2e_reminder/home');
-    await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
-    await page
-        .getByLabel('Scrollable main content')
-        .getByRole('button', { name: /^Automations/u })
+    const panel = page.getByRole('complementary', { name: 'Captain panel' });
+    await expect(panel.getByRole('heading', { level: 2, name: /^Cove/u })).toBeVisible();
+    await panel
+        .getByRole('grid', { name: 'Setup' })
+        .getByRole('row', { name: 'All settings', exact: true })
+        .click();
+    await panel
+        .getByRole('grid', { name: 'All settings' })
+        .getByRole('row', { name: 'Automations', exact: true })
         .click();
     await expect(page.getByText('Local watchdog', { exact: true })).toBeVisible();
     // A row is one short line in the viewer's time, led by its kind: the
     // cadence for a recurring reminder, "Once" for a one-time one. The
     // schedule's own timezone lives in the detail, not the row.
-    await expect(
-        page.getByText('Daily at 9:00 AM · Next run Mon, Jul 27, 2099', { exact: true })
-    ).toBeVisible();
+    await expect(panel.getByText('Daily at 9:00 AM', { exact: true })).toBeVisible();
     await expect(
         page.getByText('Once · Tue, Sep 1, 2099 at 12:00 PM', { exact: true })
     ).toBeVisible();
@@ -54,7 +57,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     });
 
     // The row opens the reminder's detail: its kind, schedule, and context.
-    await page.getByRole('button', { name: /Local watchdog/u }).click();
+    await panel.getByRole('row', { name: /Local watchdog/u }).click();
     const sheet = page.getByRole('dialog');
     await expect(sheet.getByRole('heading', { name: 'Local watchdog' })).toBeVisible();
     await expect(sheet.getByText('Recurring reminder', { exact: true })).toBeVisible();
@@ -73,7 +76,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await page.keyboard.press('Escape');
     await expect(sheet).toHaveCount(0);
 
-    await page.getByRole('button', { name: /Renewal check/u }).click();
+    await panel.getByRole('row', { name: /Renewal check/u }).click();
     await expect(sheet.getByText('One-time reminder', { exact: true })).toBeVisible();
     await expect(sheet.getByText("Doesn't repeat", { exact: true })).toBeVisible();
     await expect(sheet.getByText('Run history', { exact: true })).toHaveCount(0);
@@ -95,15 +98,15 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     try {
         const other = await context.newPage();
         await signInAsAppHuman(other);
-        await other.goto(page.url());
-        const schedule = other.getByText('Daily at 10:00 PM · Next run Mon, Jul 27, 2099', {
+        await other.goto('/s/reminders/agents/agt_e2e_reminder/automations');
+        const schedule = other.getByText('Daily at 10:00 PM', {
             exact: true,
         });
         await expect(schedule).toBeVisible();
         expect(
             await schedule.evaluate((element) => element.scrollWidth <= element.clientWidth)
         ).toBe(true);
-        await other.getByRole('button', { name: /Local watchdog/u }).click();
+        await other.getByRole('row', { name: /Local watchdog/u }).click();
         await expect(
             other.getByRole('dialog').getByText('New York time · 9:00 AM there', { exact: true })
         ).toBeVisible();
@@ -116,8 +119,8 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
         // The e2e human is shared, so the next spec reads times where this one found them.
         await client.member.setTimezone.mutate({ serverId: server.id, timezone: savedZone });
     }
-    // Reminders and Triggers share the Automations page, each as its own section.
-    await expect(page.getByText(/No triggers yet\./u)).toBeVisible();
+    // Reminders and Triggers share the Automations drill-in; a group with no rows is left out.
+    await expect(panel.getByRole('heading', { name: /^Triggers/u })).toHaveCount(0);
 
     // The section is the schedule: nothing that has already happened is listed
     // beside the wakes still coming.
@@ -125,7 +128,8 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await expect(page.getByText('Weekly digest', { exact: true })).toHaveCount(0);
 
     // Reminders and Triggers each carry their own history, so name the one.
-    await page.getByRole('button', { name: 'View reminder history' }).click();
+    await panel.getByRole('button', { name: 'Automation history' }).click();
+    await page.getByRole('menuitem', { name: 'Reminder history' }).click();
     const drawer = page.getByRole('dialog');
     await expect(drawer.getByRole('heading', { name: 'History' })).toBeVisible();
 
@@ -164,7 +168,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
 
     // Canceling asks first, then removes the reminder from the schedule,
     // which closes its detail.
-    await page.getByRole('button', { name: /Renewal check/u }).click();
+    await panel.getByRole('row', { name: /Renewal check/u }).click();
     await sheet.getByRole('button', { name: 'Cancel Reminder' }).click();
     const confirm = page.getByRole('alertdialog');
     await expect(confirm.getByRole('heading', { name: 'Cancel Renewal check?' })).toBeVisible();
@@ -181,12 +185,10 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
            )`
     );
     await page.reload();
-    await expect(page.getByRole('link', { name: 'Automations', exact: true })).toBeVisible();
-    await expect(page.getByText(/Nothing scheduled\./u)).toBeVisible();
+    await expect(panel.getByRole('heading', { level: 2, name: 'Automations' })).toBeVisible();
+    await expect(page.getByText('Only Owners and Admins see automations.')).toBeVisible();
     await expect(page.getByText('Local watchdog', { exact: true })).toHaveCount(0);
-    await expect(
-        page.getByRole('button', { name: /view (?:reminder|trigger) history/iu })
-    ).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Automation history' })).toHaveCount(0);
 });
 
 function seedReminderState(input: {

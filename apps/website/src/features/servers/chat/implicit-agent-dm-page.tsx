@@ -7,6 +7,9 @@ import { useOptionalDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useWindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { agentPanelKey } from '../../agent-panel/agent-panel-model.ts';
+import { ClosedAgentPanelToggle } from '../../agent-panel/agent-panel-toggle.tsx';
+import { AgentPanel } from '../../agent-panel/agent-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import { SectionHeader } from '../../shell/section-header.tsx';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
@@ -37,6 +40,7 @@ export function ImplicitAgentDmPage({
     }
 
     const selectionKey = `implicit-agent-dm:${agent.id}`;
+    const panelSubject = { agentId: agent.id, kind: 'captain' } as const;
     return (
         <section
             aria-label={agent.displayName}
@@ -70,6 +74,7 @@ export function ImplicitAgentDmPage({
                             peerAgent={agent}
                             slug={server.slug}
                         />
+                        <ClosedAgentPanelToggle panelKey={agentPanelKey(panelSubject)} />
                     </SectionHeader>
                 </PageTopbar>
             )}
@@ -104,6 +109,7 @@ export function ImplicitAgentDmPage({
                 rowCount={0}
                 timelineContent={() => null}
             />
+            <AgentPanel server={server} subject={panelSubject} />
         </section>
     );
 }

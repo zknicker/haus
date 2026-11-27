@@ -12,7 +12,7 @@ import { Link } from 'react-aria-components';
 import { useLocation } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useOpenAgentProfileWith } from '../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenCaptainWith } from '../../hooks/agents/use-open-captain.ts';
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -58,7 +58,7 @@ export function CapyFooterSections({ serverId, slug }: { serverId: string; slug:
 function AutomationsMenu({ serverId, slug }: { serverId: string; slug: string }) {
     const sidebarNavigate = useSidebarNavigate();
     const openers = useDesktopPageOpeners();
-    const openAgentProfile = useOpenAgentProfileWith(openers?.openPage ?? sidebarNavigate, slug);
+    const openAgentProfile = useOpenCaptainWith(openers?.openPage ?? sidebarNavigate, slug);
     const captains = useAgentAppearances(serverId);
     return (
         <Dropdown>
@@ -72,7 +72,7 @@ function AutomationsMenu({ serverId, slug }: { serverId: string; slug: string })
                 <Dropdown.Menu
                     aria-label="Automations"
                     disabledKeys={['none']}
-                    onAction={(key) => openAgentProfile(String(key), { section: 'automations' })}
+                    onAction={(key) => openAgentProfile(String(key), { drill: 'automations' })}
                 >
                     {captains.length === 0 ? (
                         <Dropdown.Item id="none" textValue="No Captains yet">

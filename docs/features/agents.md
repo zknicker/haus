@@ -69,50 +69,27 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 
 ## Product surfaces
 
-- An Agent's profile is one hub page with drill-down sections
-  ([ADR 0038](../adr/0038-destinations-open-as-tabs.md)). On web it is its own destination at
-  `/s/:slug/agents/:agentId/:section`, in the Server layout beside Usage; `home` is the hub, and
-  the retired tab names redirect (`overview` to `home`, `setup` to `runtime`). On desktop the same
-  route renders in a tab ([ADR 0039](../adr/0039-desktop-tabs-are-equal-pages.md)). Nothing is
-  injected into the window titlebar, and the view lays out from its container width, so it works in
-  a 420px pane.
-- The hub's header states the Agent's photo, name, role, and current availability, offers
-  **Edit Profile** (name, description, the private conversation style, and the signature emoji) for an ordinary Agent, and holds one `···` overflow menu for Owners and Admins:
-  **Permissions** first, then the lifecycle verbs — Stop, Restart, Start fresh session, Full
-  reset, Delete Captain. Members see the header without that menu. A runtime sign-in issue leads under the header. When the Server has
-  paused automatic wakes after repeated failed turns, the header status reads **Paused** and a
-  warning Alert there names the failure streak, the last error as a plain sentence (from the
-  failure code, never raw error text), and when Haus retries on its own; Owners and Admins also
-  get **Restart**. A sign-in issue outranks the pause, so only one of the two shows.
-- Below the header, six cards each state a fact and open a section: **Runs on** (Computer and
-  model, with the Computer's health), **Profile** (who created the Agent and when, else its handle), **Automations**
-  (standing reminders and triggers), **Skills** and **Connections** (the first display names, `+N` for the
-  rest), and **Workspace**. Permissions has no card; an Owner or Admin opens it from the header's
-  `···` menu. Then the Chats this Agent belongs to, recent activity — each turn one line: its time, the request that woke it
-  (or, muted, what it did in words when no request is visible), and its duration, and consecutive identical failures folded into one
-  row (`Failed 5×`) — and **See all** into Activity, the full-width event log of every turn and its steps under a pinned day overview, and a compact 30-day processed-token tile linking to Usage.
-- The profile's trail rides in the shared page band: `Haus › Juniper › Connections`, the Agent
-  crumb wearing its face and leading back to the hub. On the hub the trail ends at the Agent, on
-  the web and in a desktop tab alike. A drill-down section's band also holds the lifecycle menu at its end for
-  Owners and Admins; it is the section's only header (Workspace folds both into one bar). **Runs on**
-  holds the assigned Computer and the model/runtime/effort editor; **Profile** the identity
-  facts (name, handle, description, created by); **Automations** Reminders and Triggers;
-  **Skills** and **Connections** their editors; **Permissions**, opened from the hub header's
-  `···` menu, what the Agent may manage for other Agents, where an Owner or Admin turns on
-  **Manage connections** (Members do not see Permissions, and its address sends them to the hub); **Activity** the turn-by-turn execution history;
-  **Workspace** the Agent's files as a full-height browser. Workspace has no separate breadcrumb
-  header: its band starts with the trail (`Haus / Juniper / Workspace / MEMORY.md`, the open file
-  last), then the file's Copy and Raw controls, then one "…" menu holding Show hidden files, Copy
-  link, Copy path, and — for Owners and Admins — the lifecycle verbs. In a desktop tab that bar
-  sits over the content column only, with the band's height and gutter, and the file rail runs the
-  tab's full height with its search on the bar's midline; the shell band, left empty, collapses.
-  The bar stays while the Computer is offline. Workspace renders this bar, the search rail, and the
-  preview frame before the file listing arrives; pending reads and errors stay in the rail. Automations keeps section headings and actions visible while each list loads, without
-  showing an empty count before its first result. Cached lists remain visible during refreshes.
+- A Captain has no page of its own. Opening it — the Captain strip, an @mention, a transcript
+  avatar, search, the command menu, or **View Captain profile** — opens its chat with the
+  **Captain panel** on Overview ([Agent panel](../../specs/agent-panel.md)). Today that chat is
+  the viewer's DM with the Captain; ADR 0062's shared Captain chat replaces it. The old
+  `/s/:slug/agents/:agentId/:section` address redirects to the chat with the matching panel view.
+- The panel's Overview leads with a compact header (photo, name, handle, and `···` with Edit
+  profile, Profile, and the lifecycle verbs Stop, Restart, Start fresh session, Full reset,
+  Delete Captain for Owners and Admins). A runtime sign-in, model-connection, or wake-pause issue
+  shows under it as an Alert, with **Restart** for Owners and Admins; a sign-in issue outranks the
+  pause. Then **Needs you** (open Issues the Captain filed for a person, and claims that got no
+  reply), **Crew** (the unfinished Tasks it started), **Setup** (Runs on, Model, All settings),
+  and **Drive** (its rule files). The **Issues** tab lists Issues assigned to the Captain by
+  state, and **AGENTS.md** shows its rules file with Edit.
+- Setup editors open inside the panel under a back arrow: Runs on, Model, and from All settings
+  Automations, Skills, Connections, Permissions (Owners and Admins), Workspace, and Profile. Each
+  keeps its section headings and actions visible while its list loads, without an empty count
+  before its first result; see [Agent profile](../../specs/agent-profile.md).
 - Members in Settings lists Agents and Humans and links into these profiles. Member lists stay
-  lightweight; Agent and human profile routes load one focused detail record so profile refreshes
+  lightweight; the Captain panel and human profile routes load one focused detail record so refreshes
   do not rebuild the directory.
-- Clicking an Agent avatar in Chat opens its profile. Hover or keyboard focus previews the
+- Clicking an Agent avatar in Chat opens its Captain chat and panel. Hover or keyboard focus previews the
   Agent's current availability, compact runtime/model/reasoning configuration, and activity: what
   it is doing now with running sub-agents and the run's latest steps, or, while idle, its last two
   turns; Agent reference chips use the same preview.
@@ -120,10 +97,10 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   it also names the pending choice and when it applies, or notes that it needs attention.
   A paused Agent's preview reads **Paused** and opens with a red edge-to-edge banner,
   "Paused after repeated failures", saying when Haus retries ("Retrying in …. Send a message to
-  retry now.", or "Retrying now…" while the probe runs). The profile names the last error;
-  the preview does not. A sign-in issue outranks the banner, as on the profile.
+  retry now.", or "Retrying now…" while the probe runs). The panel names the last error;
+  the preview does not. A sign-in issue outranks the banner, as in the panel.
 - Automations is where the cause line on an Agent's message leads: pressing it
-  opens the owning Agent's Automations tab. See [Chat](chat.md#in-the-box) for the
+  opens the owning Captain's chat with the panel on Automations. See [Chat](chat.md#in-the-box) for the
   line itself.
 - The header edits identity; **Runs on** edits desired model, runtime, and reasoning effort.
   The editor explains that model and runtime changes apply on the next turn with a fresh session,

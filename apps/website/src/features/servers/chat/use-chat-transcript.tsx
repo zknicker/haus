@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenCaptain } from '../../../hooks/agents/use-open-captain.ts';
 import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import { readChatMessageEntity } from '../../../hooks/servers/chat-message-entities.ts';
 import { useAttachedWorkIds } from '../../../hooks/servers/use-attached-work-ids.ts';
@@ -98,7 +98,7 @@ export function useChatTranscript({
         humans,
         messages: messageList,
     });
-    const openAgentProfile = useOpenAgentProfile();
+    const openAgentProfile = useOpenCaptain();
     const renderMessageAttachments = useRenderMessageMedia({ download, lookupRef, serverId });
     // A click reads the clicked message's entity from the cache: the row
     // rendered from it, so it is there.

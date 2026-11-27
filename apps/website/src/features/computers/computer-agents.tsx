@@ -4,7 +4,7 @@ import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment } from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenCaptain } from '../../hooks/agents/use-open-captain.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
@@ -25,7 +25,7 @@ export interface HomeCaptainRow {
 }
 
 export function ComputerAgents({ computerId, serverId }: { computerId: string; serverId: string }) {
-    const openAgentProfile = useOpenAgentProfile();
+    const openAgentProfile = useOpenCaptain();
     const agents = useAgents(serverId);
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);

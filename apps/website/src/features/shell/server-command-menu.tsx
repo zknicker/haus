@@ -5,7 +5,7 @@ import { buildCommandGroups } from '../../commands/server-commands.ts';
 import { buildThemeCommandGroup } from '../../commands/theme-commands.ts';
 import { useDevMode } from '../../components/dev-mode-provider.tsx';
 import { useTheme } from '../../components/theme-provider.tsx';
-import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenCaptain } from '../../hooks/agents/use-open-captain.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
@@ -25,7 +25,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { scene } = useColorThemeDefinition();
     const customThemes = useCustomThemes();
     const showClaimsInChat = useShowClaimsInChat();
-    const openAgentProfile = useOpenAgentProfile();
+    const openAgentProfile = useOpenCaptain();
     const agents = useAgents(server.id);
     const chats = useChats(server.id);
     const agentItems = React.useMemo(() => agents.data ?? [], [agents.data]);

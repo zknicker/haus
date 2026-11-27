@@ -63,7 +63,7 @@ export function MessageCauseLine({ cause }: { cause: MessageCause }) {
                         aria-label={`Open ${automationNoun[cause.kind]}: ${cause.title}`}
                         className={cn(className, 'cursor-(--cursor-interactive) hover:underline')}
                         data-testid="message-cause-line"
-                        section="automations"
+                        drill="automations"
                     >
                         {content}
                     </AgentProfileLink>

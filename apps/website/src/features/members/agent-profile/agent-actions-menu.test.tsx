@@ -6,10 +6,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { testAgent } from '../agent-fixtures.ts';
 import { AgentActions, AgentActionsSections } from './agent-actions-menu.tsx';
-import type { AgentSection } from './agent-sections.ts';
 
 /** The menu's items, rendered open: the same sections every host's menu holds. */
-function renderMenu(role: ServerDetail['role'], onOpenSection?: (section: AgentSection) => void) {
+function renderMenu(role: ServerDetail['role'], onOpenProfile?: () => void) {
     const queryClient = new QueryClient();
     const client = hausTrpc.createClient({
         links: [httpBatchLink({ url: 'http://127.0.0.1:1/trpc' })],
@@ -20,7 +19,7 @@ function renderMenu(role: ServerDetail['role'], onOpenSection?: (section: AgentS
                 <AgentActions
                     agent={testAgent()}
                     onDeleted={() => undefined}
-                    onOpenSection={onOpenSection}
+                    onOpenProfile={onOpenProfile}
                     server={{ ...server, role }}
                 >
                     <Dropdown.Menu aria-label="Captain actions">
@@ -32,25 +31,18 @@ function renderMenu(role: ServerDetail['role'], onOpenSection?: (section: AgentS
     );
 }
 
-test('an Owner or Admin opens Permissions from the hub menu, ahead of the lifecycle verbs', () => {
-    for (const role of ['owner', 'admin'] as const) {
-        const markup = renderMenu(role, () => undefined);
-        expect(markup).toContain('Permissions');
-        expect(markup.indexOf('Permissions')).toBeLessThan(markup.indexOf('Stop'));
-        expect(markup.indexOf('Stop')).toBeLessThan(markup.indexOf('Delete Captain'));
-    }
-});
-
-test('a Member gets no Permissions item', () => {
-    const markup = renderMenu('member', () => undefined);
-    expect(markup).toContain('Stop');
+test('the Captain panel menu leads with Profile, then the lifecycle verbs; Permissions lives in All settings', () => {
+    const markup = renderMenu('owner', () => undefined);
+    expect(markup).toContain('Profile');
+    expect(markup.indexOf('Profile')).toBeLessThan(markup.indexOf('Stop'));
+    expect(markup.indexOf('Stop')).toBeLessThan(markup.indexOf('Delete Captain'));
     expect(markup).not.toContain('Permissions');
 });
 
-test('a host without section navigation shows only the lifecycle verbs', () => {
+test('a host without Profile shows only the lifecycle verbs', () => {
     const markup = renderMenu('owner');
     expect(markup).toContain('Stop');
-    expect(markup).not.toContain('Permissions');
+    expect(markup).not.toContain('Profile');
 });
 
 const server: ServerDetail = {

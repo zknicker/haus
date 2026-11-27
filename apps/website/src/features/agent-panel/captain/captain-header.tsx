@@ -1,32 +1,31 @@
 import type { Agent } from '@haus/api';
-import { Button, Chip, Dropdown, Label } from '@heroui/react';
+import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon, UserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
-import { availabilityLabel } from '../../computers/presentation.ts';
-import { AgentActionsMenu } from './agent-actions-menu.tsx';
-import { canRunAgentActions } from './agent-actions-model.ts';
-import { AgentAvatarGenerator } from './agent-avatar-generator.tsx';
-import { AgentProfileEdit } from './agent-profile-edit.tsx';
-import type { AgentSection } from './agent-sections.ts';
+import { AgentActionsMenu } from '../../members/agent-profile/agent-actions-menu.tsx';
+import { canRunAgentActions } from '../../members/agent-profile/agent-actions-model.ts';
+import { AgentAvatarGenerator } from '../../members/agent-profile/agent-avatar-generator.tsx';
+import { AgentProfileEdit } from '../../members/agent-profile/agent-profile-edit.tsx';
+import { serverRoute } from '../../servers/server-routes.ts';
 
-const cardAvatarSize = 40;
+const avatarSize = 32;
 
-export function AgentCaptainIdentity({
+export function CaptainHeader({
     agent,
-    onDeleted,
-    onOpenSection,
+    onOpenProfile,
     server,
 }: {
     agent: Agent;
-    onDeleted: () => void;
-    onOpenSection: (section: AgentSection) => void;
+    onOpenProfile: () => void;
     server: ServerDetail;
 }) {
+    const navigate = useNavigate();
     const [avatarError, setAvatarError] = React.useState<string | null>(null);
     const [editOpen, setEditOpen] = React.useState(false);
     const menuRef = React.useRef<HTMLButtonElement>(null);
@@ -35,42 +34,34 @@ export function AgentCaptainIdentity({
     const error = avatarError ?? setAvatar.error?.message ?? null;
 
     return (
-        <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex min-w-0 items-center gap-3">
-                <AgentCardAvatar
+        <div className="flex min-w-0 flex-col gap-2 px-2">
+            <div className="flex min-w-0 items-center gap-2.5">
+                <CaptainAvatar
                     agent={agent}
                     canEdit={canEdit}
                     onError={setAvatarError}
                     server={server}
                     setAvatar={setAvatar}
                 />
-                <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex min-w-0 items-center gap-2">
-                        <h1 className="text-foreground min-w-0 truncate text-lg font-semibold tracking-tight">
-                            {agent.displayName}
-                        </h1>
-                        <AgentPresenceChip agent={agent} />
-                    </div>
-                    <p className="text-muted min-w-0 truncate text-sm">@{agent.handle}</p>
-                </div>
-                <span className="-me-2 flex shrink-0">
-                    {canRunAgentActions(server.role) ? (
-                        <AgentActionsMenu
-                            agent={agent}
-                            onDeleted={onDeleted}
-                            onEditProfile={canEdit ? () => setEditOpen(true) : undefined}
-                            onOpenSection={onOpenSection}
-                            server={server}
-                            triggerRef={menuRef}
-                            variant="ghost"
-                        />
-                    ) : (
-                        <AgentProfileMenu
-                            agent={agent}
-                            onOpenProfile={() => onOpenSection('profile')}
-                        />
-                    )}
-                </span>
+                <h2 className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                    <span className="text-foreground truncate font-semibold">
+                        {agent.displayName}
+                    </span>
+                    <span className="text-muted truncate text-sm font-normal">@{agent.handle}</span>
+                </h2>
+                {canRunAgentActions(server.role) ? (
+                    <AgentActionsMenu
+                        agent={agent}
+                        onDeleted={() => navigate(serverRoute(server.slug), { replace: true })}
+                        onEditProfile={canEdit ? () => setEditOpen(true) : undefined}
+                        onOpenProfile={onOpenProfile}
+                        server={server}
+                        triggerRef={menuRef}
+                        variant="ghost"
+                    />
+                ) : (
+                    <CaptainProfileMenu agent={agent} onOpenProfile={onOpenProfile} />
+                )}
             </div>
             {canEdit ? (
                 <AgentProfileEdit
@@ -84,7 +75,7 @@ export function AgentCaptainIdentity({
     );
 }
 
-function AgentCardAvatar({
+function CaptainAvatar({
     agent,
     canEdit,
     onError,
@@ -99,9 +90,7 @@ function AgentCardAvatar({
 }) {
     const [generateOpen, setGenerateOpen] = React.useState(false);
     if (!canEdit) {
-        return (
-            <EntityAvatar name={agent.displayName} size={cardAvatarSize} src={agent.avatarUrl} />
-        );
+        return <EntityAvatar name={agent.displayName} size={avatarSize} src={agent.avatarUrl} />;
     }
     return (
         <>
@@ -123,7 +112,7 @@ function AgentCardAvatar({
                         target: { agentId: agent.id, kind: 'agent' },
                     });
                 }}
-                size={cardAvatarSize}
+                size={avatarSize}
                 src={agent.avatarUrl}
             />
             {server.avatarGenerationAvailable ? (
@@ -141,7 +130,7 @@ function AgentCardAvatar({
     );
 }
 
-function AgentProfileMenu({ agent, onOpenProfile }: { agent: Agent; onOpenProfile: () => void }) {
+function CaptainProfileMenu({ agent, onOpenProfile }: { agent: Agent; onOpenProfile: () => void }) {
     return (
         <Dropdown>
             <Button
@@ -162,28 +151,4 @@ function AgentProfileMenu({ agent, onOpenProfile }: { agent: Agent; onOpenProfil
             </Dropdown.Popover>
         </Dropdown>
     );
-}
-
-function AgentPresenceChip({ agent }: { agent: Agent }) {
-    if (agent.availability === 'idle' && !agent.wakePause) {
-        return null;
-    }
-    return (
-        <Chip color={agentAvailabilityColor(agent.availability)} size="sm" variant="soft">
-            <Chip.Label>{availabilityLabel(agent)}</Chip.Label>
-        </Chip>
-    );
-}
-
-function agentAvailabilityColor(availability: Agent['availability']) {
-    switch (availability) {
-        case 'working':
-            return 'accent' as const;
-        case 'idle':
-            return 'success' as const;
-        case 'error':
-            return 'danger' as const;
-        default:
-            return 'default' as const;
-    }
 }

@@ -7,6 +7,7 @@ import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { ClosedAgentPanelToggle } from '../../agent-panel/agent-panel-toggle.tsx';
 import { SectionHeader, shellBandIconSize } from '../../shell/section-header.tsx';
 import { ChannelActions } from './channel-actions.tsx';
 import { DmActions } from './dm-actions.tsx';
@@ -18,6 +19,7 @@ export function ChatTopbar({
     chatName,
     onOpenFiles,
     onToggleArtifacts,
+    panelKey,
     server,
 }: {
     artifactVisible: boolean;
@@ -25,6 +27,11 @@ export function ChatTopbar({
     chatName: string;
     onOpenFiles: () => void;
     onToggleArtifacts: () => void;
+    /**
+     * The chat's agent panel, when it has one. Its toggle takes the workspace toggle's place,
+     * since the panel's Workspace drill-in browses the same files.
+     */
+    panelKey: string | null;
     server: ServerDetail;
 }) {
     const agents = useAgents(chat.serverId);
@@ -71,20 +78,24 @@ export function ChatTopbar({
         >
             {/* Contextual actions first; the pane toggle keeps the far end. */}
             {actions}
-            <Tooltip>
-                <Button
-                    aria-label={artifactVisible ? 'Hide workspace' : 'Show workspace'}
-                    isIconOnly
-                    onPress={onToggleArtifacts}
-                    size="sm"
-                    variant={artifactVisible ? 'secondary' : 'ghost'}
-                >
-                    <Icon aria-hidden="true" icon={SidebarRightIcon} size={shellBandIconSize} />
-                </Button>
-                <Tooltip.Content>
-                    {artifactVisible ? 'Hide workspace' : 'Show workspace'}
-                </Tooltip.Content>
-            </Tooltip>
+            {panelKey ? (
+                <ClosedAgentPanelToggle panelKey={panelKey} />
+            ) : (
+                <Tooltip>
+                    <Button
+                        aria-label={artifactVisible ? 'Hide workspace' : 'Show workspace'}
+                        isIconOnly
+                        onPress={onToggleArtifacts}
+                        size="sm"
+                        variant={artifactVisible ? 'secondary' : 'ghost'}
+                    >
+                        <Icon aria-hidden="true" icon={SidebarRightIcon} size={shellBandIconSize} />
+                    </Button>
+                    <Tooltip.Content>
+                        {artifactVisible ? 'Hide workspace' : 'Show workspace'}
+                    </Tooltip.Content>
+                </Tooltip>
+            )}
         </SectionHeader>
     );
 }

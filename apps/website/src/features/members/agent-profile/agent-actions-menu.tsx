@@ -6,7 +6,6 @@ import {
     MoreHorizontalIcon,
     PencilEdit02Icon,
     RefreshIcon,
-    ShieldUserIcon,
     SparklesIcon,
     StopCircleIcon,
     UserIcon,
@@ -25,7 +24,6 @@ import {
     disabledAgentActions,
     fullResetConfirmation,
 } from './agent-actions-model.ts';
-import { type AgentSection, canOpenAgentSection } from './agent-sections.ts';
 
 const menuIconSize = 16;
 
@@ -33,8 +31,6 @@ interface AgentActionsValue {
     disabledKeys: ReadonlySet<AgentAction>;
     /** Opens the Edit Profile popover; null where the host or role offers none. */
     editProfile: (() => void) | null;
-    /** Opens Permissions, which has no card row; null where the host or role offers none. */
-    openPermissions: (() => void) | null;
     /** Opens the Profile section's settled facts; null where the host offers none. */
     openProfile: (() => void) | null;
     run: (action: AgentAction) => void;
@@ -89,11 +85,8 @@ interface AgentActionsProps {
     onDeleted: () => void;
     /** When given, the menu leads with Edit profile. */
     onEditProfile?: () => void;
-    /**
-     * The hub's section navigation. When given, the menu leads with the
-     * sections that have no card row (Profile, Permissions), for the roles that may open them.
-     */
-    onOpenSection?: (section: AgentSection) => void;
+    /** When given, the menu leads with Profile, the Captain's settled facts. */
+    onOpenProfile?: () => void;
     server: ServerDetail;
 }
 
@@ -109,7 +102,7 @@ export function AgentActions({
     children,
     onDeleted,
     onEditProfile,
-    onOpenSection,
+    onOpenProfile,
     server,
 }: AgentActionsProps & { children: React.ReactNode }) {
     const [fullResetOpen, setFullResetOpen] = React.useState(false);
@@ -143,19 +136,12 @@ export function AgentActions({
         }
     };
 
-    const openPermissions =
-        onOpenSection && canOpenAgentSection('permissions', server.role)
-            ? () => onOpenSection('permissions')
-            : null;
-    const openProfile = onOpenSection ? () => onOpenSection('profile') : null;
-
     return (
         <AgentActionsContext.Provider
             value={{
                 disabledKeys,
                 editProfile: onEditProfile ?? null,
-                openPermissions,
-                openProfile,
+                openProfile: onOpenProfile ?? null,
                 run,
             }}
         >
@@ -237,12 +223,6 @@ export function AgentActionsSections() {
             onAction: actions.editProfile,
         },
         { icon: UserIcon, id: 'profile', label: 'Profile', onAction: actions.openProfile },
-        {
-            icon: ShieldUserIcon,
-            id: 'permissions',
-            label: 'Permissions',
-            onAction: actions.openPermissions,
-        },
     ].flatMap((lead) => (lead.onAction ? [{ ...lead, onAction: lead.onAction }] : []));
     return (
         <>

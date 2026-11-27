@@ -1,5 +1,5 @@
 ---
-summary: Hosted chat-first claims (renamed from tasks by ADR 0051) — the hidden Agent-only lock on a message, with Server-owned lifecycle metadata, Agent-only assignees, inline conversation, the claim chip, and the Captain page's Needs you group.
+summary: Hosted chat-first claims (renamed from tasks by ADR 0051) — the hidden Agent-only lock on a message, with Server-owned lifecycle metadata, Agent-only assignees, inline conversation, the claim chip, and the Captain panel's Needs you group.
 read_when:
   - changing claim promotion, claiming, assignment, or statuses
   - changing hosted claim authorization, events, or the claim chip in Chat
@@ -102,9 +102,10 @@ unless the reader turns on **Show claims in chat** (Settings → Preferences →
 `composed` and `converted` claims stay visible because someone made them for others to see. The
 iPhone app reads the same per-device preference ([iOS internals](../internals/ios.md)).
 
-The Agent profile lists that Agent's stalled claims under **Needs you**, each marked No reply: `claimed`
-claims still `in_progress`, stamped tracked because their run settled without answering, and not
-`live`. Each row reveals the claim's message, and the section is absent when there are none.
+The Captain panel lists that Captain's stalled claims under **Needs you**, after the Issues waiting
+on a person, each as "Dropped …": `claimed` claims still `in_progress`, stamped tracked because
+their run settled without answering, and not `live`. Each row reveals the claim's message, its
+`···` releases the claim, and the section is absent when there is nothing in it.
 
 `claim.list` excludes background-tier claims by default and reports how many it hid;
 `includeBackground` widens it to everything. Concrete events (`message.created` for a newly

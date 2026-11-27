@@ -3,19 +3,18 @@ import { useParams } from 'react-router-dom';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { serverRouteModules } from '../../routes/app/server-route-modules.ts';
-import { agentActivityHistoryInput } from './use-agent-activity-history.ts';
-import { agentTurnsInput } from './use-agent-turns.ts';
+import { crewTaskListInput } from '../tasks/use-captain-crew.ts';
 
 /**
- * What a warm path fetches: `profile` is the Agent's page and its hub reads;
- * `record` is only the Agent record and the page module, for a surface that
- * merely leads toward the profile (an Agent's DM row opens the Chat instead).
+ * What a warm path fetches: `profile` is the Captain chat's panel and its Overview reads;
+ * `record` is only the Agent record and the panel's drill-in module, for a surface that
+ * merely leads toward the Captain (an Agent's DM row opens the Chat instead).
  */
 export type AgentProfilePreload = 'profile' | 'record';
 
 /**
- * Warms an Agent's profile on hover, focus, or press, through the same tRPC
- * inputs and freshness its mounted reads use, so the page paints in one wave.
+ * Warms a Captain's chat and panel on hover, focus, or press, through the same tRPC
+ * inputs and freshness its mounted reads use, so the panel paints in one wave.
  * The Server comes from the cached `server.bySlug` read the shell already
  * holds; without it nothing is fetched and the page loads as before.
  */
@@ -39,16 +38,9 @@ export function usePreloadAgentProfile(
             return;
         }
         void utils.agent.deliveryState.prefetch(input, queryPolicy.syncedSnapshot);
-        void utils.project.list.prefetch({ serverId: server.id }, queryPolicy.syncedSnapshot);
-        void utils.agent.turns.prefetch(
-            agentTurnsInput(server.id, agentId),
-            queryPolicy.syncedSnapshot
-        );
-        void utils.agent.activityHistory.prefetch(
-            agentActivityHistoryInput(server.id, agentId),
-            queryPolicy.syncedSnapshot
-        );
-        // Reminders and triggers render only for Owners and Admins (`AgentCaptainFacts`).
+        void serverRouteModules.chat().catch(() => undefined);
+        void utils.task.list.prefetch(crewTaskListInput(server.id), queryPolicy.syncedSnapshot);
+        // Reminders and triggers render only for Owners and Admins (`useCaptainFacts`).
         if (server.role !== 'member') {
             void utils.reminder.list.prefetch(input, queryPolicy.syncedSnapshot);
             void utils.trigger.list.prefetch(input, queryPolicy.syncedSnapshot);

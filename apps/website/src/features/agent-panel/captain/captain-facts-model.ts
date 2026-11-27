@@ -6,16 +6,10 @@ export interface AgentAutomationCounts {
     total: number;
 }
 
-/**
- * What is still standing, not what has already run: a scheduled reminder is a
- * wake that is still coming, and an armed trigger is a door still open. Settled
- * reminders and disabled triggers are history, and the Automations tab's own
- * history drawers own them.
- */
 export function countAgentAutomations(
     reminders: readonly Pick<Reminder, 'status'>[],
     triggers: readonly Pick<Trigger, 'status'>[]
-): AgentAutomationCounts {
+) {
     const scheduledReminders = reminders.filter(
         (reminder) => reminder.status === 'scheduled'
     ).length;
@@ -27,11 +21,7 @@ export function countAgentAutomations(
     };
 }
 
-/**
- * The Automations card's fact: what is standing, named by kind, with zero
- * halves dropped rather than read out as "0 armed".
- */
-export function formatAutomationsFact(counts: AgentAutomationCounts): string {
+export function formatAutomationsFact(counts: AgentAutomationCounts) {
     const parts = [
         counts.scheduledReminders > 0
             ? `${counts.scheduledReminders} ${pluralize(counts.scheduledReminders, 'reminder')}`
@@ -43,19 +33,22 @@ export function formatAutomationsFact(counts: AgentAutomationCounts): string {
     return parts.length > 0 ? parts.join(' · ') : nothingScheduled;
 }
 
-/**
- * Connections this Agent can actually use right now: granted, connected, and
- * carrying at least one tool. The one definition of "this Agent's connections"
- * — the hub card names this set, and the Connections section lists a
- * different set on purpose: every connection that is toggleable, granted or not.
- */
+export function formatAllSettingsFact(counts: AgentAutomationCounts, skills: number) {
+    const automations = formatAutomationsFact(counts);
+    const parts = [
+        automations === nothingScheduled ? null : automations,
+        skills > 0 ? `${skills} ${pluralize(skills, 'skill')}` : null,
+    ].filter((part): part is string => part !== null);
+    return parts.length > 0 ? parts.join(' · ') : nothingScheduled;
+}
+
 export function grantedAgentConnections<
     Connection extends {
         connected: boolean;
         grants: readonly { agentId: string }[];
         tools: readonly unknown[];
     },
->(connections: readonly Connection[], agentId: string): Connection[] {
+>(connections: readonly Connection[], agentId: string) {
     return connections.filter(
         (connection) =>
             connection.connected &&
@@ -64,19 +57,14 @@ export function grantedAgentConnections<
     );
 }
 
-/** Skills are Agent-owned copies, reported by the Agent's Computer. */
 export function agentSkillNames(
     agentSkills: readonly { agentId: string; skills: readonly { name: string }[] }[] | undefined,
     agentId: string
-): string[] {
+) {
     return agentSkills?.find((entry) => entry.agentId === agentId)?.skills.map((s) => s.name) ?? [];
 }
 
-/**
- * A card names the first few members of a set and counts the rest, so the fact
- * stays one line at any width: `Atlas, BidBeacon +2`.
- */
-export function formatNameList(names: readonly string[], visible = 2): string {
+export function formatNameList(names: readonly string[], visible = 2) {
     if (names.length === 0) {
         return noNames;
     }
@@ -85,7 +73,6 @@ export function formatNameList(names: readonly string[], visible = 2): string {
     return rest > 0 ? `${shown} +${rest}` : shown;
 }
 
-/** A fact that says nothing is set, which the card reads muted. */
 export function isUnsetFact(fact: string | undefined) {
     return fact === noNames || fact === nothingScheduled;
 }
@@ -93,6 +80,6 @@ export function isUnsetFact(fact: string | undefined) {
 const noNames = 'None';
 const nothingScheduled = 'Nothing scheduled';
 
-function pluralize(count: number, singular: string): string {
+function pluralize(count: number, singular: string) {
     return count === 1 ? singular : `${singular}s`;
 }

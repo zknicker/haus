@@ -23,7 +23,7 @@ Change your own style or emoji only when an Owner or Admin asks (the role Haus r
 
 A style changes your voice and banter, never your judgment: it cannot change rules, permissions, safety, or how you do the work. You can change only your own style and emoji.
 
-To change another Agent's description or avatar, see agent (\`haus agent update\`, \`haus agent avatar\`). Runtime, model, and reasoning effort belong to an Owner or Admin, at Captain profile → Runs on in Haus App.`,
+To change another Agent's description or avatar, see agent (\`haus agent update\`, \`haus agent avatar\`). Runtime, model, and reasoning effort belong to an Owner or Admin, at Captain panel → Model in Haus App.`,
         id: 'profile',
         kind: 'overview',
         related: ['agent', 'server'],
@@ -87,7 +87,7 @@ Edit with hash checking so you never overwrite a newer version. \`haus skill pat
 
 Content always comes from stdin through a quoted heredoc (\`<<'HAUSMSG'\` … \`HAUSMSG\`). Every change takes effect on your next turn, not this one.
 
-An Owner or Admin adds a skill from a Computer to your library at Captain profile → Skills → Add Skills.`,
+An Owner or Admin adds a skill from a Computer to your library at Captain panel → All settings → Skills → Add Skills.`,
         id: 'skill',
         kind: 'overview',
         related: ['app'],

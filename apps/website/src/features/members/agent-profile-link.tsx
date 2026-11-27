@@ -1,29 +1,34 @@
 import { Link, type LinkProps, useParams } from 'react-router-dom';
-import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
+import { showCaptainPanel, useOpenCaptain } from '../../hooks/agents/use-open-captain.ts';
 import { usePreloadAgentProfile } from '../../hooks/members/use-preload-agent-profile.ts';
 import { usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';
+import { type CaptainDrill, captainSectionForDrill } from '../agent-panel/agent-panel-model.ts';
+import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
 import { agentProfileRoute } from '../servers/server-routes.ts';
-import type { AgentSection } from './agent-profile/agent-sections.ts';
 
 /**
- * A real link to an Agent's profile — middle-click and copy-link keep the
- * route — that warms the profile on hover or focus and opens it on a plain
- * mouse press. Keyboard and other clicks open it through `useOpenAgentProfile`.
- * On desktop, Command-click and middle-click open a new tab (the desktop
- * shell's link handler, ADR 0039).
+ * A real link to a Captain — middle-click and copy-link keep its chat's route — that warms the
+ * chat and panel on hover or focus and opens it on a plain mouse press, with the panel on
+ * Overview or `drill`. Keyboard and other clicks open it through `useOpenCaptain`. On desktop,
+ * Command-click and middle-click open a new tab (the desktop shell's link handler, ADR 0039).
  */
 export function AgentProfileLink({
     agentId,
+    drill,
     onFocus,
     onMouseEnter,
-    section,
     ...props
-}: Omit<LinkProps, 'onClick' | 'to'> & { agentId: string; section?: AgentSection }) {
+}: Omit<LinkProps, 'onClick' | 'to'> & { agentId: string; drill?: CaptainDrill }) {
     const { slug = '' } = useParams();
-    const openAgentProfile = useOpenAgentProfile();
+    const openCaptain = useOpenCaptain();
     const preload = usePreloadAgentProfile(agentId);
-    const href = agentProfileRoute(slug, agentId, section);
-    const pressRef = usePressNavigation(href, preload);
+    const href = drill
+        ? agentProfileRoute(slug, agentId, captainSectionForDrill(drill))
+        : captainChatRoute(slug, agentId);
+    const pressRef = usePressNavigation(href, () => {
+        preload();
+        showCaptainPanel(agentId, { drill });
+    });
 
     return (
         <Link
@@ -33,7 +38,7 @@ export function AgentProfileLink({
                     return;
                 }
                 event.preventDefault();
-                openAgentProfile(agentId, { section });
+                openCaptain(agentId, { drill });
             }}
             onFocus={(event) => {
                 preload();

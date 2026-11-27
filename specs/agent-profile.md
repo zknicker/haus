@@ -1,88 +1,51 @@
 ---
-summary: Agent profile — the single Server-backed surface for an agent's identity, configuration, current work, activity, automations, skills, workspace, and MCP connections.
+summary: Agent profile — what each of a Captain's settings editors holds (Runs on, Model, Profile, Automations, Skills, Connections, Permissions, Workspace, Activity). They open as drill-ins in the Captain panel (specs/agent-panel.md); there is no standalone profile page.
 read_when:
-  - changing the agent profile hub or sections, where a profile opens, or agent avatar click targets
+  - changing a Captain settings editor (Runs on, Model, Profile, Automations, Skills, Connections, Permissions, Workspace, Activity)
   - changing per-agent settings surfaces, Server APIs, or Computer-backed workspace access
 ---
 
 # Agent Profile
 
-One component family renders every per-agent surface: a hub page (`home`)
-with drill-down sections, under a persistent header (face, name, live
-presence, and Message / Stop / Restart actions). There is no separate
-per-agent settings surface. The hub is a Captain card beside a list. The card
-holds identity, the description, any connection or health problem as a compact
-Alert, and six one-line setup facts (Runs on, Model, Automations, Skills,
-Connections, Workspace); pressing a fact drills into its section with a
-breadcrumb back to the hub. The list is Capy's Issues list: grey group bars
-over single-line rows for **Needs you** (claims the Captain took whose run
-ended with no reply), **Working on** (its unfinished assigned Tasks),
-**Recent** (each turn's one-line summary, with All activity), and **Drive**
-(its rule files, with All files). Needs you and Working on hide when empty.
-In a wide container the card is a sticky 20rem left rail; in the 420px side
-pane it stacks over the list
-([ADR 0038](../docs/adr/0038-destinations-open-as-tabs.md)).
+A Captain's settings are editors that open inside the Captain panel beside its chat, under a back
+arrow. The panel's shell, Overview, tabs, opening, and the redirect from the old
+`agents/:agentId/:section` address live in [Agent panel](agent-panel.md). There is no separate
+per-agent page and no second-pane tab.
 
-## Hosting
+## Editors
 
-- **Desktop**: an Agent profile is the same route in a tab (ADR 0039). A
-  sidebar row or command menu result navigates the left pane's tab to it; an
-  avatar, name, or chip inside a page opens it as a new tab in the right pane,
-  selecting a right-pane tab already on that Agent (ADR 0046). Drill-down
-  stays inside the tab as its section.
-- **Web**: the profile is a routed page at
-  `/s/:serverSlug/agents/:agentId/:section` (`agents/:agentId` redirects to
-  `home`). Old `members/agents/:agentId` links redirect here.
-- `useOpenAgentProfile` is the one opener on both platforms. Clicking an
-  Agent's avatar or reference chip in a chat opens its profile; hovering
-  shows the hover card. The chat side pane never hosts profiles.
-- Clicking an agent's **name** in a transcript header inserts an @mention
-  into the composer instead; the DM topbar name is inert. Humans are records
-  under Settings > Members, not Agent profiles.
+Overview's Setup rows open Runs on and Model; All settings lists the rest. The header's `···`
+holds Edit profile, Profile, and the lifecycle verbs for Owners and Admins; a Member's menu holds
+only Profile.
 
-## Sections
+- **Runs on** (`runs-on`). The Captain's Machine, with a change flow.
+- **Model** (`model`). The desired runtime, model, and effort beside what the Computer reports,
+  with the Computer's health.
+- **Profile** (`profile`). Server-owned identity facts: name, handle, description, who created
+  the Agent and when, and its home Project. Editing lives in the Edit profile popover — name,
+  description (counted against 280), the private conversation style (counted against 2000), and
+  the signature emoji. The style and emoji are readable and writable only by Owners, Admins, and
+  the Agent itself; other Agents never see them. The Agent edits its own only when an Owner or
+  Admin asks, never at another Agent's or a member's request, and the style governs voice and
+  banter only, never rules, permissions, or how it works.
+- **Automations** (`automations`). Reminders and Triggers. Reminder creation is conversational.
+- **Skills** (`skills`). Agent-owned skills reported by the Computer, shown by display name.
+- **Connections** (`connections`). Server-managed MCP connections granted at connection level.
+  Haus does not expose per-tool grants or local/stdin MCP configuration.
+- **Permissions** (`permissions`). What the Agent may manage for other Agents, one switch row per
+  power. An Owner or Admin turns on **Manage connections** to make the Agent a connection admin.
+  Only Owners and Admins see it in All settings; a Member's link to it lands on Overview.
+- **Workspace** (`workspace`). Read-only file tree and viewer over the agent's real Computer
+  workspace through an authorized live Server↔Computer relay. The Server does not replicate
+  workspace files. Hidden files are excluded by default and appear only while the user enables
+  the hidden-files toggle. Sensitive files and skipped heavy directories remain unavailable in
+  both modes.
+- **Activity** (`activity`). Timestamped semantic lifecycle and tool-category history from
+  durable Server records ([agent-activity](agent-activity.md)) with Copy Diagnostic Info. Raw tool
+  evidence is not part of this history.
 
-The hub (`home`) links every setup section through a card fact row. Profile
-and Permissions open from the card's `···` menu, which leads with Edit
-profile for Owners and Admins; a Member's menu holds only Profile. Each section is a
-drill-down under a breadcrumb back to the hub, with the lifecycle menu at the
-breadcrumb's end for Owners and Admins.
-
-- **Runs on** (`runtime`). The assigned Computer and its health; the desired
-  runtime, model, and effort, beside what the Computer reports.
-- **Profile** (`profile`). Server-owned identity facts: name, handle,
-  description, who created the Agent and when, and its home Project. Editing
-  lives in the Edit profile popover, opened from the card's `···` menu — name, description (counted against 280), the
-  private conversation style (counted against 2000), and the signature emoji.
-  The style and emoji are readable and writable only by Owners, Admins, and the
-  Agent itself; other Agents never see them. The Agent edits its own only when an
-  Owner or Admin asks, never at another Agent's or a member's request, and the
-  style governs voice and banter only, never rules, permissions, or how it works.
-- **Automations** (`automations`). Reminders and Triggers. Reminder creation
-  is conversational.
-- **Skills** (`skills`). Agent-owned skills reported by the Computer, shown by
-  display name.
-- **Connections** (`connections`). Server-managed MCP connections granted at
-  connection level. Haus does not expose per-tool grants or local/stdin MCP
-  configuration.
-- **Permissions** (`permissions`). What the Agent may manage for other Agents,
-  one switch row per power. An Owner or Admin turns on **Manage connections**
-  to make the Agent a connection admin. Permissions has no fact row; an Owner
-  or Admin opens it from the card's `···` menu, ahead of the lifecycle verbs.
-  Members do not see Permissions: their menu holds only Profile, and the
-  address falls back to the hub as an unknown section does.
-- **Workspace** (`workspace`). Read-only file tree and viewer over the
-  agent's real Computer workspace through an authorized live
-  Server↔Computer relay. The Server does not replicate workspace files.
-  Hidden files are excluded by default and appear only while the user enables
-  the hidden-files toggle. Sensitive files and skipped heavy directories
-  remain unavailable in both modes.
-- **Activity** (`activity`). Timestamped semantic lifecycle and tool-category
-  history from durable Server records ([agent-activity](agent-activity.md))
-  with Copy Diagnostic Info. Raw tool evidence is not part of this history.
-
-The hub lists no Chats (Projects live in the sidebar) and no usage tile;
-usage lives on the Server's Usage page.
+Clicking an agent's **name** in a transcript header inserts an @mention into the composer; its
+avatar opens the Captain. Humans are records under Settings > Members.
 
 ## Ownership
 
@@ -90,6 +53,6 @@ usage lives on the Server's Usage page.
   history, reminders, MCP connections, and access grants.
 - The Computer owns execution, writes the detailed execution journal (and syncs a redacted copy to
   the Server), and owns workspace files, credentials, and effective runtime state.
-- The browser talks only to the Server through typed tRPC procedures. It
-  never invokes a Computer directly.
+- The browser talks only to the Server through typed tRPC procedures. It never invokes a Computer
+  directly.
 - Reads never start, resume, rotate, or otherwise mutate Agent execution.

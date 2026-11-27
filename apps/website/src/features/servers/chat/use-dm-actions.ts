@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { agentProfileRoute } from '../server-routes.ts';
+import { openCaptain } from '../../../hooks/agents/use-open-captain.ts';
 import type { ChatActionRoutes } from './use-channel-actions.tsx';
 
 /** The DM a menu opened on; an implicit Agent DM has no chat yet. */
@@ -19,7 +19,7 @@ export function useDmActions({
     openPath,
     slug,
 }: ChatActionRoutes & {
-    /** The profile link: the surface's own navigate (a router, a tab, the sidebar). */
+    /** Opens the Captain's chat and panel: the surface's own navigate (a router, a tab, the sidebar). */
     openPath: (path: string) => void;
     slug: string;
 }) {
@@ -27,7 +27,7 @@ export function useDmActions({
         filesAvailable: Boolean(openFiles),
         run: ({ agentId, chatId }, key) => {
             if (key === 'profile' && agentId) {
-                openPath(agentProfileRoute(slug, agentId));
+                openCaptain(openPath, slug, agentId);
             } else if (key === 'files' && chatId) {
                 openFiles?.(chatId);
             }

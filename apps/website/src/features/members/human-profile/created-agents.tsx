@@ -3,7 +3,7 @@ import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import { Chip, Separator } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
-import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenCaptain } from '../../../hooks/agents/use-open-captain.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { availabilityBadgeColor } from '../agent-avatar.tsx';
 
@@ -54,7 +54,7 @@ export function CreatedAgents({ serverId, userId }: { serverId: string; userId: 
 }
 
 function CreatedAgentRow({ agent }: { agent: Agent }) {
-    const openAgentProfile = useOpenAgentProfile();
+    const openAgentProfile = useOpenCaptain();
 
     return (
         <ItemCard<'button'>
