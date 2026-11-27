@@ -40,7 +40,7 @@ export function CapySidebar({
     const openNewCaptain = React.useCallback(() => setCreating('captain'), []);
     const selection = {
         pathname,
-        selectedAgentDmId: resolveSelectedCaptainId(pathname, slug),
+        selectedCaptainId: resolveSelectedCaptainId(pathname, slug),
         selectedChatId: resolveSelectedChatId(pathname, slug),
     };
 
@@ -94,7 +94,7 @@ function CapySidebarSectionView({
     section: CapySidebarSection;
     selection: {
         pathname: string;
-        selectedAgentDmId: string | undefined;
+        selectedCaptainId: string | undefined;
         selectedChatId: string | undefined;
     };
     serverId: string;
@@ -111,7 +111,7 @@ function CapySidebarSectionView({
                     }
                     agentDmChatIds={section.agentDmChatIds}
                     agentIds={section.agentIds}
-                    selectedAgentDmId={selection.selectedAgentDmId}
+                    selectedCaptainId={selection.selectedCaptainId}
                     selectedChatId={selection.selectedChatId}
                     serverId={serverId}
                     slug={slug}

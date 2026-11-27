@@ -12,8 +12,8 @@ export function useCrewLifecycleNotes(chat: Pick<Chat, 'kind' | 'peerAgentId' | 
     const captainId = chat.kind === 'captain' ? chat.peerAgentId : null;
     const lifecycle = useCrewLifecycle(serverId, captainId);
     const codes = useTaskIssueCodes(serverId, { enabled: captainId !== null });
-    return React.useMemo(
-        () => (lifecycle ? crewLifecycleNotes(lifecycle, codes) : noNotes),
-        [codes, lifecycle]
-    );
+    return React.useMemo(() => {
+        const notes = lifecycle ? crewLifecycleNotes(lifecycle, codes) : noNotes;
+        return notes.length > 0 ? notes : noNotes;
+    }, [codes, lifecycle]);
 }

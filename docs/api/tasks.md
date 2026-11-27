@@ -1,7 +1,7 @@
 ---
 summary: The Task and Task key tRPC procedures (`task.*`, `taskKey.*`), their inputs, results, refusal codes, and realtime events. A Task has a short id, an archive time, its hidden agent, a Machine, a model and a derived activity, and no backlog fields (ADR 0062 steps 2 and 5).
 read_when:
-  - calling or changing `task.start`, `task.create`, `task.list`, `task.listActive`, `task.get`, `task.update`, `task.archive`, `task.unarchive`, or `task.setFollow`
+  - calling or changing `task.start`, `task.create`, `task.list`, `task.listActive`, `task.get`, `task.update`, `task.archive`, `task.unarchive`, `task.setFollow`, or `task.crewLifecycle`
   - reading a Task's `agentId`, `captainId`, `computerId`, `model`, `titleCustom`, `activity` or `needsYou`
   - calling or changing `taskKey.list`
   - subscribing to `task.onCreated`, `task.onUpdated`, or `task.onFollowUpdated`
@@ -45,10 +45,11 @@ step 5 has null `agentId`, `computerId` and `model`.
 | `task.list` (query) | `taskListInputSchema`: `serverId`, `archived?`, `projectId?` | Active `Task[]`, or archived ones with `archived: true`, oldest first |
 | `task.listActive` (query) | `taskListActiveInputSchema`: `serverId` | Every active Task with a Chat whose Project channel the reader can see |
 | `task.get` (query) | `taskGetInputSchema`: `{ serverId, taskId }` or `{ serverId, shortId }` | `TaskDetail`: the Task plus `mentions`, `reminders`, attached work, pull requests, and the reader's `followed` and `unreadCount` |
-| `task.update` | `taskUpdateInputSchema`: `serverId`, `taskId`, `expectedVersion`, `patch { title?, description? }` | `{ task }` |
+| `task.update` | `taskUpdateInputSchema`: `serverId`, `taskId`, `expectedVersion`, `patch { title?, description? }` | `{ task }`; a new title sets `titleCustom` |
 | `task.archive` | `taskArchiveInputSchema`: `serverId`, `taskId`, `expectedVersion` | `{ task }`; sets `archivedAt`, cancels pending one-time reminders, and resets its agent's session under a new generation: the runner gets an `archive` reset and the Machine `task-archive`. Archiving an archived Task changes nothing |
 | `task.unarchive` | `taskArchiveInputSchema` | `{ task }`; clears `archivedAt`, bumps the session generation again, and starts no turn. Canceled reminders stay canceled. `CONFLICT` while the Project is archived |
 | `task.setFollow` | `taskSetFollowInputSchema`: `serverId`, `taskId`, `followed` | `{ serverId, taskId, followed }` |
+| `task.crewLifecycle` (query) | `taskCrewLifecycleInputSchema`: `serverId`, `captainId` | `{ turns, archives }`: the Captain's crew turns that completed or failed (interrupted turns never list), and its archived crew, each with the Task's id, short id and title, newest first, at most 200 of each. The Captain chat shows them as quiet lines |
 
 A person's post in an archived Task unarchives it and wakes its agent.
 
@@ -73,7 +74,8 @@ Tasks take no numbers; the ledger numbers Issues ([specs/issues.md](../../specs/
 ## Events
 
 Mutations publish after commit: `task.created` and `task.updated` for Task writes (a message's
-new reference adds one `task.updated` at the same version), and `task.follow.updated` to the
+new reference adds one `task.updated` at the same version; a Task agent's run starting or settling
+adds one at the same version, because its `activity` changed), and `task.follow.updated` to the
 person whose follow changed. Subscribe with `task.onCreated`, `task.onUpdated` (every member),
 and `task.onFollowUpdated` (that person). See
 [specs/realtime-events.md](../../specs/realtime-events.md).

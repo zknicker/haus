@@ -35,9 +35,10 @@ export function walkRows({
             case 'captains':
                 return section.agentIds.map((agentId) => {
                     const dmChatId = section.agentDmChatIds[agentId];
-                    return dmChatId
-                        ? chatRow(dmChatId)
-                        : { href: captainChatRoute(slug, agentId), unread: false };
+                    return {
+                        href: captainChatRoute(slug, agentId),
+                        unread: dmChatId ? (unreadByChat.get(dmChatId) ?? false) : false,
+                    };
                 });
             case 'projects':
                 return [

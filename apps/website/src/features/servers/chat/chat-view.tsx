@@ -19,12 +19,11 @@ import { AgentPanel } from '../../agent-panel/agent-panel.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
-import { useCrewLifecycleNotes } from '../../tasks/use-crew-lifecycle-notes.ts';
 import { ChatReadState } from './chat-read-state.tsx';
 import { ChatTopbar } from './chat-topbar.tsx';
-import { ChatTranscript } from './chat-transcript.tsx';
 import { ChatViewFooter } from './chat-view-footer.tsx';
 import { ChatViewSidePanel } from './chat-view-side-panel.tsx';
+import { ChatViewTranscript } from './chat-view-transcript.tsx';
 import { composerDropSurfaceProps } from './composer-file-drop.ts';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
@@ -90,7 +89,6 @@ export function ChatView({
     );
     const handleReferenceActivate = useChatReferenceActivation(onOpenChat);
     const panelSubject = agentPanelSubject(chat);
-    const crewNotes = useCrewLifecycleNotes(chat);
     return (
         <section
             aria-label={chatName}
@@ -176,7 +174,8 @@ export function ChatView({
                 rowCount={transcriptMessages?.length ?? 0}
                 scrollerRef={scrollerRef}
                 timelineContent={(scrollContentRef) => (
-                    <ChatTranscript
+                    <ChatViewTranscript
+                        chat={chat}
                         chatId={chat.id}
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}
@@ -190,7 +189,6 @@ export function ChatView({
                         replyTargetMessageId={inlineReply?.messageId}
                         scrollContentRef={scrollContentRef}
                         serverId={chat.serverId}
-                        timelineNotes={crewNotes}
                         turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
                         viewerUserId={server.viewerUserId}
                     />

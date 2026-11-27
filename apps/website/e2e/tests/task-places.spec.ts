@@ -66,13 +66,20 @@ test('an Agent-started Task previews under its origin, opens as a place, and arc
         })
         .toContain('Thanks, ping me when the old one is revoked.');
 
-    await page.getByRole('button', { name: /^State/u }).click();
-    await page.getByRole('option', { exact: true, name: 'Archived' }).click();
-    await expect
-        .poll(
-            async () => (await client.task.get.query({ serverId: server.id, shortId })).archivedAt
-        )
-        .not.toBeNull();
+    const archivedAt = async () =>
+        (await client.task.get.query({ serverId: server.id, shortId })).archivedAt;
+    const panel = page.getByRole('complementary', { name: 'Task panel' });
+    await expect(panel.getByRole('grid', { name: 'Details' })).toBeVisible();
+    await panel.getByRole('button', { exact: true, name: 'Archive' }).click();
+    await expect.poll(archivedAt).not.toBeNull();
+    await expect(sidebarRow).toHaveCount(0);
+    await panel.getByRole('button', { exact: true, name: 'Restore' }).click();
+    await expect.poll(archivedAt).toBeNull();
+    await expect(sidebarRow).toHaveCount(1);
+
+    await page.getByRole('button', { exact: true, name: `${title} actions` }).click();
+    await page.getByRole('menuitem', { exact: true, name: 'Archive' }).click();
+    await expect.poll(archivedAt).not.toBeNull();
     await expect(sidebarRow).toHaveCount(0);
 
     await page.goto(`/s/${slug}/tasks?view=archived`);
