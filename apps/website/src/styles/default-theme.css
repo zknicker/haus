@@ -4609,22 +4609,6 @@
         font-weight: 400;
     }
 
-    /*
-     * The Task page's right rail is one unframed column, no card: the
-     * description, then Pull requests under a quiet muted heading.
-     * Every part starts on the ghost `sm` button's text edge (spacing ×3), so
-     * "Add description", section headings and the work rows' glyphs share one
-     * left line.
-     */
-    .task-rail {
-        display: flex;
-        min-height: 0;
-        flex-direction: column;
-        gap: calc(var(--spacing) * 4);
-        overflow-y: auto;
-        padding-block: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
-    }
-
     .task-rail-section .disclosure__heading .button {
         --button-fg: var(--muted);
     }

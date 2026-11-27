@@ -25,7 +25,7 @@ export async function updateTask(
         await tx
             .update(tasksTable)
             .set({
-                ...(title === undefined ? {} : { title }),
+                ...(title === undefined ? {} : { title, titleCustom: true }),
                 ...(description === undefined ? {} : { description }),
                 updatedAt: sql`now()`,
                 version: sql`${tasksTable.version} + 1`,

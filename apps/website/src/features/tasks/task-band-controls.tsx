@@ -1,87 +1,32 @@
 import type { TaskDetail } from '@haus/api';
-import { Button, Popover, Tooltip } from '@heroui/react';
-import {
-    Copy01Icon,
-    InformationCircleIcon,
-    Notification01Icon,
-    NotificationOff01Icon,
-} from '@hugeicons-pro/core-stroke-rounded';
+import { Button, Tooltip } from '@heroui/react';
+import { Notification01Icon, NotificationOff01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useSetTaskFollow } from '../../hooks/tasks/use-set-task-follow.ts';
 import { useTask } from '../../hooks/tasks/use-task.ts';
+import { agentPanelKey } from '../agent-panel/agent-panel-model.ts';
+import { ClosedAgentPanelToggle } from '../agent-panel/agent-panel-toggle.tsx';
 import { useServerContext } from '../servers/server-context.ts';
-import { copyTaskReference } from './copy-task-reference.ts';
-import { TaskDetails } from './details/task-details.tsx';
-import { TaskStateSelect } from './task-properties.tsx';
-import { TaskStateDisc } from './task-state-disc.tsx';
-import { type TaskState, taskStateLabels, taskStateOf } from './task-state.ts';
+import { TaskActivityChip } from './task-activity.tsx';
+import { TaskMenu } from './task-menu.tsx';
 import { showTaskUpdateError } from './task-update-error.ts';
-import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
-export function TaskBandControls({
-    detailsInBand,
-    shortId,
-}: {
-    detailsInBand: boolean;
-    shortId: string;
-}) {
+export function TaskBandControls({ shortId }: { shortId: string }) {
     const { server } = useServerContext();
     const task = useTask(server.id, { shortId }).data;
     if (!task) {
         return null;
     }
-    const isHistory = task.chatId === null;
     return (
         <>
-            {isHistory ? (
-                <TaskStateText state={taskStateOf(task)} />
-            ) : (
-                <TaskStateSelect task={task} />
-            )}
-            {detailsInBand && !isHistory ? <DetailsButton task={task} /> : null}
-            {isHistory ? null : <FollowButton task={task} />}
-            <Tooltip>
-                <Button
-                    aria-label="Copy reference"
-                    isIconOnly
-                    onPress={() => copyTaskReference(task)}
-                    size="sm"
-                    variant="ghost"
-                >
-                    <Icon aria-hidden="true" icon={Copy01Icon} size={16} />
-                </Button>
-                <Tooltip.Content>Copy reference</Tooltip.Content>
-            </Tooltip>
+            {task.archivedAt ? <span className="text-muted text-sm">Archived</span> : null}
+            <TaskActivityChip task={task} />
+            {task.chatId ? <FollowButton task={task} /> : null}
+            <TaskMenu task={task} />
+            {task.chatId ? (
+                <ClosedAgentPanelToggle panelKey={agentPanelKey({ kind: 'task', shortId })} />
+            ) : null}
         </>
-    );
-}
-
-function TaskStateText({ state }: { state: TaskState }) {
-    return (
-        <span className="flex items-center gap-1.5 text-sm">
-            <TaskStateDisc state={state} />
-            {taskStateLabels[state]}
-        </span>
-    );
-}
-
-function DetailsButton({ task }: { task: TaskDetail }) {
-    return (
-        <Popover>
-            <Button size="sm" variant="ghost">
-                <Icon aria-hidden="true" icon={InformationCircleIcon} size={16} />
-                Details
-            </Button>
-            <Popover.Content className="w-80 max-w-[calc(100vw-2rem)]" placement="bottom end">
-                <Popover.Dialog
-                    aria-label="Details"
-                    className="flex max-h-[min(36rem,80vh)] flex-col gap-3 overflow-y-auto"
-                >
-                    <TaskDetails task={task} />
-                    <TaskWorkPanel task={task} />
-                </Popover.Dialog>
-            </Popover.Content>
-        </Popover>
     );
 }
 

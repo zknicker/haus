@@ -15,7 +15,7 @@ import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { getTurnDetailAccess } from '../../members/agent-profile/agent-activity-model.ts';
-import { ChatComposer } from '../../servers/chat/chat-composer-variants.tsx';
+import { TaskComposer } from '../../servers/chat/chat-composer-variants.tsx';
 import { ChatReadState } from '../../servers/chat/chat-read-state.tsx';
 import { ChatTranscript } from '../../servers/chat/chat-transcript.tsx';
 import { ChatTypingIndicator } from '../../servers/chat/chat-typing-indicator.tsx';
@@ -99,13 +99,12 @@ export function TaskConversation({
                             serverId={messages.data ? server.id : undefined}
                             visibleSequence={visibleSequence}
                         />
-                        <ChatComposer
+                        <TaskComposer
                             chatId={chatId}
                             chatName={title}
                             inlineReply={inlineReply}
                             onInlineReplyCancel={clearInlineReply}
                             onInlineReplySent={clearSentInlineReply}
-                            pendingChatId={chatId}
                             serverId={server.id}
                             status={<ChatTypingIndicator chatId={chatId} serverId={server.id} />}
                         />

@@ -1,3 +1,4 @@
+import type { TaskDeliveryMode } from '@haus/api';
 import type * as React from 'react';
 import type { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
 import type { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
@@ -11,6 +12,10 @@ import {
     type PendingChatAttachment,
     settlePendingChatMessage,
 } from './use-pending-messages.ts';
+
+export type ChatComposerTarget =
+    | { agentId: string; kind: 'agent-dm' }
+    | { chatId: string; delivery?: TaskDeliveryMode; kind: 'chat' };
 
 export async function submitChatComposer({
     attachmentInput,
@@ -43,7 +48,7 @@ export async function submitChatComposer({
     pendingChatId?: string;
     send: Pick<ReturnType<typeof useChatMessageSend>, 'mutateAsync'>;
     serverId: string;
-    target: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
+    target: ChatComposerTarget;
     upload: Pick<ReturnType<typeof useUploadServerAttachment>, 'mutateAsync'>;
 }) {
     event?.preventDefault();
@@ -104,6 +109,7 @@ export async function submitChatComposer({
                       attachmentIds: uploaded.map((attachment) => attachment.id),
                       chatId: target.chatId,
                       content,
+                      ...(target.delivery ? { delivery: target.delivery } : {}),
                       nonce,
                       ...(inlineReply ? { replyToMessageId: inlineReply.messageId } : {}),
                       serverId,
