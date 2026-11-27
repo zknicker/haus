@@ -1,3 +1,4 @@
+import type { Chat } from '@haus/api';
 import { ContextMenu } from '@heroui-pro/react';
 import { Label } from '@heroui/react';
 import { BubbleChatIcon, HashtagIcon } from '@hugeicons-pro/core-stroke-rounded';
@@ -11,7 +12,7 @@ import { currentLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts'
 import { openWithGesture } from '../../hooks/desktop-tabs/tab-navigation.ts';
 import { currentOpenGesture } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useAgentMark } from '../../hooks/members/use-agents.ts';
-import { useListedChat } from '../../hooks/servers/use-chats.ts';
+import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import { filesPagePath } from '../../routes/app/desktop-page-paths.ts';
 import {
     ChannelContextMenuItems,
@@ -21,6 +22,7 @@ import { useChannelActions } from '../servers/chat/use-channel-actions.tsx';
 import { useDmActions } from '../servers/chat/use-dm-actions.ts';
 import { settingsProjectRoute } from '../servers/server-routes.ts';
 import { parseTabPage } from './tab-identity.ts';
+import { findTabPageChat } from './tab-page-chat.ts';
 import { useDesktopShell } from './use-tab-navigator.ts';
 
 /**
@@ -74,8 +76,9 @@ export function useTabChatMenu(actions: TabChatActions, tabId: string | null) {
         const tab = tabId ? state.tabs[tabId] : undefined;
         return tab ? currentLocation(tab) : null;
     });
-    const page = location ? parseTabPage(location) : null;
-    const chat = useListedChat(actions.serverId, page?.kind === 'chat' ? page.chatId : '') ?? null;
+    const page = React.useMemo(() => (location ? parseTabPage(location) : null), [location]);
+    const select = React.useCallback((chats: Chat[]) => findTabPageChat(chats, page), [page]);
+    const chat = useChatListSelection(actions.serverId, select) ?? null;
     const agentId = page?.kind === 'captain' ? page.agentId : chat?.peerAgentId;
     const agent = useAgentMark(actions.serverId, agentId ?? '') ?? null;
 

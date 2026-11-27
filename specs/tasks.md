@@ -36,6 +36,9 @@ decision 16).
   start Tasks. A crew Task has exactly one Captain (`tasks.captain_id`), fixed at start.
 - A Task has no state, priority, due date, labels, assignee or code (step 2 deletes those columns,
   `apps/server/src/postgres/schema/tasks.ts:29-53`). Backlog fields live on Issues.
+- A Task has no description, as a Capy thread has none: its brief is the first message of its chat.
+  The Task page shows no description; the `description` column survives only for history Tasks
+  without a chat.
 - A Task has no subagents in v1.
 
 ## Record
