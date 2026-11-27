@@ -1,11 +1,6 @@
-import type {
-    AgentIssueWakeNotice,
-    CrewReportsNotice,
-    UnreadElsewhere,
-    WorkerReportsNotice,
-} from '@haus/api';
+import type { AgentIssueWakeNotice, CrewReportsNotice, UnreadElsewhere } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
-import { formatWorkerAttention, formatPullRequestNotice } from './inbox-attention-format.ts';
+import { formatPullRequestNotice } from './inbox-attention-format.ts';
 import { formatCrewReportsNotice } from './inbox-crew-report-format.ts';
 import {
     formatInboxTimeFields,
@@ -15,13 +10,11 @@ import {
 } from './inbox-header-format.ts';
 import { formatIssueItemsNotice, nextTurnNoticeGuidance } from './inbox-issue-format.ts';
 import { formatInboxTargetRow } from './inbox-target-row.ts';
-import { formatWorkerReport, formatWorkerReportsNotice } from './inbox-worker-report-format.ts';
 import { formatInlineReplyContext } from './inline-reply-format.ts';
 
 export interface PendingCounts {
     crewReports?: CrewReportsNotice;
     issueItems?: AgentIssueWakeNotice;
-    workerReports?: WorkerReportsNotice;
 }
 
 const deliveryTrailer = [
@@ -87,8 +80,8 @@ export function formatUnreadElsewhere(entries: readonly UnreadElsewhere[]): stri
 
 /**
  * Content-free, target-level notice, closed by its handling guidance. Bodies never enter this
- * projection. Queued Issue items, crew reports and one Task's queued Worker reports, which
- * arrive in the next turn rather than as rows, each add one count line.
+ * projection. Queued Issue items and crew reports, which arrive in the next turn rather than
+ * as rows, each add one count line.
  */
 export function composeInboxNotice(
     items: AgentInboxItem[],
@@ -99,7 +92,6 @@ export function composeInboxNotice(
     const countLines = [
         ...(issueItems > 0 ? [formatIssueItemsNotice(issueItems)] : []),
         ...(counts.crewReports ? [formatCrewReportsNotice(counts.crewReports.total)] : []),
-        ...(counts.workerReports ? [formatWorkerReportsNotice(counts.workerReports)] : []),
     ];
     if (items.length === 0) {
         return countLines.length > 0
@@ -123,7 +115,6 @@ export function composeInboxNotice(
         return formatInboxTargetRow({
             attention: ordered.some(isAttention),
             claimNumber: latest.claim?.number ?? null,
-            workerResult: ordered.some((item) => Boolean(item.worker || item.workerReport)),
             firstShortId: shortInboxId(first.id),
             latestSender: latest.senderHandle,
             latestShortId: shortInboxId(latest.id),
@@ -150,12 +141,6 @@ function plural(count: number, singular: string): string {
 }
 
 function formatEnvelope(item: AgentInboxItem): string {
-    if (item.workerReport) {
-        return formatWorkerReport(item.workerReport);
-    }
-    if (item.worker) {
-        return formatWorkerAttention(item.worker, item.target);
-    }
     if (item.pullRequestNotice) {
         return formatPullRequestNotice(item.pullRequestNotice, item.target);
     }
@@ -208,7 +193,7 @@ function claimAssignee(item: AgentInboxItem): string {
 
 /** A bodiless typed attention: work to act on, not a message to read. */
 function isAttention(item: AgentInboxItem): boolean {
-    return Boolean(item.worker || item.pullRequestNotice || item.workerReport);
+    return Boolean(item.pullRequestNotice);
 }
 
 function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {

@@ -6,7 +6,6 @@ import {
     indentContinuationLines,
     shortInboxId,
 } from '@haus/agent-prompt';
-import { workerPullRequestNumber, formatWorkerSuffix } from '@haus/api';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
 
@@ -76,11 +75,11 @@ export function shortMessageId(messageId: string): string {
 
 /**
  * Every product record a Message carries rides its line in one fixed order:
- * attachments, the claim metadata, delegated Worker
- * work, the Agent this Message created, then its reactions.
+ * attachments, the claim metadata, the Agent this Message created, then its
+ * reactions.
  */
 function messageSuffixes(message: AgentCliMessage): string {
-    return `${formatAttachmentSuffix(message.attachments)}${claimSuffix(message)}${workerSuffix(message)}${agentCreatedSuffix(message)}${formatReactionsSuffix(message.reactions)}`;
+    return `${formatAttachmentSuffix(message.attachments)}${claimSuffix(message)}${agentCreatedSuffix(message)}${formatReactionsSuffix(message.reactions)}`;
 }
 
 const reactionActorLimit = 3;
@@ -113,25 +112,6 @@ function claimSuffix(message: AgentCliMessage): string {
     }
     const assignee = claim.assignee?.handle ? ` assignee=@${claim.assignee.handle}` : '';
     return ` [claim #${claim.number} status=${claim.status}${assignee}]`;
-}
-
-/**
- * Each Worker a Message links states what was delegated, where it
- * stands, and the pull request it opened once the Run reports one, so history
- * answers "which PR was that?" without a second command.
- */
-function workerSuffix(message: AgentCliMessage): string {
-    return (message.workers ?? [])
-        .map((work) => {
-            const url = work.latest_turn?.branches.find(
-                (branch) => branch.pull_request_url !== null
-            )?.pull_request_url;
-            return formatWorkerSuffix({
-                ...work,
-                pullRequestNumber: url ? workerPullRequestNumber(url) : null,
-            });
-        })
-        .join('');
 }
 
 /**

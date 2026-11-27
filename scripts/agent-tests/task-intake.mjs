@@ -88,10 +88,6 @@ export async function taskPosts(kit, task, agentId) {
         .sort((left, right) => left.sequence - right.sequence);
 }
 
-export async function attachedWork(kit, task) {
-    return (await readTaskDetail(kit, task)).attachedWork ?? [];
-}
-
 export async function postsAcross(kit, chatId, agentId, head = 0) {
     const own = ownBy(agentId);
     return (await kit.readMessages(chatId)).filter(

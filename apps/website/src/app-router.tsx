@@ -64,13 +64,6 @@ export function createAppRouter() {
                                   'ActivationPreviewRoute'
                               ),
                           },
-                          {
-                              path: 'prototype/asks/*',
-                              lazy: lazyRoute(
-                                  () => import('./features/asks-preview/asks-preview-route.tsx'),
-                                  'AsksPreviewRoute'
-                              ),
-                          },
                       ]
                     : []),
                 {

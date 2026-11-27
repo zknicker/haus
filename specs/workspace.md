@@ -75,7 +75,7 @@ import):
 ```text
 drive/agents/<handle>/
   AGENTS.md       the Agent's own rules
-  WORKER.md       rules every Worker of this Agent reads
+  WORKER.md       rules every crew Task of this Captain reads
   MEMORY.md       capped memory, delivered in the turn input
   notes/          the deeper knowledge MEMORY.md indexes
   workbench/      pages the Agent cards in chat
@@ -107,14 +107,14 @@ factory seed:
   another Agent also gets a `## Standing brief from @<creator>` section with the brief its creator
   wrote, so the brief is a memory fact the new Agent owns from there.
 - `AGENTS.md`, the Agent's own rules: a `# <Name> rules` heading and nothing else.
-- `WORKER.md`, the rules its Workers read: a `# Rules for <Name>'s Workers` heading.
+- `WORKER.md`, the rules its crew Tasks read: a `# Rules for <Name>'s crew` heading.
 - The release-owned `visuals` skill under `skills/`.
 
 `notes/` holds the deeper knowledge `MEMORY.md` indexes. Drive holds no empty folders, so it
 exists once the Agent writes a note.
 
 Creating a Server writes `haus/AGENTS.md` the same way: a `# Haus rules` heading and one line
-saying the rules apply to every Captain and Worker on the Server. It is created by the Server's
+saying the rules apply to every Captain and Task on the Server. It is created by the Server's
 creator. People own it.
 
 Nothing seeds these files after the fact. Agents, Projects and Servers that existed before the

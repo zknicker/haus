@@ -4,7 +4,6 @@ import { channelDescriptionInputSchema } from './channel-description.ts';
 import { idSchema } from './chat-contract-primitives.ts';
 import { chatSchema } from './chat.ts';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
-import { workerPlaceViewSchema } from './worker-place.ts';
 
 export const projectNameSchema = z
     .string()
@@ -17,8 +16,14 @@ export const projectSchema = z
     .object({
         archived: z.boolean(),
         chatId: idSchema,
-        /** Where the Project's Workers run when the Agent names no place; null asks for one. */
-        defaultWorkerPlace: workerPlaceViewSchema.nullable(),
+        /** The Machine a Task started here runs on when its starter names none; null asks for one. */
+        defaultMachine: z
+            .object({
+                computerId: idSchema,
+                computerName: z.string().trim().min(1).max(100).nullable(),
+            })
+            .strict()
+            .nullable(),
         /** The non-retired Agents whose home this Project is. */
         homeAgentIds: z.array(idSchema),
         isHaus: z.boolean(),
@@ -81,6 +86,13 @@ export const agentHomeSchema = z
 
 export type AgentHome = z.infer<typeof agentHomeSchema>;
 
+/** `project.setDefaultMachine`: a person picks the Project's default Machine, or none. */
+export const projectSetDefaultMachineInputSchema = z
+    .object({ computerId: idSchema.nullable(), projectId: idSchema, serverId: idSchema })
+    .strict();
+
+export type ProjectSetDefaultMachineInput = z.infer<typeof projectSetDefaultMachineInputSchema>;
+
 export const projectListInputSchema = z.object({ serverId: idSchema }).strict();
 
 export const projectListSchema = z.array(projectSchema);
@@ -89,14 +101,12 @@ export const projectListSchema = z.array(projectSchema);
  * - `PROJECT_HAS_AGENTS`: archiving or deleting a Project that is still some
  *   Agent's home; move them first.
  * - `PROJECT_NAME_FIXED`: renaming `#all`, whose name is always `all`.
- * - `WORKER_PLACE_OFF`: a Computer default place whose "Run Workers here" setting is Off.
  */
 export const projectErrorCodeSchema = z.enum([
     'PROJECT_HAS_AGENTS',
     'PROJECT_KEY_FIXED',
     'PROJECT_NAME_FIXED',
     'TASK_KEY_TAKEN',
-    'WORKER_PLACE_OFF',
 ]);
 
 export type ProjectErrorCode = z.infer<typeof projectErrorCodeSchema>;

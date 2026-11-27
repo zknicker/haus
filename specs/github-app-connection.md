@@ -225,7 +225,7 @@ An Agent commits, pushes and opens pull requests itself, as the bot
   `haus-computer __git-credential <server-root> <invocation-id>`, with
   `credential.https://github.com.useHttpPath` on and `git@github.com:` and `ssh://git@github.com/`,
   with or without `:22`, rewritten to `https://github.com/`. The machine's own GitHub login, keychain and SSH keys are
-  never used. Workers keep the machine's login (ADR 0056 decision 7).
+  never used.
 - **The token.** Git asks the helper only after GitHub answers 401, so public fetches never ask.
   For a GitHub HTTPS repo the helper reads the attachment's Computer credential and calls
   `POST /computer/github/git-credential`. The Server mints an installation token with
@@ -329,7 +329,7 @@ refetches `repo.list`. **Add repository** opens the add flow: pick a Device (thi
 desktop App runs on an attached Mac, else the first online Device the viewer attached), then
 **Choose folder…** in the native picker on this Mac, or type the path on the web or for another
 Device. After the add it shows the repo, its status with Grant on GitHub, and one line when no
-Captain can reach that Device or Workers are off there, linking to the Device's Access. A Device's
+Captain can reach that Device, linking to the Device's Access. A Device's
 **Folders** card opens the same flow for that Device. Captains → Git links to Repositories.
 
 ## Security
@@ -344,7 +344,7 @@ Captain can reach that Device or Workers are off there, linking to the Device's 
 A Server-owned GitHub pull-request snapshot resolver. Docs described a separate "GitHub
 pull-request connection"; no code exists. When built, it reads through this connection and adds no
 connection kind. Slice B removes the stale claims from `docs/features/connections.md`,
-`docs/features/rich-references.md`, and `specs/cloud-agents.md`. An installation shared by two Haus
+and `docs/features/rich-references.md`. An installation shared by two Haus
 Servers is refused, not fanned out.
 
 ## Implementation plan
@@ -389,7 +389,7 @@ presets,service}.ts` and tests (App client, OAuth App deletion, GitHub-aware del
 installation-reconcile,trigger-problems,problem-notice}.ts`, `haus-api/github/*`,
 `agent-delivery/inbox-lanes.ts` (the `trigger_problem` source),
 `docs/features/connections.md`, `docs/api/connections.md`, `specs/mcp.md`,
-`docs/features/rich-references.md`, `specs/cloud-agents.md`. Must not touch `triggers/`,
+`docs/features/rich-references.md`. Must not touch `triggers/`,
 webhook or recovery files, `agent-delivery/{chain-budget,delivery}.ts`, `apps/website`,
 `apps/computer`. Proof: server gate; tests for member-only and spoofed installations refused, user
 account owner match, state single-use and expiry, cross-Server `CONFLICT`, reconcile

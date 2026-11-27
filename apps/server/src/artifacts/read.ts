@@ -248,22 +248,11 @@ export function toArtifactMetadata(record: ArtifactRecord): ArtifactMetadata {
 
 /** `artifact_revision_author_shape` guarantees one author column, or none for a Haus write. */
 export function revisionAuthor(
-    revision: Pick<
-        typeof revisions.$inferSelect,
-        'authorAgentId' | 'authorKey' | 'authorUserId' | 'authorWorkerId'
-    >
+    revision: Pick<typeof revisions.$inferSelect, 'authorAgentId' | 'authorKey' | 'authorUserId'>
 ) {
     if (revision.authorKey === hausAuthorKey) {
         const haus: ArtifactAuthor = { type: 'haus' };
         return haus;
-    }
-    if (revision.authorWorkerId && revision.authorAgentId) {
-        const worker: ArtifactAuthor = {
-            agent_id: revision.authorAgentId,
-            type: 'worker',
-            worker_id: revision.authorWorkerId,
-        };
-        return worker;
     }
     return artifactCreator({
         creatorAgentId: revision.authorAgentId,

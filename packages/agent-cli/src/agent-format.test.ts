@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { type AgentCliMessage, agentMessageSchema } from './agent-api-schemas.ts';
+import type { AgentCliMessage } from './agent-api-schemas.ts';
 import { formatDeliveryEnvelope, formatHistoryLine } from './agent-format.ts';
 
 function message(overrides: Partial<AgentCliMessage> = {}): AgentCliMessage {
@@ -44,82 +44,6 @@ test('an ordinary Message carries no suffix, and the suffixes keep their order',
     ).toEndWith(
         '[1 attachment: plan.md (id:att_1) — use haus attachment view to download]' +
             ' [claim #3 status=in_progress assignee=@scout]'
-    );
-});
-
-type WorkerBody = NonNullable<AgentCliMessage['workers']>[number];
-
-const latestRun: NonNullable<WorkerBody['latest_turn']> = {
-    branches: [
-        {
-            branch: 'cloud/fix-flake',
-            pull_request_url: 'https://github.com/haus/haus/pull/56',
-            repository: 'haus/haus',
-        },
-    ],
-    error_code: null,
-    turn_id: 'car_1234567890abcdef',
-    status: 'completed',
-    summary: 'Opened a pull request.',
-};
-
-const worker: WorkerBody = {
-    activity: null,
-    id: 'caw_1234567890abcdef',
-    latest_turn: latestRun,
-    provider: 'cursor',
-    provider_url: 'https://cursor.com/agents/bc_one',
-    repository: 'haus/haus',
-    starting_ref: 'main',
-    status: 'completed',
-    title: 'Fix the flaky delivery test',
-};
-
-test('a Worker Message names the pull request it opened', () => {
-    const work = message({ workers: [worker] });
-
-    expect(formatHistoryLine(work)).toEndWith(
-        '[worker status=completed title=Fix the flaky delivery test pr=#56]'
-    );
-    expect(formatDeliveryEnvelope('#product', work)).toEndWith(
-        '[worker status=completed title=Fix the flaky delivery test pr=#56]'
-    );
-});
-
-test('work with no pull request yet reads exactly as it always did', () => {
-    expect(
-        formatHistoryLine(
-            message({
-                workers: [
-                    {
-                        ...worker,
-                        latest_turn: { ...latestRun, branches: [] },
-                        status: 'running',
-                    },
-                ],
-            })
-        )
-    ).toEndWith('[worker status=running title=Fix the flaky delivery test]');
-    expect(
-        formatHistoryLine(
-            message({
-                workers: [{ ...worker, latest_turn: null, status: 'queued' }],
-            })
-        )
-    ).toEndWith('[worker status=queued title=Fix the flaky delivery test]');
-});
-
-test('a text Message names every work it links, in link order', () => {
-    const second = { ...worker, id: 'caw_fedcba0987654321', latest_turn: null };
-    const linking = agentMessageSchema.parse({
-        ...message({ content: 'Tracking [Fix the flaky delivery test](worker://caw_1).' }),
-        workers: [worker, { ...second, status: 'running', title: 'Bump the lockfile' }],
-    });
-
-    expect(linking.body_kind).toBe('text');
-    expect(formatHistoryLine(linking)).toEndWith(
-        '[worker status=completed title=Fix the flaky delivery test pr=#56]' +
-            ' [worker status=running title=Bump the lockfile]'
     );
 });
 

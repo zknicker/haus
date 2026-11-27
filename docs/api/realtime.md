@@ -30,25 +30,23 @@ ids and small facts, never rows.
 | Procedure | App hook | App response |
 | --- | --- | --- |
 | `chat.onMessageCreated` | `useMessageCreatedStream` | Tail read every cached transcript list of the Chat; invalidate `chat.list`, `chat.search`, `chat.unreadPreviews`; a Task message (`taskId`) also refreshes the Task's reads (`hooks/realtime/task-reads.ts`: its `task.get` and the origin Channel's loaded pages, which carry its preview) |
-| `chat.onMessageReactionUpdated` | `useMessageReactionStream` | Invalidate the `chat.message` entity, `chat.search`, `worker.listActive`, `claim.list` |
+| `chat.onMessageReactionUpdated` | `useMessageReactionStream` | Invalidate the `chat.message` entity, `chat.search`, `claim.list` |
 | `chat.onRead` (reader only) | `useChatReadStream` | Invalidate `chat.list` unless the settled list already shows zero; a Task read refreshes the Task's reads; any read that moves a list invalidates `chat.unreadPreviews` |
-| `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `chat.unreadPreviews`; `deleted` runs the Chat-loss purge and invalidates `worker.listActive` and the cached Task reads, since a Worker outlives the Chat |
+| `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `chat.unreadPreviews`; `deleted` runs the Chat-loss purge |
 | `claim.onChanged` | `useClaimChangeStream` | Invalidate the claim Message's entity and `claim.list` |
 | `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `claim.list` |
 | `task.onCreated` | `useTaskCreatedStream` | `task.list`, `task.listActive`, and the origin Channel's loaded pages so the new preview shows |
 | `task.onUpdated` | `useTaskUpdatedStream` | The Task's reads, `task.list`, `task.listActive` |
 | `task.onFollowUpdated` (follower only) | `useTaskFollowStream` | The Task's reads (its `followed` and unread) |
-| `worker.onUpdated` | `useWorkerStream` | One event per Worker change, scoped to readers of its Task. Invalidate the Task's reads (`task.get` carries its Workers), `worker.get`, `worker.listActive` |
 | `imageGeneration.onUpdated` | `useImageGenerationStream` | One event per linking Message in a live Chat. Invalidate that Message's entity |
 | `reminder.onUpdated` (Owner/Admin) | `useReminderStream` | Invalidate the owner Agent's `reminder.list`, `reminder.history`, and the reminder's `reminder.runs` |
 | `agent.onUpdated` | `useAgentUpdateStream` | The Server detail, the named Agent's reads (or every Agent read), `agent.list`, `chat.list` |
 | `agent.onContextUpdated` | `useAgentContextStream` | The named Agent's `agent.context` (every Agent's on recovery), which feeds the Context column of the Captain hover card |
-| `computer.onUpdated` | `useComputerUpdateStream` | The Server detail, Computer list and log, Agent activity and delivery, `agent.list`, `stats.live`, `cloudAgentSettings.get` |
+| `computer.onUpdated` | `useComputerUpdateStream` | The Server detail, Computer list and log, Agent activity and delivery, `agent.list`, `stats.live` |
 | `mcp.onUpdated` | `useMcpUpdateStream` | `mcp.list`, `mcp.amazonProduct`, `mcp.amazonProductDetail` |
 | `server.onUpdated` | `useServerUpdateStream` | The Server detail and `server.list`; the membership sentinel |
 | `member.onUpdated` | `useMemberUpdateStream` | The named member, `member.list`, `chat.list`, the Server detail (the viewer's role) |
 | `invitation.onUpdated` (Owner/Admin) | `useInvitationUpdateStream` | `invitation.list` |
-| `cloudAgentSettings.onUpdated` | `useCloudAgentSettingsStream` | `cloudAgentSettings.get` |
 | `modelConnections.onUpdated` | `useModelConnectionsStream` | `modelConnections.list`, `modelConnections.signIn` |
 | `artifact.onUpdated` | `useArtifactUpdateStream` | `artifact.list` (every folder) and `artifact.creators`, throttled to one refresh now and at most one per 300 ms after; the named file's `artifact.get`, `artifact.versions`, and `artifact.publicLink` (every file's for a null id) at once; revision-keyed reads never refresh |
 

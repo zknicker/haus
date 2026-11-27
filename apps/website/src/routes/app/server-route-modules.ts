@@ -44,7 +44,6 @@ export const serverRouteModules = {
     settingsSection: cachedRouteModule(() => import('./settings-route.tsx')),
     task: cachedRouteModule(() => import('../../features/tasks/task-page.tsx')),
     tasks: cachedRouteModule(() => import('../../features/tasks/tasks-page.tsx')),
-    worker: cachedRouteModule(() => import('../../features/workers/view/worker-view.tsx')),
 };
 
 const routeModulesBySection: Record<

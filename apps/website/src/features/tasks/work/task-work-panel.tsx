@@ -1,30 +1,16 @@
 import type { TaskDetail } from '@haus/api';
-import { WorkerRows } from '../../workers/worker-rows.tsx';
 import { PanelSection } from './panel-section.tsx';
 import { PullRequestRows } from './pull-request-rows.tsx';
 import { pendingTaskReminders, reminderLine } from './task-work-model.ts';
 
-export function TaskWorkPanel({
-    task,
-}: {
-    task: Pick<TaskDetail, 'attachedWork' | 'pullRequests' | 'reminders'>;
-}) {
+export function TaskWorkPanel({ task }: { task: Pick<TaskDetail, 'pullRequests' | 'reminders'> }) {
     const reminders = pendingTaskReminders(task.reminders);
-    if (
-        task.attachedWork.length === 0 &&
-        task.pullRequests.length === 0 &&
-        reminders.length === 0
-    ) {
+    if (task.pullRequests.length === 0 && reminders.length === 0) {
         return null;
     }
 
     return (
         <aside aria-label="Attached work" className="task-work flex min-w-0 flex-col gap-3">
-            {task.attachedWork.length > 0 ? (
-                <PanelSection count={task.attachedWork.length} title="Workers">
-                    <WorkerRows label="Workers" works={task.attachedWork} />
-                </PanelSection>
-            ) : null}
             {task.pullRequests.length > 0 ? (
                 <PanelSection count={task.pullRequests.length} title="Pull requests">
                     <PullRequestRows readings={task.pullRequests} />

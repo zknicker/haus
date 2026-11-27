@@ -8,7 +8,7 @@ import * as React from 'react';
  * holding that list.
  *
  * The popover is controlled so a row can close it on the way out: opening an
- * Agent's DM or a Worker's place should not leave the list hanging
+ * Agent's DM should not leave the list hanging
  * over wherever the reader lands. The body is a render function for that one
  * reason — it is handed `close`.
  */

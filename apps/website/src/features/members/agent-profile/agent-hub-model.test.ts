@@ -11,9 +11,7 @@ import {
 test('a fact that names nothing reads as unset', () => {
     expect(isUnsetFact(formatNameList([]))).toBe(true);
     expect(
-        isUnsetFact(
-            formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 0, total: 0, workers: 0 })
-        )
+        isUnsetFact(formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 0, total: 0 }))
     ).toBe(true);
     expect(isUnsetFact(formatNameList(['Atlas']))).toBe(false);
     expect(isUnsetFact(undefined)).toBe(false);
@@ -24,21 +22,20 @@ test('the Automations count is what is still standing, not what has run', () => 
         [{ status: 'scheduled' }, { status: 'fired' }, { status: 'scheduled' }],
         [{ status: 'armed' }, { status: 'disabled' }]
     );
-    expect(counts).toEqual({ armedTriggers: 1, workers: 0, scheduledReminders: 2, total: 3 });
+    expect(counts).toEqual({ armedTriggers: 1, scheduledReminders: 2, total: 3 });
     expect(formatAutomationsFact(counts)).toBe('2 reminders · 1 trigger');
 });
 
 test('an Agent with no standing automations counts zero', () => {
     expect(countAgentAutomations([], [])).toEqual({
         armedTriggers: 0,
-        workers: 0,
         scheduledReminders: 0,
         total: 0,
     });
     expect(formatAutomationsFact(countAgentAutomations([], []))).toBe('Nothing scheduled');
-    expect(
-        formatAutomationsFact({ armedTriggers: 0, workers: 0, scheduledReminders: 1, total: 1 })
-    ).toBe('1 reminder');
+    expect(formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 1, total: 1 })).toBe(
+        '1 reminder'
+    );
 });
 
 test('Connections is only what this Agent can use right now', () => {
@@ -80,9 +77,4 @@ test('a card names two members and counts the rest', () => {
     expect(formatNameList(['Visuals'])).toBe('Visuals');
     expect(formatNameList(['Atlas', 'BidBeacon'])).toBe('Atlas, BidBeacon');
     expect(formatNameList(['Atlas', 'BidBeacon', 'Cove', 'Drift'])).toBe('Atlas, BidBeacon +2');
-});
-
-test('Worker handoffs count toward the Automations doorway', () => {
-    expect(formatAutomationsFact(countAgentAutomations([], [], 2))).toBe('2 Workers');
-    expect(countAgentAutomations([], [], 2).total).toBe(2);
 });

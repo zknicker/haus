@@ -13,7 +13,6 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
-import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
@@ -22,8 +21,7 @@ import { readInlineReplyContexts } from './reply-context.ts';
 /**
  * Reads named Messages the way the Chat transcript reads a page: the same
  * author profile, typed body, cause, attachment, and claim projections. Callers
- * that already hold a Message use it to pull in one more a surface needs — the
- * anchor a Worker row came from, for instance.
+ * that already hold a Message use it to pull in one more a surface needs.
  * Authorization belongs to the caller, which is why this takes explicit ids.
  */
 export async function readMessagesById(
@@ -66,29 +64,18 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [
-        attachments,
-        claims,
-        causes,
-        bodies,
-        works,
-        images,
-        reactions,
-        replies,
-        taskLinks,
-        citations,
-    ] = await Promise.all([
-        readMessageAttachments(db, serverId, foundIds),
-        listMessageClaimMap(db, serverId, foundIds),
-        readMessageCauses(db, serverId, foundIds),
-        readMessageBodies(db, serverId, foundIds),
-        readLinkedWorker(db, serverId, foundIds),
-        readLinkedImageGenerations(db, serverId, foundIds),
-        readChatMessageReactions(db, serverId, foundIds),
-        readInlineReplyContexts(db, serverId, rows),
-        readMessageTaskLinks(db, serverId, foundIds),
-        readMessageDriveCitations(db, serverId, foundIds),
-    ]);
+    const [attachments, claims, causes, bodies, images, reactions, replies, taskLinks, citations] =
+        await Promise.all([
+            readMessageAttachments(db, serverId, foundIds),
+            listMessageClaimMap(db, serverId, foundIds),
+            readMessageCauses(db, serverId, foundIds),
+            readMessageBodies(db, serverId, foundIds),
+            readLinkedImageGenerations(db, serverId, foundIds),
+            readChatMessageReactions(db, serverId, foundIds),
+            readInlineReplyContexts(db, serverId, rows),
+            readMessageTaskLinks(db, serverId, foundIds),
+            readMessageDriveCitations(db, serverId, foundIds),
+        ]);
     return new Map(
         rows.map((row) => [
             row.id,
@@ -98,7 +85,6 @@ export async function readMessagesById(
                     authorProfile: readStoredAuthorProfile(row),
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
-                    workers: works.get(row.id),
                     driveCitations: citations.get(row.id),
                     imageGenerations: images.get(row.id),
                     reactions: reactions.get(row.id),

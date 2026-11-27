@@ -56,8 +56,6 @@ async function readStewardedComputer(
             attachedByUserId: computersTable.attachedByUserId,
             computerUseEnabled: computersTable.computerUseEnabled,
             id: computersTable.id,
-            workerLimit: computersTable.workerLimit,
-            workersEnabled: computersTable.workersEnabled,
         })
         .from(computersTable)
         .where(

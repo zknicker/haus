@@ -200,32 +200,6 @@ test('the mentions view leads only with mentioned pending rows', () => {
     expect(output).not.toContain('#quiet');
 });
 
-test('Worker results fold into one row that points at message check', () => {
-    const output = render({
-        list: list({ items: [dmRow], totals: { conversations: 1, mentions: 0 } }),
-        pendingRows: [
-            pending({ workerResult: true, latestSender: 'haus', pendingCount: 2 }),
-            pending({
-                chatId: 'cht_richard',
-                workerResult: true,
-                latestSender: 'haus',
-                target: 'captain:@orbit',
-            }),
-        ],
-    });
-    expect(output).toBe(
-        [
-            'Inbox: 1 unread conversation (0 with mentions). Newest activity first.',
-            '',
-            'Worker results · 3 pending · fetch with haus message check',
-            'captain:@orbit · 3 unread · latest @richard 12m ago',
-            '  open: haus message read --target "captain:@orbit" --after 1200',
-            '',
-            'Next: fetch the Worker results above: haus message check',
-        ].join('\n')
-    );
-});
-
 test('a failed pending snapshot still lists conversations and says what is missing', () => {
     const output = render({
         list: list({ items: [dmRow], totals: { conversations: 1, mentions: 0 } }),
@@ -255,7 +229,6 @@ function list(overrides: Partial<AgentInboxConversations> = {}): AgentInboxConve
 function pending(overrides: Partial<AgentInboxPendingRow>): AgentInboxPendingRow {
     return {
         chatId: 'cht_ops',
-        workerResult: false,
         firstShortId: 'first',
         latestSender: 'zach',
         latestShortId: 'first',

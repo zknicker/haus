@@ -86,37 +86,3 @@ export async function deleteRepoFolder(
         .returning({ path: repoFoldersTable.path });
     return deleted.length > 0;
 }
-
-export async function ingestRepoClones(
-    db: HausDatabase,
-    scope: { computerId: string; serverId: string },
-    clones: ReadonlyArray<{ path: string; repository: string }>
-) {
-    if (clones.length === 0) {
-        return false;
-    }
-    return await db.transaction(async (tx) => {
-        await lockServerRow(tx, scope.serverId);
-        let added = false;
-        for (const clone of clones) {
-            const repository = clone.repository.toLowerCase();
-            if (await readRepoFolder(tx, { ...scope, repository })) {
-                continue;
-            }
-            await upsertRepo(tx, { repository, serverId: scope.serverId });
-            const inserted = await tx
-                .insert(repoFoldersTable)
-                .values({
-                    addedByUserId: null,
-                    computerId: scope.computerId,
-                    path: clone.path,
-                    repository,
-                    serverId: scope.serverId,
-                })
-                .onConflictDoNothing()
-                .returning({ path: repoFoldersTable.path });
-            added ||= inserted.length > 0;
-        }
-        return added;
-    });
-}

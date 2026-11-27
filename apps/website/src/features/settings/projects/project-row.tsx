@@ -9,7 +9,7 @@ import { useChatAppearances } from '../../../hooks/servers/use-chats.ts';
 import { CaptainAvatars } from '../../computers/captain-avatars.tsx';
 import { settingsProjectRoute } from '../../servers/server-routes.ts';
 import { SettingsFact } from '../layout/settings-text.tsx';
-import { workerPlaceLabel } from './worker-place-options.ts';
+import { projectMachineLabel } from './project-machine-options.ts';
 
 export function ProjectRow({ project, slug }: { project: Project; slug: string }) {
     const chat = useChatAppearances(project.serverId).get(project.chatId);
@@ -28,7 +28,7 @@ export function ProjectRow({ project, slug }: { project: Project; slug: string }
             <ItemCard.Action className="flex items-center gap-4">
                 <ProjectCaptainFaces agentIds={project.homeAgentIds} serverId={project.serverId} />
                 <SettingsFact className="w-28 truncate">
-                    {workerPlaceLabel(project.defaultWorkerPlace)}
+                    {projectMachineLabel(project.defaultMachine)}
                 </SettingsFact>
                 <Icon aria-hidden="true" className="text-muted" icon={ArrowRight01Icon} size={16} />
             </ItemCard.Action>

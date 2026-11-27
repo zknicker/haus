@@ -100,7 +100,6 @@ test('task.get reads the Task Chat and its origin', async () => {
     const detail = await owner.trpc.task.get.query({ serverId, taskId: second.id });
     expect(detail).toMatchObject({
         archivedAt: null,
-        attachedWork: [],
         chatId: second.chatId,
         followed: false,
         origin: { chatId: channelId, messageId: expect.any(String) },

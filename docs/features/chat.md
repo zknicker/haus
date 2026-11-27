@@ -84,10 +84,6 @@ and [Agent Inbox](../../specs/inbox.md).
   ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); the mention chip is the only
   transcript mark, and the question notifies them ([Notifications](notifications.md)).
   There is no question card, option buttons, or answered state.
-* **Workers.** A [Worker](../../specs/workers.md) works for a Task. It shows in the Task page's
-  attached-work panel ([Tasks](tasks.md#the-task-page)), not as a card in the transcript. Each
-  turn's report posts in the Task as an Agent-authored Message, and a person's follow-up to the
-  Worker posts there too.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. Humans pick files with the composer's attachment button, paste them (a screenshot, a
   copied image, or files copied in Finder; rich text that carries a rendered image stays a text
@@ -303,13 +299,13 @@ and [Agent Inbox](../../specs/inbox.md).
   that opens its page in Settings → Projects. That page edits the name, description,
   and key inline (saved on blur or Enter through `project.update`; the key is
   editable until a Task carries it, and a taken or fixed key is refused on the
-  field), the icon and color from the header mark, and the default place for
-  Workers (`project.setDefaultWorkerPlace`). Its Captains section lists the
+  field), the icon and color from the header mark, and the default Machine for
+  its Tasks (`project.setDefaultMachine`). Its Captains section lists the
   Agents whose home it is: Add moves another Agent's home here (each choice
   shows its avatar and the Project it lives in now), and each row's ••• Move to
   moves one home to another Project, both through `agent.setHome`. The
   Settings → Projects list shows every open Project with its key, Captains, and
-  default Worker place, and its archived Projects with Restore. Every Project choice is one searchable picker
+  default Machine, and its archived Projects with Restore. Every Project choice is one searchable picker
   over `project.list` whose rows carry the Project's icon and color, and ends in
   New project, which creates a Project and picks it. An Agent's profile hub
   carries the same picker as its Project row, New Captain requires one, and

@@ -1,10 +1,10 @@
 import { formatImageGenerationLink } from '@haus/api';
 import { and, asc, eq, isNotNull, isNull, or } from 'drizzle-orm';
 import { enqueueInboxItem, ensureDeliveryState } from '../agent-delivery/store.ts';
+import { linkParentChatsTable } from '../chats/link-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, imageGenerationLinksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { linkParentChatsTable } from '../workers/worker-visibility.ts';
 import type { ImageGenerationRow } from './image-generation-shape.ts';
 
 /** The inbox source of an image generation failure notice: concrete and bodiless (inbox-lanes.ts). */

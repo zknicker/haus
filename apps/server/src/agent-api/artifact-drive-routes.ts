@@ -6,7 +6,7 @@ import { getArtifactAtPath } from '../artifacts/read.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { sendArtifactError } from './artifact-errors.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
-import { authorizeDriveReader } from './worker-auth.ts';
+import { authorizeDriveAgent } from './drive-auth.ts';
 
 const moveBody = artifactMoveInputSchema.omit({ serverId: true });
 const resolveQuery = artifactResolveInputSchema.omit({ serverId: true });
@@ -19,7 +19,7 @@ export function registerAgentArtifactDriveRoutes(
     app.get(
         '/api/agent/artifacts/by-path',
         async (request, reply) =>
-            await withActor(authorizeDriveReader, options.db, request, reply, async (actor) => ({
+            await withActor(authorizeDriveAgent, options.db, request, reply, async (actor) => ({
                 artifact: await getArtifactAtPath(
                     options.db,
                     actor,

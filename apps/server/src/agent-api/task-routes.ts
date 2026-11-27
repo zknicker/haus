@@ -7,7 +7,6 @@ import {
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import type { ComputerConnections } from '../computers/connections.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { GithubApp } from '../github/github-app.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -35,21 +34,17 @@ export function registerAgentTaskRoutes(
     options: {
         agentDelivery: AgentDelivery;
         catalog: AgentModelCatalog;
-        computers: Pick<ComputerConnections, 'send'>;
         db: HausDatabase;
         githubApp: GithubApp | null;
         postCommitWork: ServerPostCommitWork;
         sessions: TaskSessionWire;
     }
 ) {
-    const { agentDelivery, computers, db, postCommitWork } = options;
+    const { agentDelivery, db, postCommitWork } = options;
 
-    /** After a write commits: publish, free archived sessions, wake, stop closed Workers. */
+    /** After a write commits: publish, free archived sessions, wake. */
     const commit = async (runner: ResolvedRunner, result: TaskWriteResult) => {
         publishRealtime(result.events);
-        for (const { computerId, frame } of result.workerFrames ?? []) {
-            computers.send(computerId, frame);
-        }
         announceTaskSessions(options.sessions, result.sessions ?? []);
         await postCommitWork.wakeAgents(agentDelivery, result.wakes);
         return await taskRow(db, runner, result.task);

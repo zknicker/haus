@@ -1,4 +1,4 @@
-import { type AgentCommand, isChatlessInboxSource, workerReportsPerRun } from '@haus/api';
+import { type AgentCommand, isChatlessInboxSource } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatlessStartFrame } from './chatless-run.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
@@ -183,23 +183,14 @@ function waitsForGreeting(source: string): boolean {
     return isChatlessInboxSource(source) && source !== 'subagent';
 }
 
-/**
- * The rows a drain led by `lead` carries. Worker reports coalesce per Task:
- * the queued reports of the lead's Task ride one run, up to
- * `workerReportsPerRun`, and reports from another Task wait for their own.
- */
+/** The rows a drain led by `lead` carries. */
 export function drainRowsFor(rows: store.InboxItemRow[], lead: store.InboxItemRow) {
-    if (lead.source !== 'worker_report') {
-        return boundedCompatibleRows(rows, lead.source);
-    }
-    return rows
-        .filter((row) => row.source === 'worker_report' && row.chatId === lead.chatId)
-        .slice(0, workerReportsPerRun);
+    return boundedCompatibleRows(rows, lead.source);
 }
 
 /**
  * One drain never mixes the lanes, and a concrete drain never mixes kinds: a
- * fire, a claim assignment, a Worker result, and Cove's bootstrap each earn
+ * fire, a claim assignment, and Cove's bootstrap each earn
  * their own dedicated wake, which is also what keeps the sole-fire cause
  * inference readable (specs/inbox.md).
  */

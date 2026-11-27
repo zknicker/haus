@@ -3,7 +3,7 @@ import { chmod, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from '
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
-import { removeTree } from './workers/computer/remove-tree.ts';
+import { removeTree } from './remove-tree.ts';
 import { fakeHdiutil, holderListing } from './workspace-volumes/disk-fixtures.ts';
 import { withStorageLock } from './workspace-volumes/storage-ledger.ts';
 import { exists } from './workspace-volumes/workspace-volume.ts';

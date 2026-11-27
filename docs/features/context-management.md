@@ -58,7 +58,7 @@ model session. Per-turn message delivery is an inbox concern; see
   searches do not establish Server-owned MCP access. General capability selection still considers
   other authorized execution methods, and requested setup troubleshooting can inspect local state.
 - Ordinary requests continue in the Chat where they were asked, from acknowledgment to result,
-  following the human's lead across turns. Work that outlasts a reply, delegated Worker work included,
+  following the human's lead across turns. Work that outlasts a reply
   goes in a Task, which holds its progress and result
   ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
 - Sessions never rotate because of age or idle time.
@@ -139,8 +139,8 @@ and every directory up to its git root, and its binary cannot be patched. Outsid
 (the shipped `~/.haus/computer` layout) it reads only the workspace itself, so a
 Grok Agent still sees such files it or a repository puts in its workspace. Haus instructions reach Grok through `$GROK_HOME/AGENTS.md`. This table
 describes the Computer Agent drivers, whose launch and isolation tests left with them when Agents
-moved to the runner; Workers launch with the machine's own settings instead
-([specs/runtime-drivers.md](../../specs/runtime-drivers.md#workers)).
+moved to the runner
+([specs/runtime-drivers.md](../../specs/runtime-drivers.md#deleted-with-workers)).
 
 Sub-agents run on Claude Code only, in the foreground or the background, as in Raft. A
 background sub-agent or shell outlives the turn that starts it: that turn ends, the Agent stays

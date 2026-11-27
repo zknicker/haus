@@ -6,7 +6,6 @@ import { herouiSpacingOverride } from './heroui-spacing-override.mjs';
 import { hugeiconsProOnly } from './hugeicons-pro-only.mjs';
 import { runnerBoundary } from './runner-boundary.mjs';
 import { updateRequiredCode } from './update-required-code.mjs';
-import { workerStatusWrites } from './worker-status-writes.mjs';
 
 /** The repo's own Oxlint rules, registered as `haus/<rule>` in oxlint.config.mts. */
 export default {
@@ -20,6 +19,5 @@ export default {
         'hugeicons-pro-only': hugeiconsProOnly,
         'runner-boundary': runnerBoundary,
         'update-required-code': updateRequiredCode,
-        'worker-status-writes': workerStatusWrites,
     },
 };

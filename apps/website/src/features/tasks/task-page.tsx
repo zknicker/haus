@@ -8,7 +8,6 @@ import { useTask } from '../../hooks/tasks/use-task.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { tasksRoute } from '../servers/server-routes.ts';
 import { PageColumn } from '../shell/page-column.tsx';
-import { WorkerSummariesProvider } from '../workers/worker-summaries.tsx';
 import { TaskConversation } from './conversation/task-conversation.tsx';
 import { TaskDetailsSection } from './details/task-details.tsx';
 import { TaskHistoryDetails } from './details/task-history-details.tsx';
@@ -48,23 +47,21 @@ function TaskDetailView({
     task: TaskDetail;
 }) {
     return (
-        <WorkerSummariesProvider workers={task.attachedWork}>
-            <div
-                className={
-                    panelShown
-                        ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-8 pe-5'
-                        : 'flex min-h-0 flex-1'
-                }
-            >
-                <TaskConversation chatId={chatId} origin={task.origin} title={task.title} />
-                {panelShown ? (
-                    <div className="task-rail">
-                        <TaskDetailsSection task={task} />
-                        <TaskWorkPanel task={task} />
-                    </div>
-                ) : null}
-            </div>
-        </WorkerSummariesProvider>
+        <div
+            className={
+                panelShown
+                    ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-8 pe-5'
+                    : 'flex min-h-0 flex-1'
+            }
+        >
+            <TaskConversation chatId={chatId} origin={task.origin} title={task.title} />
+            {panelShown ? (
+                <div className="task-rail">
+                    <TaskDetailsSection task={task} />
+                    <TaskWorkPanel task={task} />
+                </div>
+            ) : null}
+        </div>
     );
 }
 

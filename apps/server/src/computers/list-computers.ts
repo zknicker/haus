@@ -1,8 +1,4 @@
-import type {
-    ComputerAgentAccessSettings,
-    ComputerUseSettings,
-    ComputerWorkerSettings,
-} from '@haus/api';
+import type { ComputerAgentAccessSettings, ComputerUseSettings } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
@@ -45,8 +41,6 @@ export async function listServerComputers(
             updateTargetVersion: computersTable.updateTargetVersion,
             updateTotalBytes: computersTable.updateTotalBytes,
             updateUpdatedAt: computersTable.updateUpdatedAt,
-            workerLimit: computersTable.workerLimit,
-            workersEnabled: computersTable.workersEnabled,
         })
         .from(computersTable)
         .where(
@@ -66,18 +60,10 @@ export async function listServerComputers(
             attachedByUserId,
             computerUseChangedAt,
             computerUseEnabled,
-            workerLimit,
-            workersEnabled,
             ...computer
         }) => {
             const steward = isComputerSteward(server.role, attachedByUserId, member?.id);
             const attacher = attachedByUserId === member?.id;
-            const workers: ComputerWorkerSettings = {
-                canChangeWorkers: steward,
-                canEnableWorkers: attacher,
-                workerLimit,
-                workersEnabled,
-            };
             const agentAccess: ComputerAgentAccessSettings = {
                 agentAccessGrants: grants.get(computer.id) ?? [],
                 agentAccessScope,
@@ -92,7 +78,6 @@ export async function listServerComputers(
             };
             return {
                 ...presentComputer(computer, connections),
-                ...workers,
                 ...computerUse,
                 ...agentAccess,
                 name: computer.reportedInventory?.name ?? null,

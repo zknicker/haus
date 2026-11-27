@@ -10,7 +10,6 @@ export const agentInboxCheckResponseSchema = z.object({
             // An older Server omits the work facts; its rows print untagged.
             chatId: z.string().min(1),
             claimNumber: z.number().int().positive().nullable().default(null),
-            workerResult: z.boolean().default(false),
             // An older Server omits it; the pending row's open command then has no --after.
             firstSequence: z.number().int().positive().nullable().optional(),
             firstShortId: z.string().min(1),

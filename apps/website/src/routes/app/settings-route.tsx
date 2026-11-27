@@ -1,4 +1,3 @@
-import { hasServerAdminAuthority } from '@haus/api/membership';
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ComputerPage } from '../../features/computers/computer-page.tsx';
@@ -49,11 +48,7 @@ const sectionRenderers: Record<SettingsRouteTab, (context: SectionContext) => Re
     git: () => <GitSettings />,
     members: ({ server }) => <MembersSection server={server} />,
     models: ({ server }) => (
-        <ModelsSettings
-            canManage={hasServerAdminAuthority(server.role)}
-            isOwner={server.role === 'owner'}
-            serverId={server.id}
-        />
+        <ModelsSettings isOwner={server.role === 'owner'} serverId={server.id} />
     ),
     notifications: () => <NotificationsSettings />,
     preferences: () => <PreferencesSettings />,

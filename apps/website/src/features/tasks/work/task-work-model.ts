@@ -1,4 +1,4 @@
-import type { PullRequestReading, WorkerPullRequestState, TaskReminderRef } from '@haus/api';
+import type { PullRequestReading, PullRequestState, TaskReminderRef } from '@haus/api';
 
 export const pullRequestCheckLabels = {
     failing: 'Checks failing',
@@ -16,7 +16,7 @@ const reviewLabels = {
 } as const;
 
 export const pullRequestStateChip: Record<
-    WorkerPullRequestState,
+    PullRequestState,
     { color: 'accent' | 'default' | 'success'; label: string }
 > = {
     closed: { color: 'default', label: 'Closed' },

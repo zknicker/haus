@@ -9,7 +9,6 @@ export const cliFamilyTopics = {
     channel: 'channel',
     claim: 'claims',
     computer: 'computers',
-    worker: 'workers',
     connection: 'connection',
     drive: 'drive',
     image: 'images',

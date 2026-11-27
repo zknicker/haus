@@ -1,13 +1,12 @@
 import { settle } from '@haus/effect';
 import { Data, Effect } from 'effect';
 import type { DaemonRuntime } from './daemon-runtime.ts';
-import type { WorkerSupervisor } from './workers/work-runner.ts';
 
 export interface AttachmentFrameSender {
     send(frame: unknown): boolean;
 }
 
-/** Owns Worker work and response routing for the full attachment-daemon lifetime. */
+/** Owns accepted work and response routing for the full attachment-daemon lifetime. */
 export class AttachmentDaemonWork {
     readonly resettingAgents = new Set<string>();
     readonly retiredAgents = new Set<string>();
@@ -17,10 +16,7 @@ export class AttachmentDaemonWork {
     private sender: AttachmentFrameSender | null = null;
     private readonly writers = new Set<Promise<unknown>>();
 
-    constructor(
-        private readonly runtime: DaemonRuntime,
-        readonly workers?: WorkerSupervisor
-    ) {}
+    constructor(private readonly runtime: DaemonRuntime) {}
 
     attachSender(sender: AttachmentFrameSender): () => void {
         if (this.closing) {
@@ -68,7 +64,7 @@ export class AttachmentDaemonWork {
                 const results = await settle(
                     this.runtime,
                     shutdownStage(
-                        () => Promise.allSettled([...this.writerSnapshot(), this.workers?.close()]),
+                        () => Promise.allSettled(this.writerSnapshot()),
                         'Computer shutdown timed out while draining accepted work.'
                     ),
                     { mapFailure: (failure) => failure.cause }

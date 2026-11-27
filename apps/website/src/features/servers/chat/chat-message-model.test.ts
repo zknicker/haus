@@ -115,7 +115,6 @@ function message(id: string, sequence: number): ChatMessage {
         author: { kind: 'human', userId: 'user_one' },
         body: { kind: 'text' },
         chatId: 'chat_one',
-        workers: [],
         imageGenerations: [],
         driveCitations: [],
         content: id,

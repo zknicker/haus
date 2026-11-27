@@ -219,22 +219,8 @@ test('settlement invalidates the Agent turn reads once, never older activity pag
         { limit: 30, serverId: 'srv_one' },
         'infinite'
     );
-    const cloudHandoffs = getQueryKey(
-        hausTrpc.worker.listAutomations,
-        { ...scope, history: false },
-        'query'
-    );
     const usage = getQueryKey(hausTrpc.stats.agentUsage, scope, 'query');
-    for (const queryKey of [
-        turns,
-        runTurn,
-        otherTurns,
-        latest,
-        older,
-        serverTurns,
-        usage,
-        cloudHandoffs,
-    ]) {
+    for (const queryKey of [turns, runTurn, otherTurns, latest, older, serverTurns, usage]) {
         client.setQueryData(queryKey, {});
     }
     const stale = (queryKey: readonly unknown[]) => client.getQueryState(queryKey)?.isInvalidated;
@@ -252,7 +238,6 @@ test('settlement invalidates the Agent turn reads once, never older activity pag
     ]);
     expect(stale(otherTurns)).toBe(false);
     expect(stale(older)).toBe(false);
-    expect(stale(cloudHandoffs)).toBe(true);
 });
 
 function settle() {

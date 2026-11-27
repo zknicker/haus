@@ -5,8 +5,6 @@ import {
     chatLifecycleEventSchema,
     chatReadEventSchema,
     claimChangedEventSchema,
-    cloudAgentSettingsUpdatedEventSchema,
-    workerUpdatedEventSchema,
     computerUpdatedEventSchema,
     desktopActivityEventSchema,
     imageGenerationUpdatedEventSchema,
@@ -47,7 +45,6 @@ export const chatReadTopic = createTopic('chat.read', chatReadEventSchema);
 export const chatLifecycleTopic = createTopic('chat.lifecycle', chatLifecycleEventSchema);
 export const claimChangedTopic = createTopic('claim.changed', claimChangedEventSchema);
 export const taskLabelUpdatedTopic = createTopic('taskLabel.updated', taskLabelUpdatedEventSchema);
-export const workerUpdatedTopic = createTopic('worker.updated', workerUpdatedEventSchema);
 export const imageGenerationUpdatedTopic = createTopic(
     'imageGeneration.updated',
     imageGenerationUpdatedEventSchema
@@ -74,10 +71,6 @@ export const memberUpdatedTopic = createTopic('member.updated', memberUpdatedEve
 export const invitationUpdatedTopic = createTopic(
     'invitation.updated',
     invitationUpdatedEventSchema
-);
-export const cloudAgentSettingsUpdatedTopic = createTopic(
-    'cloudAgentSettings.updated',
-    cloudAgentSettingsUpdatedEventSchema
 );
 export const modelConnectionsUpdatedTopic = createTopic(
     'modelConnections.updated',

@@ -128,15 +128,14 @@ export const appPlaces: readonly AppPlace[] = [
     },
     {
         area: 'channels',
-        task: "Choose where a channel's Workers run by default",
-        path: ['Settings', 'Projects', '(the project)', 'Workers', 'Default place'],
+        task: "Choose the Machine a Project's Tasks run on by default",
+        path: ['Settings', 'Projects', '(the project)', 'Default Machine'],
         who: 'anyone',
-        note: 'With No default, a Worker start must name its place.',
+        note: 'With No default, starting a Task asks for its Machine.',
         anchors: [
             settingsEntry(),
             settingsSection('projects'),
-            label('features/settings/projects/project-worker-place-row.tsx', 'Workers'),
-            label('features/settings/projects/project-worker-place-row.tsx', 'Default place'),
+            label('features/settings/projects/project-machine-row.tsx', 'Default Machine'),
         ],
     },
     {

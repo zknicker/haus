@@ -11,7 +11,6 @@ import { useClaimChangeStream } from './use-claim-change-stream.ts';
 import { useMessageCreatedStream } from './use-message-created-stream.ts';
 import { useMessageReactionStream } from './use-message-reaction-stream.ts';
 import { useTaskLabelStream } from './use-task-label-stream.ts';
-import { useWorkerStream } from './use-worker-stream.ts';
 
 installRealtimeTestDom();
 
@@ -84,7 +83,7 @@ describe('Chat stream hooks', () => {
         ]);
     });
 
-    test('chat.onMessageReactionUpdated invalidates the entity, search, active work, and claims', async () => {
+    test('chat.onMessageReactionUpdated invalidates the entity, search, and claims', async () => {
         const event = { chatId: 'cht_a', messageId: 'msg_1', serverId };
         const { onEvent, onRecovery } = await drive(
             'chat.onMessageReactionUpdated',
@@ -92,11 +91,7 @@ describe('Chat stream hooks', () => {
             event
         );
         expect<unknown>(onEvent[0]).toEqual({ op: 'noteMessageAnnotated', target: event });
-        const reads = [
-            listKey('chat.search', { serverId }),
-            listKey('worker.listActive', { serverId }),
-            listKey('claim.list', { serverId }),
-        ];
+        const reads = [listKey('chat.search', { serverId }), listKey('claim.list', { serverId })];
         expect(invalidated(onEvent)).toEqual(reads);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         expect(invalidated(onRecovery)).toEqual(reads);
@@ -135,10 +130,6 @@ describe('Chat stream hooks', () => {
             listKey('chat.get', { chatId: 'cht_a', serverId }),
             listKey('agent.chats', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
-            // Linked Worker may leave the viewer's lists (ADR 0044).
-            listKey('worker.listAutomations', { serverId }),
-            listKey('worker.listActive', { serverId }),
-            listKey('worker.listForChat', { serverId }),
         ]);
         // Lifecycle owns no transcript lists: its recovery is its own table row.
         expect(onRecovery.some((entry) => entry.op === 'recoverTranscriptLists')).toBe(false);
@@ -164,25 +155,5 @@ describe('Chat stream hooks', () => {
         // No message carries a label, so a missed rename leaves transcripts alone.
         expect(onRecovery.some((entry) => entry.op === 'recoverTranscriptLists')).toBe(false);
         expect(invalidated(onRecovery)).toEqual(reads);
-    });
-
-    test('worker.onUpdated refetches the Worker and its Task, and recovery refetches every Worker', async () => {
-        const event = { chatId: 'cht_task', serverId, taskId: 'tsk_1', workerId: 'wkr_1' };
-        const { onEvent, onRecovery } = await drive('worker.onUpdated', useWorkerStream, event);
-        expect(invalidated(onEvent)).toEqual([
-            listKey('worker.get', { serverId, workerId: 'wkr_1' }),
-            listKey('worker.listLinks', { serverId }),
-            listKey('worker.listAutomations', { serverId }),
-            listKey('worker.listActive', { serverId }),
-        ]);
-        expect<unknown>(onRecovery[0]).toEqual(bulkLists);
-        expect(invalidated(onRecovery)).toEqual([
-            listKey('worker.listForChat', { serverId }),
-            listKey('worker.get', { serverId }),
-            listKey('worker.listLinks', { serverId }),
-            listKey('worker.listAutomations', { serverId }),
-            listKey('worker.listActive', { serverId }),
-            listKey('task.get', { serverId }),
-        ]);
     });
 });

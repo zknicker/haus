@@ -10,7 +10,6 @@ import { chatMessagesTable, chatsTable, messageClaimsTable } from '../postgres/s
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { projectMessageClaims } from './claim-shape.ts';
 
 /**
@@ -63,14 +62,13 @@ export async function listClaims(
 
     const visible = rows.filter((row) => row.chatKind !== 'task');
     const messageIds = visible.map((row) => row.claim.messageId);
-    const [projected, bodies, works, images, reactions, taskLinks] = await Promise.all([
+    const [projected, bodies, images, reactions, taskLinks] = await Promise.all([
         projectMessageClaims(
             db,
             input.serverId,
             visible.map((row) => row.claim)
         ),
         readMessageBodies(db, input.serverId, messageIds),
-        readLinkedWorker(db, input.serverId, messageIds),
         readLinkedImageGenerations(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
         readMessageTaskLinks(db, input.serverId, messageIds),
@@ -94,7 +92,6 @@ export async function listClaims(
             message: {
                 ...toChatMessage(row.message, {
                     body: bodies.get(row.message.id),
-                    workers: works.get(row.message.id),
                     imageGenerations: images.get(row.message.id),
                     reactions: reactions.get(row.message.id),
                     taskLinks: taskLinks.get(row.message.id),

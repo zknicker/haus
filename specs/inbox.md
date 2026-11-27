@@ -40,14 +40,14 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | Kind (`source`) | What it is | Identity | Lane |
 | --- | --- | --- | --- |
 | `human` | An ordinary Chat delivery of a durable message | The message id | Notice; concrete when addressed on a cold start, or on any wake of a live session |
-| `cloud_agent_work` | One Cloud Agent notice for the Agent that delegated it, in the work's Task: a settled Run, a stall, or a pull request change (`cloud_agent_notice` `settled`, `stall`, `pull_request`) | The Run id for a settled Run; the stall window for a stall; `<repo>#<number>:<change>:<headSha>` for a pull request change | Concrete |
+| `pull_request` | A pull request on a Task became ready for review or its checks finished | `<repo>#<number>:<change>:<headSha>` | Concrete, in the Task, for the Task's agent |
 | `claim_assignment` | A direct claim assignment to this Agent | The assignment identity | Concrete |
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
 | `onboarding` | Retired. Cove's one-shot bootstrap instruction from the removed Server onboarding flow ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md)); nothing writes one, migration 0138 settled every unsettled row `seen`, and seen rows stay as history | Its own bootstrap identity | None |
 | `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits (a sub-agent wake still leads, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
-| `drive_conflict` | One Drive push that kept both versions of a file, kept an edit over a delete, or refused a file ([artifact-drive.md](artifact-drive.md#pushes)). It lists every such file of the push. A Worker's push goes to its Agent. No Chat | `drive-conflict:<pushId>`, where the push id is the pushing run's id, so one per push | Concrete. Queued when the push closes. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain, and at the ceiling it waits for the chain to reset instead of being refused. Retired as `seen` when its run settles |
+| `drive_conflict` | One Drive push that kept both versions of a file, kept an edit over a delete, or refused a file ([artifact-drive.md](artifact-drive.md#pushes)). It lists every such file of the push. No Chat | `drive-conflict:<pushId>`, where the push id is the pushing run's id, so one per push | Concrete. Queued when the push closes. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain, and at the ceiling it waits for the chain to reset instead of being refused. Retired as `seen` when its run settles |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read
@@ -152,7 +152,7 @@ for Tasks and Captain chats (steps 3 and 5, released together; step 3 built no a
 - An Agent follows a reply chain by the rules in [Inline reply attention](#inline-reply-attention).
 - A Captain chat reaches its Captain always, inline replies included: chain follows decide
   delivery only in channels.
-- Claim assignments, reminder and Trigger fires, Cloud Agent notices, and the other concrete
+- Claim assignments, reminder and Trigger fires, pull request changes, and the other concrete
   kinds reach their recipient wherever their Chat is. Hearing narrows only ordinary `human`
   delivery.
 - Posting in a Project does not make an Agent hear it. Moving an Agent's home changes delivery
@@ -198,16 +198,9 @@ A durable `message.created` is planned once by Server delivery
   adds one `claim_assignment` item to only the assignee's inbox. It is `mentioned=true` so it
   reaches the assignee outside its Project, and renders in Agent inbox envelopes the way a reminder fire does. The
   human's representation of that fact is the claim chip on the message.
-- A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
-  keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
-  summary, error code, and reported branches ([Workers](workers.md)). A Run that stopped to
-  ask a question (`pending_input`) settles the same way, with the question as its summary and a
-  pointer to answer with `haus cloud-agent send`. It settles like the
-  other concrete kinds; the result the human sees is whatever ordinary Message the woken Agent
-  decides to post. The notice lands in the work's Task, so a plain send in that turn goes there.
-  A pull request becoming ready for review or its checks finishing after the newest Run settled is
-  a `pull_request` notice carrying `pullRequestChange`; one on a Task with no cloud work wakes the
-  Task's assignee Agent with no Run behind it ([Workers](workers.md#pull-request-readings)).
+- A pull request on a Task becoming ready for review or its checks finishing queues one
+  `pull_request` item carrying `pullRequestChange` for the Task's agent, once per head commit
+  ([Tasks](tasks.md)). It lands in the Task, so a plain send in that turn goes there.
 - An Issue write queues its derived wakes ([Issue items](#issue-items)) in its own transaction.
   Each is `mentioned=true` and has no Chat, so the row holds its typed attention as JSON rather
   than an envelope. Reassigning, unassigning, or moving the Issue to `backlog`, `done` or `canceled` retires a queued `issue_assignment`; a run that
@@ -217,10 +210,9 @@ A durable `message.created` is planned once by Server delivery
   ([chain budget](github-triggers.md#automation-chain-budget)).
 - A Drive push that closes with any `kept_both`, `kept_edit`, or `refused` outcome
   ([artifact-drive.md](artifact-drive.md#pushes)) queues one `drive_conflict` item for the Agent
-  that pushed, or for a Worker's push, the Worker's Agent. It has no Chat, so the row holds its
+  that pushed. It has no Chat, so the row holds its
   typed attention as JSON, as an Issue item's does. That attention is `driveConflict` in
-  `packages/haus-api/src/agent-inbox.ts`: the push id, the writer (the Agent, or a Worker with its
-  Task), and every listed file of the push, uncapped because conflicts are rare. Each file carries
+  `packages/haus-api/src/agent-inbox.ts`: the push id, the writer (the Agent), and every listed file of the push, uncapped because conflicts are rare. Each file carries
   `path`, `outcome`, `copyPath` for `kept_both`, `currentRevisionId`, `currentAuthorHandle`, and
   `reason` (`same_lines`, `binary`, `base_gone`, `both_created`, `edit_over_delete`, or the refusal
   code). When
@@ -248,10 +240,10 @@ A durable `message.created` is planned once by Server delivery
   Each guidance line appears only when the item has that outcome. A `base_gone` file reads "the
   version you started from is gone", a `both_created` file reads "created it too", and an edit of
   the Agent's own that beat someone's delete reads "it was deleted, and your edit brought it back".
-  A missing author handle reads "someone". A Worker's item names the Worker and its Task in the
-  header line (`packages/agent-prompt/src/inbox-drive-conflict-format.ts`).
+  A missing author handle reads "someone"
+  (`packages/agent-prompt/src/inbox-drive-conflict-format.ts`).
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
-  same notice in its live turn. Concrete work — a settled Cloud Agent Run, an automation fire, a
+  same notice in its live turn. Concrete work — a pull request change, an automation fire, a
   claim assignment — is the typed exception: an idle recipient receives the item's own envelope as
   the prompt of a distinct turn; a busy recipient receives only the content-free notice at a safe
   boundary, then the still-queued item in the next turn. A concrete drain never mixes kinds, so each
@@ -338,8 +330,8 @@ turn for that unchanged set. A new identity changes the set and wakes once;
 Restart, Start, or session reset explicitly offers pending work again. Chain
 budget follows rows made model-visible, not notice-only turns.
 
-Non-Chat system attention is a separate typed concrete lane. A settled Cloud Agent Run's terminal
-attention, reminder and Trigger fires,
+Non-Chat system attention is a separate typed concrete lane. Pull request changes, reminder and
+Trigger fires,
 claim assignments, and Drive conflicts use that lane, settle against their own stable identities, and never enter Chat message
 resolution or Chat cursor accounting. Each of those exists nowhere but its inbox row, so its
 envelope rides the wake instead of waiting behind a pull the Agent may never make. The
@@ -412,8 +404,7 @@ on the Server (`GET /api/agent/inbox/conversations`). Each row prints the target
 unread count, whether it mentions the Agent, and the latest sender, with an `open:`
 line naming the `haus message read --target "<t>" --after <lastReadSeq>` command
 that reads from the read position. Rows whose pending work has not yet been handed to
-the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent results
-print as one `Cloud Agent results · N pending · fetch with haus message check` line.
+the Agent (`N new, not yet delivered`) come first.
 The output pages with `More: haus inbox check --before <key>` and ends with exactly
 one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
 a Task outside its Project appears only while the Agent follows it, and a channel outside its
@@ -475,7 +466,7 @@ turn starts when its creator sends the working brief.
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
 | Issue assignments coalesce into one main-session run by priority, up to 50, a busy agent gets a count then the Issues, and reassigning retires a queued item | `apps/server/test/issue-assignment-delivery.test.ts`, `apps/server/test/issue-assignment-undeliverable.test.ts`, `packages/agent-prompt/src/inbox-issue-format.test.ts` |
-| One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping | `apps/server/test/drive-conflict-delivery.test.ts`, `apps/server/test/drive-conflict-chain.test.ts` |
+| One `drive_conflict` item per push lists every file, wakes an idle Agent, and waits at the chain ceiling instead of dropping | `apps/server/test/drive-conflict-delivery.test.ts`, `apps/server/test/drive-conflict-chain.test.ts` |
 
 ## Presentation split (I1/I4)
 
@@ -485,58 +476,6 @@ exact run visibility, not of attachment ([ADR 0035](../docs/adr/0035-chat-engage
 detailed execution evidence remain separate Agent-level projections
 ([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
 targets, the Project, and follows on the Agent profile; humans steer attention by asking in Chat.
-
-## Worker items
-
-Superseded by [ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md):
-`worker_report` stays for Workers until step 7 deletes them; Task agents report through [`crew_report`](#crew-reports) from step 5. `worker_stall` goes with
-the cloud places in step 7. This section stays as history until then.
-
-[Workers](workers.md) reach their Agent through three item kinds, which replaced the
-`cloud_agent_work` kind.
-
-| Kind (`source`) | What it is | Recipient | Identity | Lane |
-| --- | --- | --- | --- | --- |
-| `worker_report` | One settled Worker turn: its report, or a failed outcome Haus recorded | The delegating Agent | `worker-report:<turnId>` | Concrete, in the Worker's Task. Queued reports of one Task coalesce into one run, up to 20 |
-| `worker_stall` | A live cloud turn that needs attention without settling ([Stalls](cloud-agents.md#stalls)) | The delegating Agent | `worker-stall:<turnId>:<stallSince>:<window>`, the stall's start in epoch ms and its reminder window | Concrete, in the Worker's Task |
-| `pull_request` | A pull request on a Task became ready for review or its checks finished ([change wake](workers.md#pull-request-readings)) | The Agent of each settled Worker that reported it, else the Task's assignee Agent | `<repo>#<number>:<change>:<headSha>` | Concrete, in the Task |
-
-Each lands in its Task, so a plain send in that run goes there. Each spends the automation chain
-and, like `drive_conflict`, waits at the ceiling for the chain to reset instead of being refused,
-because a Worker's outcome must reach its Agent. Each retires as `seen` when its run settles.
-A `stopped` turn queues nothing, because the Agent or a person stopped it on purpose. Closing a
-Task is the exception: each closed Worker's final outcome queues one item
-([Closing](workers.md#closing)).
-
-`worker_report` batches too, like the Issue items. Six Workers reporting on
-one Task wake an idle Agent once, with the start frame carrying them as `workerReports`. A busy
-Agent gets a count in its notice, `N Worker reports in <KEY-n>`, and the reports in its next run.
-Reports from different Tasks never share a run.
-
-The row holds the typed attention as JSON, `workerReport` in `packages/haus-api/src/agent-inbox.ts`:
-the Task key, the Worker id, title, and place, the turn id, the outcome, the report text and ask,
-the person a needs-you report named, its pull requests with their readings, its cited files with
-revisions, and the failure reason when Haus recorded the outcome. It never invents a person, a
-revision, or a reading. The turn input formatter renders it with its own guidance, so no standing
-prompt text teaches Worker reports:
-
-```text
-[worker report · ENG-41 · needs-you · Worker on macbook (wkr_…) · turn 2]
-The iPad baseline moves 2px with the fix. Is that intended?
-Asked @zach in the Task. An answer from the Worker's card reaches the Worker as its next turn.
-PR: https://github.com/acme/app/pull/412 · draft · checks pending
-Files: agents/forge/renders/ENG-41/ipad-before.png@rev_…
-The report is already posted in ENG-41. Post only what it does not say. Answer the Worker with haus worker send --worker wkr_…, or start a narrower Worker.
-```
-
-A failed outcome Haus recorded says that nothing was posted, so the Agent tells the Task what
-matters. A needs-you report with no person says the ask is for the Agent.
-
-| Contract | Guard |
-| --- | --- |
-| Each kind is queued once per identity, lands in its Task, and retires at settlement | `apps/server/test/worker-inbox-delivery.test.ts` (W2) |
-| Reports of one Task coalesce into one run, and a busy Agent gets a count then the reports | `apps/server/test/worker-inbox-delivery.test.ts` (W2) |
-| A pull request change wakes once per head commit, and only Agents of settled Workers or the assignee | `apps/server/test/pull-request-wake.test.ts` (W2) |
 
 ## ADR 0062 items
 
@@ -577,7 +516,7 @@ Built in step 3 (`apps/server/src/issues/issue-inbox.ts`):
 
 ### Crew reports
 
-`crew_report` (step 5) is how crew Tasks report; `worker_report` stays for Workers until step 7. Recipient: the crew Task's Captain. Identity
+`crew_report` (step 5) is how crew Tasks report. Recipient: the crew Task's Captain. Identity
 `crew-report:<taskId>:<runId>`, so one per Task turn. Its typed attention carries the Task's short
 id and title, the linked Issue codes, the outcome (`done`, `needs-you`, `failed`, or `unreported`
 when a Captain-directed turn ended with no report), the report text and ask, the person named, its
@@ -585,8 +524,7 @@ pull requests with readings, and the Issue edits the Task made in that turn
 ([tasks.md](tasks.md#crew-reports)).
 
 - **Batched across the whole crew.** Every queued `crew_report` for one Captain rides one run, up
-  to 50 and within a 24,000-character text budget; the rest wait for the next run. `worker_report`
-  batches per Task; `crew_report` batches per Captain.
+  to 50 and within a 24,000-character text budget; the rest wait for the next run.
 - A turn a person drove queues a `crew_report` only when it settles `failed` or reports
   `needs-you` with no person named. Otherwise it queues nothing.
 - A busy Captain gets `N crew reports` in its notice, and the reports on its next run.

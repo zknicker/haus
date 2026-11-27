@@ -34,14 +34,5 @@ export function deviceReachNotice(computer: Computer, agents: readonly Agent[]) 
         agents.filter((agent) => agent.computerId === computer.id).length +
         computer.agentAccessGrants.length;
     const name = computerLabel(computer);
-    if (captains === 0 && !computer.workersEnabled) {
-        return `No Captains can reach ${name}, and Workers are off there.`;
-    }
-    if (captains === 0) {
-        return `No Captains can reach ${name} yet.`;
-    }
-    if (!computer.workersEnabled) {
-        return `Workers are off on ${name}.`;
-    }
-    return null;
+    return captains === 0 ? `No Captains can reach ${name} yet.` : null;
 }

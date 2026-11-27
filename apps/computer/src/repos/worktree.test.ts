@@ -3,7 +3,7 @@ import { mkdtempSync } from 'node:fs';
 import { mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { worktreePath } from '../workers/computer/layout.ts';
+import { worktreePath } from './layout.ts';
 import { listWorktrees } from './worktree.ts';
 
 const roots: string[] = [];

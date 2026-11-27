@@ -182,13 +182,4 @@ export function tabPageKey(location: TabLocation): string {
 }
 
 /** Sections whose second segment names a different page rather than a drill-down. */
-const idSections = new Set([
-    'agents',
-    'artifacts',
-    'chats',
-    'dm',
-    'files',
-    'issues',
-    'tasks',
-    'workers',
-]);
+const idSections = new Set(['agents', 'artifacts', 'chats', 'dm', 'files', 'issues', 'tasks']);

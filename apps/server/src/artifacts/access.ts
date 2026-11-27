@@ -6,17 +6,10 @@ import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { ArtifactError } from './storage.ts';
 
-export interface ArtifactWorkerWriter {
-    agentId: string;
-    serverId: string;
-    turnId: string;
-    workerId: string;
-}
-
 export type ArtifactActor =
     | { kind: 'agent'; runner: ResolvedRunner }
-    | { kind: 'human'; member: HausUser | null; serverId: string }
-    | { kind: 'worker'; worker: ArtifactWorkerWriter };
+    | { kind: 'human'; member: HausUser | null; serverId: string };
+
 export async function artifactAccess(db: HausDatabase, actor: ArtifactActor) {
     if (actor.kind === 'human') {
         const server = await requireServerMembership(db, actor.member, actor.serverId);
@@ -30,10 +23,9 @@ export async function artifactAccess(db: HausDatabase, actor: ArtifactActor) {
             serverId: server.id,
             slug: server.slug,
             userId: actor.member.id,
-            worker: null,
         };
     }
-    const writer = actor.kind === 'agent' ? actor.runner : actor.worker;
+    const writer = actor.runner;
     const [row] = await db
         .select({ slug: serversTable.slug })
         .from(serversTable)
@@ -52,15 +44,11 @@ export async function artifactAccess(db: HausDatabase, actor: ArtifactActor) {
     }
     return {
         agentId: writer.agentId,
-        authorKey:
-            actor.kind === 'worker'
-                ? `worker:${actor.worker.workerId}`
-                : `agent:${actor.runner.agentId}`,
+        authorKey: `agent:${writer.agentId}`,
         isAdmin: false,
         serverId: writer.serverId,
         slug: row.slug,
         userId: null,
-        worker: actor.kind === 'worker' ? actor.worker : null,
     };
 }
 export type ArtifactAccess = Awaited<ReturnType<typeof artifactAccess>>;

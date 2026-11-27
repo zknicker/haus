@@ -2,7 +2,6 @@ export type HausRichReferenceKind =
     | 'agent'
     | 'app'
     | 'chat'
-    | 'worker'
     | 'directory'
     | 'file'
     | 'image-generation'
@@ -15,7 +14,6 @@ export type HausRichReferenceProjection =
     | 'agent-reference'
     | 'capability-reference'
     | 'chat-reference'
-    | 'worker-reference'
     | 'image-generation-reference'
     | 'path-reference'
     | 'skill-activation'
@@ -52,11 +50,6 @@ export function formatChatReferenceTarget(chatId: string) {
  */
 export function formatChatMessageReferenceTarget(chatId: string, messageId: string) {
     return `${formatChatReferenceTarget(chatId)}?thread=${encodeReferenceId(messageId)}`;
-}
-
-/** `worker://<workId>`. Build whole links with `formatWorkerLink`. */
-export function formatWorkerReferenceTarget(workId: string) {
-    return `worker://${encodeReferenceId(workId)}`;
 }
 
 /** `image-generation://<generationId>`. Build whole links with `formatImageGenerationLink`. */
@@ -106,10 +99,6 @@ export function parseChatMessageReferenceTarget(target: string) {
     const chatId = match ? decodeReferenceId(match[1]) : null;
     const messageId = match ? decodeReferenceId(match[2]) : null;
     return chatId && messageId ? { chatId, messageId } : null;
-}
-
-export function parseWorkerReferenceTarget(target: string) {
-    return parseSchemeReferenceTarget(target, 'worker');
 }
 
 export function parseImageGenerationReferenceTarget(target: string) {
@@ -193,15 +182,6 @@ function parseRichReferenceLink({
             kind: 'chat',
             label: stripReferenceLabelSigil(rawLabel, '#'),
             projection: 'chat-reference',
-        };
-    }
-
-    if (parseWorkerReferenceTarget(target)) {
-        return {
-            kind: 'worker',
-            // Undo the label escapes `formatWorkerLink` writes.
-            label: rawLabel.replace(/\\([\\[])/gu, '$1'),
-            projection: 'worker-reference',
         };
     }
 

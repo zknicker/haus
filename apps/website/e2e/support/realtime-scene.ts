@@ -1,7 +1,5 @@
 import type { Page } from '@playwright/test';
-import { workerObservationFrame, seedWorker } from './agent-worker.ts';
 import { createChannelAgent } from './channel-agent.ts';
-import { bootstrapAnswer, sendBootstrap, socketOpen } from './computer-socket.ts';
 import { installDesktopBrowserStub, openDesktopWindow } from './desktop-browser-stub.ts';
 import { createProjectWithAgents } from './project.ts';
 import { createClient, createTestServer, openChannel } from './server.ts';
@@ -10,10 +8,9 @@ import { expect } from './test.ts';
 /**
  * The incident detector's scene (specs/realtime-events.md, "App e2e"): a
  * desktop window whose shown tab A is `#all` and whose kept, hidden tab B is
- * `#product`, which holds an inline reply anchor and the Message that started a
- * Task, whose page is a third kept tab listing its Worker. Two
- * Agents with no model write through the Agent API, and a Computer reports
- * the work's progress over its attachment.
+ * `#product`, which holds an inline reply anchor that also started a crew
+ * Task, whose page is a third kept tab. An Agent with no model writes through
+ * the Agent API, and the human's other device renames the Task.
  */
 export async function createRealtimeScene(page: Page, slug: string) {
     await installDesktopBrowserStub(page);
@@ -21,7 +18,6 @@ export async function createRealtimeScene(page: Page, slug: string) {
         displayName: `Realtime ${slug}`,
         slug,
     });
-    const computerCredential = `computer-${slug}-credential-0001`;
     const orbit = await createChannelAgent({
         channelName: 'all',
         databaseUrl: session.databaseUrl,
@@ -29,29 +25,24 @@ export async function createRealtimeScene(page: Page, slug: string) {
         slug,
         token: session.accessToken,
     });
-    await createProjectWithAgents(client, {
+    const product = await createProjectWithAgents(client, {
         agentIds: [orbit.agentId],
         name: 'product',
         serverId: server.id,
     });
-    const work = await seedWorker({
-        agentHandle: 'scout',
-        channelName: 'product',
-        computerCredential,
-        brief: 'Rebuild the search index from scratch.',
-        databaseUrl: session.databaseUrl,
-        repository: 'haus/haus',
-        serverId: server.id,
-        slug,
-        title: 'Rebuild the search index',
-        token: session.accessToken,
-    });
     const anchor = await client.chat.send.mutate({
-        chatId: work.chatId,
+        chatId: product.id,
         content: 'Product anchor for inline replies',
         nonce: `${slug}-anchor`,
         serverId: server.id,
     });
+    const started = await orbit.startTask({
+        from: anchor.message.id,
+        target: '#product',
+        title: 'Rebuild the search index',
+    });
+    const task = await client.task.get.query({ serverId: server.id, shortId: started.shortId });
+    const work = { chatId: product.id, taskId: task.id, taskShortId: started.shortId };
 
     await openDesktopWindow(page, `/s/${slug}`);
     await openChannel(page, 'product');
@@ -85,25 +76,18 @@ export async function createRealtimeScene(page: Page, slug: string) {
                 replyToMessageId: anchor.message.id,
                 serverId: server.id,
             }),
-        /** Change 3: the Computer reports the Worker's progress. */
-        workUpdate: async (activity: string) => {
-            const computer = new WebSocket(
-                `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
-            );
-            await socketOpen(computer);
-            const accepted = bootstrapAnswer(computer);
-            sendBootstrap(computer, computerCredential, 'complete');
-            expect(await accepted).toMatchObject({ mode: 'ordinary' });
-            computer.send(
-                workerObservationFrame({
-                    activity,
-                    observedAt: new Date().toISOString(),
-                    turnId: work.turnId,
-                    status: 'running',
-                    workerId: work.workerId,
-                })
-            );
-            return computer;
+        /** Change 3: a rename of the Task, which its own stream carries. */
+        taskRename: async (title: string) => {
+            const current = await device.task.get.query({
+                serverId: server.id,
+                taskId: work.taskId,
+            });
+            await device.task.update.mutate({
+                expectedVersion: current.version,
+                patch: { title },
+                serverId: server.id,
+                taskId: work.taskId,
+            });
         },
     };
 
@@ -111,7 +95,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
         anchorId: anchor.message.id,
         changes,
         client,
-        homedAgentIds: [orbit.agentId, work.agentId],
+        homedAgentIds: [orbit.agentId],
         server,
         session,
         work,
@@ -137,12 +121,12 @@ export function visibleSurface(page: Page) {
 
 /**
  * The convergence assertions: tab A shows the `#all` reply with no reload;
- * revealing tab B shows the inline reply, and the Task tab shows the Worker working.
+ * revealing tab B shows the inline reply, and the Task tab shows its new title.
  */
 export async function expectConverged(
     page: Page,
     scene: Awaited<ReturnType<typeof createRealtimeScene>>,
-    expected: { allReply: string; inlineReply: string }
+    expected: { allReply: string; inlineReply: string; taskTitle: string }
 ) {
     await expect(visibleSurface(page).getByText(expected.allReply)).toBeVisible({
         timeout: 15_000,
@@ -157,9 +141,6 @@ export async function expectConverged(
         .getByRole('button', { name: new RegExp(scene.work.taskShortId, 'u') })
         .click();
     await expect(
-        page
-            .getByRole('grid', { name: 'Workers' })
-            .filter({ visible: true })
-            .getByRole('img', { name: 'Working' })
+        page.getByText(expected.taskTitle, { exact: true }).filter({ visible: true }).first()
     ).toBeVisible({ timeout: 15_000 });
 }

@@ -6,7 +6,7 @@ import { drivePushFixture } from './drive-push.fixture.ts';
 
 const drive = drivePushFixture({ seedManagedSkills: true });
 const { fixture } = drive;
-const hausRules = '# Haus rules\n\nThese rules apply to every Captain and Worker on this Server.\n';
+const hausRules = '# Haus rules\n\nThese rules apply to every Captain and Task on this Server.\n';
 let connection: HausConnection;
 
 beforeAll(async () => {
@@ -24,7 +24,7 @@ test('a new Captain holds starter rule files and memory as Haus revisions', asyn
         revision_number: 1,
         text: '# Orbit rules\n',
     });
-    expect((await head('agents/orbit/WORKER.md'))?.text).toBe("# Rules for Orbit's Workers\n");
+    expect((await head('agents/orbit/WORKER.md'))?.text).toBe("# Rules for Orbit's crew\n");
     const memory = await head('agents/orbit/MEMORY.md');
     expect(memory?.author_key).toBe('haus');
     expect(memory?.text).toMatch(/^# Orbit\n\n## Role\n/u);
@@ -85,7 +85,7 @@ test('a full reset reseeds the starter MEMORY.md and rule files', async () => {
     expect(memory?.text).not.toContain('Remembers too much.');
     expect(memory?.text).toMatch(/^# Orbit\n\n## Role\n/u);
     expect((await head('agents/orbit/AGENTS.md'))?.text).toBe('# Orbit rules\n');
-    expect((await head('agents/orbit/WORKER.md'))?.text).toBe("# Rules for Orbit's Workers\n");
+    expect((await head('agents/orbit/WORKER.md'))?.text).toBe("# Rules for Orbit's crew\n");
 });
 
 function fixtureAgent(agentId: string) {

@@ -4,8 +4,6 @@ import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx'
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
 import { messageImageGenerations } from '../../image-generation/message-image-generations.ts';
-import { messageWorker } from '../../workers/message-worker.ts';
-import { workerMessageBody } from '../../workers/worker-message-body.ts';
 
 export type ProjectedChatMessageRow = TranscriptMessageRow;
 
@@ -46,8 +44,6 @@ export function projectChatMessage(
         message: {
             actor,
             ...(message.cause ? { cause: message.cause } : {}),
-            worker: messageWorker(message),
-            workerBody: workerMessageBody(message.body),
             content: message.content,
             driveCitations: message.driveCitations,
             id: message.id,
@@ -122,7 +118,7 @@ export function projectChatMessageLayout(
         connectsToNext: false,
         connectsToPrevious: false,
         entity: {
-            attachedWork: attachedWork || workerMessageBody(layout.body) !== null,
+            attachedWork,
             chatId: layout.chatId,
             serverId: layout.serverId,
         },
@@ -141,7 +137,6 @@ export function projectChatMessageLayout(
             sourceSessionId: null,
             sourceSessionKey: `hosted:${agentId ?? layout.author.kind}`,
             timestamp: layout.createdAt,
-            workerBody: workerMessageBody(layout.body),
         },
         responseId: agentId ? layout.id : undefined,
         runId: layout.author.kind === 'agent' ? layout.runId : null,
@@ -160,9 +155,6 @@ function messageActor(message: Pick<ChatMessage, 'author'>): TranscriptActor {
         : { id: message.author.userId, kind: 'participant' };
 }
 
-function messageSenderType(message: Pick<ChatMessage, 'author' | 'body'>) {
-    if (message.body.kind === 'worker-report') {
-        return 'system' as const;
-    }
+function messageSenderType(message: Pick<ChatMessage, 'author'>) {
     return message.author.kind === 'agent' ? ('agent' as const) : ('user' as const);
 }

@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
 import type { AgentIdleCompactionReport } from '@haus/api';
-import { workerRecordFixture } from './worker-record-fixture.ts';
+import { taskBoardFixture } from './task-board.fixture.ts';
 
 /**
  * Idle compaction is an Owner's Server setting, off by default, that every attached Computer
  * follows; a compaction a Computer ran is recorded as the Agent's completed turn for Usage.
  */
-const fixture = workerRecordFixture();
+const fixture = taskBoardFixture();
 
 test('idle compaction starts off; every member reads it and only an Owner changes it', async () => {
     const input = { serverId: fixture.serverId };

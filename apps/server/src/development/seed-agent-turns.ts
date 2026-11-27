@@ -58,7 +58,7 @@ export async function seedAgentTurns(
                 'Traced the sidebar badge count to the cached chat row.',
                 'Split the unread rollup out of the chat list query.',
                 'Answered the weekly digest question in #all.',
-                'Handed the last-message preview to a Worker.',
+                'Handed the last-message preview to a crew Task.',
             ],
         },
         {

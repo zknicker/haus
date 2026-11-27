@@ -2,8 +2,8 @@ import { existsSync, realpathSync } from 'node:fs';
 import { readFile, stat, utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as z from 'zod';
-import { gitOutput, WorkerCheckoutError } from '../workers/computer/git.ts';
-import { readJsonFile } from '../workers/durable-json.ts';
+import { readJsonFile } from '../durable-json.ts';
+import { gitOutput, RepoCheckoutError } from './git.ts';
 
 const markerSchema = z.object({ branch: z.string().min(1), ref: z.string().min(1).nullable() });
 export type WorktreeMarker = z.infer<typeof markerSchema>;
@@ -24,7 +24,7 @@ export async function readMarker(path: string) {
 export async function writeMarker(path: string, marker: WorktreeMarker) {
     const dirs = await worktreeGitDirs(path);
     if (dirs === null) {
-        throw new WorkerCheckoutError(`${path} is not a git worktree.`);
+        throw new RepoCheckoutError(`${path} is not a git worktree.`);
     }
     await writeFile(join(dirs.admin, markerFile), `${JSON.stringify(marker)}\n`);
 }

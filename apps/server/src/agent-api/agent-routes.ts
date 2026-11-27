@@ -26,7 +26,7 @@ import { describeInvalidAgentProfileWrite } from './description-invalid.ts';
 /**
  * The Agent-scoped Agent routes. Any active managed Agent of the Server may
  * call them: the runner credential is the authority, exactly as it is for
- * messages, Claims, and Worker. Cove's identity stays product-owned,
+ * messages and Claims. Cove's identity stays product-owned,
  * so update and avatar refuse it.
  */
 export function registerAgentAgentRoutes(

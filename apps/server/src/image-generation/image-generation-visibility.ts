@@ -1,18 +1,18 @@
 import { and, eq, exists, inArray, or, type SQL, sql } from 'drizzle-orm';
+import {
+    type LinkViewer,
+    linkChatVisibleSql,
+    linkParentChatsTable,
+} from '../chats/link-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatsTable,
     imageGenerationLinksTable,
     imageGenerationsTable,
 } from '../postgres/schema.ts';
-import {
-    type WorkerViewer,
-    linkChatVisibleSql,
-    linkParentChatsTable,
-} from '../workers/worker-visibility.ts';
 
 /** Who is asking to see an image generation: a member, or an Agent. */
-export type ImageGenerationViewer = WorkerViewer;
+export type ImageGenerationViewer = LinkViewer;
 
 /**
  * The one "may this viewer see this generation?" predicate over

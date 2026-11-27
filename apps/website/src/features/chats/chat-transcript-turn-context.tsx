@@ -1,6 +1,4 @@
 import type { MessageCause } from '@haus/api';
-import { turnWorkerBody } from '../workers/worker-message-body.ts';
-import { WorkerMessageContext } from '../workers/worker-message-context.tsx';
 import { MessageCauseLine } from './automation/message-cause-line.tsx';
 import type { TranscriptItem, TranscriptTurnEntry } from './chat-transcript-model.ts';
 import { NavigableInlineReply, useTurnReplyReference } from './inline-reply-preview.tsx';
@@ -22,10 +20,6 @@ export function TurnContext({
     if (cause) {
         return <MessageCauseLine cause={cause} />;
     }
-    const worker = turnWorkerBody(entry.items);
-    if (worker) {
-        return <WorkerMessageContext body={worker.body} serverId={worker.serverId} />;
-    }
     return reply ? (
         <NavigableInlineReply onOpen={reply.onOpen} reference={reply.reference} />
     ) : null;
@@ -45,6 +39,6 @@ export function readTurnContext(entry: TranscriptTurnEntry) {
     const cause = getTurnCause(entry.items);
     return {
         cause,
-        continues: entry.continuesPrevious && !cause && !turnWorkerBody(entry.items),
+        continues: entry.continuesPrevious && !cause,
     };
 }

@@ -8,7 +8,7 @@ import { resetAgentState } from './agent-reset.ts';
 import { prepareAgentDrive } from './drive-migration/prepare-agent-drive.ts';
 import { createDriveRoutes, serveDrive } from './drive-migration/testing/drive-server.ts';
 import { agentDrive } from './drive/agent-drive.ts';
-import { removeTree } from './workers/computer/remove-tree.ts';
+import { removeTree } from './remove-tree.ts';
 
 const agentId = 'agt_resetxxxxxxxxxxx';
 const memory = '# Durable memory\n\nBluebird remains active.\n';

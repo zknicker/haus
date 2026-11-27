@@ -1,5 +1,5 @@
 ---
-summary: The Tasks contract (ADR 0062). A Task is one fresh agent session with its own chat, a Machine and a model, started by a person or by a Captain as crew, active or archived (`tasks.archived_at`), with Capy's activity status (working, waiting, idle, failed, plus needs-you) and no backlog fields or code; it has an auto title and a separate 8-character short id. Covers the hidden Task agent, the shared agent base with Captains, the org-visible Captain chat and its owner, starting a Task, what it reads and writes in Drive, delivery modes (steer, interrupt, queue), archive, restore and unarchive on message, Tasks messaging each other, crew reports, Computer access (always the Captain's or starter's grant), background processes, the desktop lease, worktrees, trailers and pull requests, followers, and the side panel. Folds in what survives from specs/workers.md.
+summary: The Tasks contract (ADR 0062). A Task is one fresh agent session with its own chat, a Machine and a model, started by a person or by a Captain as crew, active or archived (`tasks.archived_at`), with Capy's activity status (working, waiting, idle, failed, plus needs-you) and no backlog fields or code; it has an auto title and a separate 8-character short id. Covers the hidden Task agent, the shared agent base with Captains, the org-visible Captain chat and its owner, starting a Task, what it reads and writes in Drive, delivery modes (steer, interrupt, queue), archive, restore and unarchive on message, Tasks messaging each other, crew reports, Computer access (always the Captain's or starter's grant), background processes, the desktop lease, worktrees, trailers and pull requests, followers, and the side panel. Folds in what survived from the deleted Workers contract.
 read_when:
   - changing what a Task is, its record, its title, its short id, its activity status, or archive, restore and unarchive
   - changing how a person or a Captain starts a Task, its Machine, its model, or `haus task start`
@@ -206,7 +206,7 @@ with the brief on stdin (step 5).
 
 ## What a Task reads
 
-The Server composes a Task's turn input; the runner runs it (step 5, carried from the Worker
+The Server composes a Task's turn input; the runner runs it (step 5, carried from the deleted Worker
 contract):
 
 1. The Haus Task instructions: how to work, how to report, the trailer, where deliverables go.
@@ -235,8 +235,8 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   names the Task), replacing whatever revision is current, and prints its `drive://` citation.
   One write carries at most 50 MB.
 - A Task writes only under its own folders: for crew, its Captain's
-  `agents/<handle>/reports/<shortId>/`, `renders/<shortId>/` and `handoffs/<shortId>/`, as Workers
-  did; for a person's Task, `projects/<key>/tasks/<shortId>/`. Anything else is refused
+  `agents/<handle>/reports/<shortId>/`, `renders/<shortId>/` and `handoffs/<shortId>/`; for a
+  person's Task, `projects/<key>/tasks/<shortId>/`. Anything else is refused
   `DRIVE_WRITE_OUTSIDE_TASK`. The session policy names these folders, so the Task prompt does.
 - Captains keep editing Drive in their `drive/` folder; `haus drive write` from a Captain is
   refused `DRIVE_WRITE_USE_FOLDER`.
@@ -279,8 +279,8 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
 
 - A crew Task ends each Captain-directed turn (the brief, or a Captain's `task send`) with
   `haus task report --outcome done|needs-you|failed [--ask <text>] [--person <handle>] [--pr <url>]...`
-  and the report text on stdin, at most 8,000 characters (step 5; the shape is the Worker
-  report's, `specs/workers.md` Reports).
+  and the report text on stdin, at most 8,000 characters (step 5; the shape was the deleted Worker
+  report's).
 - The report posts in the Task's chat as the Task's message and reaches the Captain as a
   `crew_report` inbox item ([inbox.md](inbox.md#crew-reports)).
 - A Captain-directed turn that settles with no report sends the Captain one `crew_report` with
@@ -338,8 +338,8 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   refuses a start past that. Archive (older generations only) and its own `process_kill` end a
   process silently; an access revocation ends it and reports the exit, and a process the Computer
   finds still running after its own restart is ended and reported with no exit code. A `haus`
-  command cannot run in the background. Captains use them too. They replace Workers'
-  long-running builds and must exist before step 7.
+  command cannot run in the background. Captains use them too. They replaced Workers'
+  long-running builds, which step 7 deleted.
 - **Desktop lease** (step 4). The first `desktop` call in a turn takes a Computer-wide lease for
   that session, held in memory on the Server, which already routes calls; a later turn of the same
   session takes it over. It is released when the turn settles, 60 seconds after the last desktop
@@ -362,8 +362,8 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
 - Its branch is `haus/<shortId>-<slug>`, the slug from the title, lower-cased and at most 40
   characters, fixed at the first checkout.
 - Every commit ends with `Haus-Task: <shortId>`, plus `Haus-Issue: <code>` for each linked Issue.
-  Trailers are for tracing; Haus never scans commits for them. The Worker trailer this replaces is
-  `apps/server/src/workers/worker-instructions.ts:11`.
+  Trailers are for tracing; Haus never scans commits for them. They replaced the Worker trailer,
+  which step 7 deleted.
 - It pushes and opens pull requests as the Server's Haus GitHub App bot, with the person who
   asked as co-author ([github-app-connection.md](github-app-connection.md#git-on-a-computer)).
 - **Pull requests** attach in `task_pull_requests` when a report names them, or by
@@ -417,7 +417,7 @@ the session). Archive frees the Task's resources; it is **not** the runner's ret
 agent id for the runner's lifetime (`apps/runner/src/turn/agent-sessions.ts:26-28,61-66`).
 
 Step 2 ships the record only: `task.archive` and `haus task archive` set `archived_at`, cancel
-pending reminders and close the Task's Workers, and archiving an archived Task changes nothing.
+pending reminders, and archiving an archived Task changes nothing.
 `task.unarchive` clears `archived_at` and starts no turn. A post in an archived Task leaves it
 archived, and nothing refuses unarchive under an archived Project yet; both arrive with step 5.
 
@@ -433,7 +433,7 @@ lease, and bumps the Task agent's session generation. Then:
    with an older generation, kills the Task's background processes, and removes each clean
    worktree, deleting its local branch. Clean means no uncommitted or untracked changes and every
    commit on a remote-tracking ref after a fresh fetch; a failed fetch is not clean (carried from
-   Worker closing, `specs/workers.md` Closing). Cleanup for a generation never touches a worktree
+   the deleted Worker closing rule). Cleanup for a generation never touches a worktree
    used by a later generation.
 3. An unpushed worktree stays with its branch. The archive dialog warns about it, and the Device
    page lists kept worktrees with their Task.

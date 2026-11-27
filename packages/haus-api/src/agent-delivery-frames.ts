@@ -15,7 +15,6 @@ import { idSchema } from './chat.ts';
 import { connectionChipKindSchema } from './connection-chips.ts';
 import { crewReportsNoticeSchema, crewReportsSchema } from './crew-report.ts';
 import { traceCarrierSchema } from './trace-context.ts';
-import { workerReportsNoticeSchema } from './worker-report-attention.ts';
 
 /**
  * The sub-agent wake: a private turn for background work the Agent started on its runtime (a
@@ -163,17 +162,15 @@ export const agentNoticeCommandSchema = z
         totalPending: z.number().int().nonnegative(),
         type: z.literal('notice'),
         unreadElsewhere: z.array(unreadElsewhereSchema).max(50).default([]),
-        workerReports: workerReportsNoticeSchema.optional(),
     })
     .strict()
     .refine(
         (frame) =>
             frame.issueItems !== undefined ||
             frame.crewReports !== undefined ||
-            frame.workerReports !== undefined ||
             (frame.inbox.length > 0 && frame.totalPending > 0),
         {
-            message: 'A notice carries inbox work, Issue items, crew reports, or Worker reports.',
+            message: 'A notice carries inbox work, Issue items, or crew reports.',
             path: ['inbox'],
         }
     );
@@ -186,7 +183,6 @@ export function noticeReceipt(notice: {
     readonly inbox: readonly { readonly id: string }[];
     readonly issueItems?: { readonly ids: readonly string[] };
     readonly runId: string;
-    readonly workerReports?: { readonly ids: readonly string[] };
 }) {
     return {
         runId: notice.runId,
@@ -194,7 +190,6 @@ export function noticeReceipt(notice: {
             ...notice.inbox.map((item) => item.id),
             ...(notice.issueItems?.ids ?? []),
             ...(notice.crewReports?.ids ?? []),
-            ...(notice.workerReports?.ids ?? []),
         ],
     };
 }

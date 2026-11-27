@@ -24,7 +24,7 @@ export const taskProcedure = memberProcedure.use(async ({ next }) => {
 });
 
 /**
- * After a Task write commits: publish its events, stop closed Workers, and wake
+ * After a Task write commits: publish its events and wake
  * the Agents it enqueued, then answer with the Task as the writer sees it.
  * The response never waits on the wake.
  */
@@ -43,9 +43,6 @@ export async function commitTaskWrite(
     result: TaskWriteResult
 ) {
     publishRealtime(result.events);
-    for (const { computerId, frame } of result.workerFrames ?? []) {
-        ctx.computerConnections.send(computerId, frame);
-    }
     announceTaskSessions(
         { invocations: ctx.invocations, runner: ctx.runnerLink },
         result.sessions ?? []

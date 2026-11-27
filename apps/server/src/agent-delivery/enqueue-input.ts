@@ -5,8 +5,6 @@ export interface EnqueueInput {
     addressedReason?: AddressedReason | null;
     agentId: string;
     chatId: string | null;
-    /** The Worker turn a Worker notice describes. */
-    workerTurnId?: string;
     content: string;
     /** Queue time for work with no Chat message of its own, such as an automation fire. */
     createdAt?: Date;

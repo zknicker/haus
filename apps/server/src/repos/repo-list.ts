@@ -1,11 +1,11 @@
 import type { RepoFolderState, RepoList, RepoListFolder } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
+import { computerNameSql } from '../computers/computer-name.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import { RepoFolderComputerUnavailableError } from '../computers/repo-folder-replies.ts';
 import type { GithubApp } from '../github/github-app.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable, repoFoldersTable, reposTable } from '../postgres/schema.ts';
-import { computerNameSql } from '../projects/project-worker-read.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { readRepoGithubAccess } from './repo-github-access.ts';

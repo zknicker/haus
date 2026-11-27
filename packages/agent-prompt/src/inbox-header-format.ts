@@ -42,13 +42,12 @@ export function formatSenderLabel(handle: string, description?: string | null): 
 
 /**
  * An id that addresses no Chat message: a Trigger fire (`trf_…`), a Reminder
- * fire (`rmf_…`), or a Worker item (a report, a stall, or a pull request
- * change). None of them can be read, replied to, reacted to, or handed to
- * `--message-id`. Each carries the id that does work on its own envelope line
- * instead — a fire's `fire=<id>` and `--cause <fireId>`, a Worker's id.
+ * fire (`rmf_…`), or a pull request change. None of them can be read, replied
+ * to, reacted to, or handed to `--message-id`. A fire carries the id that does
+ * work on its own envelope line instead: `fire=<id>` and `--cause <fireId>`.
  */
 function isBodilessInboxId(id: string): boolean {
-    return /^(?:car|wkt|rmf|trf)_|^worker-report:|#\d+:/u.test(id);
+    return /^(?:rmf|trf)_|#\d+:/u.test(id);
 }
 
 /**

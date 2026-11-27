@@ -22,7 +22,6 @@ import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { restoreTaskForMessage } from '../tasks/task-restore-on-message.ts';
 import type { TaskSessionReset } from '../tasks/task-session.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readCaptainChatId, requireActiveCaptain } from './captain-chat.ts';
 import { ChatNotFoundError, requireChatWriteAccess } from './chat-access.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
@@ -241,9 +240,6 @@ export async function sendChatMessage(
                 message: toChatMessage(message, {
                     attachments: attachmentMetadata(attachments),
                     body: typedBody?.body,
-                    workers:
-                        (await readLinkedWorker(tx, input.serverId, [messageId])).get(messageId) ??
-                        [],
                     driveCitations,
                     imageGenerations:
                         (await readLinkedImageGenerations(tx, input.serverId, [messageId])).get(

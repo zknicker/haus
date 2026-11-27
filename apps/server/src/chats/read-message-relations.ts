@@ -6,7 +6,6 @@ import { readLinkedImageGenerations } from '../image-generation/linked-image-gen
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
-import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readInlineReplyContext } from './reply-context.ts';
@@ -18,7 +17,6 @@ export async function readMessageRelations(
 ): Promise<{
     attachments: AttachmentMetadata[];
     body: MessageBody | undefined;
-    workers: ChatMessage['workers'];
     driveCitations: ChatMessage['driveCitations'];
     imageGenerations: ChatMessage['imageGenerations'];
     reactions: ChatMessage['reactions'] | undefined;
@@ -27,7 +25,6 @@ export async function readMessageRelations(
 }> {
     // The caller may hold a transaction connection, so keep these reads sequential.
     const attachments = await readMessageAttachments(db, serverId, [messageId]);
-    const works = await readLinkedWorker(db, serverId, [messageId]);
     const images = await readLinkedImageGenerations(db, serverId, [messageId]);
     const reactions = await readChatMessageReactions(db, serverId, [messageId]);
     const taskLinks = await readMessageTaskLinks(db, serverId, [messageId]);
@@ -45,7 +42,6 @@ export async function readMessageRelations(
     return {
         attachments: attachments.get(messageId) ?? [],
         body: bodies.get(messageId),
-        workers: works.get(messageId) ?? [],
         driveCitations: citations.get(messageId) ?? [],
         imageGenerations: images.get(messageId) ?? [],
         reactions: reactions.get(messageId),

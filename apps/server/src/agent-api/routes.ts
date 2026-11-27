@@ -32,8 +32,6 @@ import { registerAgentReminderRoutes } from './reminder-routes.ts';
 import { registerAgentRepoRoutes } from './repo-routes.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
 import { registerAgentTriggerRoutes } from './trigger-routes.ts';
-import { registerWorkerReportRoute } from './worker-report-route.ts';
-import { registerAgentWorkerRoutes } from './worker-routes.ts';
 
 const historyQuerySchema = z.object({
     after: z.string().min(1).optional(),
@@ -111,15 +109,6 @@ export function registerAgentApiRoutes(
     registerAgentChannelRoutes(app, { db: options.db });
     registerAgentComputerRoutes(app, { computers: options.computers, db: options.db });
     registerAgentConnectionRoutes(app, options.db);
-    registerWorkerReportRoute(app, { db: options.db });
-    registerAgentWorkerRoutes(app, {
-        agentDelivery: options.agentDelivery,
-        appOrigin: options.appOrigin,
-        computers: options.computers,
-        db: options.db,
-        postCommitWork: options.postCommitWork,
-        storage: options.storage,
-    });
     registerAgentImageGenerationRoutes(app, {
         db: options.db,
         imageGeneration: options.imageGeneration,
@@ -144,7 +133,6 @@ export function registerAgentApiRoutes(
     registerAgentTaskRoutes(app, {
         agentDelivery: options.agentDelivery,
         catalog: options.modelCatalog,
-        computers: options.computers,
         db: options.db,
         githubApp: options.githubApp,
         postCommitWork: options.postCommitWork,

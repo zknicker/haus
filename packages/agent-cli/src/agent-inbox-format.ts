@@ -34,18 +34,14 @@ interface RenderedRow {
 export function formatInboxCheck(input: InboxCheckInput): string {
     const { list, view } = input;
     const pendingRows = input.pendingRows ?? [];
-    const pendingByChat = new Map(
-        pendingRows.filter((row) => !row.workerResult).map((row) => [row.chatId, row])
-    );
+    const pendingByChat = new Map(pendingRows.map((row) => [row.chatId, row]));
     const listed = new Set(list.items.map((item) => item.chatId));
     // Pending targets the durable list does not show yet lead the first page:
     // they are the newest activity there is.
     const extraPending =
         input.before === undefined
             ? pendingRows.filter(
-                  (row) =>
-                      (row.workerResult || !listed.has(row.chatId)) &&
-                      (view === 'unread' || row.mentioned)
+                  (row) => !listed.has(row.chatId) && (view === 'unread' || row.mentioned)
               )
             : [];
     const rows: RenderedRow[] = [
@@ -136,36 +132,17 @@ function renderConversation(
     return openableRow(parts, openCommand(item.target, item.lastReadSequence));
 }
 
-/**
- * Pending-only rows, in queue order. Worker results are bodiless work
- * items, not a conversation to open, so they fold into one row fetched with
- * `haus message check` (Raft's grouped third-party app events row).
- */
+/** Pending-only rows, in queue order. */
 function renderPendingOnly(rows: readonly AgentInboxPendingRow[]): RenderedRow[] {
-    const cloudCount = rows
-        .filter((row) => row.workerResult)
-        .reduce((sum, row) => sum + row.pendingCount, 0);
-    const rendered: RenderedRow[] = [];
-    let cloudShown = false;
-    for (const row of rows) {
-        if (!row.workerResult) {
-            const parts = [row.target, `${row.pendingCount} new, not yet delivered`];
-            if (row.mentioned) {
-                parts.push('mentions you');
-            }
-            parts.push(`latest @${row.latestSender}`);
-            const afterSeq =
-                typeof row.firstSequence === 'number' ? row.firstSequence - 1 : undefined;
-            rendered.push(openableRow(parts, openCommand(row.target, afterSeq)));
-        } else if (!cloudShown) {
-            cloudShown = true;
-            rendered.push({
-                lines: [`Worker results · ${cloudCount} pending · fetch with haus message check`],
-                next: 'fetch the Worker results above: haus message check',
-            });
+    return rows.map((row) => {
+        const parts = [row.target, `${row.pendingCount} new, not yet delivered`];
+        if (row.mentioned) {
+            parts.push('mentions you');
         }
-    }
-    return rendered;
+        parts.push(`latest @${row.latestSender}`);
+        const afterSeq = typeof row.firstSequence === 'number' ? row.firstSequence - 1 : undefined;
+        return openableRow(parts, openCommand(row.target, afterSeq));
+    });
 }
 
 function openableRow(parts: string[], open: string): RenderedRow {

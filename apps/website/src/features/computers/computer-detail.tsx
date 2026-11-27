@@ -17,7 +17,6 @@ import type { ComputerUpdatePreviewState } from './computer-update-preview.tsx';
 import type { ComputerUsePermission } from './computer-use-model.ts';
 import { ComputerUsePermissions } from './computer-use-permissions.tsx';
 import { ComputerUseWarning } from './computer-use-warning.tsx';
-import { ComputerWorkersSection } from './computer-workers-section.tsx';
 import {
     computerHealthColor,
     computerHealthLabel,
@@ -119,7 +118,6 @@ export function ComputerDetail({
                 />
             ) : null}
             <ComputerAccessSection computerId={computerId} serverId={serverId} />
-            <ComputerWorkersSection computerId={computerId} serverId={serverId} />
             <ComputerRepoFoldersCard computerId={computerId} serverId={serverId} />
             <ComputerToolsSection computerId={computerId} serverId={serverId} />
             <ComputerAgents computerId={computerId} serverId={serverId} />

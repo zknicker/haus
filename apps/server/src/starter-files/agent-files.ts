@@ -1,4 +1,4 @@
-import { renderStarterMemory, starterAgentRules, starterWorkerRules } from '@haus/agent-workspace';
+import { renderStarterMemory, starterAgentRules, starterCrewRules } from '@haus/agent-workspace';
 import { and, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
@@ -43,7 +43,7 @@ function starterText(name: AgentStarterFileName, facts: StarterFacts) {
         return starterAgentRules(facts.displayName);
     }
     if (name === 'WORKER.md') {
-        return starterWorkerRules(facts.displayName);
+        return starterCrewRules(facts.displayName);
     }
     return renderStarterMemory({
         agentName: facts.displayName,

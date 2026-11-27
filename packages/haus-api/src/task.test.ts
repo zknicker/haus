@@ -64,7 +64,6 @@ test('a Task detail carries its Mentioned in and Reminders', () => {
     expect(
         taskDetailSchema.parse({
             ...task,
-            attachedWork: [],
             descriptionContent: task.description,
             descriptionTaskLinks: [],
             followed: true,

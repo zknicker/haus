@@ -23,7 +23,7 @@ test('Standing Preferences ignores housekeeping in other sections', () => {
     const seeded =
         '# Blippy\n\n## Standing Preferences\n\n- None recorded yet.\n\n## Active Context\n\n- First startup.\n';
     const tidied = seeded.replace('First startup.', 'No active work.');
-    const ruled = seeded.replace('None recorded yet.', 'Workers attach screenshots.');
+    const ruled = seeded.replace('None recorded yet.', 'Crew Tasks attach screenshots.');
     expect(standingPreferences(seeded)).toBe('- None recorded yet.');
     expect(standingPreferences(tidied)).toBe(standingPreferences(seeded));
     expect(standingPreferences(ruled)).not.toBe(standingPreferences(seeded));

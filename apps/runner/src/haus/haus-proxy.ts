@@ -17,11 +17,7 @@ import {
 
 export type HausProxy = ReturnType<typeof startHausProxy>;
 
-const mutationPaths = new Set([
-    '/api/agent/workers',
-    '/api/agent/messages/react',
-    '/api/agent/messages/send',
-]);
+const mutationPaths = new Set(['/api/agent/messages/react', '/api/agent/messages/send']);
 
 export function startHausProxy(input: { authority: RunAuthority; dispatches: RunDispatches }) {
     const calls = new Map<string, string>();

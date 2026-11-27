@@ -1,5 +1,5 @@
 ---
-summary: Normative Drive contract. Drive is the Files drive extended with three areas (haus/, projects/<key>/, agents/<handle>/), revisions attributed to an Agent, Worker or person and a Task, a per-area change counter with a changes-since query, stale-base writes that merge clean text, pushes that keep both versions of a real conflict, citations by revision, retention, and the v1 Drive page. Paths, folders, compare-and-set writes, moves and batches carry over from Files.
+summary: Normative Drive contract. Drive is the Files drive extended with three areas (haus/, projects/<key>/, agents/<handle>/), revisions attributed to an Agent or person and a Task, a per-area change counter with a changes-since query, stale-base writes that merge clean text, pushes that keep both versions of a real conflict, citations by revision, retention, and the v1 Drive page. Paths, folders, compare-and-set writes, moves and batches carry over from Files.
 read_when:
   - changing Drive (Files) paths, folders, listing, publish, move, delete, restore, or retention
   - changing Drive areas, who may write an area, or revision attribution (author, Task, base, parent)
@@ -24,7 +24,7 @@ that half. There is no background process, no mount, and no continuous sync.
 ## What changes from Files
 
 - Every path lives in one of three areas. Existing root paths move under `haus/`.
-- Every revision records its author (an Agent, a Worker, or a person), its Task, its base, and its
+- Every revision records its author (an Agent, a person, or Haus), its Task, its base, and its
   parent.
 - Each area keeps a change counter, and `drive.changes` answers what changed since a counter.
 - A write with a stale base merges when the text merges cleanly. Files refused it with
@@ -50,11 +50,11 @@ haus/…                                        team files
 projects/<key>/AGENTS.md                      Project rules
 projects/<key>/…                              Project docs
 agents/<handle>/AGENTS.md                     the Agent's own rules
-agents/<handle>/WORKER.md                     rules every Worker of this Agent reads
+agents/<handle>/WORKER.md                     rules every crew Task of this Captain reads
 agents/<handle>/MEMORY.md                     capped memory (ADR 0052)
 agents/<handle>/notes/ …                      the rest of its durable workspace
 agents/<handle>/skills/                       its skills
-agents/<handle>/reports/ renders/ handoffs/   Worker deliverables
+agents/<handle>/reports/ renders/ handoffs/   Task deliverables
 ```
 
 An area is identified by `driveAreaIdSchema` (`packages/haus-api/src/drive.ts`). Its values are
@@ -95,7 +95,7 @@ and 8 and [context management](../docs/features/context-management.md). The memo
 
 Everyone reads every area. People write every area. An Agent writes `haus/`, every Project, and its
 own `agents/<handle>/`. Another Agent's area is read-only to it, and a write there is `FORBIDDEN`.
-A Worker writes what its Agent writes. Deleting needs write access to the file, and a move needs
+Deleting needs write access to the file, and a move needs
 it at both ends. A write is checked against the area when it reserves storage and again when its
 upload lands, against the path the file has then. A file moved into an area the writer cannot write
 while its bytes upload fails with `FORBIDDEN`, and a push answers `refused`. A push's area changes
@@ -151,16 +151,16 @@ changes the listed files, not the summary.
 
 Each revision records four facts.
 
-- `author` is the writer. It is `{ type: 'agent', agent_id }`, `{ type: 'user', user_id }`,
-  `{ type: 'worker', worker_id, agent_id }`, or `{ type: 'haus' }`. The Worker variant lands with
-  Workers (W2). Haus is the author of the factory-managed skills it seeds into each Agent's
+- `author` is the writer. It is `{ type: 'agent', agent_id }`, `{ type: 'user', user_id }`, or
+  `{ type: 'haus' }`. ADR 0062 step 7 deleted the Worker variant with Workers; migration
+  `0165_delete-workers` attributes a Worker's deletions to its Agent. Haus is the author of the factory-managed skills it seeds into each Agent's
   area ([Skills](skills.md#managed-skills)) and of each new Project's `AGENTS.md`. A Haus revision
   stores author key `haus` with no Agent or person column, and a file Haus creates names an Agent
   or a person as its `creator`, so `creator` stays an Agent or a person for deployed CLIs: the
   Agent whose area holds a skill, and the person who created a Project for its `AGENTS.md`.
 - `task_id` is the Task the write was for, or null. A push names its run, and the Server takes the
   Task from that run. That is the Task whose chat the run answered in; an Issue item run carries no
-  Task. A Worker's write takes the Worker's Task. A person's write, and an
+  Task. A person's write, and an
   Agent's write outside a push, carry no Task.
 - `base_revision_id` is the revision the writer started from. It is null for a create and for a
   `replace`.
@@ -170,7 +170,7 @@ Each revision records four facts.
 A revision whose base is set and differs from its parent was merged. The writer comes from the caller's credential,
 never from the request body. The Server sets every id, counter, and timestamp.
 
-In `packages/haus-api`, `artifactAuthorSchema` widens `artifactCreatorSchema` with the Worker
+In `packages/haus-api`, `artifactAuthorSchema` widens `artifactCreatorSchema` with the Haus
 variant, and `artifactRecordSchema` gains `task_id`, `base_revision_id`, and `parent_revision_id`.
 `creator` still names who made the file. Agent artifact routes keep `artifactMetadataSchema` as it
 is, because deployed CLIs parse it strictly.
@@ -272,7 +272,7 @@ place.
 
 A machine sends one turn's changes as one push. The push id is the run id from the turn's start
 frame (`runId`). The Server takes the Agent and the Task from that run, so the machine names
-neither. A Worker's push uses its own run's id (W2).
+neither.
 
 The push routes take any live runner credential of the pushing Agent, because the run's own
 credential ends when its turn settles and the push runs after that. `push_id` must name a run the
@@ -283,7 +283,7 @@ is the Task whose chat the run answered in; a chatless run, an Issue item run in
 | --- | --- |
 | `POST /api/agent/drive/push/put` | Raw bytes; query `push_id`, `path`, `request_id`, optional `base_revision_id`, `content_type` |
 | `POST /api/agent/drive/push/delete` | JSON `push_id`, `path`, `base_revision_id`, `request_id` |
-| `POST /api/agent/drive/push/close` | JSON `push_id`, optional `unsent` (a Worker's set-aside paths); answers `{ listed }`, the files the conflict item lists |
+| `POST /api/agent/drive/push/close` | JSON `push_id`; answers `{ listed }`, the files the conflict item lists |
 
 Each put or delete answers one `drivePushOutcomeSchema` (`packages/haus-api/src/drive.ts`). Every
 outcome carries `current`, the revision now at the path with its author. When nothing is live at
@@ -309,8 +309,7 @@ and the incoming bytes land in a copy beside the pushed path, so an edit made du
 move never splits the file in two. The folder places `current` only where it holds nothing, so an
 unpushed local file at the moved-to path stays and reaches Drive as its own `both_created` copy.
 Only a Computer newer than 26.0.2, the last release without that guard, gets `base_gone`; the
-Server reads the pushing Computer's reported `product_version` (the run credential's Computer, or
-a Worker's carrier). Any other pusher gets the old answer: the pushed path is created as a new file
+Server reads the pushing Computer's reported `product_version` (the run credential's Computer). Any other pusher gets the old answer: the pushed path is created as a new file
 and answers `committed` (`apps/server/src/drive/push/moved-file-guard.ts`). A delete onto a path that holds
 another file than its base's leaves that file alone and answers `deleted` with it as `current`. A
 delete onto a path where nothing is live answers `deleted`. So does a delete whose path spells the
@@ -323,7 +322,7 @@ still uploading, answers an error and stores nothing, so the machine sends the f
 
 A copy is named `<stem>.conflict-<handle>.<ext>`, splitting the file name at its last dot. A name
 with no dot, or only a leading dot, takes the suffix at its end, so `.env` becomes
-`.env.conflict-blippy`. The handle is the pushing Agent's, or the Worker's Agent's. A taken copy
+`.env.conflict-blippy`. The handle is the pushing Agent's. A taken copy
 name takes `-2`, then `-3`, before the extension. A copy name that would break the path rules, such
 as a file name pushed past 255 characters, refuses the put with `INVALID_PATH`, and the item lists
 it. The copy is an ordinary new file in the same
@@ -353,18 +352,13 @@ it.
 The Server records each file's outcome under the push id. A push closes on `close`, or when the
 same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
 A full reset increments the Agent's `reset_generation` under the Server lock. Each dispatched run
-records the generation it was dispatched in (`agent_run_triggers.reset_generation`), a dispatched
-Worker turn records its Agent's (`worker_turns.reset_generation`), and its push copies it (`drive_pushes.reset_generation`). A put or delete under a push whose generation is not
+records the generation it was dispatched in (`agent_run_triggers.reset_generation`), and its push copies it (`drive_pushes.reset_generation`). A put or delete under a push whose generation is not
 the Agent's current one is refused with `AGENT_RESET`, so a turn the reset interrupted cannot
 revive a deleted file or add one to the reseeded area. The comparison is by counter, not by time,
 because a transaction's `now()` is its start, not the moment it took the lock. Those refusals stay out of the push's
 `drive_conflict` item. Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
 machine sends that file in its next push. On close, a push with any `kept_both`, `kept_edit`, or
-`refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)). A Worker's item goes
-to its Agent. A Worker's close may name `unsent` paths, files it set aside on its machine because
-its push closed before they landed. Those queue one more `drive_conflict` item, keyed
-`drive-conflict:<push id>:unsent`, listing each as `refused` with reason `PUSH_CLOSED`; a repeat
-adds nothing, and an Agent's own close ignores the field.
+`refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)).
 
 ## Citations
 
@@ -395,7 +389,7 @@ deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RET
 only while the file is live. A deleted file keeps every revision, large replaced ones included, for
 30 days (`driveDeletedRetentionDays`), then its revisions are purged and its tombstone stays.
 Every soft delete (a single delete, `deleteMany`, a push delete, and a full reset's area delete)
-records `artifacts.deleted_by`, the deleter's author key (`agent:<id>`, `user:<id>`, or `worker:<id>` for a Worker's push, as
+records `artifacts.deleted_by`, the deleter's author key (`agent:<id>` or `user:<id>`, as
 its revisions are keyed), and a revive or restore clears it. `artifact.listDeleted` returns it as `deleted_by`, an author or null
 for files deleted before the column existed.
 `delete-artifact-version` still removes one non-current revision at once. A delete also turns off
@@ -480,7 +474,7 @@ The v1 Drive page replaces the Files page and keeps its library, viewer, and act
   pinned `?revision=` is read-only. Unsaved edits stay in the App's draft store across navigation,
   and ⌘S saves. An image sits on the pane's canvas with its size and bytes under it.
 - History and Details are tabs of the viewer's side panel (`#revisions`, `#details`). Each
-  History row opens its revision, names the author (an Agent, a Worker with its Agent, or a
+  History row opens its revision, names the author (an Agent or a
   person), links the Task, and marks a merged revision and the one on screen.
 - Compare renders any two revisions of a text file with `@pierre/diffs` from two `artifact.text`
   reads, so it needs no Server work. It opens on a revision against its parent. A revision that is

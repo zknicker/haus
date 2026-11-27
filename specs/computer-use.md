@@ -59,7 +59,7 @@ Computer runs look and act commands and answers `failed` for a refused one.
 The Server holds two settings on each Device
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
 decision 4, as [amended 2026-11-23](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer)).
-**Agent access** decides which Agents may run any tool there, and start Workers there.
+**Agent access** decides which Agents may run any tool there.
 **Computer use** says whether that access includes the desktop.
 
 | Setting | Default | Meaning |
@@ -221,7 +221,7 @@ with a watchdog that kills the whole group the moment the daemon's stdin closes.
 
 Settings → Devices → [Device]
 ([docs/features/computer-use.md](../docs/features/computer-use.md)) runs a macOS permissions
-section only while one is missing, then **Access**, then **Workers**.
+section only while one is missing, then **Access**.
 
 - **Access** holds two rows, each a title, a static description of what the setting does, and
   one control (`apps/website/src/features/computers/device-access-rows.tsx`):
@@ -235,8 +235,6 @@ section only while one is missing, then **Access**, then **Workers**.
   - **Computer use** (macOS only, "Lets those Captains see the screen and use apps."): a switch.
     Turning it on is disabled for a viewer who is not the attacher.
   - While a Captain is driving the Device, "Cove is using Studio" with **Stop Agent Input**.
-- **Workers** holds Run Workers here (Off or Up to N), Claude Code and Codex with one line of
-  weekly plan usage when ready or their exception and a **Fix** popover, and the cloud providers.
 - A change shows at once and rolls back with a toast if the Server refuses it.
 - **Not your Device.** A member who opens a Device page they cannot see (a refusal link) reads who
   attached it and that they, an Owner, or an Admin can change its settings.
@@ -246,7 +244,7 @@ section only while one is missing, then **Access**, then **Workers**.
 Computer use is per-Device consent for the `desktop` tool. It is not a sandbox. A
 Captain whose machine is a Device already runs `bash` there as the machine user, with that user's
 full power: `osascript`, `open`, any CLI the user installed, and the Computer's own files. That is
-the local-trust model Workers already carry
+the local-trust model Workers carried until ADR 0062 step 7 deleted them
 ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md), amended 2026-11-20). The gate
 on that power is which Device is the Captain's machine, not this switch.
 

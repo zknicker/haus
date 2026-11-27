@@ -102,11 +102,6 @@ export const invitationUpdatedEventSchema = z.object({ serverId: idSchema }).str
 
 export type InvitationUpdatedEvent = z.infer<typeof invitationUpdatedEventSchema>;
 
-/** `cloudAgentSettings.onUpdated`: the Server's Cloud Agent settings changed. */
-export const cloudAgentSettingsUpdatedEventSchema = z.object({ serverId: idSchema }).strict();
-
-export type CloudAgentSettingsUpdatedEvent = z.infer<typeof cloudAgentSettingsUpdatedEventSchema>;
-
 /**
  * `artifact.onUpdated`: a file in Files was published, moved, or deleted, or one of its revisions
  * was deleted or pruned by retention. A null id means many files changed at once (a folder move, or a retention

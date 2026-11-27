@@ -1,11 +1,8 @@
 import * as z from 'zod';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
-import { cloudAgentModelCatalogSchema } from './cloud-agent-model.ts';
 import { computerSecretsStatusSchema } from './computer-secrets.ts';
 import { computerUseReadinessSchema } from './computer-use.ts';
-import { workerRuntimeReadinessSchema } from './worker-runtime.ts';
-import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './worker-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -101,27 +98,6 @@ export const importableSkillSchema = z
 
 export type ImportableSkill = z.infer<typeof importableSkillSchema>;
 
-/**
- * One Cloud Agent provider this Computer can reach, and whether its credential
- * store currently resolves. Readiness is a Computer capability separate from
- * the runtime harness that happens to share a vendor. `models` is the newest
- * model catalog the Computer read from the provider for the connected account;
- * `null` (or absent, from an inventory stored before catalogs) means it has
- * none: not connected, or never listed successfully.
- */
-export const cloudAgentProviderReadinessSchema = z
-    .object({
-        /** Absent from Computers that predate provider choice, which only ran Cursor. */
-        isDefault: z.boolean().default(false),
-        models: cloudAgentModelCatalogSchema.nullable().default(null),
-        provider: cloudAgentProviderSchema,
-        ready: z.boolean(),
-        reason: cloudAgentUnreadyReasonSchema.nullable(),
-    })
-    .strict();
-
-export type CloudAgentProviderReadiness = z.infer<typeof cloudAgentProviderReadinessSchema>;
-
 export const computerInventorySchema = z
     .object({
         agentSkillImports: z.array(agentSkillImportRecordSchema).max(100).optional(),
@@ -136,7 +112,6 @@ export const computerInventorySchema = z
             )
             .max(500)
             .optional(),
-        cloudAgentProviders: z.array(cloudAgentProviderReadinessSchema).max(10).optional(),
         /** agent-desktop and its macOS permissions; absent off macOS and from older Computers. */
         computerUse: computerUseReadinessSchema.optional(),
         importableSkills: z.array(importableSkillSchema).max(1000).optional(),
@@ -160,11 +135,6 @@ export const computerInventorySchema = z
         runtimes: z.array(computerRuntimeSchema).max(50),
         /** The Computer's 1Password vault connection (Computer Secrets), names only. */
         secrets: computerSecretsStatusSchema.optional(),
-        /**
-         * The native harnesses a Computer-place Worker can run in here. Absent
-         * from Computers that predate Computer places, which run none.
-         */
-        workerRuntimes: z.array(workerRuntimeReadinessSchema).max(2).optional(),
     })
     .strict();
 

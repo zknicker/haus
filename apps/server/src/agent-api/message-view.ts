@@ -15,7 +15,6 @@ import {
 import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
 import { taskTargetForChat } from '../tasks/task-chat.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
-import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readMessageReactions } from './message-reactions.ts';
 import { agentMessageBodies } from './message-view-bodies.ts';
 import { formatCaptainTarget } from './resolve-target.ts';
@@ -58,7 +57,6 @@ export async function toAgentMessages(
     // overlapping reads on that one connection deadlocked Agent delivery
     // against the Server row lock its own transaction already held.
     const claimsByMessage = await listMessageClaimMap(db, serverId, messageIds);
-    const workerByMessage = await readLinkedWorker(db, serverId, messageIds);
     const createdAgentByMessage = await readCreatedAgentsForMessages(db, serverId, messageIds);
     const agentIds = [
         ...new Set(
@@ -115,7 +113,6 @@ export async function toAgentMessages(
         const handle = agent?.handle ?? human?.handle ?? null;
         const label = agent?.displayName ?? human?.displayName ?? 'Human';
         const claim = claimsByMessage.get(row.id);
-        const workers = workerByMessage.get(row.id) ?? [];
         const createdAgent = createdAgentByMessage.get(row.id);
         const claimAssigneeAgent = claim?.assigneeAgentId
             ? agentById.get(claim.assigneeAgentId)
@@ -153,7 +150,7 @@ export async function toAgentMessages(
                 task_id: link.taskId,
                 text: link.text,
             })),
-            ...agentMessageBodies({ workers, createdAgent }),
+            ...agentMessageBodies({ createdAgent }),
             ...(claim
                 ? {
                       claim: {

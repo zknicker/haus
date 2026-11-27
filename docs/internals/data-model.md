@@ -52,7 +52,7 @@ Computer, or the runner for a runner run, into `agent_execution_journals` (one r
 started ([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)).
 
 `chat_messages.body_kind` is the Message body discriminator (ADR 0025). It is `text` (the default),
-`agent-created` (kept for historical reads), `worker-report`, or `worker-follow-up`; optional feature columns never define a
+or `agent-created` (kept for historical reads); optional feature columns never define a
 Message's type. One Server Message reader projects the stored kind and its record together, and fails the
 mapping rather than downgrading a typed Message to text.
 
@@ -121,8 +121,8 @@ title, and `start_request_id` makes a start idempotent per Server. `task_keys` i
 ledger, each entry with its own `next_number`; `projects.task_key_id` names a Project's entry
 (one per channel, unique). Migration 0130 made every live or archived channel a Project,
 renamed `#all` to `haus`, and gave channels that shared a key new entries by the key rule
-([specs/projects.md](../../specs/projects.md#migration-from-channels)). `task_pull_requests` attaches pull requests by repository and number, and
-`workers.task_id` attaches Workers. Followers ride `thread_follows` (people) and
+([specs/projects.md](../../specs/projects.md#migration-from-channels)). `task_pull_requests` attaches pull requests by repository and number.
+Followers ride `thread_follows` (people) and
 `agent_thread_follows` (Agents) with `thread_chat_kind = 'task'`. Migrations 0124–0128 made Tasks
 places: 0124 added the ledger, states, and Task Chats (every board became a ledger entry); 0125
 let reminders anchor on a Task; 0126 turned every Thread into inline replies on its anchor and
@@ -147,57 +147,23 @@ people, `issue_comments` the comments (replies one level deep through `parent_co
 cross-links to agents, memberships, Tasks and the ledger are deferred so a Server purge cascades
 through them.
 
-`workers` is the Worker record ([Workers](../../specs/workers.md#record)), renamed from
-`cloud_agent_work` by migration 0135. It carries the delegating Agent, its Task (`task_id`, null
-only on read-only history, which `closed_at` must then mark: Workers from before Tasks, and Workers
-whose Task a Project purge deleted, whose unsettled turns settle `stopped`), its `place`, its
-`carrier_computer_id`, the title, repository, and starting ref, the provider agent id and URL, the
-newest turn's provider lifecycle with its timestamps, the bounded one-line `activity`,
-`start_nonce` (unique per Server and Agent, for start idempotency), and `closing_at` and
-`closed_at`. `origin_chat_id` and `launch_message_id` are history pointers with no foreign key;
-new Workers write null. `worker_history_links` keeps one row per Message link to history only,
-`(server_id, message_id, worker_id)` with its `ordinal`; a Message never links a Worker with a
-Task. `worker_turns` holds one row per turn: its `input` (`WorkerTurnInput[]`, null only on a
-migrated turn whose follow-up still sits on its Computer until the drain fills it),
-`follow_up_nonces` (the Agent send nonces it holds, from migration 0136), `dispatched_at` and
-`acknowledged_at`, `outcome` (`WorkerOutcome`, set exactly when Haus settles the turn), the
-provider status and raw status, the stop request with exactly one requester, the model it
-requested (`model_id`, `default` for Auto or `null` when none was sent, with `model_params`,
-`model_dropped_params`, and `model_fallback_from`), the bounded summary and the 64 KiB
-`provider_result` it was cut from, error code, reported branches with the Computer's optional
-pull request snapshot, usage, and the newest applied observation time that makes a stale report a
-no-op. A turn holds a slot on its place from dispatch until its outcome is set;
-`worker_place_limits` sets the per-Server limit (no row is 10). `pull_request_readings` holds the
-pull request readings. A report's Message (`body_kind = 'worker-report'`) and a person's follow-up
-(`worker-follow-up`) project their bodies from the turn's `outcome` and `input`. Changes publish
-`worker.updated` scoped to the Task's Chat after commit. Provider prompts, credentials,
-transcripts, and workspace files never reach the Server. Settling a turn queues at most one
-`agent_inbox` row (`worker_report`, `worker-report:<turnId>`) for the delegating Agent in the same
-transaction; stalls queue `worker_stall` and pull request changes `pull_request`.
-Migration 0144 adds Workers on Computers. `computers` gains `workers_enabled` (off by default),
-`worker_limit` (1 to 50, default 4), and `disconnected_at`, which the `machine-offline` sweep reads.
-It also added `project_repos` and `project_repo_links`, which migration
-`0152_repos-belong-to-the-server` retired ([ADR 0060](../adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)): `repos` holds the Server's
-repo list, one lower-cased `owner/name` per Server (backfilled from every Worker's `repository`
-and the old Project repos), and `repo_folders` holds where each repo lives on a Computer (one per
-repo per Computer, the absolute `path`, and `added_by_user_id`, null for Haus's own clone). The
-same migration adds `workers.kept_worktree_path`, a closed Worker's worktree kept for unpushed
-work. `projects.default_worker_place` and `default_worker_computer_id` hold
-the default, tied by a check, so removing a Computer or switching it off clears both first.
-`workers` gains `runtime` (set exactly for a Computer place), `model`, `branch`,
-`native_session_id` (set once), and `worker_md_revision_id` (the delivered `WORKER.md`).
-`worker_turns` gains `dispatch_attempt`, `accepted_attempt` (the attempt the Computer said it runs
-when it acknowledged the turn, which is then the current one), `worker_md_revision_id` (what the
-current attempt inlines), `report_draft`, and `ended_at`. `worker_turn_credentials` keeps only token hashes of the
-turn and push credentials, at most one live per turn, kind, and attempt, revoked at settle.
-`drive_pushes.worker_id` keys a Worker push's source, and `artifact_revisions.author_worker_id`
-names the Worker beside its Agent in `author_agent_id`.
-`cloud_agent_model_settings`
-holds one row per Server and provider (`server_id`, `provider`, `model_id`, `model_params`) with
-the human-chosen Cloud Agent model and its effort and fast choices; no row is Auto. Migration
-`0089_cloud-agent-claude` moved the former `servers.cloud_agent_model_id` and
-`servers.cloud_agent_model_params` columns into the Cursor row and dropped them. The catalog a
-model is checked against lives in each Computer's `reported_inventory`.
+`pull_request_readings` holds the pull request readings a Task or Issue names. `computers` carries
+`disconnected_at`, which the `machine-offline` sweep reads. `repos` holds the Server's repo list,
+one lower-cased `owner/name` per Server, and `repo_folders` holds where each repo lives on a
+Computer (one per repo per Computer, the absolute `path`, and `added_by_user_id`, null for a clone
+Haus made before Workers left), from migration `0152_repos-belong-to-the-server`
+([ADR 0060](../adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)).
+`projects.default_task_computer_id` holds the Machine a Task started in the Project runs on by
+default ([Projects](../../specs/projects.md)); removing a Computer clears it first.
+
+Migration `0165_delete-workers` (ADR 0062 step 7) dropped `workers`, `worker_turns`,
+`worker_turn_credentials`, `worker_place_limits`, `worker_history_links`, and
+`cloud_agent_model_settings`, with the Worker columns on `computers`, `drive_pushes`,
+`artifact_revisions`, `agent_inbox`, and `projects`. It settles their rows first: Worker inbox
+items are deleted, a Worker's Drive conflicts and deletions are attributed to its Agent, its
+pushes are deleted, Worker report and follow-up Messages become `text` without their trailing
+`worker://` link, and `projects.default_worker_computer_id` becomes `default_task_computer_id`
+for a Computer place and null for a cloud one.
 
 An Agent created by another Agent (ADR 0028) records `created_by_agent_id`,
 `creation_nonce`, and `creation_request_hash` on `agents`. The nonce is unique per

@@ -16,7 +16,7 @@ const project = (chatId: string, name: string, homeAgentIds: string[], isHaus = 
     ({
         archived: false,
         chatId,
-        defaultWorkerPlace: null,
+        defaultMachine: null,
         homeAgentIds,
         isHaus,
         key: name.slice(0, 3).toUpperCase(),

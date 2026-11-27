@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { GitSettings } from './page.tsx';
 
-test('Git states what Captains and Workers commit and push as, with nothing to change', () => {
+test('Git states what Captains commit and push as, with nothing to change', () => {
     const html = renderToStaticMarkup(
         <MemoryRouter initialEntries={['/s/haus/settings/git']}>
             <Routes>
@@ -17,8 +17,7 @@ test('Git states what Captains and Workers commit and push as, with nothing to c
     expect(html).toContain('Haus bot, requester co-author');
     expect(html).toContain('Haus GitHub App');
     expect(html).not.toContain('Coming soon');
-    expect(html).toContain('Workers');
-    expect(html).toContain('The device’s git login');
+    expect(html).not.toContain('Workers');
     expect(html).not.toMatch(/<input|role="switch"|data-slot="select"/u);
     expect(html).not.toContain('<button');
     expect(html).toContain('Each Captain works on its own branch under this prefix.');

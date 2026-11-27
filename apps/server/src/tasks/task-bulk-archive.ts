@@ -56,6 +56,5 @@ async function archiveActiveTasks(
         events: archived.flatMap((result) => result.events),
         sessions: archived.flatMap((result) => result.sessions ?? []),
         wakes: archived.flatMap((result) => result.wakes),
-        workerFrames: archived.flatMap((result) => result.workerFrames ?? []),
     };
 }

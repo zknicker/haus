@@ -1,4 +1,4 @@
-import { workerPullRequestNumber } from '@haus/api';
+import { pullRequestNumber } from '@haus/api';
 import * as React from 'react';
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
 import { useSharedArtifactTarget } from '../chats/shared-artifact-scope.tsx';
@@ -146,7 +146,7 @@ function getPullRequestReference(href: string | undefined) {
         if (url.protocol !== 'http:' && url.protocol !== 'https:') {
             return null;
         }
-        const number = workerPullRequestNumber(url.toString());
+        const number = pullRequestNumber(url.toString());
         return number === null ? null : { href: url.toString(), label: `#${number}` };
     } catch {
         return null;

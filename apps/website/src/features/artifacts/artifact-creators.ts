@@ -38,9 +38,6 @@ export function artifactCreatorDirectory(
             if (creator.type === 'agent') {
                 return agentName(creator.agent_id);
             }
-            if (creator.type === 'worker') {
-                return `Worker for ${agentName(creator.agent_id)}`;
-            }
             return isSelf(creator) ? 'You' : humans.name(creator.user_id);
         },
     };

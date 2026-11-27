@@ -36,7 +36,6 @@ export interface InboxItemRow {
     /** Why this item names the Agent personally; null is an ambient delivery. */
     addressedReason: AddressedReason | null;
     chatId: string | null;
-    workerTurnId: string | null;
     content: string;
     createdAt: Date;
     dedupeKey: string;
@@ -52,7 +51,6 @@ export interface InboxItemRow {
 export const inboxItemColumns = {
     addressedReason: agentInboxTable.addressedReason,
     chatId: agentInboxTable.chatId,
-    workerTurnId: agentInboxTable.workerTurnId,
     content: agentInboxTable.content,
     createdAt: agentInboxTable.createdAt,
     dedupeKey: agentInboxTable.dedupeKey,

@@ -2,22 +2,19 @@ import type { ComputerRemovalMove } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { moveAgentsOffRemovedComputer } from '../agent-machine/removal-moves.ts';
-import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, computersTable, tasksTable } from '../postgres/schema.ts';
-import { clearComputerDefaults } from '../projects/project-worker-defaults.ts';
+import { clearComputerDefaults } from '../projects/project-default-machine.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { memberTaskActor } from '../tasks/task-actor.ts';
 import { archiveMachineTasks } from '../tasks/task-bulk-archive.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { failRemovedCarrierTurns } from '../workers/fail-removed-carrier-turns.ts';
 import { ComputerSetupDeniedError } from './service.ts';
 
 /**
  * Deletes a Computer credential, first changing the Machine of every live Agent on it to the
- * Computer `machineMoves` names (ADR 0057 decision 7). The Worker turns it carried fail
- * `machine-removed` in the same transaction.
+ * Computer `machineMoves` names (ADR 0057 decision 7).
  */
 export async function removeServerComputer(
     db: HausDatabase,
@@ -28,8 +25,7 @@ export async function removeServerComputer(
         confirmation: string;
         machineMoves: readonly ComputerRemovalMove[];
         serverId: string;
-    },
-    storage: ArtifactStorage | null
+    }
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
@@ -81,12 +77,8 @@ export async function removeServerComputer(
                     eq(agentsTable.computerId, computer.id)
                 )
             );
-        const workers = await failRemovedCarrierTurns(tx, agentDelivery, storage, {
-            computerId: computer.id,
-            serverId: input.serverId,
-        });
         const projectIds = await clearComputerDefaults(tx, input.serverId, computer.id);
         await tx.delete(computersTable).where(eq(computersTable.id, computer.id));
-        return { computerId: computer.id, moved, projectIds, tasks, workers };
+        return { computerId: computer.id, moved, projectIds, tasks };
     });
 }

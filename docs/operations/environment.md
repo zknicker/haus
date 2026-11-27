@@ -74,23 +74,6 @@ so an operator can point a self-hosted or local-dev Server at a private or loopb
 Operator/deploy-time only; there is no App or Postgres setting for it, and it must never become
 one, since `mcp.add` is gated only by workspace admin, not a deployment operator.
 
-`CURSOR_API_KEY` is deliberately absent. It is Cursor's own variable, read by `@cursor/sdk` on a
-Haus Computer alongside that SDK's credential store at `~/.cursor/sdk/auth.json`. Haus never
-mints, delivers, or stores it: the Computer settings **Connect** action runs Cursor's browser
-sign-in on the machine, and the key stays in Cursor's store. Nothing in this contract resolves it,
-so it has no 1Password item and no schema arm.
-
-The local `gh` CLI token is absent for the same reason. A Computer reads a Worker turn's pull
-request from GitHub using whatever token `gh auth token` already resolves on that machine, held in
-memory for the life of the process and never logged, stored, or reported to Server. It is a
-host-native credential, not a Haus variable: it has no 1Password item, no schema arm, and a
-Computer without `gh` reads public pull requests unauthenticated instead.
-
-The opt-in live Cursor Cloud Agent smoke reads `HAUS_RUN_LIVE_CURSOR_TEST=1` and
-`HAUS_LIVE_CURSOR_REPOSITORY=owner/name`. Both are declared and both resolve `undefined` in every
-lifecycle: the run spends a real Cursor allowance against a real repository, so an operator sets
-them by hand and every automated lane runs against recorded provider responses instead.
-
 The opt-in Agent-creation E2E scenario can set `HAUS_AGENT_E2E_AVATAR_FIXTURE=1`,
 an absolute `HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute
 `HAUS_AGENT_E2E_AVATAR_REQUEST_LOG` path. The Server honors these only when

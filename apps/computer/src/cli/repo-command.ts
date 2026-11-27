@@ -3,9 +3,9 @@ import { repoFolderSchema, repoNameSchema } from '@haus/api';
 import * as z from 'zod';
 import type { AttachmentRecord as Attachment } from '../attachment.ts';
 import { resolveComputerLogin } from '../login.ts';
+import { worktreesRoot } from '../repos/layout.ts';
 import { inspectRepoFolder } from '../repos/repo-folder-requests.ts';
 import { listWorktrees } from '../repos/worktree.ts';
-import { worktreesRoot } from '../workers/computer/layout.ts';
 import type { CliRenderer } from './render.ts';
 import { postComputerRoute } from './server-request.ts';
 
@@ -17,7 +17,7 @@ export interface RepoCommandInput {
 }
 
 export const repoFolderDisclosure =
-    'Workers and Captains work in git worktrees of this folder and share its `.git`. A Worker can change its branches, including `main`, and its hooks and config.';
+    'Captains and Tasks work in git worktrees of this folder and share its `.git`. A Task can change its branches, including `main`, and its hooks and config.';
 
 const usage =
     'Run haus-computer repo add <path> [/server-slug], repo list [/server-slug], or repo remove <owner/name> [/server-slug].';

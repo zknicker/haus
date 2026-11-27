@@ -1,12 +1,4 @@
-import type {
-    AddressedReason,
-    ChatMessageReply,
-    WorkerBranch,
-    WorkerPlace,
-    WorkerReportAttention,
-    WorkerStallCode,
-    WorkerTurnStatus,
-} from '@haus/api';
+import type { AddressedReason, ChatMessageReply } from '@haus/api';
 
 export interface AgentInboxItem {
     /** This item names the Agent personally: a DM, an @mention, a Jev routing, or a sole Agent. */
@@ -19,13 +11,12 @@ export interface AgentInboxItem {
         number: number;
         status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
     };
-    worker?: AgentWorkerAttention;
     content: string;
     createdAt: string;
     id: string;
     mentioned?: boolean;
     message?: Record<string, unknown>;
-    pullRequestNotice?: WorkerPullRequestChange;
+    pullRequestNotice?: PullRequestChange;
     reply?: ChatMessageReply | null;
     senderDescription?: string;
     senderHandle: string;
@@ -34,30 +25,9 @@ export interface AgentInboxItem {
     senderType: 'agent' | 'human' | 'system' | 'trigger';
     sequence: number;
     target: string;
-    /** One settled Worker turn for its delegating Agent: its report, or the failure Haus recorded. */
-    workerReport?: WorkerReportAttention;
 }
 
-/** A live Worker turn's stall, or a pull request change, for the delegating Agent. */
-export interface AgentWorkerAttention {
-    branches: WorkerBranch[];
-    errorCode: string | null;
-    /** Whether `summary` is only the capped head of a longer report (TECH-8). */
-    hasFullReport?: boolean;
-    notice: 'stall' | 'pull_request';
-    place: WorkerPlace;
-    providerUrl: string | null;
-    pullRequestChange?: WorkerPullRequestChange;
-    repository: string;
-    turnId: string;
-    stallCode: WorkerStallCode | null;
-    status: WorkerTurnStatus;
-    summary: string | null;
-    title: string;
-    workerId: string;
-}
-
-export interface WorkerPullRequestChange {
+export interface PullRequestChange {
     change: 'checks_failing' | 'checks_passing' | 'ready_for_review';
     url: string;
 }

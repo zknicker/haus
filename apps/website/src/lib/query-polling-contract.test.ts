@@ -21,8 +21,6 @@ const refetchIntervalAllowlist: Record<string, string> = {
         'Amazon product retry, only while the preview is open after bounded retries gave up',
     'features/updates/use-haus-update.ts':
         'Desktop release check every 10 min; releases are published outside Haus Server',
-    'hooks/servers/use-cloud-agent-capability.ts':
-        'Cloud Agent sign-in, 1 s only while sign-in is waiting; volatile Computer state',
     'hooks/updates/use-website-update.ts':
         'website build check every 60 s; deployments have no durable event',
 };
@@ -85,8 +83,6 @@ const keylessInvalidationAllowlist: Record<string, string> = {
 
 /** Files that may turn on focus or browser-reconnect refetch. */
 const focusRefetchAllowlist: Record<string, string> = {
-    'hooks/servers/use-cloud-agent-capability.ts':
-        'returning from the Cursor sign-in browser tab rechecks sign-in once',
     'hooks/updates/use-website-update.ts':
         'returning to Haus rechecks the deployed build (a static file, not a Server read)',
 };

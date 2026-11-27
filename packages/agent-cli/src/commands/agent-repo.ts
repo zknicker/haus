@@ -116,7 +116,7 @@ export function renderCoAuthors(answer: AgentCoAuthors) {
 
 export function renderRepoList(list: RepoList) {
     if (list.repos.length === 0) {
-        return 'This Server has no repos yet. A repo joins when a Computer gets a folder for it or a Worker starts on it.\n';
+        return 'This Server has no repos yet. A repo joins when a Computer gets a folder for it.\n';
     }
     const lines = list.repos.map((repo) =>
         repo.computers.length === 0
@@ -126,7 +126,6 @@ export function renderRepoList(list: RepoList) {
     return `${[
         ...lines,
         '',
-        'A Worker on any Computer place can still use a repo with no folder there: the Computer clones it first.',
         'haus repo checkout needs a folder for the repo on the Computer it runs on.',
     ].join('\n')}\n`;
 }

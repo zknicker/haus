@@ -38,7 +38,7 @@ test('A: one failed stream restarts alone and recovers only its owned reads', as
     await traffic.settled();
 
     const stream = proxy.latest('chat.onMessageCreated');
-    const work = proxy.latest('worker.onUpdated');
+    const work = proxy.latest('task.onUpdated');
     const startsBefore = proxy.subscriptions.length;
     const mark = traffic.mark();
 
@@ -47,7 +47,7 @@ test('A: one failed stream restarts alone and recovers only its owned reads', as
     proxy.inject(stream, 'INTERNAL_SERVER_ERROR');
     await scene.changes.allReply('A reply while the stream is down', 'iso-all');
     await scene.changes.inlineReply('An inline reply while the stream is down', 'iso-inline');
-    const computer = await scene.changes.workUpdate('Rebuilding the index while down');
+    await scene.changes.taskRename('Rebuild the index while down');
     // A sibling keeps its id and delivers while the failed stream is down.
     await expect.poll(() => proxy.deliveredTo(work).length, { timeout: 15_000 }).toBeGreaterThan(0);
     // The App restarted the failed stream (held at the proxy), and only it.
@@ -76,13 +76,13 @@ test('A: one failed stream restarts alone and recovers only its owned reads', as
     await expectConverged(page, scene, {
         allReply: 'A reply while the stream is down',
         inlineReply: 'An inline reply while the stream is down',
+        taskTitle: 'Rebuild the index while down',
     });
     expect(
         traffic.since(mark).filter((entry) => entry.kind === 'ws-open'),
         'The stream recovered by reconnecting the socket, not by restarting itself'
     ).toEqual([]);
     expectNoRemovedProcedures(traffic);
-    computer.close();
 });
 
 test('A2: an Agent reply into a kept tab recovers through the message stream alone', async ({
@@ -171,7 +171,7 @@ test('B: a Server restart with refused resubscribes converges, then C and D', as
     const committing = traffic.mark();
     await scene.changes.allReply('A reply after the deploy', 'restart-all');
     await scene.changes.inlineReply('An inline reply after the deploy', 'restart-inline');
-    const computer = await scene.changes.workUpdate('Rebuilding the index after the deploy');
+    await scene.changes.taskRename('Rebuild the index after the deploy');
     await traffic.settled();
     expect(
         traffic.since(committing).filter((entry) => entry.kind === 'trpc'),
@@ -240,8 +240,8 @@ test('B: a Server restart with refused resubscribes converges, then C and D', as
     await expectConverged(page, scene, {
         allReply: 'A reply after the deploy',
         inlineReply: 'An inline reply after the deploy',
+        taskTitle: 'Rebuild the index after the deploy',
     });
-    computer.close();
 
     await expectStaleEntityReadLoses(page, scene);
     await expectEventsConverge(page, scene, proxy);

@@ -113,12 +113,12 @@ export const computerCommands: ComputerCommandHelp[] = [
         group: 'Repos',
         name: 'repo',
         notes: [
-            'Workers and Captains work in git worktrees of a folder and share its .git.',
-            'A Worker can change its branches, including main, and its hooks and config.',
+            'Captains and Tasks work in git worktrees of a folder and share its .git.',
+            'A Task can change its branches, including main, and its hooks and config.',
             'Only the person who attached this Computer adds a folder.',
             'Name /server-slug when this Computer is attached to more than one Server.',
         ],
-        summary: 'Add, list, or remove the repo folders Workers and Captains use',
+        summary: 'Add, list, or remove the repo folders Captains and Tasks use',
         usage: 'repo add <path> | list | remove <owner/name> [/server-slug]',
     },
     {

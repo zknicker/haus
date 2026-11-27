@@ -218,13 +218,13 @@ several turns or outside systems.
 ## 9. A Task holds work a reply will not finish
 
 A Task is a place for one piece of work: its own conversation, a state (`todo`, `open`, `done`,
-`canceled`), and the Workers and pull requests attached to it. An Agent starts one when its
-reply will not finish the work (more steps, more time, or a Worker) and otherwise just
+`canceled`), and the pull requests attached to it. An Agent starts one when its
+reply will not finish the work (more steps or more time) and otherwise just
 replies. A Task does not mark ownership; the claim on the request still does. It starts from a
 message in a channel, usually the request; a DM request, a reminder or Trigger fire, or the
 Agent's own finding first gets an origin message in the channel where the work belongs, and
 several findings become sibling Tasks from one message. Progress, questions, and the result go in
-the Task, where its followers see them as unread. Worker reports, pull request changes, and a
+the Task, where its followers see them as unread. Crew reports, pull request changes, and a
 one-time reminder set on the Task (`haus reminder schedule --target task:<KEY-n>`) wake the Agent
 there. A Task blocked on a person gets an @mention in the Task and goes back to `todo` while the
 Agent takes other work.
@@ -240,20 +240,19 @@ whose home is the Haus project, may start a Task in any Project with `--project`
 
 - Owner: [ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md); `tasksSection` and
   `splittingWorkSection` in `packages/agent-prompt/src/task-instructions.ts`; the fire-to-Task
-  sentences in `packages/agent-prompt/src/automation-instructions.ts`; the `tasks` and
-  `workers` Manual topics in `packages/agent-manual/src/work-topics.ts`.
-- Guards: `task-instructions.test.ts`, `automation-instructions.test.ts`,
-  `worker-instructions.test.ts`; `packages/agent-manual/src/work-topics.test.ts`; the
+  sentences in `packages/agent-prompt/src/automation-instructions.ts`; the `tasks` Manual
+  topic in `packages/agent-manual/src/work-topics.ts`.
+- Guards: `task-instructions.test.ts`, `automation-instructions.test.ts`;
+  `packages/agent-manual/src/work-topics.test.ts`; the
   `task-intake` eval (`bun run eval task-intake`, scenarios `task-intake-*` in
   `scripts/agent-tests/scenarios/`): quick facts and in-turn fixes are just answered, a fire
   that finds work and several findings open Tasks where the work belongs, and a peer's quick claim
-  is left alone. Its two cloud scenarios are opt-in because they
-  spend real Cursor runs. The `task-pacing` eval (`task-pacing-*`) covers an assigned queue, a
+  is left alone. The `task-pacing` eval (`task-pacing-*`) covers an assigned queue, a
   blocked Task, and self-started Tasks side by side. Not yet run against this build.
 
 ## 10. "From now on" goes in a rule file
 
-Told "from now on, every Worker attaches before/after screenshots", an Agent adds one terse line
+Told "from now on, every crew Task you start attaches before/after screenshots", an Agent adds one terse line
 to its `WORKER.md` in Drive, leaves `MEMORY.md` alone, and confirms once inline, citing the file
 so the person can open it and see the revision with the Agent as its author. Told "from now on,
 keep replies under three sentences", it does the same in its own `AGENTS.md`, and its
@@ -283,7 +282,7 @@ rule in the wrong file, a second post, a question back, or an offer to do more.
 - Acknowledge-and-outline-the-plan messages before starting work.
 - Progress spam where the request was made.
 - A deliverable posted somewhere the requester does not look and is not notified.
-- A Worker's outcome reported at the Channel root instead of in its Task.
+- A Task's outcome reported at the Channel root instead of in the Task.
 - An obligatory recap after finishing.
 - A full reply to "thanks", or the same 👀 on every acknowledgment.
 - Two Agents answering one mention, or a bystander chiming in on someone else's exchange.
@@ -309,9 +308,7 @@ rule in the wrong file, a second post, a question back, or an offer to do more.
   Agent waits and ignores a peer's guess.
 - The chat register (plain sentences, structure only for data) has a live output check only for
   bold-label walls.
-- Nothing hands `WORKER.md` to a Worker until W3 (ADR 0056), so the `workers` and `rules`
-  Manual topics describe its rules travelling in the brief the Agent starts a Worker with.
-  `projects/` in Drive refuses writes until Projects get their Drive areas, so a Project rule has no home yet and the prompt leaves it out.
+- `projects/` in Drive refuses writes until Projects get their Drive areas, so a Project rule has no home yet and the prompt leaves it out.
 - Ack variety (a single default emoji on every thanks) has no live guard since
   `ack-reaction-variety` retired on 2026-10-15; `managed-instructions.test.ts` keeps literal
   emoji out of the prompt, which was its cause.

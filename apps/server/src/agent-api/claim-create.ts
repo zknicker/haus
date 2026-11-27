@@ -98,7 +98,7 @@ export async function createAgentClaims(
             if (!numberedChat) {
                 throw new AgentClaimError('That claim target no longer exists.');
             }
-            const { cloudLinks, content, imageLinks, taskLinks } = await resolveMessageLinks(tx, {
+            const { content, imageLinks, taskLinks } = await resolveMessageLinks(tx, {
                 author: { agentId: runner.agentId, kind: 'agent' },
                 content: title.trim(),
                 serverId: runner.serverId,
@@ -122,7 +122,6 @@ export async function createAgentClaims(
                 .returning(messageSelection);
             await recordMessageLinks(tx, {
                 chatId,
-                cloudLinks,
                 imageLinks,
                 messageId,
                 serverId: runner.serverId,

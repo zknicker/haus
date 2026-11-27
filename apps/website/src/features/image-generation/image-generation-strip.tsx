@@ -26,7 +26,7 @@ export function ImageGenerationStrip({
     const viewing = ready.findIndex((generation) => generation.id === viewingId);
 
     return (
-        // `mt-1.5` is the step ActionCard (Worker) takes below the
+        // `mt-1.5` is the step an ActionCard takes below the
         // author line, so a body that opens with a card clears it the same way.
         // After text, the segment gap alone separates them.
         <div className="min-w-0 first:mt-1.5">

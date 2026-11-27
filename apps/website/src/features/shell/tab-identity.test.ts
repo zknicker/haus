@@ -170,16 +170,6 @@ test('the new tab page reads as New tab with a globe', () => {
     });
 });
 
-test('a Worker place is its own tab, titled from its record once it loads', () => {
-    const page = parseTabPage(app('/s/acme/workers/wkr_one'));
-
-    expect(page).toEqual({ kind: 'worker', workerId: 'wkr_one' });
-    expect(resolveTabIdentity(page, records).label).toBe('');
-    expect(
-        resolveTabIdentity(page, { ...records, workerTitle: 'Fix iPad composer baseline' }).label
-    ).toBe('Fix iPad composer baseline');
-});
-
 test('the Server root is Home', () => {
     const home = { label: 'Home', mark: { glyph: 'home', kind: 'glyph' }, place: null };
     expect(resolveTabIdentity(parseTabPage(app('/s/acme')), records)).toEqual(home);

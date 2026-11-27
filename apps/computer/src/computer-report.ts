@@ -9,7 +9,6 @@ import { refreshRuntimeAuthentication } from './runtime-auth-refresh.ts';
 import { readRuntimeIssues } from './runtime-issues.ts';
 import { loginKeychain } from './secrets/keychain.ts';
 import { readSecretsStatus } from './secrets/store.ts';
-import { readDefaultCloudAgentProvider } from './workers/settings.ts';
 
 export function createComputerReporter(dataRoot: string) {
     return async (
@@ -52,10 +51,7 @@ export async function sendEffectiveComputerReport({
     computerName: string;
     dataRoot: string;
 }) {
-    const inventory = await detectFullInventory({
-        dataRoot,
-        defaultCloudAgentProvider: await readDefaultCloudAgentProvider(dataRoot),
-    });
+    const inventory = await detectFullInventory({ dataRoot });
     send({
         agents: [],
         inventory: {

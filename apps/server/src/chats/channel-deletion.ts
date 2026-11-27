@@ -85,7 +85,7 @@ export async function purgeDeletedChannel(
                 )
             );
         if (!deleted) {
-            return { events: [], workerFrames: [] };
+            return { events: [] };
         }
 
         const anchored = remindersAnchoredIn(tx, { chatIds, serverId: input.serverId });
@@ -126,11 +126,9 @@ export async function purgeDeletedChannel(
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         return {
             events: [...events, ...deletedTasks.events],
-            workerFrames: deletedTasks.workerFrames,
         };
     });
     publishRealtime(purged.events);
-    return purged.workerFrames;
 }
 
 /** Deletion refuses a Project with home Agents; a retired Agent homed here keeps no home. */

@@ -13,7 +13,6 @@ import {
     hausAgentReportFrameSchema,
     hostSkillFileResultSchema,
     reminderScriptResultSchema,
-    repoClonesFrameSchema,
     repoFolderResultSchema,
     usageReportSchema,
 } from '@haus/api';
@@ -21,22 +20,20 @@ import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import { ingestProcessExit } from '../agent-invocations/process-exits.ts';
-import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
-import { ingestRepoClones } from '../repos/repo-folder-write.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import { ingestAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
+import { ingestAgentHeld } from './agent-retirement.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestAgentRunFrame } from './ingest-agent-run-frame.ts';
 import { ingestBackgroundWorkFrame } from './ingest-background-work.ts';
 import { ingestExecutionJournalUpload } from './ingest-execution-journal.ts';
 import { recordComputerInventory, recordInvalidComputerInventory } from './record-inventory.ts';
 import { recordComputerManagementEvents, reportComputerUpdateProgress } from './service.ts';
-import { ingestWorkerReport } from './worker-reports.ts';
 
 /** Ongoing report of last-reported inventory and per-Agent effective state. */
 const reportSchema = z
@@ -57,8 +54,7 @@ export async function ingestReport(
     raw: string,
     postCommitWork: ServerPostCommitWork,
     thoughts: AgentThoughts,
-    invocations: InvocationRouter,
-    storage: ArtifactStorage | null
+    invocations: InvocationRouter
 ) {
     let frame: unknown;
     try {
@@ -88,16 +84,7 @@ export async function ingestReport(
             frame,
             serverId,
         })) ||
-        (await ingestWorkerReport({
-            db,
-            connections,
-            delivery,
-            computerId,
-            serverId,
-            frame,
-            postCommitWork,
-            storage,
-        })) ||
+        (await ingestAgentHeld(db, connections, { computerId, frame, serverId })) ||
         (await ingestExecutionJournalUpload(db, {
             acknowledge: (ack) => connections.send(computerId, ack),
             frame,
@@ -180,11 +167,6 @@ async function recordStateReport(
     const hausAgentReport = hausAgentReportFrameSchema.safeParse(frame);
     if (hausAgentReport.success) {
         return await recordHausAgentState(db, computerId, hausAgentReport.data.agents);
-    }
-
-    const repoClones = repoClonesFrameSchema.safeParse(frame);
-    if (repoClones.success) {
-        return await ingestRepoClones(db, { computerId, serverId }, repoClones.data.clones);
     }
 
     const report = reportSchema.safeParse(frame);

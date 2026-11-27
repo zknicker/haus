@@ -2,9 +2,7 @@ import type {
     AgentInboxItem,
     AgentTaskContext,
     HausAgentMessage,
-    WorkerAttention,
-    WorkerPullRequestChange,
-    WorkerReportAttention,
+    PullRequestChange,
 } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
@@ -16,16 +14,6 @@ import { listMessageClaimMap } from '../claims/claim-shape.ts';
 import { parsePullRequestChangeKey } from '../github/pull-request-change.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
-import {
-    type WorkerTurnAttention,
-    readWorkerAttentions,
-} from '../workers/read-worker-attentions.ts';
-import { readWorkerReportAttentions } from '../workers/read-worker-report-attentions.ts';
-import {
-    isWorkerAttentionSource,
-    workerInboxSources,
-    workerNoticeOf,
-} from '../workers/worker-inbox-sources.ts';
 import { chatOf } from './inbox-lanes.ts';
 import { inboxSender } from './inbox-sender.ts';
 import type * as store from './store.ts';
@@ -59,23 +47,6 @@ export async function buildInboxItems(
             : [];
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
-    const workerByRun =
-        serverId && rows.some((row) => isWorkerAttentionSource(row.source))
-            ? await readWorkerAttentions(
-                  db,
-                  serverId,
-                  rows.flatMap((row) => (row.workerTurnId ? [row.workerTurnId] : []))
-              )
-            : new Map<string, WorkerTurnAttention>();
-    const reportByTurn = serverId
-        ? await readWorkerReportAttentions(
-              db,
-              serverId,
-              rows.flatMap((row) =>
-                  row.source === 'worker_report' && row.workerTurnId ? [row.workerTurnId] : []
-              )
-          )
-        : new Map<string, WorkerReportAttention>();
     const sequenceByMessageId = new Map(
         messageRows.map((message) => [message.id, message.sequence])
     );
@@ -103,16 +74,8 @@ export async function buildInboxItems(
     return rows.map((row) =>
         toInboxItem(row, {
             apiMessage: apiMessageById.get(row.dedupeKey),
-            worker:
-                isWorkerAttentionSource(row.source) && row.workerTurnId
-                    ? requireAttention(row, workerByRun)
-                    : undefined,
-            workerReport:
-                row.source === 'worker_report' ? requireReport(row, reportByTurn) : undefined,
             pullRequestNotice:
-                row.source === workerInboxSources.pull_request && !row.workerTurnId
-                    ? requirePullRequestNotice(row)
-                    : undefined,
+                row.source === 'pull_request' ? requirePullRequestNotice(row) : undefined,
             sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
             target: targetByChatId.get(chatOf(row)) ?? '#unknown',
             claim: claimByMessage.get(row.dedupeKey),
@@ -124,17 +87,15 @@ export async function buildInboxItems(
 interface InboxItemFacets {
     apiMessage: HausAgentMessage | undefined;
     claim: AgentInboxItem['claim'];
-    worker: WorkerAttention | undefined;
-    pullRequestNotice: WorkerPullRequestChange | undefined;
+    pullRequestNotice: PullRequestChange | undefined;
     sequence: number;
     target: string;
     taskContext: AgentTaskContext | undefined;
-    workerReport: WorkerReportAttention | undefined;
 }
 
 function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInboxItem {
-    const { apiMessage, worker, pullRequestNotice, target, workerReport } = facets;
-    const attention = Boolean(worker ?? pullRequestNotice ?? workerReport);
+    const { apiMessage, pullRequestNotice, target } = facets;
+    const attention = Boolean(pullRequestNotice);
     const sender = inboxSender({ attention, message: apiMessage, source: row.source, target });
     // Only a human-authored envelope carries the human's saved zone; a claim
     // assignment wrapping a human's message is a system envelope.
@@ -142,8 +103,6 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
     return {
         ...messageFacets(apiMessage),
         ...(row.addressedReason ? { addressed: true, addressedReason: row.addressedReason } : {}),
-        ...(worker ? { worker } : {}),
-        ...(workerReport ? { workerReport } : {}),
         ...(pullRequestNotice ? { pullRequestNotice } : {}),
         ...(row.mentioned ? { mentioned: true } : {}),
         ...(row.taskFollowReactivated ? { taskFollowReactivated: true } : {}),
@@ -152,7 +111,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...sender,
         ...(senderTimezone ? { senderTimezone } : {}),
         chatId: chatOf(row),
-        content: worker || workerReport ? '' : row.content,
+        content: row.content,
         createdAt: row.createdAt.toISOString(),
         id: row.dedupeKey,
         sequence: attention ? 0 : facets.sequence,
@@ -174,50 +133,19 @@ function messageFacets(apiMessage: HausAgentMessage | undefined) {
     };
 }
 
-/** A Worker row whose attention vanished cannot be rendered truthfully. */
-function requireAttention(
-    row: store.InboxItemRow,
-    attentions: Map<string, WorkerTurnAttention>
-): WorkerAttention {
-    const attention = row.workerTurnId ? attentions.get(row.workerTurnId) : undefined;
-    const notice = workerNoticeOf(row.source);
-    if (!(attention && notice)) {
-        throw new WorkerAttentionMissingError(row.dedupeKey);
-    }
-    if (notice !== 'pull_request') {
-        return { ...attention, notice };
-    }
+function requirePullRequestNotice(row: store.InboxItemRow): PullRequestChange {
     const change = parsePullRequestChangeKey(row.dedupeKey);
     if (!change) {
-        throw new WorkerAttentionMissingError(row.dedupeKey);
-    }
-    return { ...attention, notice: 'pull_request', pullRequestChange: change };
-}
-
-function requireReport(
-    row: store.InboxItemRow,
-    reports: Map<string, WorkerReportAttention>
-): WorkerReportAttention {
-    const report = row.workerTurnId ? reports.get(row.workerTurnId) : undefined;
-    if (!report) {
-        throw new WorkerAttentionMissingError(row.dedupeKey);
-    }
-    return report;
-}
-
-function requirePullRequestNotice(row: store.InboxItemRow): WorkerPullRequestChange {
-    const change = parsePullRequestChangeKey(row.dedupeKey);
-    if (!change) {
-        throw new WorkerAttentionMissingError(row.dedupeKey);
+        throw new PullRequestNoticeKeyError(row.dedupeKey);
     }
     return change;
 }
 
 /** Named so a failed dispatch's log says which item stopped it. */
-class WorkerAttentionMissingError extends Error {
-    override readonly name = 'WorkerAttentionMissingError';
+class PullRequestNoticeKeyError extends Error {
+    override readonly name = 'PullRequestNoticeKeyError';
 
     constructor(dedupeKey: string) {
-        super(`Worker attention ${dedupeKey} is missing.`);
+        super(`Pull request notice ${dedupeKey} names no change.`);
     }
 }

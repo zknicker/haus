@@ -6,7 +6,6 @@ import { readMessageDriveCitations } from '../drive/citations.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
-import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
@@ -29,7 +28,6 @@ export async function projectChatMessages(
         claimByMessageId,
         causeByMessageId,
         bodyByMessageId,
-        workByMessageId,
         imageGenerationsByMessageId,
         reactionsByMessageId,
         replyByMessageId,
@@ -40,7 +38,6 @@ export async function projectChatMessages(
         listMessageClaimMap(db, input.serverId, messageIds),
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
-        readLinkedWorker(db, input.serverId, messageIds),
         readLinkedImageGenerations(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
         readInlineReplyContexts(db, input.serverId, rows),
@@ -53,7 +50,6 @@ export async function projectChatMessages(
             authorProfile: readStoredAuthorProfile(message),
             body: bodyByMessageId.get(message.id),
             cause: causeByMessageId.get(message.id),
-            workers: workByMessageId.get(message.id),
             driveCitations: citationsByMessageId.get(message.id),
             imageGenerations: imageGenerationsByMessageId.get(message.id),
             reactions: reactionsByMessageId.get(message.id),

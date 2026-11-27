@@ -57,28 +57,6 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     ).toContain('replies');
 });
 
-test('a Worker keeps review rounds and requester outcomes in its Task', () => {
-    const body = getManualTopic('workers')?.body;
-    expect(body).toContain('`haus worker send --worker <workerId>`');
-    expect(body).toContain('`haus worker stop --worker <workerId>`');
-    expect(body).toContain(
-        'keep review rounds, revision requests, and progress in the Task, and @mention the requester there only for a real state change'
-    );
-    expect(body).toContain('followup-auto-interrupt-failed');
-    expect(body).toContain('`--report` prints a turn');
-    expect(
-        searchManualTopics('stop a Worker', { limit: 5, scope: 'all' }).map(({ id }) => id)
-    ).toContain('workers');
-});
-
-test('a Worker starts for a Task, and several can work one Task', () => {
-    const body = getManualTopic('workers')?.body;
-    expect(body).toContain('**It works for a Task.**');
-    expect(body).toContain('then the Worker with `--task k3mq7xta`');
-    expect(body).toContain('A Task can hold several Workers');
-    expect(body).not.toContain('--reply-to');
-});
-
 test('publishes the Agent reference topic as the Agent-creation contract', () => {
     const agent = getManualTopic('agent');
 
@@ -148,10 +126,6 @@ test('retires the Ask topic and teaches asking a human by @mention', () => {
     expect(recipe?.body).toContain('any other message only shows as unread');
     expect(recipe?.body).toContain('Every message in their DM notifies them too');
     expect(recipe?.body).toContain('Their reply there wakes you');
-    expect(getManualTopic('workers')?.body).toContain('**Launch approval.**');
-    expect(getManualTopic('workers')?.body).toContain(
-        'wait for an explicit yes in reply before `start`'
-    );
     expect(
         searchManualTopics('ask a human for a decision', { limit: 5, scope: 'all' }).map(
             (topic) => topic.id

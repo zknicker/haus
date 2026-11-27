@@ -21,8 +21,9 @@ import { imageGenerationSchema } from './image-generation.ts';
 import { taskDeliveryModeSchema } from './task-delivery.ts';
 import { taskPreviewSchema } from './task-preview.ts';
 import { taskLinkSchema } from './task-short-id.ts';
-import { chatMessageAuthoredContentMaxLength, chatMessageContentMaxLength } from './worker-link.ts';
-import { workerSchema } from './worker-shared.ts';
+
+/** The most text an author may write into one Message. */
+export const chatMessageAuthoredContentMaxLength = 32_000;
 
 export { idSchema } from './chat-contract-primitives.ts';
 export * from './chat-message-context.ts';
@@ -36,12 +37,7 @@ export const chatMessageSchema = z
         cause: messageCauseSchema.optional(),
         chatId: idSchema,
         claim: messageClaimSchema.nullable().optional(),
-        /**
-         * The Workers this Message links, in link order (ADR 0044).
-         * Each entry is visible to the viewer; the card renders from here.
-         */
-        workers: z.array(workerSchema).default([]),
-        content: z.string().max(chatMessageContentMaxLength),
+        content: z.string().max(chatMessageAuthoredContentMaxLength),
         createdAt: timestampSchema,
         /** Drive files the Message cites, in link order, each bound to a revision. */
         driveCitations: z.array(driveCitationSchema).default([]),

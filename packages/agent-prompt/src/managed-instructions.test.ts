@@ -151,8 +151,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).toContain(
         "- When you need a human's decision or action, @mention them where the work lives. Ask one question, a default only if reversible, and what you prepared. Their reply wakes you. Irreversible acts wait for an explicit yes."
     );
-    expect(prompt).toContain('13. **Workers**: `haus worker places`, `haus worker start`,');
-    expect(prompt).toMatch(/14\. \*\*Images\*\*: `haus image models`.*\n15\. \*\*Tasks\*\*/);
+    expect(prompt).toMatch(/13\. \*\*Images\*\*: `haus image models`.*\n14\. \*\*Tasks\*\*/);
 
     // These Raft-only surfaces must not leak into the Haus prompt.
     expect(prompt).not.toContain('reviewer-isolation');
@@ -225,7 +224,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 128 (37,648 → 37,776) for the Computers entry (ADR 0057), 116 (→ 37,892) for Repos (ADR 0060).
     // Raised by exactly 59 (37,892 → 37,951): web sources are cited as Markdown links (ADR 0061).
     // Lowered by exactly 38 (37,951 → 37,913): Tasks name `archive` (ADR 0062). Raised by exactly 364 (→ 38,277): Captains work from Issues (step 3). Lowered by exactly 198 (→ 38,079): Captain chat, crew Tasks (step 5b).
-    expect(prompt.length).toBeLessThanOrEqual(38_079);
+    // Lowered by exactly 469 (38,079 → 37,610): Workers deleted (ADR 0062 step 7): the `### Workers` section (-262) and family entry (-177), the sub-agent separate-tools sentence (-33), and WORKER.md names crew Tasks (+3).
+    expect(prompt.length).toBeLessThanOrEqual(37_610);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');

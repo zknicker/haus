@@ -32,10 +32,7 @@ export function composeDriveConflictInput(
 }
 
 function pushLabel(attention: DriveConflictAttention) {
-    const { writer } = attention;
-    return writer.type === 'worker'
-        ? `your Worker ${writer.workerId}'s push in task ${writer.taskId}, after ${attention.pushId}`
-        : `your push after ${attention.pushId}`;
+    return `your push after ${attention.pushId}`;
 }
 
 function formatFile(file: DriveConflictFile, ownHandle: string | null) {

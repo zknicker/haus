@@ -36,15 +36,12 @@ test('only the attacher grants Agent access, and computer.list shows who may cha
         agentAccessGrants: [
             { agentId: board.setup.agentId, grantedByUserId: board.attacherUserId },
         ],
-        canEnableWorkers: true,
         canGrantAgentAccess: true,
         canRevokeAgentAccess: true,
         id: board.laptopId,
     });
     const seen = await board.admin.trpc.computer.list.query({ serverId: board.setup.serverId });
     expect(seen.find((computer) => computer.id === board.laptopId)).toMatchObject({
-        canChangeWorkers: true,
-        canEnableWorkers: false,
         canGrantAgentAccess: false,
         canRevokeAgentAccess: true,
     });
@@ -106,38 +103,6 @@ test('only the attacher turns computer use on; an Admin turns it off', async () 
     ).toEqual([{ computer_use_enabled: false }]);
 });
 
-test('only the attacher turns Workers on or raises the limit; an Admin lowers it and turns it off', async () => {
-    const device = { computerId: board.laptopId, serverId: board.setup.serverId };
-    await expect(
-        board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: true })
-    ).rejects.toThrow(
-        'Only the person who attached this Device can turn on Run Workers here or raise its limit.'
-    );
-
-    await board.attacher.trpc.computer.setWorkers.mutate({ ...device, enabled: true });
-    await board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: true, limit: 2 });
-    expect(await workerSwitch()).toEqual([{ worker_limit: 2, workers_enabled: true }]);
-    await expect(
-        board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: true, limit: 3 })
-    ).rejects.toThrow('raise its limit');
-
-    await board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: false });
-    expect(await workerSwitch()).toEqual([{ worker_limit: 2, workers_enabled: false }]);
-});
-
-test('an Admin cannot raise the Worker limit while turning Run Workers here off', async () => {
-    const device = { computerId: board.laptopId, serverId: board.setup.serverId };
-    await expect(
-        board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: false, limit: 50 })
-    ).rejects.toThrow('raise its limit');
-    expect(await workerSwitch()).toEqual([{ worker_limit: 2, workers_enabled: false }]);
-
-    await board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: false, limit: 1 });
-    expect(await workerSwitch()).toEqual([{ worker_limit: 1, workers_enabled: false }]);
-    await board.attacher.trpc.computer.setWorkers.mutate({ ...device, enabled: false, limit: 4 });
-    expect(await workerSwitch()).toEqual([{ worker_limit: 4, workers_enabled: false }]);
-});
-
 test('an Admin creates an Agent on a Computer someone else attached only when it allows All Captains', async () => {
     const projects = await board.setup.owner.trpc.project.list.query({
         serverId: board.setup.serverId,
@@ -174,11 +139,5 @@ test('an Admin creates an Agent on a Computer someone else attached only when it
 async function accessRows() {
     return await board.setup.harness.sql`
         select agent_id from computer_agent_access where computer_id = ${board.laptopId}
-    `;
-}
-
-async function workerSwitch() {
-    return await board.setup.harness.sql`
-        select worker_limit, workers_enabled from computers where id = ${board.laptopId}
     `;
 }

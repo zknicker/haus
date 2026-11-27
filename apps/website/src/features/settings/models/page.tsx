@@ -6,16 +6,13 @@ import { ImageGenerationSettings } from '../image-generation/image-generation-gr
 import { SettingsEmptyState } from '../layout/settings-empty.tsx';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
-import { CloudAgentModelGroup } from './cloud-agent-model-group.tsx';
 import { ModelConnectionsGroup } from './connections/model-connections-group.tsx';
 import { buildModelCatalog, type ModelCatalogItem, type ModelsComputer } from './model-catalog.ts';
 
 export function ModelsSettings({
-    canManage,
     isOwner = false,
     serverId,
 }: {
-    canManage: boolean;
     isOwner?: boolean;
     serverId: string;
 }) {
@@ -35,7 +32,6 @@ export function ModelsSettings({
             <SettingsPageColumn width="table">
                 <SettingsPageHeader title="Models" />
                 <ModelConnectionsGroup isOwner={isOwner} serverId={serverId} />
-                <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
                 <Alert role="alert" status="danger">
                     <Alert.Indicator />
                     <Alert.Content>
@@ -52,8 +48,6 @@ export function ModelsSettings({
             <SettingsPageHeader title="Models" />
 
             <ModelConnectionsGroup isOwner={isOwner} serverId={serverId} />
-
-            <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
 
             <ImageGenerationSettings isOwner={isOwner} serverId={serverId} />
 

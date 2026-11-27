@@ -18,9 +18,6 @@ export const deleteAgentProcedure = memberProcedure
             }
             publishRealtime(result.taskEvents);
             publishRealtime(result.crew.events);
-            for (const { computerId, frame } of result.crew.workerFrames) {
-                ctx.computerConnections.send(computerId, frame);
-            }
             announceTaskSessions(
                 { invocations: ctx.invocations, runner: ctx.runnerLink },
                 result.crew.sessions

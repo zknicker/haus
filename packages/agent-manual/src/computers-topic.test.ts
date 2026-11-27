@@ -19,7 +19,6 @@ test('it explains haus computer list, who grants access, and every refusal cause
         'when the person who attached it adds you on its Device page, or sets it to allow every Captain on the Server'
     );
     expect(body).toContain('Owners and Admins can only narrow it');
-    expect(body).toContain('A Worker starts on a Computer only where you are allowed too.');
     for (const cause of ['not-found', 'no-access', 'off', 'offline']) {
         expect(body).toContain(`\`${cause}\``);
     }

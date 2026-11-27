@@ -1,4 +1,4 @@
-import type { PullRequestReading, WorkerPullRequestState } from '@haus/api';
+import type { PullRequestReading, PullRequestState } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     check,
@@ -29,7 +29,7 @@ export const pullRequestReadingsTable = pgTable(
         serverId: text('server_id').notNull(),
         settledAt: timestamp('settled_at', { withTimezone: true }),
         source: text('source').notNull().$type<PullRequestReading['source']>(),
-        state: text('state').notNull().$type<WorkerPullRequestState>(),
+        state: text('state').notNull().$type<PullRequestState>(),
         title: text('title'),
         url: text('url').notNull(),
     },

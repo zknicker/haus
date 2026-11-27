@@ -19,7 +19,7 @@ Your Machine is your default Computer. Your \`drive/\` folder lives there, and e
 
 **Finding one.** \`haus computer list\` prints one line per Computer on the Server, such as \`MacBook (cmp_123) · online · macOS · allowed · computer use\`: its name and id, \`online\` or \`offline\`, its OS, then \`machine\`, \`allowed\`, or \`no access\`, and \`computer use\` when a \`desktop\` call from you would pass there. Use the id when two Computers share a name. In replies, call a Computer by its name ("the MacBook").
 
-**Who allows you.** Your Machine always does. Another Computer allows you when the person who attached it adds you on its Device page, or sets it to allow every Captain on the Server; nobody else can, and Owners and Admins can only narrow it. A \`desktop\` call there also needs its computer use switch on, which covers everyone it allows. A Worker starts on a Computer only where you are allowed too.
+**Who allows you.** Your Machine always does. Another Computer allows you when the person who attached it adds you on its Device page, or sets it to allow every Captain on the Server; nobody else can, and Owners and Admins can only narrow it. A \`desktop\` call there also needs its computer use switch on, which covers everyone it allows.
 
 **Refusals.** A refused call ran nothing, and its text names the Computer.
 - \`not-found\`: no Computer on the Server has that id or name. A name that several share refuses with their ids.

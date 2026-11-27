@@ -4,8 +4,6 @@ import * as z from 'zod';
  * Agent API refusal codes for Tasks as places (ADR 0053). Each rides an
  * `AgentApiError` `code` and carries a message saying why and what to do.
  *
- * - `WORKER_TASK_REQUIRED`: `haus worker start` named no Task; cloud
- *   work attaches to a Task and reports there (decision 6).
  * - `TASK_PROJECT_NOT_HOME`: a non-generalist Agent started a Task outside its
  *   home Project; that Project's Agent starts it when @mentioned in its channel
  *   (ADR 0055).
@@ -17,7 +15,6 @@ import * as z from 'zod';
  * - `TASK_START_NOT_CAPTAIN`: an agent other than a Captain started a Task.
  */
 export const agentTaskRefusalCodes = [
-    'WORKER_TASK_REQUIRED',
     'TASK_PROJECT_NOT_HOME',
     'TASK_RECURRING_REMINDER',
     'TASK_PROJECT_ARCHIVED',

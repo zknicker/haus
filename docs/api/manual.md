@@ -51,7 +51,7 @@ renders the result.
   English plurals singularized. There are no synonyms.
 * **Get** resolves the exact id first, then a normalized id, a recipe id
   without its `recipes/` prefix, a title, or an alias. `reminders`,
-  `Workers`, and `technique/task-claim-lock` all resolve. Lookup keys must
+  `Tasks`, and `technique/task-claim-lock` all resolve. Lookup keys must
   stay unique across topics (tested).
 * **Search** is ranked, not all-terms. Each query term scores its strongest
   field: id 8, alias 7, title 6, recipe trigger 5, summary 4, recipe metadata 2,
@@ -99,7 +99,7 @@ aliases.
 ## Published corpus
 
 The release-owned Manual ships `index`, `haus-cli-overview`, the product
-reference topics `agent`, `workers`, `tasks`, `replies`, `secrets`,
+reference topics `agent`, `tasks`, `replies`, `secrets`,
 `computers` (targeting a tool call at another Computer, and `haus computer list`), `app`, and `amazon-product-references`, one product-noun topic per remaining command
 family (`message`, `inbox`, `channel`, `server`, `profile`,
 `attachment`, `skill`, `reminder`, `trigger`), `recipes/index`, `recipes/seeded`,
@@ -115,8 +115,8 @@ release-owned and read-only; they are not copied into Agent workspaces. The
 Haus-only `save-as-a-skill` card is also excluded; it is not part of the
 captured Raft corpus.
 
-`agent` and `workers` describe current Haus product
-capabilities. They are reference topics rather than recipes: `agent` carries the
+`agent` describes a current Haus product
+capability. It is a reference topic rather than a recipe: `agent` carries the
 `haus agent create` contract and its consent norm (ADR 0028) without
 prescribing team shape or what creative concept an Agent should choose.
 

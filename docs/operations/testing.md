@@ -56,7 +56,7 @@ Each package gate includes its tests and typecheck:
 | `packages/haus-api` | `@haus/api check`, plus typecheck of the consuming apps you touched |
 | `packages/haus-sdk` | `@haus/sdk test` + `typecheck` |
 | Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:app`, scoped to the affected spec file when possible |
-| Execution runtimes, runtime drivers, provider auth wiring, or a runtime CLI pin bump | `@haus/runner test` + `typecheck`, plus `@haus/computer test` + `typecheck` when Workers or the Computer's logins change; add the affected [live runtime test](#live-runtime-tests), and a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
+| Execution runtimes, runtime drivers, provider auth wiring, or a runtime CLI pin bump | `@haus/runner test` + `typecheck`, plus `@haus/computer test` + `typecheck` when the Computer's logins or runtime installs change; add the affected [live runtime test](#live-runtime-tests), and a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
 
 Rules that keep runs cheap and honest:
 
@@ -289,8 +289,7 @@ replay.
 When changing runner routes, event projection, chat behavior, or delivery
 semantics, verify against deterministic service fixtures, hosted Browser E2E,
 or an opt-in live runtime test when a concrete ambiguity remains. The Computer no longer hosts
-Agent sessions. Its Claude Code and Codex drivers serve Workers, and their tests replay recorded
-CLI streams from `apps/computer/src/runtime/<runtime>/fixtures/`.
+Agent sessions or runtime drivers.
 
 ## Live Runtime Tests
 
@@ -344,18 +343,12 @@ Most scenarios belong to one of the [evals](#evals), which is the usual way to r
 are opt-in because they need something the default dev stack lacks; `--include-opt-in` adds
 them, and `bun run eval` always passes it:
 
-* `cloud-worker-start-and-stop` spends a real Cursor Worker turn on a read-only Haus README
-  review and needs connected Cursor access to `zknicker/haus`. It gates on one Task started from
-  a message in the requesting channel with one Worker attached, then stops that Worker with
-  `worker.stop` and gates on the newest turn recording the person who stopped it. The completion
-  wake is Server plumbing and is not re-proved live. The `task-intake-cloud-*` scenarios are
-  opt-in for the same reason.
 * `memory-feedback-implicit` and `memory-feedback-control` overwrite a test Agent's `MEMORY.md`
   on the stack's own Computer.
 * `agent-composes-agent-creation` is a standalone Agent-creation smoke outside every eval (below).
 
 Scenarios that place answers or start work (`placement-*`, `ack-reaction-thanks`,
-`mention-wakes-only-addressed`, `claim-then-inline-reply`, `cloud-worker-start-and-stop`,
+`mention-wakes-only-addressed`, `claim-then-inline-reply`,
 `github-trigger-*`, `room-*`, `rule-files-*`, `side-work-stays-beside-channel`, `task-intake-*`,
 `task-pacing-*`)
 preserve every chat they touched, the Tasks started from those chats, and all available
@@ -513,14 +506,14 @@ rendered as the report's "What was changed" section). The registry is
 | `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline in the channel it arrived in; a reminder fires once. Serial. |
 | `citations` | Asked to look something up, the Agent answers in the channel citing the page as a Markdown link, and no raw `haus message send` body in the journal carries a provider reference marker (U+E200–U+E202, ADR 0061). The scenario switches web search on for the Agent's model connection; a ChatGPT run needs a ChatGPT login on each eval stack. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
-| `rules` | A "from now on" rule lands in the rule file for its audience: a Worker rule in the Agent's `WORKER.md` with `MEMORY.md` Standing Preferences unchanged, an Agent rule in its own `AGENTS.md`, each read back from Drive on the Server as a revision the Agent wrote; after a session reset, the Agent rule still keeps a new question's reply to three sentences or fewer; a plain fact still lands in `MEMORY.md` with no rule file (ADR 0054 decision 10). |
+| `rules` | A "from now on" rule lands in the rule file for its audience: a crew Task rule in the Agent's `WORKER.md` with `MEMORY.md` Standing Preferences unchanged, an Agent rule in its own `AGENTS.md`, each read back from Drive on the Server as a revision the Agent wrote; after a session reset, the Agent rule still keeps a new question's reply to three sentences or fewer; a plain fact still lands in `MEMORY.md` with no rule file (ADR 0054 decision 10). |
 | `triggers` | GitHub Triggers on an `acme` GitHub installation seeded on the eval stack (no GitHub account): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger with a short confirmation; a signed `workflow_run` failure gets one top-level `--cause` answer naming the workflow and branch. Serial. |
 | `room` | Two Agents and a human share a channel, and each scenario carries a decoy the Manual warns against: a multi-step pickup gets the signature reaction and at most one inline "on it" note while the bystander stays silent; a task a peer claimed is left to that peer; a peer handoff carrying its evidence is delivered without re-asking the human; a peer's guess at a pending question to the human is not taken as the human's answer; a reminder fire during a live inline exchange is answered top level in the anchor chat with `--cause`, not inside the exchange; a chart request gets one SVG visual fence, no table inside it, with text beyond a caption. Serial. |
 | `side-work` | Two peers carry a live finance discussion while a human pulls the Agent into a code-review sidebar and replies inline through three substantial write-ups: each reaches the human, and the Agent authors at most two posts in the channel itself, taking the review to a Task. A control keeps a one-off off-topic answer to a single inline reply with no Task (`placement-off-topic-quick-question`). Placement is the Agent's judgment, so read the multi-round rate, not a single run. |
-| `task-intake` | Task or reply: work the reply will not finish (several steps, more time, a Worker) becomes a Task opened by the Agent's own top-level message where the work belongs, whatever the source (a human ask, a Reminder fire, a GitHub Trigger fire, several findings, one Task each); work the reply finishes is just answered, and a claim, not a Task, marks ownership. The two cloud scenarios (launch on a Task, report the finish in it) are opt-in because they spend real Cursor runs. Serial; the Trigger scenarios need the varlock environment. |
+| `task-intake` | Task or reply: work the reply will not finish (several steps, more time) becomes a Task opened by the Agent's own top-level message where the work belongs, whatever the source (a human ask, a Reminder fire, a GitHub Trigger fire, several findings, one Task each); work the reply finishes is just answered, and a claim, not a Task, marks ownership. Serial; the Trigger scenarios need the varlock environment. |
 | `fire-claims` | A Reminder fire creates no claim and restates nothing: a check that finds nothing new stays silent with no durable output, and a check that finds a red build posts exactly one top-level `--cause` answer in the anchor channel naming it, with no Task. Serial. |
 | `task-pacing` | Tasks a person assigns are worked one at a time, most urgent first, skipping one blocked on a person; Tasks the Agent starts itself may run side by side. Serial. |
-| `tools` | Work that leaves the chat: a Worker started on a Task and stopped by a person (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Drive (one `.md` file written under the Agent's `drive/` folder and cited with a `drive://` link, not attached). |
+| `tools` | Work that leaves the chat: granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Drive (one `.md` file written under the Agent's `drive/` folder and cited with a `drive://` link, not attached). |
 | `computer-target` | ADR 0057's per-call `computer` field: a machine question with no other Computer named keeps every invocation on the Agent's Machine with no refusal; "grab a screenshot of my MacBook" sends at least one invocation to a seeded offline `MacBook` the Agent may use, and no `desktop` call to the Machine. The MacBook scenario seeds through the stack database and needs migration 0153, so its baseline cell fails on older builds. Serial. |
 
 The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,

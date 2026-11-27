@@ -27,9 +27,10 @@ product logic in `apps/server/src/projects/`. Every procedure runs for an active
 the key yet), `isHaus` (the channel's `isAll`, the Haus project), and `homeAgentIds` (the
 non-retired Agents whose home it is, oldest first). The channel's `Chat.participantAgentIds` is the
 same set, ordered by id. `agent.setHome` moves an Agent between Projects and publishes
-`project.onUpdated` for both ([Agents API](agents.md)). For Workers, a Project also carries
-`defaultWorkerPlace`, the place view (`{ kind: 'computer', computerId, computerName }`,
-`{ kind: 'cursor' }`, `{ kind: 'claude' }`) or null. A Project carries no repos
+`project.onUpdated` for both ([Agents API](agents.md)). A Project also carries `defaultMachine`,
+`{ computerId, computerName }` or null, the Machine its Tasks run on when their starter names none.
+`project.setDefaultMachine { serverId, projectId, computerId | null }` sets it, refuses a Computer
+that is not this Server's, and publishes `project.onUpdated`. A Project carries no repos
 ([Repos and repo folders](#repos-and-repo-folders)).
 
 - `project.create` makes the channel, its creator's membership, its ledger entry, and its

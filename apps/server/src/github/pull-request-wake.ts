@@ -1,17 +1,9 @@
 import type { PullRequestReading } from '@haus/api';
-import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { isLiveChat } from '../chats/link-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    workerTurnsTable,
-    workersTable,
-    taskPullRequestsTable,
-    tasksTable,
-} from '../postgres/schema.ts';
-import { isLiveChat } from '../workers/worker-attention.ts';
-import { workerInboxSources } from '../workers/worker-inbox-sources.ts';
 import { type PullRequestTransition, pullRequestChangeKey } from './pull-request-change.ts';
-import { readUnworkedTaskWakes } from './pull-request-task-wakes.ts';
+import { readPullRequestTaskWakes } from './pull-request-task-wakes.ts';
 
 interface ReadingState {
     checks: PullRequestReading['checks'];
@@ -58,24 +50,7 @@ export async function enqueuePullRequestWakes(
         return [];
     }
     const wakes = new Map<string, AgentWake>();
-    for (const work of await readSettledWork(tx, reading)) {
-        if (!(await isLiveChat(tx, { chatId: work.chatId, serverId: reading.serverId }))) {
-            continue;
-        }
-        for (const transition of input.transitions) {
-            await delivery.enqueue(tx, {
-                agentId: work.agentId,
-                chatId: work.chatId,
-                workerTurnId: work.runId,
-                content: describeTransition(reading, transition),
-                dedupeKey: pullRequestChangeKey(reading, transition),
-                serverId: reading.serverId,
-                source: workerInboxSources.pull_request,
-            });
-        }
-        wakes.set(work.agentId, { agentId: work.agentId, serverId: reading.serverId });
-    }
-    for (const task of await readUnworkedTaskWakes(tx, reading)) {
+    for (const task of await readPullRequestTaskWakes(tx, reading)) {
         if (!(await isLiveChat(tx, { chatId: task.chatId, serverId: reading.serverId }))) {
             continue;
         }
@@ -86,89 +61,12 @@ export async function enqueuePullRequestWakes(
                 content: describeTransition(reading, transition),
                 dedupeKey: pullRequestChangeKey(reading, transition),
                 serverId: reading.serverId,
-                source: workerInboxSources.pull_request,
+                source: 'pull_request',
             });
         }
         wakes.set(task.agentId, { agentId: task.agentId, serverId: reading.serverId });
     }
     return [...wakes.values()];
-}
-
-async function readSettledWork(db: HausDatabase, reading: PullRequestWakeReading) {
-    const workIds = await relatedWorkIds(db, reading);
-    if (workIds.length === 0) {
-        return [];
-    }
-    const works = await db
-        .select({
-            agentId: workersTable.agentId,
-            chatId: sql<string>`coalesce(${tasksTable.chatId}, ${workersTable.originChatId})`,
-            id: workersTable.id,
-        })
-        .from(workersTable)
-        .leftJoin(
-            tasksTable,
-            and(
-                eq(tasksTable.serverId, workersTable.serverId),
-                eq(tasksTable.id, workersTable.taskId)
-            )
-        )
-        .where(and(eq(workersTable.serverId, reading.serverId), inArray(workersTable.id, workIds)));
-    const settled: { agentId: string; chatId: string; runId: string }[] = [];
-    for (const work of works) {
-        const [newest] = await db
-            .select({ id: workerTurnsTable.id, outcome: workerTurnsTable.outcome })
-            .from(workerTurnsTable)
-            .where(
-                and(
-                    eq(workerTurnsTable.serverId, reading.serverId),
-                    eq(workerTurnsTable.workerId, work.id)
-                )
-            )
-            .orderBy(desc(workerTurnsTable.createdAt))
-            .limit(1);
-        if (newest?.outcome) {
-            settled.push({ agentId: work.agentId, chatId: work.chatId, runId: newest.id });
-        }
-    }
-    return settled;
-}
-
-async function relatedWorkIds(db: HausDatabase, reading: PullRequestWakeReading) {
-    const reported = await db
-        .selectDistinct({ workId: workerTurnsTable.workerId })
-        .from(workerTurnsTable)
-        .where(
-            and(
-                eq(workerTurnsTable.serverId, reading.serverId),
-                sql`(exists (
-                    select 1 from jsonb_array_elements(${workerTurnsTable.branches}) branch
-                    where branch->>'pullRequestUrl' = ${reading.url}
-                ) or jsonb_exists(
-                    coalesce(${workerTurnsTable.outcome}->'report'->'pullRequestUrls', '[]'::jsonb),
-                    ${reading.url}
-                ))`
-            )
-        );
-    const onTask = await db
-        .selectDistinct({ workId: workersTable.id })
-        .from(taskPullRequestsTable)
-        .innerJoin(
-            workersTable,
-            and(
-                eq(workersTable.serverId, taskPullRequestsTable.serverId),
-                eq(workersTable.taskId, taskPullRequestsTable.taskId)
-            )
-        )
-        .where(
-            and(
-                eq(taskPullRequestsTable.serverId, reading.serverId),
-                eq(taskPullRequestsTable.repository, reading.repository),
-                eq(taskPullRequestsTable.number, reading.number),
-                isNotNull(workersTable.taskId)
-            )
-        );
-    return [...new Set([...reported, ...onTask].map((row) => row.workId))];
 }
 
 function describeTransition(reading: PullRequestWakeReading, transition: PullRequestTransition) {

@@ -14,7 +14,7 @@ Your runtime can start sub-agents: helper agents that work in parallel with you,
 - **You** stay in the conversation and do the work a request needs.
 - **Sub-agents** take bulk reading and searching, and independent pieces that can run beside you.
 
-This is about your own work. Splitting work into Haus Tasks for other named agents (above) and starting Workers are separate tools; do not turn each sub-agent job into a Task or a Worker.
+This is about your own work. Splitting work into Haus Tasks for other named agents (above) is a separate tool; do not turn each sub-agent job into a Task.
 
 Defaults:
 1. **Answer first, then delegate.** When a message needs a reply, acknowledge or answer it in the chat before starting longer work. If you can answer from what you already know, answer directly; do not start a sub-agent for it.

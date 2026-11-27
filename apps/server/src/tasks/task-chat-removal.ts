@@ -8,13 +8,11 @@ import {
     tasksTable,
 } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
-import { closeDeletedTaskWorkers } from '../workers/close-deleted-task-workers.ts';
-import type { WorkerFrame } from '../workers/worker-effects.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
 
 type Tx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
-const nothingDeleted = { events: [] as PreparedRealtimeEvent[], workerFrames: [] as WorkerFrame[] };
+const nothingDeleted = { events: [] as PreparedRealtimeEvent[] };
 
 export async function deleteTasksOfRemovedChats(
     tx: Tx,
@@ -39,7 +37,6 @@ export async function deleteTasksOfRemovedChats(
         return nothingDeleted;
     }
     const taskIds = tasks.map(({ id }) => id);
-    const workerFrames = await closeDeletedTaskWorkers(tx, { serverId: input.serverId, taskIds });
     await tx
         .delete(tasksTable)
         .where(and(eq(tasksTable.serverId, input.serverId), inArray(tasksTable.id, taskIds)));
@@ -55,7 +52,7 @@ export async function deleteTasksOfRemovedChats(
             version: task.version,
         })
     );
-    return { events, workerFrames };
+    return { events };
 }
 
 async function retireTaskAgents(tx: Tx, input: { agentIds: string[]; serverId: string }) {

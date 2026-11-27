@@ -52,16 +52,16 @@ afterAll(async () => {
 
 test('Manual resolves what an Agent typed and answers misses with the closest topics', async () => {
     const runner = await mintRunner('manual_recovery');
-    const intent = 'I want to know which model my Workers run.';
-    const reason = 'A teammate asked whether we can pick the model.';
+    const intent = 'I want to know which Computer my tools run on.';
+    const reason = 'A teammate asked whether we can pick the Computer.';
 
     const alias = await manualGet(runner.runnerToken, {
         intent,
         reason,
-        topic: 'Cloud Agent Model',
+        topic: 'Home Computer',
     });
     expect(alias.status).toBe(200);
-    expect(alias.body.topic.id).toBe('workers');
+    expect(alias.body.topic.id).toBe('computers');
     expect(alias.body.topic).not.toHaveProperty('aliases');
 
     const miss = await manualGet(runner.runnerToken, {
@@ -73,9 +73,9 @@ test('Manual resolves what an Agent typed and answers misses with the closest to
     expect(miss.body.code).toBe('MANUAL_TOPIC_NOT_FOUND');
     expect(miss.body.nextAction).toContain('1. reminder — "Reminders"');
 
-    const ranked = await manualSearch(runner.runnerToken, { intent, q: 'cursor', reason });
+    const ranked = await manualSearch(runner.runnerToken, { intent, q: 'worktree', reason });
     expect(ranked.status).toBe(200);
-    expect(ranked.body.results[0].id).toBe('workers');
+    expect(ranked.body.results[0].id).toBe('repos');
     expect(ranked.body.results[0]).not.toHaveProperty('aliases');
 
     const empty = await manualSearch(runner.runnerToken, { intent, q: 'zzqx', reason });
@@ -91,7 +91,7 @@ test('Manual resolves what an Agent typed and answers misses with the closest to
         where run_id = 'manual_recovery' order by created_at asc
     `) as Record<string, unknown>[];
     // Misses are recorded as typed, so miss review can replay them.
-    const lookups = ['Cloud Agent Model', 'reminder-schedule-repeat', 'cursor', 'zzqx'];
+    const lookups = ['Home Computer', 'reminder-schedule-repeat', 'worktree', 'zzqx'];
     expect(rows.map((row) => row.topic_id ?? row.query)).toEqual(lookups);
 });
 

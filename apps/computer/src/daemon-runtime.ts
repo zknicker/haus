@@ -6,7 +6,6 @@ import {
 import { Layer, ManagedRuntime } from 'effect';
 import { computerSourceRevision, computerVersion } from './build-identity.ts';
 import { KeyedSerialWork } from './keyed-serial-work.ts';
-import { closeProviderSignIns } from './workers/provider-sign-in.ts';
 
 export type DaemonRuntime = EffectRuntime<never>;
 
@@ -25,7 +24,7 @@ export function daemonSerialWork(runtime: DaemonRuntime): KeyedSerialWork<never>
 export async function closeDaemonCoordination(runtime: DaemonRuntime): Promise<void> {
     const serialWork = serialWorkByRuntime.get(runtime);
     serialWorkByRuntime.delete(runtime);
-    await Promise.all([serialWork?.close(), closeProviderSignIns(runtime)]);
+    await serialWork?.close();
 }
 
 /** Create the one Effect runtime owned by a Computer attachment daemon. */

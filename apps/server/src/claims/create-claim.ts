@@ -13,7 +13,6 @@ import {
     resolveMessageLinks,
 } from '../chats/message-links.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
-import { replayWorkerLinks } from '../chats/worker-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatMessagesTable, chatsTable, messageClaimsTable } from '../postgres/schema.ts';
@@ -80,11 +79,7 @@ export async function createClaim(
             .limit(1);
         if (existing) {
             const replayed = await replayImageGenerationLinks(tx, {
-                content: await replayWorkerLinks(tx, {
-                    content: input.content,
-                    messageId: existing.id,
-                    serverId: input.serverId,
-                }),
+                content: input.content,
                 messageId: existing.id,
                 serverId: input.serverId,
             });
@@ -114,7 +109,7 @@ export async function createClaim(
             throw new Error('Failed to allocate claim-message identity.');
         }
 
-        const { cloudLinks, content, imageLinks, taskLinks } = await resolveMessageLinks(tx, {
+        const { content, imageLinks, taskLinks } = await resolveMessageLinks(tx, {
             author: { kind: 'user', userId: member.id },
             content: input.content,
             serverId: input.serverId,
@@ -134,7 +129,6 @@ export async function createClaim(
             .returning();
         await recordMessageLinks(tx, {
             chatId: input.chatId,
-            cloudLinks,
             imageLinks,
             messageId: message.id,
             serverId: input.serverId,

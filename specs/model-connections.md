@@ -12,9 +12,7 @@ read_when:
 
 [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 8.
 An Agent's model login is a **model connection**: one account's access to one provider, held by
-the Server and configured in the App. Workers keep their machines' own logins
-([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)). Model connections serve
-Agents on the runner only.
+the Server and configured in the App. Model connections serve Agents on the runner only.
 
 ## Providers and sign-in kinds
 
@@ -139,8 +137,8 @@ connection, or with one the runner doesn't hold, fails before any model call as 
   - Claude: paste a setup-token.
   - ChatGPT and SuperGrok: a dialog shows the link and code, and closes when the connection lands.
   - xAI, Gemini and OpenRouter: enter an API key.
-- The page's other groups stay: the Cloud Agent model, image-generation keys, and the runtimes and
-  models that Devices report.
+- The page's other groups stay: image-generation keys, and the runtimes and models that Devices
+  report.
 - On the Agent profile, a Connection select sits beside the model. A failed connection shows on
   the profile with "Reconnect in Settings → Models", and a chosen connection that is off shows
   "<label> is turned off" with "Turn it on in Settings → Models".

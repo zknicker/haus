@@ -126,7 +126,7 @@ export function forgiveRelistedServers(
 }
 
 /** tRPC reads that are never one Server's data, whatever their input. */
-export const globalReadNamespaces = ['cloudAgentProvider', 'dev', 'push', 'session'] as const;
+export const globalReadNamespaces = ['dev', 'push', 'session'] as const;
 export const globalReads = ['server.list'] as const;
 
 /**

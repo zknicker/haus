@@ -7,12 +7,11 @@ import { inferMessageCause } from '../src/automations/infer-message-cause.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { tickReminders } from '../src/reminders/scheduler.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { taskBoardFixture } from './task-board.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
-import { workerLinkHelpers } from './worker-link-helpers.ts';
-import { workerRecordFixture } from './worker-record-fixture.ts';
 
-const fixture = workerRecordFixture();
-const { agentPost } = workerLinkHelpers(fixture);
+const fixture = taskBoardFixture();
+const { agentPost } = fixture;
 let connection: HausConnection;
 let novaId: string;
 let target: string;

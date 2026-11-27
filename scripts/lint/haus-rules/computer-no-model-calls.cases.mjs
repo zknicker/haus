@@ -1,8 +1,8 @@
 import { computerNoModelCalls } from './computer-no-model-calls.mjs';
 import { testRule } from './rule-tester.mjs';
 
-const computerFile = 'apps/computer/src/worker.ts';
-const allow = { 'apps/computer/src/worker.ts': 'Workers keep native harnesses' };
+const computerFile = 'apps/computer/src/inventory.ts';
+const allow = { 'apps/computer/src/inventory.ts': 'Inventory reads runtime catalogs' };
 
 testRule('computer-no-model-calls', computerNoModelCalls, {
     valid: [
@@ -11,7 +11,7 @@ testRule('computer-no-model-calls', computerNoModelCalls, {
         { code: "const url = 'https://example.com/api';", filename: computerFile },
         {
             code: "const url = 'https://api.anthropic.com';",
-            filename: 'apps/computer/src/worker.test.ts',
+            filename: 'apps/computer/src/inventory.test.ts',
         },
         {
             code: "import { Anthropic } from '@anthropic-ai/sdk';",

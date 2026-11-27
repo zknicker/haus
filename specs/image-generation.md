@@ -16,7 +16,7 @@ App image cards have shipped; what remains is listed under [Follow-ups](#follow-
 Image generation gives every Haus Agent, on every execution runtime, one first-class way to render
 images: `haus image`. The Server owns the providers, the keys, and a short curated model list. One
 image generation is one image and one durable record, individually addressable as
-`image-generation://<id>`, linked from Messages the way Cloud Agent work is
+`image-generation://<id>`, linked from Messages by reference, not embedded
 ([ADR 0044](../docs/adr/0044-cloud-agent-work-is-referenced-not-embedded.md)). Every finished image
 is an ordinary attachment and a file in the requesting Agent's workspace.
 
@@ -192,7 +192,7 @@ Next: tell the person it failed; if a retry would help, run haus image generate 
 
 ## Durable image generation
 
-Server stores one `ImageGeneration` record per generation. Like Cloud Agent work it belongs to no
+Server stores one `ImageGeneration` record per generation. It belongs to no
 Message or Chat: Messages link to it with `image-generation://<id>`, and the Server projects linked
 generations onto the Message read.
 
@@ -239,7 +239,7 @@ type ImageGenerationResult =
       };
 ```
 
-Agent transport mirrors Cloud Agent: the Computer CLI calls Server's runner-authenticated
+Agent transport: the Agent CLI calls Server's runner-authenticated
 `GET /api/agent/image-generation/models`, `POST /api/agent/image-generation` (create; returns the
 record and `Link`), and `GET /api/agent/image-generation?generationId=` (the CLI polls until
 `ready` or `failed`).
@@ -299,7 +299,7 @@ projection. An older client renders the Message `content`, links included.
 (`imageGenerationUpdatedEventSchema`, `packages/haus-api`). It carries `serverId`, `chatId`,
 `parentChatId`, `messageId`, and `generationId`, once per linking Message in a live Chat, on every
 generation state change and new link. The App invalidates that Message's `chat.message` entry.
-Events notify; React Query owns state, mirroring `cloudAgentWork.onUpdated`.
+Events notify; React Query owns state.
 
 ## Activity
 
@@ -346,6 +346,3 @@ scratch work no one else needs.
 - Activity derives image steps from CLI output; a typed generation reference from Computer replaces it.
 - Remaining from the implementation: the `images` Manual topic. (`CONTEXT.md`, rich references,
   the realtime subscription table, tool presentation, and the data model are done.)
-- Deferred: Cloud Agent `start` still posts a launch Message. Moving it to the same
-  background-then-link model is a separate change, blocked on where completion notices go once
-  the work has no requesting Chat.
