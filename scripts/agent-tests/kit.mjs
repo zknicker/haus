@@ -7,6 +7,7 @@ import { createAgentAuthor } from './author.mjs';
 import { cleanupEvalChats } from './cleanup-chats.mjs';
 import { createEvalProject } from './eval-project.mjs';
 import { provisionAgents, retireAgents } from './provisioner.mjs';
+import { waitForQuiet } from './quiet.mjs';
 import { createRunLedger } from './state.mjs';
 import { createTurnObserver } from './turns.mjs';
 
@@ -153,13 +154,22 @@ export function createAgentTestKit(
         return turn;
     }
 
-    /** Creates this scenario's declared Agents. Fresh Agent, fresh everything. */
+    /**
+     * Creates this scenario's declared Agents. Fresh Agent, fresh everything. A fresh Agent
+     * greets #all in a turn of its own, so the scenario starts once that turn is over.
+     */
     async function provision(requests, { onPhase } = {}) {
         const agents = await provisionAgents(harness, requests, {
             onCreated: (agent) => ledger.rememberAgent(agent),
             onPhase,
         });
         provisioned.push(...agents);
+        onPhase?.('waiting out the greeting');
+        await Promise.all(
+            agents.map((agent) =>
+                waitForQuiet(() => observer.deliveryState(agent.id), { label: `@${agent.handle}` })
+            )
+        );
         return agents;
     }
 

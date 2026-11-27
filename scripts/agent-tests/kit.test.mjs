@@ -88,7 +88,7 @@ describe('provisioning', () => {
         });
 
         expect(agents.map((agent) => agent.kind)).toEqual(['worker', 'worker']);
-        expect(agents.map((agent) => agent.dmChatId)).toEqual(['cht_agt_1', 'cht_agt_2']);
+        expect(agents.map((agent) => agent.ownChatId)).toEqual(['cht_agt_1', 'cht_agt_2']);
         // The ledger learns each id the moment the Server record exists.
         expect(created).toEqual(agents.map((agent) => agent.id));
         const [worker, peer] = harness.inputsFor('agent.create');

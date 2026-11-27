@@ -1,6 +1,6 @@
 // Per-test Agent provisioning. A scenario's declared agents are CREATED for
 // that scenario and retired after its verdict, so isolation is by construction:
-// a fresh Agent has a fresh session, a fresh workspace, and a fresh Owner DM.
+// a fresh Agent has a fresh session, a fresh workspace, and a fresh own chat.
 //
 // Creation is globally bounded to two concurrent create-and-wait operations.
 // An Agent still missing its session after the repair window gets one full
@@ -15,6 +15,7 @@
 import { sleep } from '../eval-harness.mjs';
 import { createSemaphore, withTimeout } from './concurrency.mjs';
 import { ensureModelLogin, providerForModel } from './model-login.mjs';
+import { readOwnChatId } from './own-chat.mjs';
 
 export const agentKindDescriptions = Object.freeze({
     worker: 'Temporary agent-test fixture. Act only when explicitly addressed or assigned.',
@@ -163,13 +164,10 @@ async function provisionAgent(harness, request, position, { onCreated, onPhase, 
             });
             const agentId = created.agent.id;
             await onCreated?.({ displayName, handle, id: agentId });
-            const dm = await harness.trpc('chat.ensureAgentDm', {
-                agentId,
-                serverId: harness.serverId,
-            });
             const agent = await waitForReady(harness, agentId, { deadline, handle, onPhase });
             if (isReady(agent)) {
-                return { ...agent, dmChatId: dm.id, kind: request.kind };
+                const ownChatId = await readOwnChatId(harness, agent);
+                return { ...agent, kind: request.kind, ownChatId };
             }
             // No workspace capacity: replace the Agent once a sibling frees some.
             const { failures } = await retireAgents(harness, [

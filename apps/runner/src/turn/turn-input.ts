@@ -10,18 +10,23 @@ import {
     composeTurnContent,
     composeUnknownToolCalls,
 } from '@haus/agent-prompt';
-import type { AgentStartCommand } from '@haus/api';
+import type { AgentStartCommand, RunnerSessionPolicy } from '@haus/api';
 
 export interface TurnSessionView {
     readonly isColdStart: boolean;
     readonly resumesInterruptedTurn: boolean;
     readonly sessionGeneration: number;
+    readonly sessionKind: 'captain' | 'task' | null;
 }
 
 export interface TurnInput {
     readonly drained: readonly AgentInboxItem[];
     readonly notice: string | null;
     readonly turnContent: string;
+}
+
+export function sessionKindOf(policy: RunnerSessionPolicy | null) {
+    return policy?.kind ?? null;
 }
 
 export function composeTurnInput(
@@ -35,7 +40,7 @@ export function composeTurnInput(
 }
 
 function composeOpening(start: AgentStartCommand, session: TurnSessionView) {
-    const chatlessBody = composeChatlessBody(start);
+    const chatlessBody = composeChatlessBody(start, session.sessionKind);
     if (chatlessBody) {
         const input: TurnInput = {
             drained: [],
@@ -76,12 +81,15 @@ function composeOpening(start: AgentStartCommand, session: TurnSessionView) {
     return input;
 }
 
-function composeChatlessBody(start: AgentStartCommand) {
+function composeChatlessBody(
+    start: AgentStartCommand,
+    sessionKind: TurnSessionView['sessionKind']
+) {
     if (start.crewReports) {
         return composeCrewReportInput(start.crewReports);
     }
     if (start.issueAssignments) {
-        return composeIssueAssignmentInput(start.issueAssignments);
+        return composeIssueAssignmentInput(start.issueAssignments, sessionKind);
     }
     if (start.issueEvents) {
         return composeIssueEventInput(start.issueEvents);

@@ -55,6 +55,44 @@ test('replaces an Agent the Computer had no workspace capacity for', async () =>
     expect(paths).not.toContain('agent.reset');
 });
 
+// ADR 0062 replaced Owner DMs with one Captain chat per Captain, read off the Agent row.
+test("uses the Agent's Captain chat when its row carries one", async () => {
+    const calls = [];
+    const harness = {
+        serverId: 'srv_1',
+        stamp: '20261126000000',
+        trpc(path, input) {
+            calls.push({ input, path });
+            switch (path) {
+                case 'computer.list':
+                    return Promise.resolve([terraComputer]);
+                case 'modelConnections.list':
+                    return Promise.resolve({
+                        connections: [{ enabled: true, provider: 'chatgpt', status: 'ready' }],
+                        runnerModels,
+                    });
+                case 'project.list':
+                    return Promise.resolve([
+                        { archived: false, chatId: 'cht_product', isHaus: false, name: 'product' },
+                    ]);
+                case 'agent.create':
+                    return Promise.resolve({ agent: { id: 'agt_2' } });
+                case 'agent.list':
+                    return Promise.resolve([
+                        { ...agentRow('agt_2'), captainChatId: 'cht_captain' },
+                    ]);
+                default:
+                    return Promise.reject(new Error(`no fake answer for ${path}`));
+            }
+        },
+    };
+
+    const [agent] = await provisionAgents(harness, [{ kind: 'worker' }]);
+
+    expect(agent.ownChatId).toBe('cht_captain');
+    expect(calls.map((call) => call.path)).not.toContain('chat.ensureAgentDm');
+});
+
 function agentRow(id) {
     const cramped = id === 'agt_1';
     return {

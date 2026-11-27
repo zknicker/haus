@@ -70,6 +70,42 @@ test('a post in a Task started from the channel is a Task post; any other chat f
     expect(failed).toEqual(['no post in another chat']);
 });
 
+test('a scenario can name the chat its request lands in and Task chats it opened', async () => {
+    const evidence = quickFactEvidence();
+    const own = (message) => ({ ...message, chatId: 'cht_own' });
+    const [, ask, answer] = evidence.chats[0].messages;
+    evidence.chats[0].messages = [evidence.chats[0].messages[0]];
+    evidence.chats.push(
+        { chatId: 'cht_own', messages: [own(ask), own({ ...answer, reply: null })], tasks: [] },
+        {
+            chatId: 'cht_crew',
+            messages: [{ ...answer, chatId: 'cht_crew', id: 'msg_brief666', reply: null }],
+            tasks: [],
+        }
+    );
+    evidence.rootChatId = 'cht_own';
+    evidence.taskChatIds = ['cht_crew'];
+    const root = await temporaryRoot();
+    await writeRun(root, '20261015T100000', [
+        { evidence, name: 'captain-chat-quick-answer', ok: true },
+    ]);
+    const [grade] = await gradeBuild({
+        names: ['captain-chat-quick-answer'],
+        profiles: {
+            'captain-chat-quick-answer': {
+                ...placementProfiles['placement-quick-fact'],
+                inChat: true,
+            },
+        },
+        root,
+        runs: [{ pass: 1, stamp: '20261015T100000' }],
+    });
+    const labels = Object.fromEntries(grade.posts.map((post) => [post.id, post.label]));
+    expect(labels).toEqual({ msg_ans33333: 'top-level', msg_brief666: 'task' });
+    expect(grade.request.chatId).toBe('cht_own');
+    expect(grade.checks.filter((check) => !check.ok)).toEqual([]);
+});
+
 test('a probe-ending profile grades up to the scenario probe and still catches earlier strays', async () => {
     const answer = quickFactEvidence().chats[0].messages.at(-1);
     const post = (chatId, id, second, content, kind = 'agent') => ({

@@ -2,17 +2,40 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { captureAgentDiagnostics } from './report.mjs';
 
-/** Preserve every destination and resumed journal before the runner retires its Agents. */
+/**
+ * Preserve every destination and resumed journal before the runner retires its Agents.
+ *
+ * The grader reads the first provisioned Agent in the first tracked chat. A scenario whose
+ * graded Agent is created during the run (a Task's agent) or whose request lands in a chat it
+ * opens later names them with `evidence.grade({ agent, rootChatId })`, and a Task chat that did
+ * not start from a tracked chat with `evidence.taskChat(chatId)`.
+ */
 export function withRoutingEvidence(run) {
     return async (context) => {
+        const graded = { agents: [], rootChatId: null, taskChatIds: new Set() };
+        const evidence = {
+            grade: ({ agent, rootChatId = null }) => {
+                graded.agents.unshift({ id: agent.id });
+                graded.rootChatId = rootChatId ?? graded.rootChatId;
+            },
+            taskChat: (chatId) => graded.taskChatIds.add(chatId),
+        };
         try {
-            return await run(context);
+            return await run({ ...context, evidence });
         } finally {
-            const evidence = await captureRoutingEvidence(context.kit, context.agents);
+            const captured = await captureRoutingEvidence(context.kit, [
+                ...graded.agents,
+                ...context.agents,
+            ]);
             const directory = path.join('.context/agent-tests/evidence', context.kit.stamp);
             await mkdir(directory, { recursive: true });
             const file = path.join(directory, `${context.kit.scenarioName}.json`);
-            await writeFile(file, `${JSON.stringify(evidence, null, 4)}\n`);
+            const record = {
+                ...captured,
+                ...(graded.rootChatId ? { rootChatId: graded.rootChatId } : {}),
+                taskChatIds: [...graded.taskChatIds],
+            };
+            await writeFile(file, `${JSON.stringify(record, null, 4)}\n`);
             context.log(`full routing evidence: ${file}`);
         }
     };
@@ -50,7 +73,7 @@ export async function captureRoutingEvidence(kit, agents) {
             errors.push({ chatId, error: String(error) });
         }
     }
-    const diagnostics = await captureAgentDiagnostics(kit, agents);
+    const diagnostics = await captureAgentDiagnostics(kit, uniqueById(agents));
     const journals = [];
     for (const agent of diagnostics) {
         if (!Array.isArray(agent.turns)) {
@@ -70,4 +93,8 @@ export async function captureRoutingEvidence(kit, agents) {
         }
     }
     return { chats, diagnostics, journals, errors };
+}
+
+function uniqueById(agents) {
+    return [...new Map(agents.map((agent) => [agent.id, agent])).values()];
 }

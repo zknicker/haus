@@ -52,7 +52,7 @@ export default defineScenario({
 });
 
 async function everyAgentMessage(kit, worker, channelId) {
-    const chatIds = [channelId, ...(worker.dmChatId ? [worker.dmChatId] : [])];
+    const chatIds = [channelId, ...(worker.ownChatId ? [worker.ownChatId] : [])];
     const written = [];
     for (const chatId of chatIds) {
         const page = await kit.trpc('chat.messages', {

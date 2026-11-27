@@ -15,10 +15,10 @@ export default defineScenario({
         const token = marker('NOTES');
         let published = [];
         try {
-            const head = await kit.readHead(worker.dmChatId);
+            const head = await kit.readHead(worker.ownChatId);
             log('asking for a team-wide file without naming the mechanism');
             await kit.harness.send(
-                worker.dmChatId,
+                worker.ownChatId,
                 `Write up short release notes as a markdown file whose first line is "# ${token}", then share the file with the whole team so anyone on this Server can find it later and we can keep updating it.`
             );
             const turn = await settleTurn(worker.id);
@@ -33,7 +33,7 @@ export default defineScenario({
                 'written inside a Drive area with its .md extension'
             ).toBe(true);
 
-            const replies = await agentMessages(kit, worker.id, worker.dmChatId, head);
+            const replies = await agentMessages(kit, worker.id, worker.ownChatId, head);
             const text = replies.map((message) => message.content).join('\n');
             expect(text, 'reply cites the Drive file').toContain(`(drive://${artifact.path})`);
             const attached = replies.flatMap((message) => message.attachments ?? []);

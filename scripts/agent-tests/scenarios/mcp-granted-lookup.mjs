@@ -27,8 +27,8 @@ export default defineScenario({
     name: 'mcp-granted-lookup',
     async run({ agents, expect, kit, log, marker, settleTurn }) {
         const [worker] = agents;
-        const dm = worker.dmChatId;
-        expect(dm, 'worker Owner DM').toBeTruthy();
+        const dm = worker.ownChatId;
+        expect(dm, 'worker own chat').toBeTruthy();
 
         const mcp = await startControlledMcp();
         let connectionId = null;
