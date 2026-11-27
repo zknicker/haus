@@ -32,6 +32,7 @@ import { testAgentHome } from './agent-home.ts';
 import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { RecordingRunner } from './recording-runner.ts';
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -86,7 +87,6 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
     const agentHandle = `ada-${randomBytes(4).toString('hex')}`;
-    const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
@@ -115,12 +115,7 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    await db.insert(chatsTable).values({
-        captainAgentId: agentId,
-        id: chatId,
-        kind: 'captain',
-        serverId,
-    });
+    const chatId = await requireCaptainChatId(db, { agentId, serverId });
     return { agentHandle, agentId, chatId, computerId, serverId, userId };
 }
 

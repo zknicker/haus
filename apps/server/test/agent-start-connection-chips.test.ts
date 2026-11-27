@@ -5,7 +5,6 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
-    chatsTable,
     computersTable,
     mcpConnectionsTable,
     serverMembershipsTable,
@@ -16,6 +15,7 @@ import { testAgentHome } from './agent-home.ts';
 import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { RecordingRunner } from './recording-runner.ts';
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -75,7 +75,6 @@ async function seedAgent() {
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
-    const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
@@ -104,11 +103,6 @@ async function seedAgent() {
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    await db.insert(chatsTable).values({
-        captainAgentId: agentId,
-        id: chatId,
-        kind: 'captain',
-        serverId,
-    });
+    const chatId = await requireCaptainChatId(db, { agentId, serverId });
     return { agentId, chatId, computerId, serverId };
 }

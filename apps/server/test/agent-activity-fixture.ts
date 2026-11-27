@@ -5,7 +5,6 @@ import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
-    chatsTable,
     computersTable,
     serverMembershipsTable,
     serversTable,
@@ -14,6 +13,7 @@ import {
 import { testAgentHome } from './agent-home.ts';
 import { deliverHumanMessage } from './human-message.fixture.ts';
 import { RecordingRunner } from './recording-runner.ts';
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 
 export function activityFrame(
     seed: Pick<AgentActivityFrame, 'agentId'>,
@@ -82,7 +82,6 @@ export async function seedActivity(db: HausDatabase): Promise<Seed> {
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
-    const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db.insert(serversTable).values({
         displayName: 'Activity',
@@ -114,12 +113,7 @@ export async function seedActivity(db: HausDatabase): Promise<Seed> {
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    await db.insert(chatsTable).values({
-        captainAgentId: agentId,
-        id: chatId,
-        kind: 'captain',
-        serverId,
-    });
+    const chatId = await requireCaptainChatId(db, { agentId, serverId });
     return { agentId, chatId, computerId, serverId };
 }
 

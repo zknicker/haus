@@ -1,3 +1,4 @@
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
@@ -7,7 +8,6 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
     channelParticipantsTable,
-    chatsTable,
     usersTable,
 } from '../src/postgres/schema.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
@@ -72,11 +72,8 @@ test(
     'a send to a Captain lands in its Captain chat without wedging its transaction',
     async () => {
         const claim = await seedChannelParticipants();
-        const captainChatId = createOpaqueId('cht');
-        await connection.db.insert(chatsTable).values({
-            captainAgentId: claim.agentId,
-            id: captainChatId,
-            kind: 'captain',
+        const captainChatId = await requireCaptainChatId(connection.db, {
+            agentId: claim.agentId,
             serverId: claim.serverId,
         });
 

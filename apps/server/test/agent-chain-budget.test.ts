@@ -9,7 +9,6 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
     agentsTable,
-    chatsTable,
     computersTable,
     serverMembershipsTable,
     serversTable,
@@ -18,6 +17,7 @@ import {
 import { testAgentHome } from './agent-home.ts';
 import { deliverHumanMessage } from './human-message.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 
 // The automation chain budget through real delivery: Trigger wakes spend it,
 // human work resets it, the ceiling holds until a human speaks, and a chain
@@ -199,7 +199,6 @@ async function seedAgent(chain: { advancedAt: Date; turns: number }): Promise<Se
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
-    const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
@@ -228,12 +227,7 @@ async function seedAgent(chain: { advancedAt: Date; turns: number }): Promise<Se
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    await db.insert(chatsTable).values({
-        captainAgentId: agentId,
-        id: chatId,
-        kind: 'captain',
-        serverId,
-    });
+    const chatId = await requireCaptainChatId(db, { agentId, serverId });
     await db.insert(agentDeliveryTable).values({
         agentChainAdvancedAt: chain.advancedAt,
         agentChainTurns: chain.turns,

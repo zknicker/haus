@@ -1,3 +1,4 @@
+import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
 import { randomBytes } from 'node:crypto';
 import type { AddressedReason, AgentCommand } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
@@ -55,7 +56,7 @@ export async function seedAgent(db: HausDatabase): Promise<Seed> {
         agentId: createOpaqueId('agt'),
         channelId: createOpaqueId('cht'),
         computerId: createOpaqueId('cmp'),
-        captainChatId: createOpaqueId('cht'),
+        captainChatId: '',
         humanHandle: `human-${randomBytes(4).toString('hex')}`,
         serverId: createOpaqueId('srv'),
         userId: createOpaqueId('usr'),
@@ -88,10 +89,8 @@ export async function seedAgent(db: HausDatabase): Promise<Seed> {
         homeProjectId: await testAgentHome(db, seed.serverId),
         serverId: seed.serverId,
     });
-    await db.insert(chatsTable).values({
-        captainAgentId: seed.agentId,
-        id: seed.captainChatId,
-        kind: 'captain',
+    seed.captainChatId = await requireCaptainChatId(db, {
+        agentId: seed.agentId,
         serverId: seed.serverId,
     });
     await db.insert(chatsTable).values({

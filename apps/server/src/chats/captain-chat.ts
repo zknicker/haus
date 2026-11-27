@@ -1,7 +1,5 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, captainChatMembersTable, chatsTable } from '../postgres/schema.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
@@ -13,20 +11,19 @@ export class RetiredCaptainChatSendError extends Error {
     }
 }
 
-export async function createCaptainChat(
-    tx: HausDatabase,
-    input: { agentId: string; ownerUserId: string; serverId: string }
+/**
+ * The Captain chat the `agents_captain_chat` trigger made with the Captain's row
+ * (migration 0166), with its read and its owner's membership.
+ */
+export async function requireCaptainChatId(
+    db: Reader,
+    input: { agentId: string; serverId: string }
 ) {
-    const id = createOpaqueId('cht');
-    await tx.insert(chatsTable).values({
-        captainAgentId: input.agentId,
-        id,
-        kind: 'captain',
-        serverId: input.serverId,
-    });
-    await joinCaptainChat(tx, { chatId: id, serverId: input.serverId, userId: input.ownerUserId });
-    await openAgentChatRead(tx, { agentId: input.agentId, chatId: id, serverId: input.serverId });
-    return id;
+    const chatId = await readCaptainChatId(db, input);
+    if (!chatId) {
+        throw new Error(`Captain ${input.agentId} has no Captain chat.`);
+    }
+    return chatId;
 }
 
 export async function readCaptainChatId(db: Reader, input: { agentId: string; serverId: string }) {

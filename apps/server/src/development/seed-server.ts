@@ -1,11 +1,11 @@
 import { computerProtocolVersion, GENERAL_TASK_KEY } from '@haus/api';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
+import { requireCaptainChatId } from '../chats/captain-chat.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
     agentTokenUsageDailyTable,
-    captainChatMembersTable,
     channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
@@ -56,8 +56,6 @@ export async function seedDevelopmentServer(
         const membershipId = createOpaqueId('mem');
         const channelId = createOpaqueId('cht');
         const demoChannelId = createOpaqueId('cht');
-        const blippyDmId = createOpaqueId('cht');
-        const tinyDmId = createOpaqueId('cht');
         const computerId = createOpaqueId('cmp');
         const blippyId = createOpaqueId('agt');
         const tinyId = createOpaqueId('agt');
@@ -146,16 +144,12 @@ export async function seedDevelopmentServer(
                 serverId,
             }),
         ]);
+        const blippyDmId = await requireCaptainChatId(tx, { agentId: blippyId, serverId });
+        const tinyDmId = await requireCaptainChatId(tx, { agentId: tinyId, serverId });
         await tx
-            .insert(chatsTable)
-            .values([
-                demoCaptainChat(blippyDmId, blippyId, serverId, now),
-                demoCaptainChat(tinyDmId, tinyId, serverId, now),
-            ]);
-        const captainChatIds = [blippyDmId, tinyDmId];
-        await tx
-            .insert(captainChatMembersTable)
-            .values(captainChatIds.map((chatId) => ({ chatId, serverId, userId })));
+            .update(chatsTable)
+            .set({ lastActivityAt: now, lastMessageSequence: 1 })
+            .where(inArray(chatsTable.id, [blippyDmId, tinyDmId]));
         await tx.insert(chatMessagesTable).values([
             demoMessage(serverId, channelId, 1, {
                 authorUserId: userId,
@@ -294,17 +288,6 @@ export async function seedDevelopmentServer(
     });
     await ensureDevelopmentSeedSteps(db, seeded, userId, options);
     return seeded;
-}
-
-function demoCaptainChat(id: string, agentId: string, serverId: string, lastActivityAt: Date) {
-    return {
-        captainAgentId: agentId,
-        id,
-        kind: 'captain' as const,
-        lastActivityAt,
-        lastMessageSequence: 1,
-        serverId,
-    };
 }
 
 function demoMessage(
