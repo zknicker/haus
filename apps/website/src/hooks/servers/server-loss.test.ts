@@ -28,7 +28,6 @@ describe('Server-scoped query predicate', () => {
             'claim.list',
             'taskLabel.list',
             'stats.live',
-            'cloudAgentSettings.get',
         ]) {
             expect(isServerScopedQuery(trpc(family, { serverId: 'srv_a' }), 'srv_a')).toBe(true);
             expect(isServerScopedQuery(trpc(family, { serverId: 'srv_b' }), 'srv_a')).toBe(false);
@@ -67,7 +66,7 @@ describe('Chat-loss purge', () => {
         ];
         for (const chatId of ['cht_gone', 'cht_kept']) {
             queryClient.setQueryData(key('chat.get', chatId), { id: chatId });
-            queryClient.setQueryData(key('worker.listForChat', chatId), []);
+            queryClient.setQueryData(key('chat.engagements', chatId), []);
         }
 
         await runChatLoss({

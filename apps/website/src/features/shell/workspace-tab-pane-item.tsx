@@ -8,11 +8,7 @@ import { isTabSelected } from '../../hooks/desktop-tabs/desktop-tabs-selection.t
 import { revealTab } from './tab-drag/tab-reveal.ts';
 import { useTabDragHandlers } from './tab-drag/tab-rows-drag.tsx';
 import { parseTabPage, type TabIdentity } from './tab-identity.ts';
-import {
-    useSharedArtifactTabTitle,
-    useTabIdentity,
-    useWorkerTabTitle,
-} from './use-tab-identity.ts';
+import { useSharedArtifactTabTitle, useTabIdentity } from './use-tab-identity.ts';
 import { TabIdentityMark } from './workspace-tab-mark.tsx';
 import { WorkspaceTab, WorkspaceTabAction, WorkspaceTabLabel } from './workspace-tab.tsx';
 
@@ -47,16 +43,6 @@ export function PaneTab({
             />
         );
     }
-    if (page.kind === 'worker') {
-        return (
-            <WorkerPaneTab
-                dragging={dragging}
-                location={location}
-                tabId={tabId}
-                workerId={page.workerId}
-            />
-        );
-    }
     return <PlainPaneTab dragging={dragging} location={location} tabId={tabId} />;
 }
 
@@ -79,12 +65,6 @@ function SharedArtifactPaneTab({
 }) {
     const artifactTitle = useSharedArtifactTabTitle(shared);
     return <PaneTabView identity={useTabIdentity(props.location, { artifactTitle })} {...props} />;
-}
-
-/** A Worker tab names itself from the Worker's title, as its page does. */
-function WorkerPaneTab({ workerId, ...props }: PaneTabProps & { workerId: string }) {
-    const workerTitle = useWorkerTabTitle(workerId);
-    return <PaneTabView identity={useTabIdentity(props.location, { workerTitle })} {...props} />;
 }
 
 function PaneTabView({

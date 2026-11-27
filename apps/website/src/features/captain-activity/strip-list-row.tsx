@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../lib/utils.ts';
 
-/** Every list mark is this size: an Agent's face or a Worker's keycap. */
+/** Every list mark is this size: an Agent's face. */
 export const stripMarkSize = 32;
 
 /**

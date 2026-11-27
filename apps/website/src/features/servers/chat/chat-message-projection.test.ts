@@ -49,7 +49,6 @@ test('a skeleton row carries layout facts and nothing mutable', () => {
     assert.equal(row?.message.content, '');
     assert.equal(row?.message.claim, undefined);
     assert.equal(row?.message.reactions, undefined);
-    assert.equal(row?.message.worker, undefined);
     assert.equal(row?.message.sendNonce, 'nonce_msg_1');
 });
 
@@ -90,7 +89,6 @@ function message(id: string): ChatMessage {
         author: { kind: 'human', userId: 'usr_1' },
         body: { kind: 'text' },
         chatId: 'cht_1',
-        workers: [],
         imageGenerations: [],
         driveCitations: [],
         content: id,

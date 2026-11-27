@@ -29,7 +29,6 @@ export function useChatMessageReaction() {
                 messageId: result.message.id,
                 serverId: input.serverId,
             });
-            void utils.worker.listActive.invalidate({ serverId: input.serverId });
             void utils.chat.search.invalidate({ serverId: input.serverId });
             void utils.claim.list.invalidate({ serverId: input.serverId }, { refetchType: 'all' });
         },

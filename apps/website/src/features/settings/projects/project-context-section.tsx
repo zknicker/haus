@@ -19,7 +19,7 @@ export function ProjectContextSection({ project, slug }: { project: Project; slu
             </ItemCardGroup.Header>
             <ItemCardGroup>
                 <ProjectLinkRow
-                    description="Every Captain and Worker in this project follows it."
+                    description="Every Captain and Task in this project follows it."
                     href={rulesHref}
                     icon={File02Icon}
                     title="AGENTS.md"

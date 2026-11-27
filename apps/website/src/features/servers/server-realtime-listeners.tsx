@@ -5,7 +5,6 @@ import { useAgentUpdateStream } from '../../hooks/realtime/use-agent-update-stre
 import { useArtifactUpdateStream } from '../../hooks/realtime/use-artifact-update-stream.ts';
 import { useChatLifecycleStream } from '../../hooks/realtime/use-chat-lifecycle-stream.ts';
 import { useClaimChangeStream } from '../../hooks/realtime/use-claim-change-stream.ts';
-import { useCloudAgentSettingsStream } from '../../hooks/realtime/use-cloud-agent-settings-stream.ts';
 import { useComputerUpdateStream } from '../../hooks/realtime/use-computer-update-stream.ts';
 import { useImageGenerationStream } from '../../hooks/realtime/use-image-generation-stream.ts';
 import { useInvitationUpdateStream } from '../../hooks/realtime/use-invitation-update-stream.ts';
@@ -22,7 +21,6 @@ import { useTaskCreatedStream } from '../../hooks/realtime/use-task-created-stre
 import { useTaskFollowStream } from '../../hooks/realtime/use-task-follow-stream.ts';
 import { useTaskLabelStream } from '../../hooks/realtime/use-task-label-stream.ts';
 import { useTaskUpdatedStream } from '../../hooks/realtime/use-task-updated-stream.ts';
-import { useWorkerStream } from '../../hooks/realtime/use-worker-stream.ts';
 import { MessageNotifications } from '../notifications/message-notifications.tsx';
 
 /**
@@ -56,14 +54,12 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <IssueUpdatedStream serverId={serverId} />
             <IssueCommentedStream serverId={serverId} />
             <IssueSubscriptionStream serverId={serverId} />
-            <WorkerStream serverId={serverId} />
             <ImageGenerationStream serverId={serverId} />
             <AgentUpdateStream server={server} />
             <AgentContextStream serverId={serverId} />
             <ComputerUpdateStream server={server} />
             <McpUpdateStream serverId={serverId} />
             <ArtifactUpdateStream serverId={serverId} />
-            <CloudAgentSettingsStream serverId={serverId} />
             <ModelConnectionsStream serverId={serverId} />
             {canOperate ? <ReminderStream serverId={serverId} /> : null}
             {canOperate ? <InvitationUpdateStream serverId={serverId} /> : null}
@@ -135,10 +131,6 @@ function IssueSubscriptionStream({ serverId }: StreamProps) {
     return null;
 }
 
-function WorkerStream({ serverId }: StreamProps) {
-    useWorkerStream(serverId);
-    return null;
-}
 
 function ImageGenerationStream({ serverId }: StreamProps) {
     useImageGenerationStream(serverId);
@@ -170,10 +162,6 @@ function ArtifactUpdateStream({ serverId }: StreamProps) {
     return null;
 }
 
-function CloudAgentSettingsStream({ serverId }: StreamProps) {
-    useCloudAgentSettingsStream(serverId);
-    return null;
-}
 
 function ModelConnectionsStream({ serverId }: StreamProps) {
     useModelConnectionsStream(serverId);

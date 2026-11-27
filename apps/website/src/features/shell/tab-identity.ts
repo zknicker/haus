@@ -42,8 +42,7 @@ export type TabPage =
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
     | { kind: 'settings'; page: string }
-    | { kind: 'task'; shortId: string }
-    | { kind: 'worker'; workerId: string };
+    | { kind: 'task'; shortId: string };
 
 /**
  * Parses a tab location. App paths are `/s/<slug>/<section>/<id>…`; desktop
@@ -95,7 +94,6 @@ const idPages = {
     chats: (chatId: string) => ({ chatId, kind: 'chat' }),
     dm: (agentId: string) => ({ agentId, kind: 'dm' }),
     files: (chatId: string) => ({ chatId, kind: 'files' }),
-    workers: (workerId: string) => ({ kind: 'worker', workerId }),
 } as const satisfies Record<string, (id: string) => TabPage>;
 
 type IdSection = keyof typeof idPages;
@@ -105,8 +103,6 @@ export interface TabIdentityRecords {
     agents: readonly Pick<Agent, 'avatarUrl' | 'displayName' | 'id'>[] | null;
     /** A shared artifact page's title, once its record loads. */
     artifactTitle: string | null;
-    /** A Worker page's title, once its record loads. */
-    workerTitle?: string | null;
     /** The live web view's state, when Electron has reported it. */
     browserTab: Pick<BrowserTab, 'faviconUrl' | 'loading' | 'title' | 'url'> | null;
     chats: readonly TabChat[] | null;
@@ -152,12 +148,6 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
             return { label: page.code, mark: { kind: 'glyph', glyph: 'issues' }, place: null };
         case 'task':
             return { label: page.shortId, mark: { kind: 'glyph', glyph: 'task' }, place: null };
-        case 'worker':
-            return {
-                label: records.workerTitle ?? '',
-                mark: { kind: 'glyph', glyph: 'task' },
-                place: null,
-            };
         default:
             return glyphIdentity(page);
     }

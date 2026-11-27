@@ -28,7 +28,6 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'issues/:code', Component: serverRouteComponent('IssuePageRoute') },
         { path: 'tasks', Component: serverRouteComponent('TasksPageRoute') },
         { path: 'tasks/:shortId', Component: serverRouteComponent('TaskPageRoute') },
-        { path: 'workers/:workerId', Component: serverRouteComponent('WorkerPageRoute') },
         { path: 'activity', Component: serverRouteComponent('ActivityPage') },
         // One route for Drive and its files, so an area's workspace stays mounted between them.
         { path: 'artifacts/:artifactKey?', Component: serverRouteComponent('SharedArtifactsPage') },

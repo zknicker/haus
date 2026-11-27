@@ -10,8 +10,8 @@ type SkeletonRow = TranscriptMessageRow & { entity: NonNullable<TranscriptMessag
 /**
  * Renders a transcript entry's skeleton rows from their `chat.message`
  * entities (specs/realtime-events.md, "Normalized transcript cache"). Each
- * entry observes only its own messages, so a reaction, claim, Worker
- * work, or Task preview change re-renders exactly the entry it belongs to.
+ * entry observes only its own messages, so a reaction, claim, or Task
+ * preview change re-renders exactly the entry it belongs to.
  * A message whose entity is not loaded yet, or no longer resolves, renders
  * nothing; an entry with nothing left renders nothing. Rows without an entity
  * (pending sends, session history) pass through unchanged.

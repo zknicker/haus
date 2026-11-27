@@ -198,7 +198,6 @@ export function createTranscriptHarness() {
                 chatMessageQueryKey(message.serverId, message.chatId, message.id),
                 { message, tasks: [] }
             ),
-        setWorker: (chatId: string) => utils.worker.listForChat.setData({ chatId, serverId }, []),
         utils,
     };
 }
@@ -222,7 +221,6 @@ export function message(chatId: string, sequence: number, agentId?: string): Cha
             : { kind: 'human', profile, userId: viewerUserId },
         body: { kind: 'text' },
         chatId,
-        workers: [],
         imageGenerations: [],
         content: `Message ${sequence} in ${chatId}`,
         createdAt: new Date(Date.UTC(2026, 9, 1, 12, sequence)).toISOString(),

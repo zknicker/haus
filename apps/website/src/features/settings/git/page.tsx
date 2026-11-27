@@ -70,13 +70,4 @@ const gitSections: ReadonlyArray<{
         ],
         title: 'Captains',
     },
-    {
-        facts: [
-            {
-                title: 'Commit author',
-                value: 'The device’s git login',
-            },
-        ],
-        title: 'Workers',
-    },
 ];

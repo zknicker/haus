@@ -1,7 +1,6 @@
 import {
     type AgentRuntimeBrowserSettings,
     browserRequestSchema,
-    cloudAgentCapabilityRequestSchema,
 } from '@haus/api';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
 import { attachComputer, createTestServer } from '../support/server.ts';
@@ -98,17 +97,6 @@ function answerBrowserRequests(socket: WebSocket) {
     };
     socket.addEventListener('message', (event) => {
         const frame: unknown = JSON.parse(String(event.data));
-        const cloud = cloudAgentCapabilityRequestSchema.safeParse(frame);
-        if (cloud.success) {
-            socket.send(
-                JSON.stringify({
-                    type: 'cloud-agent-capability-result',
-                    requestId: cloud.data.requestId,
-                    error: 'Not configured in browser fixture.',
-                })
-            );
-            return;
-        }
         const request = browserRequestSchema.safeParse(frame);
         if (!request.success) {
             return;

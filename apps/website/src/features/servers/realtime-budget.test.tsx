@@ -94,8 +94,6 @@ function expectedStreams(role: 'admin' | 'member') {
         'chat.onMessageCreated',
         'chat.onMessageReactionUpdated',
         'chat.onRead',
-        'cloudAgentSettings.onUpdated',
-        'worker.onUpdated',
         'computer.onUpdated',
         'imageGeneration.onUpdated',
         'mcp.onUpdated',

@@ -7,7 +7,6 @@ function computer(input: {
     health?: string;
     id: string;
     name: string;
-    workersEnabled?: boolean;
 }) {
     return {
         agentAccessGrants: Array.from({ length: input.grants ?? 0 }, (_, index) => ({
@@ -20,7 +19,6 @@ function computer(input: {
         id: input.id,
         name: input.name,
         operatingSystem: 'darwin',
-        workersEnabled: input.workersEnabled ?? true,
     } as never;
 }
 
@@ -51,18 +49,11 @@ test('the add flow starts on this Mac, else the first online Device', () => {
     expect(defaultDeviceId([], 'cmp_mbp')).toBeNull();
 });
 
-test('after an add, one line says when no Captain reaches the Device or Workers are off', () => {
-    const lonely = computer({ id: 'cmp_1', name: 'MacBook Pro', workersEnabled: false });
+test('after an add, one line says when no Captain reaches the Device', () => {
+    const lonely = computer({ id: 'cmp_1', name: 'MacBook Pro' });
 
-    expect(deviceReachNotice(lonely, [])).toBe(
-        'No Captains can reach MacBook Pro, and Workers are off there.'
-    );
-    expect(deviceReachNotice(computer({ id: 'cmp_1', name: 'MacBook Pro' }), [])).toBe(
-        'No Captains can reach MacBook Pro yet.'
-    );
-    expect(deviceReachNotice(lonely, [{ computerId: 'cmp_1' }])).toBe(
-        'Workers are off on MacBook Pro.'
-    );
+    expect(deviceReachNotice(lonely, [])).toBe('No Captains can reach MacBook Pro yet.');
+    expect(deviceReachNotice(lonely, [{ computerId: 'cmp_1' }] as never)).toBeNull();
     expect(
         deviceReachNotice(computer({ grants: 1, id: 'cmp_1', name: 'MacBook Pro' }), [])
     ).toBeNull();

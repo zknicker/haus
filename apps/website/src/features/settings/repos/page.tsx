@@ -43,7 +43,7 @@ export function ReposSettings({ serverId, serverSlug }: { serverId: string; serv
                     repos.data.repos.length === 0 ? (
                         <SettingsEmptyState
                             action={<Button onPress={() => setAdding(true)}>Add repository</Button>}
-                            description="Add a checkout from one of your devices. Captains and Workers work in git worktrees of it."
+                            description="Add a checkout from one of your devices. Captains and Tasks work in git worktrees of it."
                             icon={RepositoryIcon}
                             role="status"
                             title="No repositories yet"

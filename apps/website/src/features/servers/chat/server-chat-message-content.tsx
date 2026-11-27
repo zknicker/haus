@@ -16,7 +16,6 @@ import {
 } from '../../image-generation/message-image-generations.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
 import { readReferenceMentions } from '../../mentions/reference-mentions.ts';
-import { workerDisplayContent } from '../../workers/message-worker.ts';
 import { ArtifactMessage } from './artifact-message.tsx';
 
 type HumanDirectory = ReturnType<typeof useHumanDirectory>;
@@ -45,9 +44,8 @@ export function ServerChatMessageContent({
     // Every Message the Server stores carries its own authored content (ADR
     // 0025), including the ones that also carry a typed body — so this row
     // renders that content and nothing else, and whatever the body projects
-    // renders as its own block below. A closing paragraph of links to the
-    // Message's own linked Worker is left out: its cards say it.
-    const content = workerDisplayContent(message.content, message.worker ?? []);
+    // renders as its own block below.
+    const content = message.content;
     // Generated images render where their link was written: a paragraph of
     // backed image links becomes a card (or a strip of them) in place, so the
     // raw link text is never shown beside its card.

@@ -22,8 +22,9 @@ export function useHomeMachines(serverId: string, projectId: string | undefined)
             id: computer.id,
             label: computerLabel(computer),
         }));
-        const place = projects?.find((project) => project.chatId === projectId)?.defaultWorkerPlace;
-        const preferred = place?.kind === 'computer' ? place.computerId : null;
+        const preferred =
+            projects?.find((project) => project.chatId === projectId)?.defaultMachine?.computerId ??
+            null;
         const fallback =
             machines.find((machine) => machine.id === preferred) ?? machines[0] ?? null;
         return { fallback, machines };

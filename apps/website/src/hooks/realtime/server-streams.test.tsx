@@ -10,7 +10,6 @@ import {
 } from '../../test-support/realtime-stream-harness.tsx';
 import { useAgentUpdateStream } from './use-agent-update-stream.ts';
 import { artifactListingRefreshMs, useArtifactUpdateStream } from './use-artifact-update-stream.ts';
-import { useCloudAgentSettingsStream } from './use-cloud-agent-settings-stream.ts';
 import { useInvitationUpdateStream } from './use-invitation-update-stream.ts';
 import { useMcpUpdateStream } from './use-mcp-update-stream.ts';
 import { useMemberUpdateStream } from './use-member-update-stream.ts';
@@ -61,7 +60,6 @@ describe('Server-level stream hooks', () => {
         );
         const agent = { agentId: 'agt_1', serverId };
         expect(onEvent).toEqual([
-            read('worker.listAutomations', { serverId }),
             read('server.bySlug', { slug: 'team-room' }),
             read('agent.get', agent),
             read('agent.deliveryState', agent),
@@ -230,16 +228,6 @@ describe('Server-level stream hooks', () => {
             { projectId: 'cht_ops', serverId }
         );
         expect(onEvent).toEqual([read('project.list', { serverId })]);
-        expect(onRecovery).toEqual(onEvent);
-    });
-
-    test('cloudAgentSettings.onUpdated refreshes the settings read', async () => {
-        const { onEvent, onRecovery } = await drive(
-            'cloudAgentSettings.onUpdated',
-            () => useCloudAgentSettingsStream(serverId),
-            { serverId }
-        );
-        expect(onEvent).toEqual([read('cloudAgentSettings.get', { serverId })]);
         expect(onRecovery).toEqual(onEvent);
     });
 

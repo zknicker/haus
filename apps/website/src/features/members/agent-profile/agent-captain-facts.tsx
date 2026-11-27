@@ -4,7 +4,6 @@ import { Chip } from '@heroui/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { useAgentCloudAutomations } from '../../../hooks/members/use-agent-cloud-automations.ts';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import { useAgentTriggers } from '../../../hooks/members/use-agent-triggers.ts';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
@@ -96,7 +95,6 @@ function useCaptainFacts(agent: Agent, revealed: boolean, server: ServerDetail) 
     const canView = server.role !== 'member';
     const computers = useComputers(server.id);
     const connections = useConnections(server.id);
-    const workers = useAgentCloudAutomations(server.id, agent.id);
     const reminders = useAgentReminders(server.id, agent.id, canView);
     const triggers = useAgentTriggers(server.id, agent.id, canView);
     const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
@@ -130,10 +128,8 @@ function useCaptainFacts(agent: Agent, revealed: boolean, server: ServerDetail) 
             label: 'Automations',
             section: 'automations',
             value:
-                revealed && reminders.data && triggers.data && workers.data
-                    ? formatAutomationsFact(
-                          countAgentAutomations(reminders.data, triggers.data, workers.data.length)
-                      )
+                revealed && reminders.data && triggers.data
+                    ? formatAutomationsFact(countAgentAutomations(reminders.data, triggers.data))
                     : undefined,
         },
         {

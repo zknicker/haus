@@ -25,7 +25,6 @@ export function usePreloadChat(serverId: string, chatId: string | undefined) {
             // Volatile state refetches only when its stream (re)starts, so warm it once.
             { staleTime: Number.POSITIVE_INFINITY }
         );
-        void utils.worker.listForChat.prefetch({ chatId, serverId }, queryPolicy.syncedSnapshot);
     }, [chatId, queryClient, serverId, utils]);
 
     // Tree items expose hover events but not React focus handlers.

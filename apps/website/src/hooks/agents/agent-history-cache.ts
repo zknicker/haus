@@ -58,9 +58,6 @@ export function patchAgentActivityHistory(queryClient: QueryClient, event: Agent
 export function invalidateServerAgentHistory(queryClient: QueryClient, serverId: string) {
     const onServer = (query: Query) => activityInputOf(query)?.serverId === serverId;
     return Promise.all([
-        queryClient.invalidateQueries({
-            queryKey: getQueryKey(hausTrpc.worker.listAutomations, { serverId }),
-        }),
         queryClient.invalidateQueries({ predicate: onServer, queryKey: activityHistoryKey }),
         queryClient.invalidateQueries({
             predicate: onServer,
@@ -86,9 +83,6 @@ export function invalidateSettledAgentHistory(
     }
     const scope = { agentId: event.agentId, serverId: event.serverId };
     return Promise.all([
-        queryClient.invalidateQueries({
-            queryKey: getQueryKey(hausTrpc.worker.listAutomations, scope),
-        }),
         queryClient.invalidateQueries({
             queryKey: getQueryKey(hausTrpc.agent.turns, scope, 'query'),
         }),

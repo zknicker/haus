@@ -1,18 +1,14 @@
-import type { Worker } from '@haus/api';
 import type * as React from 'react';
 import { cn } from '../../../lib/utils.ts';
 import { claimVisibleInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
 import { TranscriptClaimChip } from '../../claims/transcript-claim-chip.tsx';
 import { TaskOriginPreviews } from '../../tasks/preview/task-origin-previews.tsx';
-import { WorkerRows } from '../../workers/worker-rows.tsx';
 import {
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
 } from '../chat-transcript-render-context.tsx';
 import { ReactionPile } from '../reactions/reaction-pile.tsx';
 import { MessageContextMenu } from './message-context-menu.tsx';
-
-const noWork: readonly Worker[] = [];
 
 export function MessageSurface({
     children,
@@ -25,7 +21,6 @@ export function MessageSurface({
 }) {
     const context = useTranscriptRenderContextOptional();
     const showClaims = useShowClaimsInChat();
-    const linked = row.message.worker ?? noWork;
     const flashing = context?.flashMessageId === row.message.id;
     const claim = row.message.claim ?? null;
 
@@ -43,11 +38,6 @@ export function MessageSurface({
             {claim && claimVisibleInChat(claim.origin, showClaims) ? (
                 <div className="flex flex-wrap items-center gap-1.5">
                     <TranscriptClaimChip row={row} />
-                </div>
-            ) : null}
-            {linked.length > 0 ? (
-                <div className="mt-1.5 w-full max-w-(--chat-card-width)">
-                    <WorkerRows label="Linked Workers" works={linked} />
                 </div>
             ) : null}
             {row.taskPreviews && context?.turnDetails?.serverId ? (

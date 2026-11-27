@@ -9,7 +9,7 @@ import { splitVisualFences, visualFallbackText } from '@haus/api/widgets/visual'
  * and newlines or code fences collapse to single spaces.
  *
  * Every surface that quotes a message without rendering it — a Task preview
- * row, a Claim's title, the Inbox, a Worker's detail line — shares
+ * row, a Claim's title, the Inbox — shares
  * this so they cannot disagree about what a quoted line says.
  */
 export function messagePreviewLine(content: string) {

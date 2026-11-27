@@ -15,7 +15,7 @@ export interface AttachmentSocket {
 
 /**
  * The Computer attachment socket as a fixture drives it. Specs that need a
- * Computer to say something — an update phase, a Worker observation —
+ * Computer to say something — an update phase, an inventory report —
  * bootstrap through here so they all speak the current protocol.
  */
 export function socketOpen(socket: AttachmentSocket) {

@@ -10,7 +10,6 @@ import { CaptainAvatars } from './captain-avatars.tsx';
 import { CaptainChooser } from './captain-chooser.tsx';
 import { ComputerAccessSection } from './computer-access-section.tsx';
 import { ComputerUsePermissions } from './computer-use-permissions.tsx';
-import { ComputerWorkersSection } from './computer-workers-section.tsx';
 
 const serverId = 'srv_devices';
 const computerId = 'cmp_devicestudio0000';
@@ -159,48 +158,8 @@ test('moved permissions say why macOS asks again, and an old Computer asks for a
     expect(missing).not.toContain('Open Settings');
 });
 
-test('Workers holds Run Workers here, the local runtimes, and the cloud providers', () => {
-    const html = render(<Workers />, {
-        reportedInventory: {
-            name: 'Studio Mac',
-            runtimes: [],
-            workerRuntimes: [{ detail: null, ready: true, runtime: 'claude-code' }],
-        },
-        workersEnabled: true,
-    });
-    const order = ['Run Workers here', 'Claude Code', 'Codex', 'Cursor'];
-    const positions = order.map((label) => html.indexOf(label));
-    expect(positions.every((position) => position >= 0)).toBe(true);
-    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
-    expect(html).toContain('Coding sessions using this Mac’s logins.');
-    expect(html).toContain('How many Workers can run here at once.');
-    expect(html).not.toContain('Ready');
-    expect(html).not.toContain('aria-label="Refresh"');
-    expect(html).toContain('Not installed');
-});
-
-test('a runtime that is not signed in shows the exception and one Fix button', () => {
-    const html = render(<Workers />, {
-        reportedInventory: {
-            name: 'Studio Mac',
-            runtimes: [],
-            workerRuntimes: [
-                { detail: null, ready: true, runtime: 'claude-code' },
-                { detail: 'Run codex login.', ready: false, runtime: 'codex' },
-            ],
-        },
-    });
-    expect(html).toContain('Not signed in');
-    expect(html.match(/>Fix<\/button>/gu)).toHaveLength(1);
-    expect(html).not.toContain('Run codex login.');
-});
-
 function Access() {
     return <ComputerAccessSection computerId={computerId} serverId={serverId} />;
-}
-
-function Workers() {
-    return <ComputerWorkersSection computerId={computerId} serverId={serverId} />;
 }
 
 function Permissions({ readiness }: { readiness: ComputerUseReadiness }) {
@@ -253,9 +212,7 @@ function render(
             agentAccessGrants: [],
             agentAccessScope: 'selected',
             canChangeComputerUse: true,
-            canChangeWorkers: true,
             canEnableComputerUse: false,
-            canEnableWorkers: false,
             canGrantAgentAccess: false,
             canRevokeAgentAccess: false,
             computerUseChangedAt: null,
@@ -265,8 +222,6 @@ function render(
             name: 'Studio Mac',
             operatingSystem: 'darwin',
             reportedInventory: { name: 'Studio Mac', runtimes: [] },
-            workerLimit: 4,
-            workersEnabled: false,
             ...overrides,
         },
     ] as never);

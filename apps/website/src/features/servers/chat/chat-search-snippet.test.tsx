@@ -4,11 +4,11 @@ import { renderSnippet } from './chat-search-snippet.tsx';
 
 test('a snippet reads a Markdown link as its label, not its target', () => {
     const markup = snippet(
-        'A Worker opened a pull request. [Avatar upload: crop, resize, and save](worker://caw_Kst)',
+        'A Task opened a pull request. [Avatar upload: crop, resize, and save](task://tsk_Kst)',
         'upload'
     );
     expect(markup).toContain('Avatar <mark class="search-results__hit">upload</mark>: crop');
-    expect(markup).not.toContain('worker://');
+    expect(markup).not.toContain('task://');
     expect(markup).not.toContain('](');
 });
 

@@ -51,8 +51,6 @@ function continuesReply(previous: MessageRow, next: MessageRow) {
         previous.actor.kind === next.actor.kind &&
         previous.actor.id === next.actor.id &&
         !hasAttachedWork(previous) &&
-        !previous.message.workerBody &&
-        !next.message.workerBody &&
         withinGroupingWindow(previous.message.timestamp, next.message.timestamp)
     );
 }

@@ -59,7 +59,6 @@ function seed() {
     queryClient.setQueryData(openList, tasks);
     const detail: TaskDetail = {
         ...task('tsk_12', { description: 'Seen in #ops' }),
-        attachedWork: [],
         descriptionContent: 'Seen in [#ops](chat://cht_ops)',
         descriptionTaskLinks: [],
         followed: false,

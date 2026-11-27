@@ -190,5 +190,4 @@ const idSections = new Set([
     'files',
     'issues',
     'tasks',
-    'workers',
 ]);

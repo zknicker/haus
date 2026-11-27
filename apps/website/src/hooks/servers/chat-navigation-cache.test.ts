@@ -113,7 +113,6 @@ function message(sequence: number): ChatMessage {
         author: { kind: 'human', userId: 'usr_navigation' },
         body: { kind: 'text' },
         chatId,
-        workers: [],
         imageGenerations: [],
         driveCitations: [],
         content: `Message ${sequence}`,

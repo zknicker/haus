@@ -50,7 +50,7 @@ export async function createChannelAgent(input: {
     const homeProjectId = await captainsProjectId(owner, input.serverId);
     runPsql(
         input.databaseUrl,
-        `update projects set default_worker_place = 'computer', default_worker_computer_id = '${agentComputerId}'
+        `update projects set default_task_computer_id = '${agentComputerId}'
          where chat_id = '${homeProjectId}'`
     );
     const runnerToken = await mintAgentRunner(created.agent.id, chatId, agentCredentialHash);

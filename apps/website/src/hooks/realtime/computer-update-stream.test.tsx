@@ -31,7 +31,6 @@ test('computer.onUpdated with a Computer refreshes its log, folders, the repo li
     await mounted.unmount();
 
     expect(onEvent).toEqual([
-        read('worker.listAutomations', { serverId }),
         read('server.bySlug', { slug: 'team-room' }),
         read('computer.list', { serverId }),
         read('computer.systemLog', { computerId: 'cmp_1', serverId }),
@@ -43,7 +42,6 @@ test('computer.onUpdated with a Computer refreshes its log, folders, the repo li
         read('agent.machine', { serverId }),
         read('agent.list', { serverId }),
         read('stats.live', { serverId }),
-        read('cloudAgentSettings.get', { serverId }),
     ]);
     expect(onFirstStart).toEqual(onRecovery);
     for (const path of [

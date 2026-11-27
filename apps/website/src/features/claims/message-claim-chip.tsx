@@ -16,7 +16,7 @@ export interface MessageClaimAssigneeProfile {
  * One Claim as it reads under its Message:
  * the number, a status disc, and the assignee whose work it is. Claim-chip
  * grammar — annotation scale, neutral throughout, with only the disc carrying
- * lifecycle color, the same shape the Worker
+ * lifecycle color, the same shape the Task
  * header takes in that slot.
  *
  * The surface itself is the way into the work, so the chip is inert: it is a

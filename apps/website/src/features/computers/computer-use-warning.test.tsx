@@ -58,9 +58,7 @@ function renderDevice(input: {
             agentAccessGrants: [],
             agentAccessScope: 'selected',
             canChangeComputerUse: true,
-            canChangeWorkers: true,
             canEnableComputerUse: true,
-            canEnableWorkers: false,
             canGrantAgentAccess: false,
             canRevokeAgentAccess: false,
             computerUseChangedAt: null,
@@ -82,8 +80,6 @@ function renderDevice(input: {
                 name: 'Studio Mac',
                 runtimes: [],
             },
-            workerLimit: 4,
-            workersEnabled: false,
         },
     ] as never);
     utils.agent.list.setData({ serverId }, [] as never);

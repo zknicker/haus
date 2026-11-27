@@ -117,7 +117,7 @@ test('the add flow says what the folder grants', () => {
     const html = renderToStaticMarkup(<RepoFolderDisclosure />);
 
     expect(html).toContain(
-        'Workers and Captains work in git worktrees of this folder and share its <code>.git</code>. A Worker can change its branches, including <code>main</code>, and its hooks and config.'
+        'Captains and Tasks work in git worktrees of this folder and share its <code>.git</code>. A Task can change its branches, including <code>main</code>, and its hooks and config.'
     );
 });
 

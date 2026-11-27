@@ -25,19 +25,6 @@ export function applyChatDeletion({
 }) {
     void runChatLoss({ chatId, coalescer, queryClient, serverId });
     invalidateChatLifecycleReads(coalescer, serverId, chatId);
-    invalidateLinkedWorker(coalescer, serverId);
-}
-
-function invalidateLinkedWorker(coalescer: ChatReadsCoalescer, serverId: string) {
-    coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.worker.listAutomations, { serverId }),
-    });
-    coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.worker.listActive, { serverId }),
-    });
-    coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.worker.listForChat, { serverId }),
-    });
 }
 
 /** Without a Chat id (recovery), every cached `chat.get` of the Server refreshes. */

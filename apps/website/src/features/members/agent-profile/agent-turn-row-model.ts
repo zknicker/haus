@@ -160,8 +160,11 @@ export function formatDayLabel(date: Date, now: number): string {
     });
 }
 
-const workTitles: Record<'worker' | 'greeting' | 'onboarding' | 'reminder' | 'trigger', string> = {
-    worker: 'Worker update',
+const workTitles: Record<
+    'greeting' | 'onboarding' | 'pull_request' | 'reminder' | 'trigger',
+    string
+> = {
+    pull_request: 'Pull request',
     greeting: 'Greeting',
     onboarding: 'Onboarding',
     reminder: 'Reminder',

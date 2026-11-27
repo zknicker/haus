@@ -10,7 +10,7 @@ import {
     projectKeyRefusal,
 } from '../../chats/project-key.ts';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
-import { ProjectWorkerPlaceRow } from './project-worker-place-row.tsx';
+import { ProjectMachineRow } from './project-machine-row.tsx';
 
 export function ProjectGeneralSection({ chat, project }: { chat: Chat; project: Project }) {
     const isDisabled = Boolean(chat.archivedAt);
@@ -35,7 +35,7 @@ export function ProjectGeneralSection({ chat, project }: { chat: Chat; project: 
                     project={project}
                 />
                 <Separator />
-                <ProjectWorkerPlaceRow isDisabled={isDisabled} project={project} />
+                <ProjectMachineRow isDisabled={isDisabled} project={project} />
             </ItemCardGroup>
         </ItemCardGroup>
     );

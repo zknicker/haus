@@ -43,16 +43,15 @@ test('keeps inline code inline', () => {
     expect(markup).toContain('bun test');
 });
 
-// A Worker link is a quiet reference: a chip naming the work, never
-// an anchor to the worker:// target, and nothing to press (ADR 0044).
-test('renders a Worker link as a quiet chip with its title', () => {
+// A link whose scheme Haus does not know reads as its label text: no chip,
+// no anchor to the target, and nothing to press.
+test('renders a link with an unknown scheme as its label text', () => {
     const markup = renderToStaticMarkup(
-        <ReferenceMarkdown content={'See [Fix \\[draft](worker://caw_one) now.'} />
+        <ReferenceMarkdown content={'See [Fix the draft](retired://caw_one) now.'} />
     );
 
-    expect(markup).toContain('reference-chip');
-    expect(markup).toContain('Fix [draft');
-    expect(markup).not.toContain('worker://');
+    expect(markup).toContain('See Fix the draft now.');
+    expect(markup).not.toContain('retired://');
     expect(markup).not.toContain('<button');
     expect(markup).not.toContain('<a ');
 });

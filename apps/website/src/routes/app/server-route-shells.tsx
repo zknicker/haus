@@ -19,4 +19,3 @@ export { ServerSettingsPage } from './server-settings-page.tsx';
 export { SharedArtifactsPage } from './shared-artifacts-page.tsx';
 export { TaskPageRoute } from './task-page-route.tsx';
 export { TasksPageRoute } from './tasks-page-route.tsx';
-export { WorkerPageRoute } from './worker-page-route.tsx';

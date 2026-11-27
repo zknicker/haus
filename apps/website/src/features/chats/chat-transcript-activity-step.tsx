@@ -34,7 +34,7 @@ export function ActivityStep({
             );
         case 'subagent':
             return (
-                <WorkerStep
+                <SubagentStep
                     animateEnter={animateEnter}
                     index={index}
                     isLast={isLast}
@@ -56,7 +56,7 @@ export function ActivityStep({
     }
 }
 
-function WorkerStep({
+function SubagentStep({
     animateEnter,
     index,
     isLast,
