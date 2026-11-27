@@ -6,7 +6,6 @@ import type { HausUser } from '../users/haus-user.ts';
 import { replayImageGenerationLinks } from './image-generation-links.ts';
 import { toChatMessage } from './message-shape.ts';
 import { readMessageRelations } from './read-message-relations.ts';
-import { replayWorkerLinks } from './worker-links.ts';
 
 export async function readExistingChatMessage(
     db: Pick<HausDatabase, 'select'>,
@@ -61,11 +60,7 @@ export async function replayChatMessage(
 }> {
     const existingRelations = await readMessageRelations(db, input.serverId, existing.id);
     const content = await replayImageGenerationLinks(db, {
-        content: await replayWorkerLinks(db, {
-            content: input.content,
-            messageId: existing.id,
-            serverId: input.serverId,
-        }),
+        content: input.content,
         messageId: existing.id,
         serverId: input.serverId,
     });

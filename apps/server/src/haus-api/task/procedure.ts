@@ -43,9 +43,6 @@ export async function commitTaskWrite(
     result: TaskWriteResult
 ) {
     publishRealtime(result.events);
-    for (const { computerId, frame } of result.workerFrames ?? []) {
-        ctx.computerConnections.send(computerId, frame);
-    }
     announceTaskSessions(
         { invocations: ctx.invocations, runner: ctx.runnerLink },
         result.sessions ?? []

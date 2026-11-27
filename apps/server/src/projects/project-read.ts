@@ -5,7 +5,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, computersTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { computerNameSql, defaultWorkerPlaceOf } from './project-worker-read.ts';
+import { computerNameSql } from '../computers/computer-name.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -38,9 +38,8 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
         .select({
             archived: sql<boolean>`${chatsTable.archivedAt} is not null`,
             chatId: projectsTable.chatId,
-            defaultWorkerComputerId: projectsTable.defaultWorkerComputerId,
-            defaultWorkerComputerName: computerNameSql,
-            defaultWorkerPlace: projectsTable.defaultWorkerPlace,
+            defaultComputerId: projectsTable.defaultTaskComputerId,
+            defaultComputerName: computerNameSql,
             homeAgentIds: sql<string[]>`coalesce((
                 select array_agg(agent.id order by agent.created_at, agent.id) from agents agent
                 where agent.server_id = ${projectsTable.serverId}
@@ -73,7 +72,7 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
             computersTable,
             and(
                 eq(computersTable.serverId, projectsTable.serverId),
-                eq(computersTable.id, projectsTable.defaultWorkerComputerId)
+                eq(computersTable.id, projectsTable.defaultTaskComputerId)
             )
         )
         .where(
@@ -85,23 +84,16 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
         )
         .orderBy(asc(chatsTable.name));
     return rows.map(
-        ({
-            defaultWorkerComputerId,
-            defaultWorkerComputerName,
-            defaultWorkerPlace,
-            name,
-            ...row
-        }) => {
+        ({ defaultComputerId, defaultComputerName, name, ...row }) => {
             if (name === null) {
                 throw new Error(`Project ${row.chatId} has a channel with no name.`);
             }
             return {
                 ...row,
-                defaultWorkerPlace: defaultWorkerPlaceOf({
-                    defaultWorkerComputerId,
-                    defaultWorkerComputerName,
-                    defaultWorkerPlace,
-                }),
+                defaultMachine:
+                    defaultComputerId === null
+                        ? null
+                        : { computerId: defaultComputerId, computerName: defaultComputerName },
                 name,
             } satisfies Project;
         }

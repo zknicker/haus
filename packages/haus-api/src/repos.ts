@@ -25,7 +25,7 @@ export const repoFolderPathSchema = z
     .max(1024)
     .refine((value) => value.startsWith('/'), { message: 'A folder path is absolute.' });
 
-/** Who added a folder; null is Haus's own clone, made for a Worker with the machine's login. */
+/** Who added a folder; null is a clone Haus made itself with the machine's login. */
 export const repoFolderAdderSchema = z
     .object({ name: z.string().trim().min(1).max(200), userId: idSchema })
     .strict();
@@ -146,21 +146,6 @@ export const repoFolderResultSchema = z
     })
     .strict();
 export type RepoFolderResult = z.infer<typeof repoFolderResultSchema>;
-
-/**
- * Computer to Server, on every connect and after each new clone: Haus's own
- * clones in this Server's partition. Each becomes the Computer's folder for its
- * repo when it has none, which puts the repo on the Server's list.
- */
-export const repoClonesFrameSchema = z
-    .object({
-        clones: z
-            .array(z.object({ path: repoFolderPathSchema, repository: repoNameSchema }).strict())
-            .max(500),
-        type: z.literal('repo-clones'),
-    })
-    .strict();
-export type RepoClonesFrame = z.infer<typeof repoClonesFrameSchema>;
 
 /** `POST /computer/repos/{add,remove,list}`: `haus-computer repo` acting as the signed-in person. */
 export const computerCliRepoAddInputSchema = z

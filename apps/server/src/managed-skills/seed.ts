@@ -162,7 +162,6 @@ async function planSkill(tx: HausDatabase, agent: AgentRef, skill: ManagedSkill)
                 authorKey: hausAuthorKey,
                 serverId: agent.serverId,
                 userId: null,
-                worker: null,
             },
             {
                 artifact,

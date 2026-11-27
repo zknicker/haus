@@ -15,7 +15,7 @@ import {
     usersTable,
 } from '../../postgres/schema.ts';
 import { type DriveCitationBinding, rebindPushCitations } from '../citations.ts';
-import { driveConflictKey, driveUnsentKey, queueDriveConflict } from '../conflict-item.ts';
+import { driveConflictKey, queueDriveConflict } from '../conflict-item.ts';
 
 type DrivePush = typeof drivePushesTable.$inferSelect;
 
@@ -57,53 +57,10 @@ export async function closePushIn(
     return { listed, wakes };
 }
 
-export async function queueUnsentFiles(
-    tx: HausDatabase,
-    delivery: Pick<AgentDelivery, 'enqueue'>,
-    push: DrivePush,
-    paths: readonly string[]
-) {
-    if (paths.length === 0) {
-        return [];
-    }
-    const files = paths.map(
-        (path) =>
-            ({
-                copyPath: null,
-                currentAuthorHandle: null,
-                currentRevisionId: null,
-                outcome: 'refused',
-                path,
-                reason: 'PUSH_CLOSED',
-            }) satisfies DriveConflictFile
-    );
-    return [
-        await queueDriveConflict(tx, delivery, {
-            attention: {
-                files,
-                id: driveUnsentKey(push.id),
-                pushId: push.id,
-                writer: pushWriter(push),
-            },
-            recipientAgentId: push.agentId,
-            serverId: push.serverId,
-        }),
-    ];
-}
-
 const fencedCodes = new Set<string>(['AGENT_MOVED', 'AGENT_RESET']);
 
 function pushWriter(push: DrivePush) {
-    return (
-        push.workerId && push.taskId
-            ? {
-                  agentId: push.agentId,
-                  taskId: push.taskId,
-                  type: 'worker',
-                  workerId: push.workerId,
-              }
-            : { agentId: push.agentId, type: 'agent' }
-    ) satisfies DriveConflictAttention['writer'];
+    return { agentId: push.agentId, type: 'agent' } satisfies DriveConflictAttention['writer'];
 }
 
 async function pushOutcomes(tx: HausDatabase, push: DrivePush) {
@@ -174,9 +131,7 @@ function boundRevision(outcome: DrivePushOutcome) {
 
 async function authorHandles(tx: HausDatabase, serverId: string, current: DriveRevision[]) {
     const agentIds = current.flatMap((revision) =>
-        revision.author.type === 'agent' || revision.author.type === 'worker'
-            ? [revision.author.agent_id]
-            : []
+        revision.author.type === 'agent' ? [revision.author.agent_id] : []
     );
     const userIds = current.flatMap((revision) =>
         revision.author.type === 'user' ? [revision.author.user_id] : []

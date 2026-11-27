@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { RepoFolderAnswer } from '@haus/api';
-import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { ingestRepoClones } from '../src/repos/repo-folder-write.ts';
 import {
     connectComputer,
     type FrameClient,
@@ -14,7 +12,6 @@ import { addMember } from './model-connection.fixture.ts';
 let setup: InvocationHarness;
 let computer: FrameClient;
 let member: HausClient;
-let connection: HausConnection;
 const answered = new Set<unknown>();
 
 beforeAll(async () => {
@@ -25,13 +22,11 @@ beforeAll(async () => {
     `;
     member = await addMember(setup.harness, setup, 'user_repo_folders_member');
     computer = await connectComputer(setup.harness, setup.computerCredential);
-    connection = await connectHausDatabase(setup.harness.databaseUrl);
 });
 
 afterAll(async () => {
     computer?.close();
     member?.close();
-    await connection?.close();
     await setup?.close();
 });
 
@@ -122,21 +117,17 @@ test('removing a folder refuses while a Haus worktree of it exists, and naming t
     expect(await repos()).toContain('haus/site');
 });
 
-test("a Computer's clones become its folders only where it has none, and a person's folder waits for the clone to go", async () => {
+test("a person's folder waits for a Haus clone of the same repo to go", async () => {
     const scope = { computerId: setup.computerId, serverId: setup.serverId };
     const clone = '/Users/ada/.haus/computer/servers/srv/repos/haus/docs';
-    expect(
-        await ingestRepoClones(connection.db, scope, [
-            { path: clone, repository: 'haus/docs' },
-            {
-                path: '/Users/ada/.haus/computer/servers/srv/repos/haus/haus',
-                repository: 'haus/haus',
-            },
-        ])
-    ).toBe(true);
-    expect(
-        await ingestRepoClones(connection.db, scope, [{ path: clone, repository: 'haus/docs' }])
-    ).toBe(false);
+    await setup.harness.sql`
+        insert into repos (server_id, repository) values (${setup.serverId}, 'haus/docs')
+        on conflict do nothing
+    `;
+    await setup.harness.sql`
+        insert into repo_folders (server_id, computer_id, repository, path, added_by_user_id)
+        values (${setup.serverId}, ${setup.computerId}, 'haus/docs', ${clone}, null)
+    `;
     expect(await folders()).toEqual([
         { added_by_user_id: null, path: clone, repository: 'haus/docs' },
         {

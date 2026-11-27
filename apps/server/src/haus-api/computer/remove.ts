@@ -7,7 +7,6 @@ import { publishRealtime } from '../../realtime/topic.ts';
 import { computerUpdatedTopic, projectUpdatedTopic } from '../../realtime/topics.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';
 import { announceTaskSessions } from '../../tasks/task-session.ts';
-import { commitWorkerEffects } from '../../workers/worker-effects.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const removeComputerProcedure = memberProcedure
@@ -27,17 +26,13 @@ export const removeComputerProcedure = memberProcedure
                 ctx.hausDb,
                 ctx.agentDelivery,
                 ctx.member,
-                input,
-                ctx.artifactStorage
+                input
             );
             announceTaskSessions(
                 { invocations: ctx.invocations, runner: ctx.runnerLink },
                 removed.tasks.sessions
             );
             publishRealtime(removed.tasks.events);
-            for (const { computerId, frame } of removed.tasks.workerFrames) {
-                ctx.computerConnections.send(computerId, frame);
-            }
             void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, removed.tasks.wakes);
             ctx.computerConnections.disconnectComputer(removed.computerId);
             await ctx.agentDelivery.commitMachineSteps(removed.moved);
@@ -48,11 +43,6 @@ export const removeComputerProcedure = memberProcedure
             for (const projectId of removed.projectIds) {
                 projectUpdatedTopic.announce({ projectId, serverId: input.serverId });
             }
-            await commitWorkerEffects(removed.workers, {
-                agentDelivery: ctx.agentDelivery,
-                connections: ctx.computerConnections,
-                postCommitWork: ctx.postCommitWork,
-            });
             return { computerId: removed.computerId };
         } catch (cause) {
             if (cause instanceof ComputerSetupDeniedError) {

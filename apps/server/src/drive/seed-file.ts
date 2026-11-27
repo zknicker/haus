@@ -39,7 +39,7 @@ export async function seedDriveFile(
         const artifact = await createArtifactAt(tx, { ...seed.creator, serverId }, path);
         const revision = await insertUploadingRevision(
             tx,
-            { agentId: null, authorKey: hausAuthorKey, serverId, userId: null, worker: null },
+            { agentId: null, authorKey: hausAuthorKey, serverId, userId: null },
             {
                 artifact,
                 base: null,

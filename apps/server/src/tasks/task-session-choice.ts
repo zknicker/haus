@@ -88,7 +88,7 @@ async function chooseMachine(
 
 async function readProjectMachine(db: Reader, input: { projectId: string; serverId: string }) {
     const [project] = await db
-        .select({ computerId: projectsTable.defaultWorkerComputerId })
+        .select({ computerId: projectsTable.defaultTaskComputerId })
         .from(projectsTable)
         .where(
             and(

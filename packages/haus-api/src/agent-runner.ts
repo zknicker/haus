@@ -5,13 +5,6 @@ import { invocationCommandSchemas } from './agent-invocations.ts';
 import { agentStopBackgroundCommandSchema, agentStopCommandSchema } from './agent-stop-commands.ts';
 import { agentSubagentWakeResultSchema } from './agent-subagent-wake-frames.ts';
 import { browserRequestSchema } from './browser-frames.ts';
-import { workerCloseCommandSchema } from './worker-computer-frames.ts';
-import {
-    workerStopCommandSchema,
-    cloudAgentCapabilityRequestSchema,
-    workerReconcileCommandSchema,
-} from './worker-protocol.ts';
-import { workerTurnStartFrameSchema } from './worker-turn-frames.ts';
 
 export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
@@ -20,7 +13,6 @@ export * from './agent-inbox.ts';
 export * from './agent-stop-commands.ts';
 export * from './agent-subagent-wake-frames.ts';
 export * from './browser-frames.ts';
-export * from './worker-protocol.ts';
 export * from './reminder-script-frames.ts';
 
 import * as z from 'zod';
@@ -167,11 +159,6 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     computerSecretsRequestSchema,
     reminderScriptCommandSchema,
     agentNoticeCommandSchema,
-    workerStopCommandSchema,
-    cloudAgentCapabilityRequestSchema,
-    workerReconcileCommandSchema,
-    workerTurnStartFrameSchema,
-    workerCloseCommandSchema,
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
     ...invocationCommandSchemas,

@@ -18,7 +18,6 @@ import { registerAgentArtifactPublicLinkRoutes } from './artifact-public-link-ro
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { registerAgentDriveChangesRoute } from './drive-changes-route.ts';
 import { registerAgentDrivePushRoutes } from './drive-push-routes.ts';
-import { authorizeDriveReader } from './worker-auth.ts';
 
 export function registerAgentArtifactRoutes(
     app: FastifyInstance,
@@ -122,11 +121,7 @@ export function registerAgentArtifactRoutes(
             handler: async (request, reply) => {
                 try {
                     const runner = await authorizeAgentRunner(options.db, request);
-                    const actor: ArtifactActor | null = runner
-                        ? { kind: 'agent', runner }
-                        : action === 'download'
-                          ? await authorizeDriveReader(options.db, request)
-                          : null;
+                    const actor: ArtifactActor | null = runner ? { kind: 'agent', runner } : null;
                     if (!actor) {
                         return sendAgentApiError(
                             reply,

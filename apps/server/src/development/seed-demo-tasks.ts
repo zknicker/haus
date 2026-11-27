@@ -103,7 +103,6 @@ export async function seedServerDemoTasks(
     }
     await seedDemoTaskWork(tx, {
         agentId: agents.blippyId,
-        computerId: input.computerId,
         serverId: input.serverId,
         task: ship,
     });

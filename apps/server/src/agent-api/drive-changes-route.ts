@@ -6,7 +6,7 @@ import { readDriveChanges } from '../drive/changes-query.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { sendArtifactError } from './artifact-errors.ts';
 import { sendAgentApiError } from './auth.ts';
-import { authorizeDriveReader } from './worker-auth.ts';
+import { authorizeDriveAgent } from './drive-auth.ts';
 
 const changesQuery = z.object({ since: z.string().optional(), until: z.string().optional() });
 
@@ -16,7 +16,7 @@ export function registerAgentDriveChangesRoute(
 ) {
     app.get('/api/agent/drive/changes', async (request, reply) => {
         try {
-            const actor = await authorizeDriveReader(options.db, request);
+            const actor = await authorizeDriveAgent(options.db, request);
             if (!actor) {
                 return sendAgentApiError(
                     reply,
@@ -27,7 +27,7 @@ export function registerAgentDriveChangesRoute(
             }
             const query = changesQuery.parse(request.query);
             const input = driveChangesInputSchema.parse({
-                serverId: actor.kind === 'agent' ? actor.runner.serverId : actor.worker.serverId,
+                serverId: actor.runner.serverId,
                 since: jsonParam('since', query.since),
                 until: jsonParam('until', query.until),
             });

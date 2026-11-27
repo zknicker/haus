@@ -2,7 +2,6 @@ import { AGENT_CLAIM_CREATE_MAX_TITLES } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { AgentMessageRecipientPlan } from '../agent-delivery/message-recipients.ts';
 import { replayImageGenerationLinks } from '../chats/image-generation-links.ts';
-import { replayWorkerLinks } from '../chats/worker-links.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -84,11 +83,7 @@ export async function replayAgentClaims(
         const message = byNonce.get(claimNonce(nonce, index));
         const replayed = message
             ? await replayImageGenerationLinks(db, {
-                  content: await replayWorkerLinks(db, {
-                      content: title.trim(),
-                      messageId: message.id,
-                      serverId: runner.serverId,
-                  }),
+                  content: title.trim(),
                   messageId: message.id,
                   serverId: runner.serverId,
               })

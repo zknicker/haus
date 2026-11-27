@@ -6,13 +6,13 @@ import {
     imageGenerationsTable,
 } from '../postgres/schema.ts';
 import {
-    type WorkerViewer,
+    type LinkViewer,
     linkChatVisibleSql,
     linkParentChatsTable,
-} from '../workers/worker-visibility.ts';
+} from '../chats/link-visibility.ts';
 
 /** Who is asking to see an image generation: a member, or an Agent. */
-export type ImageGenerationViewer = WorkerViewer;
+export type ImageGenerationViewer = LinkViewer;
 
 /**
  * The one "may this viewer see this generation?" predicate over

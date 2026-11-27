@@ -3,61 +3,17 @@ import { chatMessageReplySchema, idSchema } from './chat.ts';
 import { messageClaimSchema } from './claim-shared.ts';
 import { driveConflictFileSchema } from './drive.ts';
 import { humanTimezoneSchema } from './membership.ts';
-import { workerPlaceSchema } from './worker-place.ts';
-import { workerReportAttentionSchema } from './worker-report-attention.ts';
-import {
-    workerBranchSchema,
-    workerTurnStatusSchema,
-    workerSummaryMaxLength,
-    workerTitleSchema,
-} from './worker-shared.ts';
-import { workerStallCodeSchema } from './worker-stall.ts';
-
 const timestampSchema = z.iso.datetime({ offset: true });
 
-/** What a pull request did after its Run settled, on a `pull_request` notice (ADR 0053). */
-export const workerPullRequestChangeSchema = z
+/** What a pull request did, on a `pull_request` notice (ADR 0053). */
+export const pullRequestChangeSchema = z
     .object({
         change: z.enum(['ready_for_review', 'checks_passing', 'checks_failing']),
         url: z.url().max(2000),
     })
     .strict();
 
-export type WorkerPullRequestChange = z.infer<typeof workerPullRequestChangeSchema>;
-
-/**
- * A live Worker turn's stall, or a pull request change, for the Agent that
- * delegated the Worker. It exists nowhere but the inbox row, so it carries the
- * turn facts the Agent needs to decide whether to wait, stop, or follow up.
- * A settled turn reaches its Agent as a `workerReport` instead.
- */
-export const workerAttentionSchema = z
-    .object({
-        branches: z.array(workerBranchSchema).max(50),
-        errorCode: z.string().trim().min(1).max(120).nullable(),
-        place: workerPlaceSchema,
-        /**
-         * Whether `summary` is only the head of a longer report (TECH-8): a
-         * reader who wants the rest runs `haus worker inspect --worker
-         * <id> --report`. Optional, not defaulted, so an inbox item already
-         * queued before this field existed still parses; its absence reads
-         * as false (no known fuller report), never as true.
-         */
-        hasFullReport: z.boolean().optional(),
-        notice: z.enum(['stall', 'pull_request']),
-        providerUrl: z.url().max(2000).nullable(),
-        pullRequestChange: workerPullRequestChangeSchema.optional(),
-        repository: z.string().trim().min(1).max(200),
-        turnId: idSchema,
-        stallCode: workerStallCodeSchema.nullable(),
-        status: workerTurnStatusSchema,
-        summary: z.string().trim().min(1).max(workerSummaryMaxLength).nullable(),
-        title: workerTitleSchema,
-        workerId: idSchema,
-    })
-    .strict();
-
-export type WorkerAttention = z.infer<typeof workerAttentionSchema>;
+export type PullRequestChange = z.infer<typeof pullRequestChangeSchema>;
 
 /**
  * Why an item is addressed to this Agent personally rather than ambiently: its own Captain
@@ -131,12 +87,11 @@ export const agentInboxItemSchema = z
         /** This item names the Agent personally: a DM, an @mention, or a committed Jev narrow. */
         addressed: z.boolean().optional(),
         addressedReason: addressedReasonSchema.optional(),
-        /** Typed Server attention; unlike a Chat message, it has no message cursor. */
-        worker: workerAttentionSchema.optional(),
         /** Canonical Agent API shape cached for Computer-local message checks. */
         message: z.record(z.string(), z.unknown()).optional(),
         mentioned: z.boolean().optional(),
-        pullRequestNotice: workerPullRequestChangeSchema.optional(),
+        /** Typed Server attention; unlike a Chat message, it has no message cursor. */
+        pullRequestNotice: pullRequestChangeSchema.optional(),
         /** Bounded direct-parent and chain-root context for an inline reply. */
         reply: chatMessageReplySchema.nullable().optional(),
         senderDescription: z.string().trim().max(500).optional(),
@@ -149,12 +104,11 @@ export const agentInboxItemSchema = z
         target: z.string().trim().min(1).max(200),
         taskContext: agentTaskContextSchema.optional(),
         taskFollowReactivated: z.boolean().optional(),
-        workerReport: workerReportAttentionSchema.optional(),
     })
     .strict()
     .refine(
         (item) =>
-            item.worker || item.pullRequestNotice || item.workerReport
+            item.pullRequestNotice
                 ? item.sequence === 0 && item.senderType === 'system'
                 : item.sequence > 0,
         {
@@ -162,10 +116,6 @@ export const agentInboxItemSchema = z
             path: ['sequence'],
         }
     )
-    .refine((item) => !(item.worker && item.pullRequestNotice), {
-        message: 'A pull request notice backed by a Run rides `worker`.',
-        path: ['pullRequestNotice'],
-    })
     .refine((item) => item.senderTimezone === undefined || item.senderType === 'human', {
         message: 'Only a human sender carries a timezone.',
         path: ['senderTimezone'],
@@ -174,8 +124,7 @@ export const agentInboxItemSchema = z
 export type AgentInboxItem = z.infer<typeof agentInboxItemSchema>;
 
 /**
- * One Drive push's conflicts for the Agent that pushed, or for a Worker's push, the Worker's
- * Agent (specs/inbox.md). It lists every kept-both, kept-edit, or refused file of the push,
+ * One Drive push's conflicts for the Agent that pushed (specs/inbox.md). It lists every kept-both, kept-edit, or refused file of the push,
  * uncapped because conflicts are rare.
  */
 export const driveConflictAttentionSchema = z
@@ -183,17 +132,7 @@ export const driveConflictAttentionSchema = z
         files: z.array(driveConflictFileSchema).min(1),
         id: idSchema,
         pushId: idSchema,
-        writer: z.discriminatedUnion('type', [
-            z.object({ agentId: idSchema, type: z.literal('agent') }).strict(),
-            z
-                .object({
-                    agentId: idSchema,
-                    taskId: idSchema,
-                    type: z.literal('worker'),
-                    workerId: idSchema,
-                })
-                .strict(),
-        ]),
+        writer: z.object({ agentId: idSchema, type: z.literal('agent') }).strict(),
     })
     .strict();
 

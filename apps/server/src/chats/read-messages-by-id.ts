@@ -13,7 +13,6 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
-import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
@@ -71,7 +70,6 @@ export async function readMessagesById(
         claims,
         causes,
         bodies,
-        works,
         images,
         reactions,
         replies,
@@ -82,7 +80,6 @@ export async function readMessagesById(
         listMessageClaimMap(db, serverId, foundIds),
         readMessageCauses(db, serverId, foundIds),
         readMessageBodies(db, serverId, foundIds),
-        readLinkedWorker(db, serverId, foundIds),
         readLinkedImageGenerations(db, serverId, foundIds),
         readChatMessageReactions(db, serverId, foundIds),
         readInlineReplyContexts(db, serverId, rows),
@@ -98,7 +95,6 @@ export async function readMessagesById(
                     authorProfile: readStoredAuthorProfile(row),
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
-                    workers: works.get(row.id),
                     driveCitations: citations.get(row.id),
                     imageGenerations: images.get(row.id),
                     reactions: reactions.get(row.id),

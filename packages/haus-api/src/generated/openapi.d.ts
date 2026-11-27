@@ -2357,7 +2357,7 @@ export interface components {
             role: "user" | "assistant" | "system";
             content: string;
             /** @enum {string} */
-            body_kind: "text" | "agent-created" | "worker-report" | "worker-follow-up";
+            body_kind: "text" | "agent-created";
             attachments: components["schemas"]["JsonObject"][];
             nonce: string | null;
             delivery_id: components["schemas"]["DeliveryId"] | null;
@@ -2365,8 +2365,6 @@ export interface components {
             deleted_at: components["schemas"]["Timestamp"] | null;
             metadata: components["schemas"]["JsonObject"];
             claim?: components["schemas"]["MessageClaim"] | null;
-            /** @description Every Worker this Message links, in link order. */
-            workers?: components["schemas"]["MessageWorker"][];
             agent_created?: components["schemas"]["MessageAgentCreated"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
             reply?: components["schemas"]["ChatMessageReply"] | null;
@@ -2385,31 +2383,6 @@ export interface components {
             display_name: string;
             description: string | null;
             retired: boolean;
-        };
-        MessageWorker: {
-            id: string;
-            /** @enum {string} */
-            provider: "cursor" | "claude";
-            /** @enum {string} */
-            status: "queued" | "running" | "pending_input" | "completed" | "failed" | "cancelled" | "expired";
-            title: string;
-            repository: string;
-            starting_ref: string | null;
-            provider_url: string | null;
-            activity: string | null;
-            latest_turn: components["schemas"]["MessageWorkerTurn"] | null;
-        };
-        MessageWorkerTurn: {
-            turn_id: string;
-            /** @enum {string} */
-            status: "queued" | "running" | "pending_input" | "completed" | "failed" | "cancelled" | "expired";
-            summary: string | null;
-            error_code: string | null;
-            branches: {
-                repository: string;
-                branch: string;
-                pull_request_url: string | null;
-            }[];
         };
         MessageClaim: {
             number: number;

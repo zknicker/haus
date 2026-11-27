@@ -3815,7 +3815,7 @@ components:
           type: string
         body_kind:
           type: string
-          enum: [text, agent-created, worker-report, worker-follow-up]
+          enum: [text, agent-created]
         attachments:
           type: array
           items:
@@ -3838,11 +3838,6 @@ components:
           oneOf:
             - $ref: '#/components/schemas/MessageClaim'
             - type: 'null'
-        workers:
-          description: Every Worker this Message links, in link order.
-          type: array
-          items:
-            $ref: '#/components/schemas/MessageWorker'
         agent_created:
           oneOf:
             - $ref: '#/components/schemas/MessageAgentCreated'
@@ -3901,83 +3896,6 @@ components:
           type: [string, 'null']
         retired:
           type: boolean
-    MessageWorker:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - provider
-        - status
-        - title
-        - repository
-        - starting_ref
-        - provider_url
-        - activity
-        - latest_turn
-      properties:
-        id:
-          type: string
-          minLength: 1
-        provider:
-          type: string
-          enum: [cursor, claude]
-        status:
-          type: string
-          enum: [queued, running, pending_input, completed, failed, cancelled, expired]
-        title:
-          type: string
-          minLength: 1
-        repository:
-          type: string
-          minLength: 1
-        starting_ref:
-          type: [string, 'null']
-        provider_url:
-          type: [string, 'null']
-        activity:
-          type: [string, 'null']
-        latest_turn:
-          oneOf:
-            - $ref: '#/components/schemas/MessageWorkerTurn'
-            - type: 'null'
-    MessageWorkerTurn:
-      type: object
-      additionalProperties: false
-      required:
-        - turn_id
-        - status
-        - summary
-        - error_code
-        - branches
-      properties:
-        turn_id:
-          type: string
-          minLength: 1
-        status:
-          type: string
-          enum: [queued, running, pending_input, completed, failed, cancelled, expired]
-        summary:
-          type: [string, 'null']
-        error_code:
-          type: [string, 'null']
-        branches:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - repository
-              - branch
-              - pull_request_url
-            properties:
-              repository:
-                type: string
-                minLength: 1
-              branch:
-                type: string
-                minLength: 1
-              pull_request_url:
-                type: [string, 'null']
     MessageClaim:
       type: object
       additionalProperties: false

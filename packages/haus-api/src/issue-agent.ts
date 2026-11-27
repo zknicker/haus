@@ -10,7 +10,7 @@ import {
     issueTitleSchema,
 } from './issue.ts';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
-import { workerPullRequestStates } from './worker-pull-request.ts';
+import { pullRequestStates } from './pull-request.ts';
 
 export const agentIssueRefusalCodes = [
     'ISSUE_TAKEN',
@@ -149,7 +149,7 @@ export const agentIssueShowResponseSchema = z
                 .object({
                     number: z.number().int().positive(),
                     repository: z.string(),
-                    state: z.enum(workerPullRequestStates).nullable(),
+                    state: z.enum(pullRequestStates).nullable(),
                 })
                 .strict()
         ),

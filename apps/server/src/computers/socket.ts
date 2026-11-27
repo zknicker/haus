@@ -33,7 +33,6 @@ import {
     defaultComputerSocketLiveness,
     watchComputerSocketLiveness,
 } from './socket-liveness.ts';
-import { reconnectWorkerCarrier } from './worker-reports.ts';
 
 // The app-level heartbeat keeps Raft's cadence; transport pings detect silence sooner.
 const heartbeatConfiguration = {
@@ -211,13 +210,6 @@ export function startComputerAttachmentSocket(
             void clearStartRejectedHolds(db, computer.id)
                 .then(() => delivery.onComputerReconnect(computer.id))
                 .catch(() => undefined);
-            void postCommitWork.run('worker.reconcile-on-connect', () =>
-                reconnectWorkerCarrier(
-                    db,
-                    { connections, delivery, postCommitWork, storage },
-                    computer
-                )
-            );
         };
         socket.on('message', (raw) => {
             const rawString = raw.toString();

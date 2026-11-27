@@ -250,20 +250,12 @@ export function toArtifactMetadata(record: ArtifactRecord): ArtifactMetadata {
 export function revisionAuthor(
     revision: Pick<
         typeof revisions.$inferSelect,
-        'authorAgentId' | 'authorKey' | 'authorUserId' | 'authorWorkerId'
+        'authorAgentId' | 'authorKey' | 'authorUserId'
     >
 ) {
     if (revision.authorKey === hausAuthorKey) {
         const haus: ArtifactAuthor = { type: 'haus' };
         return haus;
-    }
-    if (revision.authorWorkerId && revision.authorAgentId) {
-        const worker: ArtifactAuthor = {
-            agent_id: revision.authorAgentId,
-            type: 'worker',
-            worker_id: revision.authorWorkerId,
-        };
-        return worker;
     }
     return artifactCreator({
         creatorAgentId: revision.authorAgentId,

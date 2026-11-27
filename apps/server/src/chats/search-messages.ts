@@ -17,7 +17,6 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { requireChatAccess } from './chat-access.ts';
 import { visibleChats } from './chat-visibility.ts';
 import { readMessageBodies } from './message-bodies.ts';
@@ -144,12 +143,11 @@ export async function searchChatMessages(
         .limit(input.limit);
 
     const messageIds = rows.map((message) => message.id);
-    const [attachments, causes, bodies, works, images, reactions, replies, taskLinks, citations] =
+    const [attachments, causes, bodies, images, reactions, replies, taskLinks, citations] =
         await Promise.all([
             readMessageAttachments(db, input.serverId, messageIds),
             readMessageCauses(db, input.serverId, messageIds),
             readMessageBodies(db, input.serverId, messageIds),
-            readLinkedWorker(db, input.serverId, messageIds),
             readLinkedImageGenerations(db, input.serverId, messageIds),
             readChatMessageReactions(db, input.serverId, messageIds),
             readInlineReplyContexts(db, input.serverId, rows),
@@ -163,7 +161,6 @@ export async function searchChatMessages(
             authorProfile: readStoredAuthorProfile(message),
             body: bodies.get(message.id),
             cause: causes.get(message.id),
-            workers: works.get(message.id),
             driveCitations: citations.get(message.id),
             imageGenerations: images.get(message.id),
             reactions: reactions.get(message.id),

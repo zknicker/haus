@@ -11,7 +11,6 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { memberTaskActor } from '../tasks/task-actor.ts';
 import { archiveProjectTasks } from '../tasks/task-bulk-archive.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import type { WorkerFrame } from '../workers/worker-effects.ts';
 import { purgeDeletedChannel } from './channel-deletion.ts';
 import { prepareLifecycleEvent } from './lifecycle-events.ts';
 
@@ -140,9 +139,8 @@ export async function deleteChannel(
 
     // The committed tombstone is the deletion. A failed purge must not report
     // failure for it; the boot sweep retries every tombstoned channel.
-    let workerFrames: WorkerFrame[] = [];
     try {
-        workerFrames = await purgeDeletedChannel(db, attachmentRoot, input);
+        await purgeDeletedChannel(db, attachmentRoot, input);
     } catch (error) {
         console.error('[haus] channel purge failed; boot sweep will retry', {
             chatId: input.chatId,
@@ -155,7 +153,6 @@ export async function deleteChannel(
         receipt: { chatId: input.chatId, serverId: input.serverId } satisfies ChannelDeleteReceipt,
         taskSessions: tasks?.sessions ?? [],
         taskWakes: tasks?.wakes ?? [],
-        workerFrames: [...(tasks?.workerFrames ?? []), ...workerFrames],
     };
 }
 

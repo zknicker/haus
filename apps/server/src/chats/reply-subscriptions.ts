@@ -195,7 +195,7 @@ export function mentionedAgentIds(
             return id ? [id] : [];
         })
     );
-    // A Haus link's label is display text, such as a Worker title,
+    // A Haus link's label is display text, such as a Task title,
     // never a plain-handle mention; an agent link already counted by its id.
     const plain = references.reduceRight(
         (text, reference) => `${text.slice(0, reference.start)} ${text.slice(reference.end)}`,

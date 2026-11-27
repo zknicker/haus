@@ -8,7 +8,7 @@ import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { recordTriggerFire } from '../triggers/trigger-fire.ts';
 import type { TriggerRateLimiter } from '../triggers/trigger-rate-limit.ts';
-import { markPullRequestReadings } from '../workers/pull-request-readings.ts';
+import { markPullRequestReadings } from './pull-request-readings.ts';
 import {
     type GithubIgnoredReason,
     type GithubTriggerMatch,

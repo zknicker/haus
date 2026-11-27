@@ -3,7 +3,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, imageGenerationLinksTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { imageGenerationUpdatedTopic } from '../realtime/topics.ts';
-import { linkParentChatsTable } from '../workers/worker-visibility.ts';
+import { linkParentChatsTable } from '../chats/link-visibility.ts';
 
 /**
  * Prepares `imageGeneration.onUpdated` for generations about to change or be

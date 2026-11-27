@@ -12,7 +12,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { sendArtifactError } from './artifact-errors.ts';
 import { sendAgentApiError } from './auth.ts';
-import { authorizeDrivePusher } from './worker-auth.ts';
+import { authorizeDriveAgent } from './drive-auth.ts';
 
 export function registerAgentDrivePushRoutes(
     app: FastifyInstance,
@@ -69,13 +69,11 @@ export function registerAgentDrivePushRoutes(
                     options.db,
                     options.agentDelivery,
                     access,
-                    input.push_id,
-                    access.worker ? (input.unsent ?? []) : []
+                    input.push_id
                 );
                 push.wake(closed.wakes);
                 if (
                     access.agentId &&
-                    !access.worker &&
                     (await confirmFlush(options.db, {
                         agentId: access.agentId,
                         pushId: input.push_id,
@@ -96,7 +94,7 @@ async function withRunner(
     run: (actor: ArtifactActor) => Promise<unknown>
 ) {
     try {
-        const actor = await authorizeDrivePusher(db, request);
+        const actor = await authorizeDriveAgent(db, request);
         if (!actor) {
             return await sendAgentApiError(
                 reply,

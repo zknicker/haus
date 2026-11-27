@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import { invocationOperationSchema } from './agent-invocations.ts';
 import { agentRepoBranch, repoFolderRequestSchema, repoNameSchema } from './repos.ts';
-import { workerHeldFrameSchema } from './worker-computer-frames.ts';
 
 test('a repo is a lower-cased owner/name, .github included, and never a . or .. segment', () => {
     expect(repoNameSchema.parse(' ZKnicker/Grotto ')).toBe('zknicker/grotto');
@@ -42,12 +41,4 @@ test('folder requests take an absolute path', () => {
             operation: { kind: 'inspect', path: 'grotto' },
         }).success
     ).toBe(false);
-});
-
-test('an older Computer reports held Workers without kept worktrees', () => {
-    expect(workerHeldFrameSchema.parse({ type: 'worker-held', workerIds: [] })).toEqual({
-        keptWorktrees: [],
-        type: 'worker-held',
-        workerIds: [],
-    });
 });

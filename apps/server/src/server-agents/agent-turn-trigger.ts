@@ -104,10 +104,8 @@ function triggerFor(
             return { chatId, kind: 'reminder' };
         case 'trigger':
             return { chatId, kind: 'trigger' };
-        case 'worker_report':
-        case 'worker_stall':
         case 'pull_request':
-            return { chatId, kind: 'worker' };
+            return { chatId, kind: 'pull_request' };
         case 'onboarding':
             return { chatId, kind: 'onboarding' };
         case 'greeting':

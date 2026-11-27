@@ -188,9 +188,8 @@ export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner
         return [
             {
                 chatId,
-                workerResult: group.some((item) => item.worker !== undefined),
                 // Where `message read --after` starts to show the pending messages;
-                // null when only fires, assignments, or Worker results wait.
+                // null when only fires or assignments wait.
                 firstSequence: firstMessageSequence(group),
                 firstShortId: shortId(first.id),
                 latestSender: latest.senderHandle,

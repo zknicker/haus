@@ -9,7 +9,7 @@ import {
     issueStateSchema,
     issueTitleSchema,
 } from './issue.ts';
-import { workerPullRequestStates } from './worker-pull-request.ts';
+import { pullRequestStates } from './pull-request.ts';
 
 export const ISSUE_COMMENT_MAX_CHARS = 20_000;
 
@@ -96,7 +96,7 @@ export const issuePullRequestSchema = z
     .object({
         number: z.number().int().positive(),
         repository: z.string().min(3),
-        state: z.enum(workerPullRequestStates).nullable(),
+        state: z.enum(pullRequestStates).nullable(),
         taskId: idSchema,
     })
     .strict();

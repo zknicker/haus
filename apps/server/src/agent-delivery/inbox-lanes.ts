@@ -13,8 +13,6 @@ import { chatlessInboxSources } from '@haus/api';
  * notice is concrete for the same reason (specs/github-triggers.md#failure-modes).
  */
 export const concreteInboxSources = [
-    'worker_report',
-    'worker_stall',
     'pull_request',
     'trigger',
     'trigger_problem',
@@ -41,8 +39,6 @@ export function isConcreteInboxSource(source: string): boolean {
  */
 export const bodilessInboxSources = [
     'greeting',
-    'worker_report',
-    'worker_stall',
     'pull_request',
     'trigger_problem',
     'image_generation_failed',

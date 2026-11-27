@@ -3,7 +3,6 @@ import { and, asc, eq, inArray, ne } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { isWorkerAttentionSource } from '../workers/worker-inbox-sources.ts';
 import { chatlessAttention } from './chatless-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import * as store from './store.ts';
@@ -103,9 +102,6 @@ async function renderAlone(db: HausDatabase, row: store.InboxItemRow): Promise<v
 }
 
 function itemLabel(row: { dedupeKey: string; source: string }): string {
-    if (isWorkerAttentionSource(row.source) || row.source === 'worker_report') {
-        return `Worker notice ${row.dedupeKey}`;
-    }
     return row.source === 'human'
         ? `message ${row.dedupeKey} from a person`
         : `${row.source} item ${row.dedupeKey}`;

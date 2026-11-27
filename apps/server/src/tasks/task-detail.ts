@@ -1,14 +1,8 @@
-import type { Worker, Task, TaskActor, TaskDetail } from '@haus/api';
-import { and, desc, eq } from 'drizzle-orm';
+import type { Task, TaskActor, TaskDetail } from '@haus/api';
+import { and, eq } from 'drizzle-orm';
+import { pullRequestKey, readPullRequestReadings } from '../github/pull-request-readings.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentTaskFollowsTable,
-    chatsTable,
-    workersTable,
-    taskPullRequestsTable,
-} from '../postgres/schema.ts';
-import { pullRequestKey, readPullRequestReadings } from '../workers/pull-request-readings.ts';
-import { readWorkerDetails, toWorker } from '../workers/worker-shape.ts';
+import { agentTaskFollowsTable, chatsTable, taskPullRequestsTable } from '../postgres/schema.ts';
 import { isTaskFollowed } from './task-follows.ts';
 import { taskUnreadCount } from './task-unread.ts';
 
@@ -18,26 +12,11 @@ export async function readTaskPlaceDetail(
     db: Reader,
     actor: TaskActor,
     task: Task
-): Promise<Pick<TaskDetail, 'attachedWork' | 'followed' | 'pullRequests' | 'unreadCount'>> {
+): Promise<Pick<TaskDetail, 'followed' | 'pullRequests' | 'unreadCount'>> {
     return {
-        attachedWork: await readAttachedWork(db, task),
         ...(await readViewerState(db, actor, task)),
         pullRequests: await readAttachedPullRequests(db, task),
     };
-}
-
-async function readAttachedWork(db: Reader, task: Task): Promise<Worker[]> {
-    const rows = await db
-        .select()
-        .from(workersTable)
-        .where(and(eq(workersTable.serverId, task.serverId), eq(workersTable.taskId, task.id)))
-        .orderBy(desc(workersTable.createdAt), desc(workersTable.id));
-    const details = await readWorkerDetails(
-        db,
-        task.serverId,
-        rows.map((row) => row.id)
-    );
-    return rows.map((row) => toWorker(row, details.get(row.id)));
 }
 
 async function readAttachedPullRequests(db: Reader, task: Task) {

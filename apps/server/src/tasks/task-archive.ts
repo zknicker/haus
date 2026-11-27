@@ -5,7 +5,6 @@ import { handBackArchivedTaskIssues } from '../issues/issue-handback.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, tasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { closeTaskWorkers } from '../workers/close-task-workers.ts';
 import { requireTaskActor, type TaskActor } from './task-actor.ts';
 import { cancelTaskReminders } from './task-close-reminders.ts';
 import {
@@ -51,12 +50,6 @@ export async function archiveLockedTask(
     requireTaskPlace(current);
     await setArchivedAt(tx, current, sql`now()`);
     const reminderEvents = await cancelTaskReminders(tx, { chatId: current.chatId, serverId });
-    const workers = await closeTaskWorkers(tx, agentDelivery, {
-        actor,
-        serverId,
-        taskChatId: current.chatId,
-        taskId: current.id,
-    });
     const issues = await handBackArchivedTaskIssues(tx, { actor, serverId, taskId: current.id });
     const sessions = current.agentId
         ? [
@@ -73,13 +66,11 @@ export async function archiveLockedTask(
         events: [
             prepareTaskUpdatedEvent(task),
             ...reminderEvents,
-            ...workers.events,
             ...issues.events,
         ],
         sessions,
         task,
-        wakes: [...workers.wakes, ...issues.agentWakes],
-        workerFrames: workers.frames,
+        wakes: issues.agentWakes,
     };
     return result;
 }

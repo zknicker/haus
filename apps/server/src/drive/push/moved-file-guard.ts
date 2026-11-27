@@ -1,12 +1,12 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { ArtifactActor } from '../../artifacts/access.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
-import { computersTable, workersTable } from '../../postgres/schema.ts';
+import { computersTable } from '../../postgres/schema.ts';
 
 const lastComputerWithoutGuard = [26, 0, 2] as const;
 
 export async function pusherPlacesMovedFiles(db: HausDatabase, actor: ArtifactActor) {
-    const computerId = await pushingComputerId(db, actor);
+    const computerId = actor.kind === 'agent' ? actor.runner.computerId : null;
     if (!computerId) {
         return false;
     }
@@ -31,24 +31,4 @@ export function hasMovedFileGuard(productVersion: string | null) {
         }
     }
     return false;
-}
-
-async function pushingComputerId(db: HausDatabase, actor: ArtifactActor) {
-    if (actor.kind === 'agent') {
-        return actor.runner.computerId;
-    }
-    if (actor.kind === 'human') {
-        return null;
-    }
-    const [worker] = await db
-        .select({ computerId: workersTable.carrierComputerId })
-        .from(workersTable)
-        .where(
-            and(
-                eq(workersTable.serverId, actor.worker.serverId),
-                eq(workersTable.id, actor.worker.workerId)
-            )
-        )
-        .limit(1);
-    return worker?.computerId ?? null;
 }

@@ -1,6 +1,6 @@
-import { type WorkerPullRequestChange, workerPullRequestChangeSchema } from '@haus/api';
+import { type PullRequestChange, pullRequestChangeSchema } from '@haus/api';
 
-export type PullRequestTransition = WorkerPullRequestChange['change'];
+export type PullRequestTransition = PullRequestChange['change'];
 
 const changeKeyPattern = /^([^#\s]+\/[^#\s]+)#([1-9][0-9]*):([a-z_]+):([^:\s]+)$/u;
 
@@ -11,12 +11,12 @@ export function pullRequestChangeKey(
     return `${pull.repository}#${pull.number}:${change}:${pull.headSha}`;
 }
 
-export function parsePullRequestChangeKey(key: string): WorkerPullRequestChange | null {
+export function parsePullRequestChangeKey(key: string): PullRequestChange | null {
     const matched = changeKeyPattern.exec(key);
     if (!matched) {
         return null;
     }
-    const parsed = workerPullRequestChangeSchema.safeParse({
+    const parsed = pullRequestChangeSchema.safeParse({
         change: matched[3],
         url: `https://github.com/${matched[1]}/pull/${matched[2]}`,
     });

@@ -107,9 +107,6 @@ export function createCleanupEvalChatsProcedure(
             };
         });
         publishRealtime(deletedTasks.events);
-        for (const { computerId, frame } of deletedTasks.workerFrames) {
-            ctx.computerConnections.send(computerId, frame);
-        }
         const deletedChatIds = deleted.map((chat) => chat.id).sort();
 
         return { count: deletedChatIds.length, deletedChatIds };

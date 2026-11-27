@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { readUnworkedTaskWakes } from '../src/github/pull-request-task-wakes.ts';
+import { readPullRequestTaskWakes } from '../src/github/pull-request-task-wakes.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { taskPullRequestsTable } from '../src/postgres/schema.ts';
 import { insertCrewTask, insertTaskPlace, seedTaskBoard } from './issue-delivery.fixture.ts';
@@ -37,7 +37,7 @@ test('a pull request a person-started Task attached first still wakes the crew T
         });
     }
 
-    const wakes = await readUnworkedTaskWakes(connection.db, {
+    const wakes = await readPullRequestTaskWakes(connection.db, {
         number: 42,
         repository: 'github.com/acme/api',
         serverId: seed.serverId,

@@ -1,28 +1,17 @@
 import {
     type ClaimTier,
-    type CloudAgentProvider,
-    type WorkerTurnStatus,
-    formatWorkerLink,
     formatUserReferenceTarget,
-    isTerminalWorkerTurnStatus,
     type MessageClaim,
 } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
-import { recordWorkerLinks } from '../chats/worker-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    chatsTable,
-    workerTurnsTable,
-    workersTable,
-    messageClaimsTable,
-} from '../postgres/schema.ts';
+import { chatsTable, messageClaimsTable } from '../postgres/schema.ts';
 import { appendSeedMessages } from './seed-inbox-messages.ts';
 
 export interface GalleryContext {
     agentId: string;
     chatId: string;
-    computerId: string;
     now: Date;
     reply?: { rootMessageId: string; toMessageId: string };
     serverId: string;
@@ -123,160 +112,4 @@ export async function galleryMention(
         });
     }
     return messageId;
-}
-
-export async function galleryWork(
-    db: HausDatabase,
-    context: GalleryContext,
-    input: {
-        title: string;
-        status: WorkerTurnStatus;
-        cancelling?: boolean;
-        /** A follow-up Run the Agent sent after the first one settled. */
-        followUp?: GalleryFollowUp;
-        provider?: CloudAgentProvider;
-        repository?: string;
-        stale?: boolean;
-        withBranch?: boolean;
-    }
-) {
-    // Written the way a launch writes it (ADR 0044): text plus a link to the work.
-    const workerId = createOpaqueId('caw');
-    const messageId = await galleryMessage(
-        db,
-        context,
-        `${input.title}\n\n${formatWorkerLink(input.title, workerId)}`
-    );
-    const terminalAt = isTerminalWorkerTurnStatus(input.status) ? context.now : null;
-    const observedAt = new Date(context.now.getTime() - (input.stale ? 25 * 60_000 : 0));
-    const followUpAt = new Date(context.now.getTime() + 1000);
-    await db.insert(workersTable).values({
-        id: workerId,
-        serverId: context.serverId,
-        originChatId: context.chatId,
-        launchMessageId: messageId,
-        agentId: context.agentId,
-        carrierComputerId: context.computerId,
-        closedAt: context.now,
-        place: input.provider ?? 'cursor',
-        repository: input.repository ?? 'demo/ui-gallery',
-        startingRef: 'main',
-        title: input.title,
-        ...workLifecycle(input, context, { followUpAt, observedAt, terminalAt }),
-    });
-    await db.insert(workerTurnsTable).values({
-        stopRequestedAt: input.cancelling ? context.now : null,
-        stopRequestedByUserId: input.cancelling ? context.userId : null,
-        id: createOpaqueId('car'),
-        serverId: context.serverId,
-        workerId,
-        createdAt: new Date(context.now.getTime() - 200_000),
-        // A queued sample is still in Haus's local queue; any other one reached Cursor.
-        providerRunId: input.status === 'queued' ? null : createOpaqueId('run'),
-        status: input.status,
-        terminalAt,
-        observedAt,
-        startedAt: input.status === 'queued' ? null : new Date(context.now.getTime() - 180_000),
-        summary: gallerySummary(input.status),
-        errorCode: input.status === 'failed' ? 'sample_build_failed' : null,
-        branches: input.withBranch
-            ? [
-                  {
-                      repository: 'demo/ui-gallery',
-                      branch: 'demo/keyboard-navigation',
-                      pullRequestUrl: 'https://github.com/demo/ui-gallery/pull/182',
-                      pullRequest: {
-                          number: 182,
-                          state: 'open',
-                          additions: 48,
-                          deletions: 19,
-                          changedFiles: 3,
-                          observedAt: context.now.toISOString(),
-                      },
-                  },
-              ]
-            : [],
-    });
-    await recordWorkerLinks(db, {
-        chatId: context.chatId,
-        links: [{ ordinal: 0, workerId }],
-        messageId,
-        serverId: context.serverId,
-    });
-    if (input.followUp) {
-        await galleryFollowUpRun(db, context, {
-            at: followUpAt,
-            followUp: input.followUp,
-            workerId,
-        });
-    }
-    return messageId;
-}
-
-type GalleryFollowUp = 'running' | 'waiting';
-
-async function galleryFollowUpRun(
-    db: HausDatabase,
-    context: GalleryContext,
-    input: { at: Date; followUp: GalleryFollowUp; workerId: string }
-) {
-    const { at, followUp } = input;
-    await db.insert(workerTurnsTable).values({
-        id: createOpaqueId('car'),
-        serverId: context.serverId,
-        workerId: input.workerId,
-        createdAt: at,
-        providerRunId: followUp === 'running' ? createOpaqueId('run') : null,
-        status: followUpStatus[followUp],
-        terminalAt: null,
-        observedAt: at,
-        startedAt: followUp === 'running' ? at : null,
-        summary: null,
-        errorCode: null,
-    });
-}
-
-const followUpStatus = {
-    running: 'running',
-    waiting: 'queued',
-} as const satisfies Record<GalleryFollowUp, WorkerTurnStatus>;
-
-/** The work row projects its newest Run, which is the follow-up when there is one. */
-function workLifecycle(
-    input: { followUp?: GalleryFollowUp; status: WorkerTurnStatus },
-    context: GalleryContext,
-    times: { followUpAt: Date; observedAt: Date; terminalAt: Date | null }
-) {
-    if (input.followUp) {
-        return {
-            activityAt: null,
-            activitySummary: null,
-            startedAt: input.followUp === 'running' ? times.followUpAt : null,
-            status: followUpStatus[input.followUp],
-            terminalAt: null,
-            updatedAt: times.followUpAt,
-        };
-    }
-    return {
-        activityAt: times.observedAt,
-        activitySummary:
-            input.status === 'running'
-                ? 'Checking keyboard navigation in the sidebar.'
-                : 'Static UI gallery example; no external run exists.',
-        startedAt: input.status === 'queued' ? null : new Date(context.now.getTime() - 180_000),
-        status: input.status,
-        terminalAt: times.terminalAt,
-        updatedAt: times.observedAt,
-    };
-}
-
-function gallerySummary(status: WorkerTurnStatus): string | null {
-    switch (status) {
-        case 'failed':
-            return 'The sample build failed. Check the branch before retrying.';
-        case 'pending_input':
-            return 'Should the onboarding copy use the short variant or the long one?';
-        default:
-            return null;
-    }
 }

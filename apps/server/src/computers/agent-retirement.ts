@@ -1,8 +1,7 @@
-import type { AgentCommand, AgentHeldFrame } from '@haus/api';
+import { type AgentCommand, agentHeldFrameSchema } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, computersTable } from '../postgres/schema.ts';
-import type { WorkerEffects } from '../workers/worker-effects.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -31,12 +30,20 @@ export async function retireOnServerComputers(
     }
 }
 
-export async function answerHeldAgents(
+/**
+ * A Computer's `agent-held` report names the Agents whose folders it still holds; each one that
+ * is retired or gone is told to retire again. Any other frame is not this one.
+ */
+export async function ingestAgentHeld(
     db: Reader,
-    scope: { computerId: string; serverId: string },
-    frame: AgentHeldFrame
+    transport: Pick<ComputerTransport, 'send'>,
+    scope: { computerId: string; frame: unknown; serverId: string }
 ) {
-    const held = [...new Set(frame.agentIds)];
+    const parsed = agentHeldFrameSchema.safeParse(scope.frame);
+    if (!parsed.success) {
+        return false;
+    }
+    const held = [...new Set(parsed.data.agentIds)];
     const live =
         held.length > 0
             ? await db
@@ -51,14 +58,8 @@ export async function answerHeldAgents(
                   )
             : [];
     const liveIds = new Set(live.map(({ id }) => id));
-    return {
-        events: [],
-        frames: held
-            .filter((agentId) => !liveIds.has(agentId))
-            .map((agentId) => ({
-                computerId: scope.computerId,
-                frame: { agentId, type: 'agent-retire' as const },
-            })),
-        wakes: [],
-    } satisfies WorkerEffects;
+    for (const agentId of held.filter((id) => !liveIds.has(id))) {
+        transport.send(scope.computerId, { agentId, type: 'agent-retire' });
+    }
+    return true;
 }

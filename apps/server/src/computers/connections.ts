@@ -7,8 +7,6 @@ import type {
     AgentWorkspaceResult,
     BrowserRequest,
     BrowserResult,
-    CloudAgentCapabilityRequest,
-    CloudAgentCapabilityResult,
     ComputerDiskStatus,
     ComputerUpdatePhase,
     SignedComputerRelease,
@@ -17,7 +15,6 @@ import type { EffectRuntime } from '@haus/effect';
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { AgentReplyOffice } from './agent-reply-office.ts';
 import { BrowserReplyOffice } from './browser-reply-office.ts';
-import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
 import { HostSkillFileReplies } from './host-skill-file-replies.ts';
 import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
 import { RepoFolderReplies } from './repo-folder-replies.ts';
@@ -54,7 +51,6 @@ export class ComputerConnections implements DeliveryTransport {
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly agentReplies: AgentReplyOffice;
     private readonly browserReplies: BrowserReplyOffice;
-    private readonly cloudAgentCapabilityReplies: CloudAgentCapabilityReplyOffice;
 
     constructor(runtime: EffectRuntime<never>) {
         const send = (computerId: string, frame: AgentCommand) => this.send(computerId, frame);
@@ -62,7 +58,6 @@ export class ComputerConnections implements DeliveryTransport {
         this.inventoryRefresh = new InventoryRefreshReplies({ runtime, send });
         this.repoFolders = new RepoFolderReplies({ runtime, send });
         this.agentReplies = new AgentReplyOffice({ runtime, send });
-        this.cloudAgentCapabilityReplies = new CloudAgentCapabilityReplyOffice({ runtime, send });
         this.browserReplies = new BrowserReplyOffice({ runtime, send });
         this.secrets = new SecretsReplyOffice({ runtime, send });
     }
@@ -79,7 +74,6 @@ export class ComputerConnections implements DeliveryTransport {
         this.agentReplies.disconnect(computerId);
         this.browserReplies.disconnect(computerId);
         this.secrets.disconnect(computerId);
-        this.cloudAgentCapabilityReplies.disconnect(computerId);
     }
 
     /** Drops one revoked Computer attachment without disturbing the Server's other Computers. */
@@ -231,28 +225,6 @@ export class ComputerConnections implements DeliveryTransport {
 
     acceptBrowserResult(computerId: string, result: BrowserResult): boolean {
         return this.browserReplies.accept(computerId, result);
-    }
-
-    /**
-     * A Cloud Agent capability read or connect on one Computer. Connecting runs
-     * the provider's own browser sign-in on that machine, so this waits far
-     * longer than a Browser request: a human has to finish the flow.
-     */
-    requestCloudAgentCapability(
-        computerId: string,
-        input: {
-            operation: CloudAgentCapabilityRequest['operation'];
-            provider: CloudAgentCapabilityRequest['provider'];
-        }
-    ): Promise<NonNullable<CloudAgentCapabilityResult['result']>> {
-        return this.cloudAgentCapabilityReplies.request(computerId, input);
-    }
-
-    acceptCloudAgentCapabilityResult(
-        computerId: string,
-        result: CloudAgentCapabilityResult
-    ): boolean {
-        return this.cloudAgentCapabilityReplies.accept(computerId, result);
     }
 
     setUpdatePhase(computerId: string, updatePhase: ComputerUpdatePhase): void {

@@ -1,4 +1,4 @@
-import type { PullRequestReading, WorkerPullRequestState } from '@haus/api';
+import type { PullRequestReading, PullRequestState } from '@haus/api';
 import * as z from 'zod';
 import {
     GithubApiError,
@@ -16,7 +16,7 @@ export interface GithubPullRequestFacts {
     headSha: string;
     review: PullRequestReading['review'];
     settledAt: Date | null;
-    state: WorkerPullRequestState;
+    state: PullRequestState;
     title: string;
 }
 
@@ -139,7 +139,7 @@ async function readReviews(
     return reviews;
 }
 
-function pullRequestState(pull: z.infer<typeof pullRequestSchema>): WorkerPullRequestState {
+function pullRequestState(pull: z.infer<typeof pullRequestSchema>): PullRequestState {
     if (pull.merged_at) {
         return 'merged';
     }

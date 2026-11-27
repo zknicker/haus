@@ -1,5 +1,5 @@
 import type { AgentCommand } from '@haus/api';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, agentTurnsTable, drivePushesTable } from '../postgres/schema.ts';
 import { listComputerAgents } from './dispatch-config.ts';
@@ -46,8 +46,7 @@ async function unclosedLastRunId(db: HausDatabase, agent: { agentId: string; ser
             and(
                 eq(drivePushesTable.serverId, agentTurnsTable.serverId),
                 eq(drivePushesTable.agentId, agentTurnsTable.agentId),
-                eq(drivePushesTable.id, agentTurnsTable.runId),
-                isNull(drivePushesTable.workerId)
+                eq(drivePushesTable.id, agentTurnsTable.runId)
             )
         )
         .where(

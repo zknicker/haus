@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { formatAgentReferenceTarget, formatWorkerLink } from '@haus/api';
+import { formatAgentReferenceTarget, formatTaskReferenceTarget } from '@haus/api';
 import { mentionedAgentIds } from './reply-subscriptions.ts';
 
 const agents = [
@@ -11,8 +11,8 @@ test('a plain @handle in the words mentions that Agent', () => {
     expect(mentionedAgentIds('Over to you @orbit.', agents)).toEqual(new Set(['agt_orbit']));
 });
 
-test('a Worker link label never mentions the handle it names', () => {
-    const link = formatWorkerLink('Ask @orbit about the flaky test', 'caw_0123456789abcdef');
+test('a Haus link label never mentions the handle it names', () => {
+    const link = `[Ask @orbit about the flaky test](${formatTaskReferenceTarget('tsk_0123456789abcdef')})`;
 
     expect(mentionedAgentIds(`Handing this off.\n\n${link}`, agents)).toEqual(new Set());
     expect(mentionedAgentIds(`@forge see ${link}`, agents)).toEqual(new Set(['agt_forge']));

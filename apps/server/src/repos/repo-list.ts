@@ -5,7 +5,7 @@ import { RepoFolderComputerUnavailableError } from '../computers/repo-folder-rep
 import type { GithubApp } from '../github/github-app.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable, repoFoldersTable, reposTable } from '../postgres/schema.ts';
-import { computerNameSql } from '../projects/project-worker-read.ts';
+import { computerNameSql } from '../computers/computer-name.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { readRepoGithubAccess } from './repo-github-access.ts';

@@ -15,7 +15,6 @@ import { computerRepoFoldersProcedure } from './repo-folders.ts';
 import { revokeAgentAccessProcedure } from './revoke-agent-access.ts';
 import { setAgentAccessScopeProcedure } from './set-agent-access-scope.ts';
 import { setComputerUseProcedure } from './set-computer-use.ts';
-import { setComputerWorkersProcedure } from './set-workers.ts';
 import { computerSkillFileProcedure } from './skill-file.ts';
 import { startComputerUpdateProcedure } from './start-update.ts';
 import { computerStewardsProcedure } from './stewards.ts';
@@ -40,7 +39,6 @@ export const computerRouter = createRouter({
     repoFolders: computerRepoFoldersProcedure,
     setAgentAccessScope: setAgentAccessScopeProcedure,
     setComputerUse: setComputerUseProcedure,
-    setWorkers: setComputerWorkersProcedure,
     skillFile: computerSkillFileProcedure,
     stewards: computerStewardsProcedure,
     stopDesktopInput: stopDesktopInputProcedure,

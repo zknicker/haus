@@ -4,7 +4,7 @@ import { issueCodeSchema } from './issue.ts';
 import { taskDeliveryModeSchema } from './task-delivery.ts';
 import { taskShortIdSchema } from './task-short-id.ts';
 import { taskTitleSchema } from './task.ts';
-import { pullRequestReadingSchema } from './worker-pull-request.ts';
+import { pullRequestReadingSchema } from './pull-request.ts';
 
 /** Most crew reports one Captain run or busy notice carries; the rest wait for the next run. */
 export const crewReportBatchLimit = 50;

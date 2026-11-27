@@ -4,8 +4,6 @@ import {
     computerCliRepoRemoveInputSchema,
     runnerMintRequestSchema,
     runnerRevokeRequestSchema,
-    workerPushCredentialRequestSchema,
-    workerTurnCredentialRequestSchema,
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -15,10 +13,6 @@ import {
     removeRepoFolderByCli,
 } from '../repos/cli-repo-folders.ts';
 import { RepoFolderRefusalError } from '../repos/repo-errors.ts';
-import {
-    mintWorkerPushCredential,
-    mintWorkerTurnCredential,
-} from '../workers/worker-credentials.ts';
 import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';
 import type { ComputerConnections } from './connections.ts';
 import {
@@ -171,22 +165,6 @@ export function registerComputerRoutes(
             );
         } catch (cause) {
             return repoFolderError(reply, cause);
-        }
-    });
-    app.post('/computer/workers/turn-credential', async (request, reply) => {
-        try {
-            const input = workerTurnCredentialRequestSchema.parse(request.body);
-            return await mintWorkerTurnCredential(options.db, input);
-        } catch (cause) {
-            return setupError(reply, cause);
-        }
-    });
-    app.post('/computer/workers/push-credential', async (request, reply) => {
-        try {
-            const input = workerPushCredentialRequestSchema.parse(request.body);
-            return await mintWorkerPushCredential(options.db, input);
-        } catch (cause) {
-            return setupError(reply, cause);
         }
     });
 }

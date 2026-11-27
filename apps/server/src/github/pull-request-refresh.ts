@@ -2,14 +2,8 @@ import { and, asc, eq, isNotNull, lte, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    pullRequestReadingsTable,
-    workerTurnsTable,
-    githubInstallationsTable,
-} from '../postgres/schema.ts';
-import { publishRealtime } from '../realtime/topic.ts';
+import { githubInstallationsTable, pullRequestReadingsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { prepareWorkerEvents } from '../workers/worker-events.ts';
 import { GithubApiError } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 import { createInstallationTokens } from './installation-tokens.ts';
@@ -128,7 +122,7 @@ async function writeReading(
     facts: GithubPullRequestFacts,
     now: Date
 ): Promise<void> {
-    const { events, wakes } = await dependencies.db.transaction(async (tx) => {
+    const wakes = await dependencies.db.transaction(async (tx) => {
         await lockServerRow(tx, row.serverId);
         await tx
             .update(pullRequestReadingsTable)
@@ -136,22 +130,13 @@ async function writeReading(
             .where(rowKey(row));
         await clearMark(tx, row);
         if (!readingChanged(row, facts)) {
-            return { events: [], wakes: [] };
+            return [];
         }
-        return {
-            events: await prepareWorkerEvents(tx, {
-                serverId: row.serverId,
-                workerIds: await reportingWorkIds(tx, row),
-            }),
-            wakes: await enqueuePullRequestWakes(tx, dependencies.delivery, {
-                reading: { ...row, headSha: facts.headSha },
-                transitions: pullRequestTransitions(row, facts),
-            }),
-        };
+        return await enqueuePullRequestWakes(tx, dependencies.delivery, {
+            reading: { ...row, headSha: facts.headSha },
+            transitions: pullRequestTransitions(row, facts),
+        });
     });
-    for (const event of events) {
-        publishRealtime(event);
-    }
     if (wakes.length > 0) {
         dependencies.wakeAgents(wakes);
     }
@@ -195,24 +180,4 @@ function readingChanged(row: ReadingRow, facts: GithubPullRequestFacts): boolean
         row.state !== facts.state ||
         row.title !== facts.title
     );
-}
-
-/** The work whose Runs reported this pull request, by the URL they recorded. */
-export async function reportingWorkIds(
-    db: Pick<HausDatabase, 'selectDistinct'>,
-    row: ReadingRow
-): Promise<string[]> {
-    const runs = await db
-        .selectDistinct({ workId: workerTurnsTable.workerId })
-        .from(workerTurnsTable)
-        .where(
-            and(
-                eq(workerTurnsTable.serverId, row.serverId),
-                sql`exists (
-                    select 1 from jsonb_array_elements(${workerTurnsTable.branches}) branch
-                    where branch->>'pullRequestUrl' = ${row.url}
-                )`
-            )
-        );
-    return runs.map((run) => run.workId);
 }

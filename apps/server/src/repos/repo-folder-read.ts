@@ -8,7 +8,7 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { computerNameSql } from '../projects/project-worker-read.ts';
+import { computerNameSql } from '../computers/computer-name.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
