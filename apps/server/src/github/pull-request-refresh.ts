@@ -3,11 +3,13 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubInstallationsTable, pullRequestReadingsTable } from '../postgres/schema.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { GithubApiError } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 import { createInstallationTokens } from './installation-tokens.ts';
 import { type GithubPullRequestFacts, readGithubPullRequest } from './pull-request-read.ts';
+import { prepareLinkedTaskEvents } from './pull-request-task-events.ts';
 import { enqueuePullRequestWakes, pullRequestTransitions } from './pull-request-wake.ts';
 
 /** A burst of check events settles into one read after this long. */
@@ -122,7 +124,7 @@ async function writeReading(
     facts: GithubPullRequestFacts,
     now: Date
 ): Promise<void> {
-    const wakes = await dependencies.db.transaction(async (tx) => {
+    const { events, wakes } = await dependencies.db.transaction(async (tx) => {
         await lockServerRow(tx, row.serverId);
         await tx
             .update(pullRequestReadingsTable)
@@ -130,13 +132,17 @@ async function writeReading(
             .where(rowKey(row));
         await clearMark(tx, row);
         if (!readingChanged(row, facts)) {
-            return [];
+            return { events: [], wakes: [] };
         }
-        return await enqueuePullRequestWakes(tx, dependencies.delivery, {
-            reading: { ...row, headSha: facts.headSha },
-            transitions: pullRequestTransitions(row, facts),
-        });
+        return {
+            events: await prepareLinkedTaskEvents(tx, row),
+            wakes: await enqueuePullRequestWakes(tx, dependencies.delivery, {
+                reading: { ...row, headSha: facts.headSha },
+                transitions: pullRequestTransitions(row, facts),
+            }),
+        };
     });
+    publishRealtime(events);
     if (wakes.length > 0) {
         dependencies.wakeAgents(wakes);
     }

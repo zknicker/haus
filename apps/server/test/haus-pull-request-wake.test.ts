@@ -6,10 +6,12 @@ import type { GithubApp } from '../src/github/github-app.ts';
 import { refreshPullRequestReadings } from '../src/github/pull-request-refresh.ts';
 import { attachPullRequestToTask } from '../src/github/task-pull-request-attach.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { taskUpdatedTopic } from '../src/realtime/topics.ts';
 import { createFakeGithub } from './github-fake.ts';
 import { type GithubTriggerWorld, seedGithubTriggerWorld } from './github-trigger-seed.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { type PullRequestWakeReading, respondAsGithub } from './pull-request-wake-github.ts';
+import { captureTopic } from './realtime-capture.ts';
 import { seedTaskAgent } from './task-agent.fixture.ts';
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
@@ -104,6 +106,20 @@ test('checks finishing wake once per head, even when the reading repeats', async
     await harness.sql`update pull_request_readings set checks = 'pending'`;
     await markAndRefresh();
     expect(await notices()).toHaveLength(2);
+});
+
+test('a changed reading announces the Task it is attached to', async () => {
+    const updates = captureTopic(taskUpdatedTopic);
+    try {
+        pull.checks = 'failing';
+        await markAndRefresh();
+        expect(await updates.next((event) => event.taskId === crew.taskId)).toMatchObject({
+            chatId: crew.chatId,
+            serverId: world.serverId,
+        });
+    } finally {
+        updates.stop();
+    }
 });
 
 test('attach-pr links a pull request to the Task and seeds its reading', async () => {
