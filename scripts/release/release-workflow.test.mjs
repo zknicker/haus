@@ -253,7 +253,10 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(dependencyAction, /CI_OP_TOKEN: \$\{\{ inputs\.ci-op-token \}\}/);
     assert.match(dependencyAction, /if: inputs\.install-xcodegen == 'true'/);
-    assert.match(dependencyAction, /run: brew install xcodegen/);
+    assert.match(dependencyAction, /XCODEGEN_VERSION: '2\.46\.0'/);
+    assert.match(dependencyAction, /XCODEGEN_SHA256: [0-9a-f]{64}/);
+    assert.match(dependencyAction, /shasum -a 256 -c -/);
+    assert.doesNotMatch(dependencyAction, /brew install xcodegen/);
     assert.match(
         workflow,
         /name: Upload iOS[\s\S]*?install-xcodegen: 'true'[\s\S]*?name: Import Apple material/
