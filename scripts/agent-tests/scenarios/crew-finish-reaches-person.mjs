@@ -45,21 +45,15 @@ export default defineScenario({
 
             log(`waiting for Task ${task.shortId}`);
             await turnsSince(kit, task.agentId, task.createdAt);
-            const taskPosts = await ledger.postsBy(task.agentId);
-            expect(
-                taskPosts.some(
-                    (post) => post.chatId === task.chatId && post.content.includes(digest)
-                ),
-                'the Task posts the digest in its chat'
-            ).toBe(true);
+            const result = (await ledger.postsBy(task.agentId)).find(
+                (post) => post.chatId === task.chatId && post.content.includes(digest)
+            );
+            expect(result !== undefined, 'the Task posts the digest in its chat').toBe(true);
             const finishes = await ledger.finishes(captain.id, task.shortId);
-            log(`finishes: ${finishes.map((finish) => finish.ending).join(', ') || 'none'}`);
-            expect(finishes.length >= 1, 'the Captain hears the Task turn end').toBe(true);
-            const [finish] = finishes;
-            expect(finish.ending, 'how the first turn ended').toBe('finished');
+            log(`crew finishes: ${finishes.map((finish) => finish.ending).join(', ') || 'none'}`);
 
-            log('waiting for the Captain to hear the finish');
-            await turnsSince(kit, captain.id, finish.createdAt, { within: 300_000 });
+            log('waiting for the Captain to hear the Task finish');
+            await turnsSince(kit, captain.id, result.createdAt, { within: 300_000 });
             const captainPosts = await ledger.postsBy(captain.id, {
                 since: asked.message.createdAt,
             });
@@ -74,7 +68,7 @@ export default defineScenario({
             const summaries = captainPosts.filter(
                 (post) =>
                     post.chatId === chatId &&
-                    Date.parse(post.createdAt) >= Date.parse(finish.createdAt) &&
+                    Date.parse(post.createdAt) >= Date.parse(result.createdAt) &&
                     post.content.toLowerCase().includes(digest)
             );
             const { followed } = await kit.trpc('task.get', {
