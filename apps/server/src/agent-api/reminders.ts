@@ -60,9 +60,10 @@ export async function scheduleAgentReminder(
         );
     }
     const fireAt = input.fireAt === undefined ? undefined : new Date(input.fireAt);
+    const timezone = input.timezone ?? owner.setterTimezone ?? undefined;
     const result = await scheduleReminder(
         db,
-        owner,
+        owner.agentId,
         {
             ...anchor,
             commandId: input.commandId,
@@ -73,7 +74,7 @@ export async function scheduleAgentReminder(
             script: input.script,
             serverId: runner.serverId,
             title: input.title,
-            timezone: input.timezone,
+            timezone,
             wakeOnChange: input.wakeOnChange,
         },
         clock

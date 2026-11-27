@@ -53,15 +53,19 @@ export async function readReminderOwner(
             )
         )
         .limit(1);
-    if (anchorTask?.agentId) {
-        return anchorTask.agentId;
-    }
     const [setter] = await db
-        .select({ kind: agentsTable.kind })
+        .select({ homeTimezone: agentsTable.homeTimezone, kind: agentsTable.kind })
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
-    return setter?.kind === 'task' ? null : input.agentId;
+    if (anchorTask?.agentId) {
+        return {
+            agentId: anchorTask.agentId,
+            setterTimezone:
+                anchorTask.agentId === input.agentId ? null : (setter?.homeTimezone ?? null),
+        };
+    }
+    return setter?.kind === 'task' ? null : { agentId: input.agentId, setterTimezone: null };
 }
 
 export async function refuseRecurringTaskReminder(
