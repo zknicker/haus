@@ -66,7 +66,7 @@ function reportingSection(task: TaskFacts) {
     const ask = task.captainHandle ? 'asks your Captain' : 'asks whoever started you';
     return `## Reporting
 
-${audience} \`haus task report --outcome done|needs-you|failed < report\` posts one ${where}: what you did, what is left, and links, with \`--pr <url>\` for each pull request you opened. \`--outcome needs-you --ask "<question>"\` ${ask}, or a person in your chat with \`--person <handle>\`; their answer wakes you.`;
+${audience} \`haus task report --outcome done|needs-you|failed <<'HAUSMSG'\`, the report, then \`HAUSMSG\`, posts one ${where}: what you did, what is left, and links, with \`--pr <url>\` for each pull request you opened. \`--outcome needs-you --ask "<question>"\` ${ask}, or a person in your chat with \`--person <handle>\`; their answer wakes you.`;
 }
 
 function issuesSection(task: TaskFacts) {
@@ -93,4 +93,4 @@ const cliSection = `## haus CLI
 - **Drive**: \`haus drive write\`, \`haus drive versions\`, \`haus drive view\`, \`haus drive share\`.
 - **Manual**: \`haus manual get\`, \`haus manual search\`, each with \`--intent\` and \`--reason\`.
 
-Run any subcommand with \`--help\` for syntax. Prefer one \`haus\` command per tool call, and read its result before the next.`;
+Run any subcommand with \`--help\` for syntax. A \`haus\` command runs alone, with any body in a heredoc, not a file or a pipe; read its result before the next.`;

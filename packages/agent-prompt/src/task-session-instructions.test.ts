@@ -35,8 +35,9 @@ test('a crew Task works in its one chat and its Captain reads its reports', () =
         'Put deliverables in Drive with `haus drive write <path> < file` under `agents/orbit/reports/k3mq7xta/`, `agents/orbit/renders/k3mq7xta/`, `agents/orbit/handoffs/k3mq7xta/`, and cite the link it prints.'
     );
     expect(prompt).toContain(
-        'Your Captain reads your reports, not your chat. `haus task report --outcome done|needs-you|failed < report` posts one in your chat and to your Captain: what you did, what is left, and links, with `--pr <url>` for each pull request you opened.'
+        "Your Captain reads your reports, not your chat. `haus task report --outcome done|needs-you|failed <<'HAUSMSG'`, the report, then `HAUSMSG`, posts one in your chat and to your Captain: what you did, what is left, and links, with `--pr <url>` for each pull request you opened."
     );
+    expect(prompt).toContain('with any body in a heredoc, not a file or a pipe');
     expect(prompt).toContain(
         '`--outcome needs-you --ask "<question>"` asks your Captain, or a person in your chat with `--person <handle>`; their answer wakes you.'
     );
@@ -62,7 +63,7 @@ test('a Task a person started reports to its starter and has no Captain', () => 
         'A person started you; their first message in your chat is your brief.'
     );
     expect(prompt).toContain(
-        'Whoever started you reads your chat. `haus task report --outcome done|needs-you|failed < report` posts one in your chat:'
+        "Whoever started you reads your chat. `haus task report --outcome done|needs-you|failed <<'HAUSMSG'`, the report, then `HAUSMSG`, posts one in your chat:"
     );
     expect(prompt).toContain('`--outcome needs-you --ask "<question>"` asks whoever started you');
     expect(prompt).toContain('under `projects/GEN/tasks/k3mq7xta/`');
@@ -84,5 +85,5 @@ test('a Task working an Issue carries its code, title and description, and its t
 });
 
 test('keeps the Task prompt within its reviewed size budget', () => {
-    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2516);
+    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2582);
 });

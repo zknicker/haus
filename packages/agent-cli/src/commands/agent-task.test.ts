@@ -33,7 +33,8 @@ test('start sends the brief from stdin and says the Task is queued, never starte
         [
             'Queued k3mq7xta "Rotate the signing key" · started by @kit',
             'Its brief posted as its first message, and its first turn is queued. Task target: task:k3mq7xta',
-            'Started from message 1a2b3c4d in #security.',
+            'Started from message 1a2b3c4d in #security; people there see the Task under it.',
+            'Its report reaches you as a crew report when its turn ends.',
             '',
         ].join('\n')
     );
