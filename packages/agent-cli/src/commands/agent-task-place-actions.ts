@@ -54,7 +54,7 @@ export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<nu
             `Its brief posted as its first message, and its first turn is queued. Task target: ${response.target}`,
             ...(from && target
                 ? [
-                      `Started from message ${shortMessageId(from)} in ${target}; people there see the Task under it.`,
+                      `Started from message ${shortMessageId(from)} in ${target}; people there see the Task, its state and newest messages under it.`,
                   ]
                 : []),
             'Its report reaches you as a crew report when its turn ends.',
