@@ -27,7 +27,7 @@ test('a Task starts with its brief on stdin, which is all it knows', () => {
         'Start one with its brief on stdin: `haus task start --title <text> --target <the chat you answer in> --from <shortid> < brief`, adding `--issue <code>` or `--repo <owner/name>` when it has them. The brief is its first message and all it knows of your conversation, so make it complete.'
     );
     expect(tasks).toContain(
-        'People see each Task under its origin message. Separate pieces of work are separate Tasks. Reply with a link to the Task.'
+        'People see each Task under its origin message, with its newest messages. Separate pieces of work are separate Tasks.'
     );
 });
 

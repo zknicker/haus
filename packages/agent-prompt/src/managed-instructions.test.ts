@@ -224,8 +224,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 128 (37,648 → 37,776) for the Computers entry (ADR 0057), 116 (→ 37,892) for Repos (ADR 0060).
     // Raised by exactly 59 (37,892 → 37,951): web sources are cited as Markdown links (ADR 0061).
     // Lowered by exactly 38 (37,951 → 37,913): Tasks name `archive` (ADR 0062). Raised by exactly 364 (→ 38,277): Captains work from Issues (step 3). Lowered by exactly 198 (→ 38,079): Captain chat, crew Tasks (step 5b).
-    // Lowered by exactly 469 (38,079 → 37,610): Workers deleted (ADR 0062 step 7): the `### Workers` section (-262) and family entry (-177), the sub-agent separate-tools sentence (-33), and WORKER.md names crew Tasks (+3).
-    expect(prompt.length).toBeLessThanOrEqual(37_610);
+    // Lowered by exactly 469 (38,079 → 37,610): Workers deleted (ADR 0062 step 7): the `### Workers` section (-262) and family entry (-177), the sub-agent separate-tools sentence (-33), and WORKER.md names crew Tasks (+3). Lowered by exactly 50 (→ 37,560): crew work says what the asker sees, not a link reply or a result kept in the Task (Captain voice).
+    expect(prompt.length).toBeLessThanOrEqual(37_560);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');

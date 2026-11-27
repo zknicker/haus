@@ -1,11 +1,17 @@
-import { awaitQuiet, crewStartedBy, openCrewLedger, useAgentMachineForTasks } from '../crew.mjs';
+import {
+    awaitQuiet,
+    crewStartedBy,
+    openCrewLedger,
+    postsOutside,
+    useAgentMachineForTasks,
+} from '../crew.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'An Issue assigned to a Captain wakes it to start exactly one crew Task, assigned that Issue, whose brief names the Issue code; the Issue stays todo or in_progress (only an edit moves it, so a done or canceled Issue was closed by hand), and the Captain posts in no channel.',
+        'An Issue assigned to a Captain wakes it to start exactly one crew Task, assigned that Issue, whose brief names the Issue code; the Issue stays todo or in_progress (only an edit moves it, so a done or canceled Issue was closed by hand), and the Captain posts nowhere but the brief: no channel post and no start note in its Captain chat.',
     name: 'captain-issue-starts-crew',
     run: withRoutingEvidence(async ({ agents, evidence, expect, kit, log, settleTurn }) => {
         const [captain] = agents;
@@ -62,11 +68,10 @@ export default defineScenario({
             expect(brief?.content ?? '', 'the brief names the Issue').toContain(after.code);
 
             const posts = await ledger.postsBy(captain.id, { runIds: turn.runIds });
-            const channelPosts = posts.filter((post) => post.chatKind === 'channel');
             log(`Captain posts: ${posts.map((post) => post.chatKind).join(', ') || 'none'}`);
             expect(
-                channelPosts.map((post) => post.content.slice(0, 80)),
-                'Captain posts in a channel'
+                postsOutside(posts, [task.chatId]),
+                'Captain posts outside the Task (a channel, or start narration in the Captain chat)'
             ).toHaveLength(0);
         } finally {
             ledger.close();

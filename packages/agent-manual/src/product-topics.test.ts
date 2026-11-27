@@ -36,7 +36,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     );
     expect(topic?.body).not.toContain('one-line preview');
     expect(topic?.body).toContain(
-        'Work your reply will not finish goes to your crew: answer the request with a link to the Task you start (see tasks), whose chat whoever asked follows.'
+        'Work your reply will not finish goes to your crew (see tasks), in a Task whose chat whoever asked follows.'
     );
     expect(topic?.body).not.toContain('`#channel:<noteShortId>`');
     expect(topic?.body).not.toContain('Sidebars go in threads');
