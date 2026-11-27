@@ -20,7 +20,6 @@ import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import { ingestProcessExit } from '../agent-invocations/process-exits.ts';
-import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
@@ -55,8 +54,7 @@ export async function ingestReport(
     raw: string,
     postCommitWork: ServerPostCommitWork,
     thoughts: AgentThoughts,
-    invocations: InvocationRouter,
-    storage: ArtifactStorage | null
+    invocations: InvocationRouter
 ) {
     let frame: unknown;
     try {

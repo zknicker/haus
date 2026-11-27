@@ -7,7 +7,6 @@ export interface ProjectMachineOption {
     label: string;
 }
 
-/** No default, then every attached Machine; a default that left keeps its own row. */
 export function projectMachineOptions(
     current: Project['defaultMachine'],
     machines: readonly ProjectMachineOption[]

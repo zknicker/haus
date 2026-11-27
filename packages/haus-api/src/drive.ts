@@ -10,7 +10,6 @@ const sha256 = z.string().regex(/^[a-f0-9]{64}$/u);
 export const driveDeletedRetentionDays = 30;
 /** Most changes one `drive.changes` page returns. */
 export const driveChangesPageMax = 1000;
-/** Most set-aside files one push close names. */
 
 /** `haus`, `project:<projectId>`, or `agent:<agentId>`. */
 export const driveAreaIdSchema = z

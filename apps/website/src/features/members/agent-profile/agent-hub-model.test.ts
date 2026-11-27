@@ -11,9 +11,7 @@ import {
 test('a fact that names nothing reads as unset', () => {
     expect(isUnsetFact(formatNameList([]))).toBe(true);
     expect(
-        isUnsetFact(
-            formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 0, total: 0 })
-        )
+        isUnsetFact(formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 0, total: 0 }))
     ).toBe(true);
     expect(isUnsetFact(formatNameList(['Atlas']))).toBe(false);
     expect(isUnsetFact(undefined)).toBe(false);
@@ -35,9 +33,9 @@ test('an Agent with no standing automations counts zero', () => {
         total: 0,
     });
     expect(formatAutomationsFact(countAgentAutomations([], []))).toBe('Nothing scheduled');
-    expect(
-        formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 1, total: 1 })
-    ).toBe('1 reminder');
+    expect(formatAutomationsFact({ armedTriggers: 0, scheduledReminders: 1, total: 1 })).toBe(
+        '1 reminder'
+    );
 });
 
 test('Connections is only what this Agent can use right now', () => {

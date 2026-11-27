@@ -91,10 +91,7 @@ describe('Chat stream hooks', () => {
             event
         );
         expect<unknown>(onEvent[0]).toEqual({ op: 'noteMessageAnnotated', target: event });
-        const reads = [
-            listKey('chat.search', { serverId }),
-            listKey('claim.list', { serverId }),
-        ];
+        const reads = [listKey('chat.search', { serverId }), listKey('claim.list', { serverId })];
         expect(invalidated(onEvent)).toEqual(reads);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         expect(invalidated(onRecovery)).toEqual(reads);

@@ -10,11 +10,9 @@ import { ModelConnectionsGroup } from './connections/model-connections-group.tsx
 import { buildModelCatalog, type ModelCatalogItem, type ModelsComputer } from './model-catalog.ts';
 
 export function ModelsSettings({
-    canManage,
     isOwner = false,
     serverId,
 }: {
-    canManage: boolean;
     isOwner?: boolean;
     serverId: string;
 }) {

@@ -22,7 +22,10 @@ export function useHappeningNowRows(): HappeningNowRow[] | null {
     const now = useRelativeNow(activities.length ? 1000 : 60_000);
     const settled = currentActivity?.isSnapshotReady === true;
     const rows = React.useMemo(
-        () => toHappeningNowRows(happeningNowAgentRows(activities, lifecycles, agents.data ?? [], now)),
+        () =>
+            toHappeningNowRows(
+                happeningNowAgentRows(activities, lifecycles, agents.data ?? [], now)
+            ),
         [activities, agents.data, lifecycles, now]
     );
 

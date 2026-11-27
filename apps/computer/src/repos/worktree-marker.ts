@@ -2,8 +2,8 @@ import { existsSync, realpathSync } from 'node:fs';
 import { readFile, stat, utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as z from 'zod';
-import { gitOutput, RepoCheckoutError } from './git.ts';
 import { readJsonFile } from '../durable-json.ts';
+import { gitOutput, RepoCheckoutError } from './git.ts';
 
 const markerSchema = z.object({ branch: z.string().min(1), ref: z.string().min(1).nullable() });
 export type WorktreeMarker = z.infer<typeof markerSchema>;

@@ -65,27 +65,18 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [
-        attachments,
-        claims,
-        causes,
-        bodies,
-        images,
-        reactions,
-        replies,
-        taskLinks,
-        citations,
-    ] = await Promise.all([
-        readMessageAttachments(db, serverId, foundIds),
-        listMessageClaimMap(db, serverId, foundIds),
-        readMessageCauses(db, serverId, foundIds),
-        readMessageBodies(db, serverId, foundIds),
-        readLinkedImageGenerations(db, serverId, foundIds),
-        readChatMessageReactions(db, serverId, foundIds),
-        readInlineReplyContexts(db, serverId, rows),
-        readMessageTaskLinks(db, serverId, foundIds),
-        readMessageDriveCitations(db, serverId, foundIds),
-    ]);
+    const [attachments, claims, causes, bodies, images, reactions, replies, taskLinks, citations] =
+        await Promise.all([
+            readMessageAttachments(db, serverId, foundIds),
+            listMessageClaimMap(db, serverId, foundIds),
+            readMessageCauses(db, serverId, foundIds),
+            readMessageBodies(db, serverId, foundIds),
+            readLinkedImageGenerations(db, serverId, foundIds),
+            readChatMessageReactions(db, serverId, foundIds),
+            readInlineReplyContexts(db, serverId, rows),
+            readMessageTaskLinks(db, serverId, foundIds),
+            readMessageDriveCitations(db, serverId, foundIds),
+        ]);
     return new Map(
         rows.map((row) => [
             row.id,

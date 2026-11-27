@@ -98,7 +98,12 @@ async function seedWorkerRows(database: SQL) {
             pushId: 'psh_worker',
             writer:
                 type === 'worker'
-                    ? { agentId: 'agt_one', taskId: 'tsk_one', type, workerId: 'wkr_aaaaaaaaaaaaaaaa' }
+                    ? {
+                          agentId: 'agt_one',
+                          taskId: 'tsk_one',
+                          type,
+                          workerId: 'wkr_aaaaaaaaaaaaaaaa',
+                      }
                     : { agentId: 'agt_one', type },
         });
     await database.begin(async (tx) => {

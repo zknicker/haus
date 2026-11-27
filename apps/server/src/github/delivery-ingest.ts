@@ -8,7 +8,6 @@ import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { recordTriggerFire } from '../triggers/trigger-fire.ts';
 import type { TriggerRateLimiter } from '../triggers/trigger-rate-limit.ts';
-import { markPullRequestReadings } from './pull-request-readings.ts';
 import {
     type GithubIgnoredReason,
     type GithubTriggerMatch,
@@ -17,6 +16,7 @@ import {
 } from './delivery-routing.ts';
 import { count, field, type Payload, text } from './event-projection/payload.ts';
 import { projectGithubDelivery } from './event-projection/project.ts';
+import { markPullRequestReadings } from './pull-request-readings.ts';
 import { githubEnvelopeLines } from './trigger-envelope.ts';
 import { triggerEventName } from './trigger-matching.ts';
 import type { GithubTriggerProblemMark, markGithubTriggersProblem } from './trigger-problems.ts';

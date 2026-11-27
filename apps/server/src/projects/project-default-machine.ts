@@ -8,7 +8,6 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { ProjectNotFoundError } from './project-errors.ts';
 
-/** Clears every Project default that names a Computer being removed, in its transaction. */
 export async function clearComputerDefaults(
     tx: HausDatabase,
     serverId: string,
@@ -27,7 +26,6 @@ export async function clearComputerDefaults(
     return cleared.map(({ projectId }) => projectId);
 }
 
-/** `project.setDefaultMachine`: the Machine a Task started in this Project runs on by default. */
 export async function setProjectDefaultMachine(
     db: HausDatabase,
     member: HausUser | null,

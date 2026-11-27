@@ -7,7 +7,6 @@ export interface PullRequestTaskWake {
     chatId: string;
 }
 
-/** The live Task a pull request is attached to, whose agent a change to it wakes. */
 export async function readPullRequestTaskWakes(
     db: Pick<HausDatabase, 'select'>,
     pull: { number: number; repository: string; serverId: string }

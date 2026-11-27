@@ -220,15 +220,7 @@ test('settlement invalidates the Agent turn reads once, never older activity pag
         'infinite'
     );
     const usage = getQueryKey(hausTrpc.stats.agentUsage, scope, 'query');
-    for (const queryKey of [
-        turns,
-        runTurn,
-        otherTurns,
-        latest,
-        older,
-        serverTurns,
-        usage,
-    ]) {
+    for (const queryKey of [turns, runTurn, otherTurns, latest, older, serverTurns, usage]) {
         client.setQueryData(queryKey, {});
     }
     const stale = (queryKey: readonly unknown[]) => client.getQueryState(queryKey)?.isInvalidated;

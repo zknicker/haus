@@ -30,10 +30,6 @@ export async function retireOnServerComputers(
     }
 }
 
-/**
- * A Computer's `agent-held` report names the Agents whose folders it still holds; each one that
- * is retired or gone is told to retire again. Any other frame is not this one.
- */
 export async function ingestAgentHeld(
     db: Reader,
     transport: Pick<ComputerTransport, 'send'>,

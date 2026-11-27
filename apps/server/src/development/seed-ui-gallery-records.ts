@@ -1,8 +1,4 @@
-import {
-    type ClaimTier,
-    formatUserReferenceTarget,
-    type MessageClaim,
-} from '@haus/api';
+import { type ClaimTier, formatUserReferenceTarget, type MessageClaim } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

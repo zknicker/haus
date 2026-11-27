@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
-import { taskLinkSchema, taskShortIdSchema } from './task-short-id.ts';
 import { pullRequestReadingSchema } from './pull-request.ts';
+import { taskLinkSchema, taskShortIdSchema } from './task-short-id.ts';
 
 export const TASK_TITLE_MAX_CHARS = 200;
 export const TASK_DESCRIPTION_MAX_CHARS = 20_000;

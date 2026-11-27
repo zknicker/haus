@@ -3,11 +3,7 @@ import { PanelSection } from './panel-section.tsx';
 import { PullRequestRows } from './pull-request-rows.tsx';
 import { pendingTaskReminders, reminderLine } from './task-work-model.ts';
 
-export function TaskWorkPanel({
-    task,
-}: {
-    task: Pick<TaskDetail, 'pullRequests' | 'reminders'>;
-}) {
+export function TaskWorkPanel({ task }: { task: Pick<TaskDetail, 'pullRequests' | 'reminders'> }) {
     const reminders = pendingTaskReminders(task.reminders);
     if (task.pullRequests.length === 0 && reminders.length === 0) {
         return null;

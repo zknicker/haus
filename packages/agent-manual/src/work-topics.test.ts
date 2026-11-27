@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { getManualTopic, manualTopics, searchManualTopics } from './index.ts';
+import { getManualTopic, manualTopics } from './index.ts';
 
 test('the tasks topic says a Task is crew with its own chat (ADR 0062)', () => {
     const body = getManualTopic('tasks')?.body ?? '';

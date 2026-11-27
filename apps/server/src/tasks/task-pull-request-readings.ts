@@ -1,7 +1,7 @@
 import { and, asc, eq } from 'drizzle-orm';
+import { toPullRequestReading } from '../github/pull-request-readings.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { pullRequestReadingsTable, taskPullRequestsTable } from '../postgres/schema.ts';
-import { toPullRequestReading } from '../github/pull-request-readings.ts';
 
 export async function readTaskPullRequestReadings(
     db: Pick<HausDatabase, 'select'>,

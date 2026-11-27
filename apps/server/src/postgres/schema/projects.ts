@@ -20,7 +20,6 @@ export const projectsTable = pgTable(
         chatIsAll: boolean('chat_is_all').notNull().default(false),
         chatKind: text('chat_kind').notNull().default('channel'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-        /** The Machine a Task started here runs on when its starter names none (specs/projects.md). */
         defaultTaskComputerId: text('default_task_computer_id'),
         serverId: text('server_id').notNull(),
         taskKeyId: text('task_key_id').notNull(),

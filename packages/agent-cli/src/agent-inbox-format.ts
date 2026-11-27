@@ -41,9 +41,7 @@ export function formatInboxCheck(input: InboxCheckInput): string {
     const extraPending =
         input.before === undefined
             ? pendingRows.filter(
-                  (row) =>
-                      !listed.has(row.chatId) &&
-                      (view === 'unread' || row.mentioned)
+                  (row) => !listed.has(row.chatId) && (view === 'unread' || row.mentioned)
               )
             : [];
     const rows: RenderedRow[] = [

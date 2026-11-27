@@ -5,7 +5,10 @@ import {
 } from '@haus/api';
 import { and, desc, eq, gt } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { artifactsTable as artifacts, artifactRevisionsTable as revisions } from '../postgres/schema.ts';
+import {
+    artifactsTable as artifacts,
+    artifactRevisionsTable as revisions,
+} from '../postgres/schema.ts';
 import { type ArtifactActor, artifactAccess } from './access.ts';
 import { insideFolder } from './path.ts';
 import { artifactRecord } from './read.ts';

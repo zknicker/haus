@@ -3,7 +3,6 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, messageClaimsTable } from '../postgres/schema.ts';
 import type { InboxSeedContext } from './seed-inbox-context.ts';
 
-
 /**
  * Blippy's claim on a message nobody promoted, stamped tracked the way a run
  * that settled without finishing stamps it. Tier reads `tracked` from the

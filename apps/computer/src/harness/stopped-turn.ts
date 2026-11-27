@@ -1,4 +1,3 @@
-
 /** How long a cancelled turn may take to reach the SDK's idle boundary before it is torn down. */
 export const stoppedTurnSettleMs = 20_000;
 

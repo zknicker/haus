@@ -131,7 +131,6 @@ function IssueSubscriptionStream({ serverId }: StreamProps) {
     return null;
 }
 
-
 function ImageGenerationStream({ serverId }: StreamProps) {
     useImageGenerationStream(serverId);
     return null;
@@ -161,7 +160,6 @@ function ArtifactUpdateStream({ serverId }: StreamProps) {
     useArtifactUpdateStream(serverId);
     return null;
 }
-
 
 function ModelConnectionsStream({ serverId }: StreamProps) {
     useModelConnectionsStream(serverId);

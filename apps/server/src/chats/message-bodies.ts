@@ -14,6 +14,9 @@ export async function readMessageBodies(
 ): Promise<Map<string, MessageBody>> {
     const createdAgents = await readCreatedAgentsForMessages(db, serverId, messageIds);
     return new Map<string, MessageBody>(
-        [...createdAgents].map(([messageId, agent]) => [messageId, { agent, kind: 'agent-created' }])
+        [...createdAgents].map(([messageId, agent]) => [
+            messageId,
+            { agent, kind: 'agent-created' },
+        ])
     );
 }

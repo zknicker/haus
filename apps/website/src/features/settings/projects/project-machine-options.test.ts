@@ -15,7 +15,9 @@ test('the options are No default, then every Machine', () => {
 
 test('a default Machine the list no longer has keeps its own option', () => {
     expect(
-        projectMachineOptions({ computerId: 'cmp_gone', computerName: 'Old laptop' }, machines).at(-1)
+        projectMachineOptions({ computerId: 'cmp_gone', computerName: 'Old laptop' }, machines).at(
+            -1
+        )
     ).toEqual({ id: 'cmp_gone', label: 'Old laptop' });
     expect(projectMachineLabel({ computerId: 'cmp_gone', computerName: null })).toBe('Device');
     expect(projectMachineLabel(null)).toBe('No default');

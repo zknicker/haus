@@ -1,7 +1,4 @@
-import type {
-    ComputerAgentAccessSettings,
-    ComputerUseSettings,
-} from '@haus/api';
+import type { ComputerAgentAccessSettings, ComputerUseSettings } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';

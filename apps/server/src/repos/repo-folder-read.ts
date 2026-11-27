@@ -1,5 +1,6 @@
 import type { AgentRepoList, RepoFolder } from '@haus/api';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { computerNameSql } from '../computers/computer-name.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     computersTable,
@@ -8,7 +9,6 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { computerNameSql } from '../computers/computer-name.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 

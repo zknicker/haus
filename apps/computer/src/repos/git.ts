@@ -1,9 +1,5 @@
 import { repoNameSchema } from '@haus/api';
-import {
-    type GithubAppGit,
-    githubGitArgs,
-    githubGitRefusalPrefix,
-} from './github-git.ts';
+import { type GithubAppGit, githubGitArgs, githubGitRefusalPrefix } from './github-git.ts';
 
 export class RepoCheckoutError extends Error {
     override readonly name = 'RepoCheckoutError';

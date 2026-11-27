@@ -1,16 +1,10 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { mkdir, rm, rmdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import {
-    type GitCredentials,
-    gitOutput,
-    gitSucceeds,
-    runGit,
-    RepoCheckoutError,
-} from './git.ts';
-import { directories } from './repo-clones.ts';
 import { hasCode } from '../durable-json.ts';
 import { serialized } from '../serialized.ts';
+import { type GitCredentials, gitOutput, gitSucceeds, runGit, RepoCheckoutError } from './git.ts';
+import { directories } from './repo-clones.ts';
 import { readMarker, worktreeGitDirs, writeMarker } from './worktree-marker.ts';
 
 export interface WorktreeStart {

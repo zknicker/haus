@@ -1,11 +1,11 @@
 import { existsSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { agentRepoBranch, agentWorktreeIdleMs } from '@haus/api';
+import { withAgentCleanup } from './agent-use.ts';
 import { type GitCredentials, runGit, RepoCheckoutError } from './git.ts';
+import { type GithubAppGit, githubAppGit } from './github-git.ts';
 import { worktreePath, worktreesRoot } from './layout.ts';
 import { verifyRepoFolder } from './repo-clones.ts';
-import { withAgentCleanup } from './agent-use.ts';
-import { type GithubAppGit, githubAppGit } from './github-git.ts';
 import {
     lastUseMs,
     markSessionGeneration,

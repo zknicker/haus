@@ -7,12 +7,7 @@ import {
     repoFolderRequestSchema,
     repoFolderResultSchema,
 } from '@haus/api';
-import {
-    gitOutput,
-    githubRepositoryOfRemote,
-    readOrigin,
-    RepoCheckoutError,
-} from './git.ts';
+import { gitOutput, githubRepositoryOfRemote, readOrigin, RepoCheckoutError } from './git.ts';
 import { worktreesRoot } from './layout.ts';
 
 interface FolderScope {
@@ -107,9 +102,7 @@ export async function inspectRepoFolder(path: string) {
         )
     );
     if (gitDir && commonDir && resolve(gitDir) !== resolve(commonDir)) {
-        throw new RepoCheckoutError(
-            `${folder} is a git worktree. Add its main checkout instead.`
-        );
+        throw new RepoCheckoutError(`${folder} is a git worktree. Add its main checkout instead.`);
     }
     const url = await readOrigin(folder);
     if (url === null) {

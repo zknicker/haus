@@ -9,8 +9,8 @@ import {
     issueStateSchema,
     issueTitleSchema,
 } from './issue.ts';
-import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 import { pullRequestStates } from './pull-request.ts';
+import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 
 export const agentIssueRefusalCodes = [
     'ISSUE_TAKEN',

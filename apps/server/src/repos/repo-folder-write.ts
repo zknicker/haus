@@ -86,4 +86,3 @@ export async function deleteRepoFolder(
         .returning({ path: repoFoldersTable.path });
     return deleted.length > 0;
 }
-

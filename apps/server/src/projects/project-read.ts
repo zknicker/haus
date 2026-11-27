@@ -1,11 +1,11 @@
 import type { Project } from '@haus/api';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { listChats } from '../chats/list-chats.ts';
+import { computerNameSql } from '../computers/computer-name.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, computersTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { computerNameSql } from '../computers/computer-name.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -83,19 +83,17 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
             )
         )
         .orderBy(asc(chatsTable.name));
-    return rows.map(
-        ({ defaultComputerId, defaultComputerName, name, ...row }) => {
-            if (name === null) {
-                throw new Error(`Project ${row.chatId} has a channel with no name.`);
-            }
-            return {
-                ...row,
-                defaultMachine:
-                    defaultComputerId === null
-                        ? null
-                        : { computerId: defaultComputerId, computerName: defaultComputerName },
-                name,
-            } satisfies Project;
+    return rows.map(({ defaultComputerId, defaultComputerName, name, ...row }) => {
+        if (name === null) {
+            throw new Error(`Project ${row.chatId} has a channel with no name.`);
         }
-    );
+        return {
+            ...row,
+            defaultMachine:
+                defaultComputerId === null
+                    ? null
+                    : { computerId: defaultComputerId, computerName: defaultComputerName },
+            name,
+        } satisfies Project;
+    });
 }

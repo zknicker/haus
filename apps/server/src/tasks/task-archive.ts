@@ -63,11 +63,7 @@ export async function archiveLockedTask(
         : [];
     const task = await readTask(tx, serverId, current.id);
     const result: TaskWriteResult = {
-        events: [
-            prepareTaskUpdatedEvent(task),
-            ...reminderEvents,
-            ...issues.events,
-        ],
+        events: [prepareTaskUpdatedEvent(task), ...reminderEvents, ...issues.events],
         sessions,
         task,
         wakes: issues.agentWakes,
