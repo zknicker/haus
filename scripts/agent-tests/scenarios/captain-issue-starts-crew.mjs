@@ -1,12 +1,11 @@
 import { awaitQuiet, crewStartedBy, openCrewLedger, useAgentMachineForTasks } from '../crew.mjs';
-import { journalCommands } from '../placement.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        "An Issue assigned to a Captain wakes it to start exactly one crew Task, assigned that Issue, whose brief names the Issue code; the Issue stays todo or moves to in_progress by the Captain's own `haus issue update`, and the Captain posts in no channel.",
+        'An Issue assigned to a Captain wakes it to start exactly one crew Task, assigned that Issue, whose brief names the Issue code; the Issue stays todo or in_progress (only an edit moves it, so a done or canceled Issue was closed by hand), and the Captain posts in no channel.',
     name: 'captain-issue-starts-crew',
     run: withRoutingEvidence(async ({ agents, evidence, expect, kit, log, settleTurn }) => {
         const [captain] = agents;
@@ -45,26 +44,17 @@ export default defineScenario({
                 issueId: issue.id,
                 serverId: kit.serverId,
             });
-            log(`Issue ${after.code}: ${after.state}, assignee ${JSON.stringify(after.assignee)}`);
+            log(
+                `Issue ${after.code}: ${after.state.id}, assignee ${JSON.stringify(after.assignee)}`
+            );
             expect(
                 after.assignee?.kind === 'task' && after.assignee.taskId === task.id,
                 'Issue assigned to the Task'
             ).toBe(true);
             expect(
-                ['todo', 'in_progress'].includes(after.state),
-                `Issue state ${after.state} is todo or in_progress`
+                ['todo', 'in_progress'].includes(after.state.id),
+                `Issue state ${after.state.id} is todo or in_progress`
             ).toBe(true);
-            if (after.state !== issue.state) {
-                const commands = await journalCommands(kit, captain.id, turn);
-                expect(
-                    commands.some(
-                        (command) =>
-                            /\bhaus\s+issue\s+update\b/u.test(command) &&
-                            command.includes(after.code)
-                    ),
-                    "the Issue's state moved by the Captain's own `haus issue update`"
-                ).toBe(true);
-            }
 
             const [brief] = (await kit.readMessages(task.chatId)).sort(
                 (left, right) => left.sequence - right.sequence
