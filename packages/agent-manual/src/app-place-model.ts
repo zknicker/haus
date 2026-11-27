@@ -63,7 +63,7 @@ export function captainSetting(id: string): AppPlaceAnchor {
 export function captainPanel(): AppPlaceAnchor[] {
     return [
         label('features/agent-panel/agent-panel.tsx', 'Captain panel'),
-        { kind: 'page', path: 'dm/:agentId' },
+        { kind: 'page', path: 'captain/:agentId' },
     ];
 }
 

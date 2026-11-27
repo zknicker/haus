@@ -7,7 +7,7 @@ import { advanceSeenCursor, markCursorSubsumedSeen } from '../src/agent-delivery
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { countQueuedInboxItems, readDeliveryState } from '../src/agent-delivery/store.ts';
-import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
+import { createCaptainChat } from '../src/chats/captain-chat.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -115,7 +115,7 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    const chatId = await requireCaptainChatId(db, { agentId, serverId });
+    const chatId = await createCaptainChat(db, { agentId, ownerUserId: null, serverId });
     return { agentHandle, agentId, chatId, computerId, serverId, userId };
 }
 

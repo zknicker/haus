@@ -7,6 +7,7 @@ import type { TimelineNote } from './timeline-notes.ts';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 export interface ChatTranscriptInput {
+    agentNames?: ReadonlyMap<string, string>;
     chatId: string;
     /**
      * The transcript's listed messages as ids and layout facts, oldest first;

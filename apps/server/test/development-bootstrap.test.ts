@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { eq } from 'drizzle-orm';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { developmentArtifactFiles } from '../src/development/seed-artifact-files.ts';
@@ -12,6 +13,7 @@ import {
     agentsTable,
     attachmentsTable,
     avatarsTable,
+    captainChatMembersTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -63,8 +65,22 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(second).toEqual(first);
     expect(await connection.db.select().from(serversTable)).toHaveLength(1);
     expect(await connection.db.select().from(computersTable)).toHaveLength(1);
-    const agents = await connection.db.select().from(agentsTable);
+    const agents = (await connection.db.select().from(agentsTable)).filter(
+        (agent) => agent.kind === 'captain'
+    );
     expect(agents).toHaveLength(2);
+    const captainChats = await connection.db
+        .select()
+        .from(chatsTable)
+        .where(eq(chatsTable.kind, 'captain'));
+    expect(captainChats.map((chat) => chat.captainAgentId).sort()).toEqual(
+        agents.map((agent) => agent.id).sort()
+    );
+    expect(
+        await connection.db
+            .select({ userId: captainChatMembersTable.userId })
+            .from(captainChatMembersTable)
+    ).toEqual([{ userId }, { userId }]);
     expect(await connection.db.select().from(chatsTable)).toHaveLength(11);
     expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(91);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
@@ -135,7 +151,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
 // The workspace seeded above is the one an operator opens; assert it carries
 // enough to exercise every surface without hand-building data.
 test('seeds a demo workspace an operator can actually look at', async () => {
-    const agents = await connection.db.select().from(agentsTable);
+    const agents = (await connection.db.select().from(agentsTable)).filter(
+        (agent) => agent.kind === 'captain'
+    );
     const claims = await connection.db.select().from(messageClaimsTable);
     const users = await connection.db.select().from(usersTable);
 
@@ -170,6 +188,16 @@ test('seeds a demo workspace an operator can actually look at', async () => {
         'Write the onboarding welcome copy',
     ]);
     expect(tasks.every((task) => task.chatId !== null)).toBe(true);
+    const crewAuthors = await connection.db
+        .select({ authorAgentId: chatMessagesTable.authorAgentId, taskAgentId: tasksTable.agentId })
+        .from(chatMessagesTable)
+        .innerJoin(tasksTable, eq(tasksTable.chatId, chatMessagesTable.chatId))
+        .where(eq(tasksTable.title, 'Ship the avatar upload flow end to end'));
+    expect(
+        crewAuthors
+            .filter((row) => row.authorAgentId !== null)
+            .every((row) => row.authorAgentId === row.taskAgentId)
+    ).toBe(true);
     expect(new Set(tasks.map((task) => task.shortId)).size).toBe(5);
     expect(links).toEqual([]);
     const ledger = await connection.db.select().from(taskKeysTable);

@@ -26,18 +26,22 @@ import { usePendingChatMessages } from '../../servers/chat/use-pending-messages.
 import { useVisibleChatSequenceSource } from '../../servers/chat/use-visible-chat-sequence.ts';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
+import { useTaskAgentName } from '../use-task-agent-name.ts';
 import { TaskOrigin } from './task-origin.tsx';
 
 export function TaskConversation({
+    agent,
     chatId,
     origin,
     title,
 }: {
+    agent: { id: string; model: string | null } | null;
     chatId: string;
     origin: TaskOriginRecord | null;
     title: string;
 }) {
     const { server } = useServerContext();
+    const agentNames = useTaskAgentName(server.id, agent);
     const navigate = useNavigate();
     const openers = useDesktopPageOpeners();
     const messages = useChatMessages(server.id, chatId);
@@ -119,6 +123,7 @@ export function TaskConversation({
                 scrollerRef={scrollerRef}
                 timelineContent={(scrollContentRef) => (
                     <ChatTranscript
+                        agentNames={agentNames}
                         chatId={chatId}
                         leadingContent={leadingContent}
                         messages={entries}

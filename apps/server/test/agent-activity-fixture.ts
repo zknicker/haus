@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
-import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
+import { createCaptainChat } from '../src/chats/captain-chat.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -113,7 +113,7 @@ export async function seedActivity(db: HausDatabase): Promise<Seed> {
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    const chatId = await requireCaptainChatId(db, { agentId, serverId });
+    const chatId = await createCaptainChat(db, { agentId, ownerUserId: null, serverId });
     return { agentId, chatId, computerId, serverId };
 }
 

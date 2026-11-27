@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
+import { createCaptainChat } from '../src/chats/captain-chat.ts';
 import { sendChatMessage } from '../src/chats/send-message.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -68,8 +68,9 @@ test(
     'a send to a Captain lands in its Captain chat without wedging its transaction',
     async () => {
         const claim = await seedChannelParticipants();
-        const captainChatId = await requireCaptainChatId(connection.db, {
+        const captainChatId = await createCaptainChat(connection.db, {
             agentId: claim.agentId,
+            ownerUserId: null,
             serverId: claim.serverId,
         });
 

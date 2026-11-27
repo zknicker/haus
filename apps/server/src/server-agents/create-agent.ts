@@ -2,7 +2,7 @@ import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api'
 import { and, eq } from 'drizzle-orm';
 import { enqueueAgentGreeting } from '../agent-delivery/greeting.ts';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
-import { requireCaptainChatId } from '../chats/captain-chat.ts';
+import { createCaptainChat } from '../chats/captain-chat.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import { archiveRetiredAgentFolder } from '../drive/agent-folder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -151,7 +151,11 @@ export async function createAgentInTransaction(
     });
 
     await openAgentHomeReads(db, { agentId, projectId: homeProjectId, serverId: input.serverId });
-    const captainChatId = await requireCaptainChatId(db, { agentId, serverId: input.serverId });
+    const captainChatId = await createCaptainChat(db, {
+        agentId,
+        ownerUserId,
+        serverId: input.serverId,
+    });
     // The new Agent introduces itself once in `#all`, as soon as it can run,
     // rather than waiting for its first delivery. The caller dispatches after commit.
     await enqueueAgentGreeting(db, {

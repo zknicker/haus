@@ -1,6 +1,6 @@
 import { computerProtocolVersion, GENERAL_TASK_KEY } from '@haus/api';
 import { eq, inArray } from 'drizzle-orm';
-import { requireCaptainChatId } from '../chats/captain-chat.ts';
+import { createCaptainChat } from '../chats/captain-chat.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -144,8 +144,10 @@ export async function seedDevelopmentServer(
                 serverId,
             }),
         ]);
-        const blippyDmId = await requireCaptainChatId(tx, { agentId: blippyId, serverId });
-        const tinyDmId = await requireCaptainChatId(tx, { agentId: tinyId, serverId });
+        const captainChat = (agentId: string) =>
+            createCaptainChat(tx, { agentId, ownerUserId: userId, serverId });
+        const blippyDmId = await captainChat(blippyId);
+        const tinyDmId = await captainChat(tinyId);
         await tx
             .update(chatsTable)
             .set({ lastActivityAt: now, lastMessageSequence: 1 })

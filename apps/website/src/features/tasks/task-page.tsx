@@ -26,6 +26,9 @@ export function TaskPage({ shortId }: { shortId: string }) {
         return task.data.chatId ? (
             <div className="relative flex min-h-0 flex-1" key={task.data.id}>
                 <TaskConversation
+                    agent={
+                        task.data.agentId ? { id: task.data.agentId, model: task.data.model } : null
+                    }
                     chatId={task.data.chatId}
                     origin={task.data.origin}
                     title={task.data.title}

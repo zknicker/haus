@@ -30,6 +30,7 @@ const emptyTimelineNotes: readonly TimelineNote[] = [];
 
 /** Rows and render context retain identity across unchanged refetches to avoid rerendering every turn. */
 export function useChatTranscript({
+    agentNames,
     chatId,
     messages,
     onOpenArtifact,
@@ -101,6 +102,7 @@ export function useChatTranscript({
         ),
     });
     const resolveActorProfile = useResolveActorProfile({
+        agentNames,
         agentsById,
         humans,
         messages: messageList,

@@ -1,4 +1,4 @@
-import { captainsProjectId } from '../support/project.ts';
+import { createTestCaptain } from '../support/captains.ts';
 import { createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 import { visualReportMessage } from '../support/visual-report.ts';
@@ -14,15 +14,17 @@ test('inline reports track the reply column and grow and shrink with their docum
     if (!chat) {
         throw new Error('Missing all channel');
     }
-    const homeProjectId = await captainsProjectId(client, server.id);
+    const agentId = await createTestCaptain(client, {
+        databaseUrl: session.databaseUrl,
+        displayName: 'Reporter',
+        handle: 'reporter',
+        serverId: server.id,
+    });
     runPsql(
         session.databaseUrl,
         `
-        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values ('agt_visual_reports', '${server.id}', 'reporter', 'Reporter', 'UTC',
-            '${homeProjectId}');
         insert into chat_messages (id, server_id, chat_id, sequence, author_agent_id, content, nonce)
-        values ('msg_visual_report', '${server.id}', '${chat.id}', 1, 'agt_visual_reports',
+        values ('msg_visual_report', '${server.id}', '${chat.id}', 1, '${agentId}',
         '${visualReportMessage.replaceAll("'", "''")}', 'visual-report');
         update chats set last_message_sequence = 1 where id = '${chat.id}';
     `

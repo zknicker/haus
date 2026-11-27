@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
-import { testSqlAgentHome } from './agent-home.ts';
 import { openCaptainChat } from './captain-chat.fixture.ts';
 import type { HausClient } from './haus-client.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -164,19 +163,9 @@ test('a Captain another Captain creates takes its creator’s owner and gets its
     expect(memberUserId).not.toBe(fixture.ownerUserId);
 });
 
-test('a Captain row written by SQL alone gets its Captain chat, read, and owner', async () => {
-    const agentId = createOpaqueId('agt');
-    await fixture.harness.sql`
-        insert into agents (
-            id, server_id, computer_id, display_name, handle, home_timezone,
-            desired_model_id, desired_runtime_id, home_project_id, owner_user_id)
-        values (
-            ${agentId}, ${fixture.serverId}, ${fixture.computerId}, 'Sloop', 'sloop', 'UTC',
-            'gpt-5.6-sol', 'codex', ${await testSqlAgentHome(fixture.harness.sql, fixture.serverId)},
-            ${fixture.ownerUserId}
-        )
-    `;
-    const [chat] = (await fixture.harness.sql`
+test('a Captain a person creates gets its Captain chat, its read, and its owner as member', async () => {
+    const agentId = await fixture.createAgent('Sloop', 'sloop');
+    const chats = (await fixture.harness.sql`
         select chat.id,
             (select count(*)::int from agent_chat_reads read
                 where read.chat_id = chat.id and read.agent_id = ${agentId}) as reads,
@@ -185,10 +174,10 @@ test('a Captain row written by SQL alone gets its Captain chat, read, and owner'
         from chats chat
         where chat.kind = 'captain' and chat.captain_agent_id = ${agentId}
     `) as { id: string; members: string[]; reads: number }[];
-    expect(chat).toMatchObject({ members: [fixture.ownerUserId], reads: 1 });
-    expect(chat?.id).toMatch(/^cht_[A-Za-z0-9_-]{16}$/u);
+    expect(chats).toHaveLength(1);
+    expect(chats[0]).toMatchObject({ members: [fixture.ownerUserId], reads: 1 });
     const opened = await openCaptainChat(fixture.owner, { agentId, serverId: fixture.serverId });
-    expect(opened.id).toBe(chat?.id ?? '');
+    expect(opened.id).toBe(chats[0]?.id ?? '');
 });
 
 async function sendAs(runner: { token: string }, target: string, nonce: string) {

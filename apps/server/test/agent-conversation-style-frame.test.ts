@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import type { AgentCommand } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
-import { requireCaptainChatId } from '../src/chats/captain-chat.ts';
+import { createCaptainChat } from '../src/chats/captain-chat.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -164,6 +164,6 @@ async function seedAgent(agentConversationStyle: string | null, signatureEmoji: 
         serverId,
         signatureEmoji,
     });
-    const chatId = await requireCaptainChatId(db, { agentId, serverId });
+    const chatId = await createCaptainChat(db, { agentId, ownerUserId: null, serverId });
     return { agentId, chatId, computerId, serverId };
 }

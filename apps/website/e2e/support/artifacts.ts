@@ -1,7 +1,6 @@
-import { createHash } from 'node:crypto';
 import type { Locator, Page } from '@playwright/test';
 import { libraryFileTransport, routeFileTransport } from './artifact-transport.ts';
-import { captainsProjectId } from './project.ts';
+import { createTestCaptain } from './captains.ts';
 import { assertOpaqueId, createClient, runPsql } from './server.ts';
 
 interface SeededFile {
@@ -139,19 +138,13 @@ export async function seedArtifactLibrary(
 ) {
     assertOpaqueId(serverId);
     const { databaseUrl } = session;
-    const homeProjectId = await captainsProjectId(createClient(session.accessToken), serverId);
     const userId = seedMember(databaseUrl, serverId);
-    const agentId = `agt_${serverId}_drive`;
-    const computerId = `cmp_${createHash('sha256').update(serverId).digest('hex').slice(0, 16)}`;
-    runPsql(
+    const agentId = await createTestCaptain(createClient(session.accessToken), {
         databaseUrl,
-        // The App lists Agents assigned to a Computer; an offline one is enough to name the creator.
-        `insert into computers (id, server_id, attached_by_user_id, credential_hash, health)
-         values ('${computerId}', '${serverId}', '${userId}', md5(random()::text) || md5(random()::text), 'offline');
-         insert into agents (id, server_id, computer_id, handle, display_name, home_timezone, desired_runtime_id, desired_model_id, home_project_id)
-         values ('${agentId}', '${serverId}', '${computerId}', 'drive-helper', '${seededArtifactAgent}', 'America/New_York', 'codex', 'gpt-5.6-sol',
-             '${homeProjectId}')`
-    );
+        displayName: seededArtifactAgent,
+        handle: 'drive-helper',
+        serverId,
+    });
     for (const file of seededFiles) {
         const id = `art_${serverId}_${file.key}`;
         const creator = file.agent ? `'${agentId}', null` : `null, '${userId}'`;

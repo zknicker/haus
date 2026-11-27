@@ -1,4 +1,4 @@
-import { captainsProjectId } from '../support/project.ts';
+import { createTestCaptain } from '../support/captains.ts';
 import { attachComputer, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -18,12 +18,14 @@ test('an Owner wires a GitHub Trigger and sees its installation and problem', as
         credential: 'github-trigger-test-credential-1234567890',
         slug: 'github-triggers',
     });
-    seedGithubState({
-        homeProjectId: await captainsProjectId(client, server.id),
+    const agentId = await createTestCaptain(client, {
         computerId: computer.computerId,
         databaseUrl: session.databaseUrl,
+        displayName: 'Octo',
+        handle: 'octo',
         serverId: server.id,
     });
+    seedGithubState({ agentId, databaseUrl: session.databaseUrl, serverId: server.id });
 
     // The connection page lists the installation with its repository reach.
     await page.goto(`/s/github-triggers/settings/connections/${connectionId}?github_setup=bound`);
@@ -72,26 +74,12 @@ test('an Owner wires a GitHub Trigger and sees its installation and problem', as
     await page.screenshot({ path: testInfo.outputPath('github-trigger-problem.png') });
 });
 
-const agentId = 'agt_e2e_github';
 const connectionId = 'mcp_e2eGithubConn001';
 
-function seedGithubState(input: {
-    computerId: string;
-    databaseUrl: string;
-    homeProjectId: string;
-    serverId: string;
-}) {
+function seedGithubState(input: { agentId: string; databaseUrl: string; serverId: string }) {
     runPsql(
         input.databaseUrl,
         `begin;
-         insert into agents (
-           id, server_id, computer_id, handle, display_name, home_timezone,
-           desired_runtime_id, desired_model_id, home_project_id
-         ) values (
-           '${agentId}', '${input.serverId}', '${input.computerId}', 'octo', 'Octo',
-           'America/New_York', 'codex', 'gpt-5.6-sol',
-           '${input.homeProjectId}'
-         );
          insert into mcp_connections (
            id, server_id, name, url, auth, preset, connected, account_label, header_names, tools
          ) values (
@@ -99,7 +87,7 @@ function seedGithubState(input: {
            'oauth', 'github', true, 'octocat', '{}', '{}'
          );
          insert into agent_mcp_connection_grants (server_id, agent_id, connection_id)
-         values ('${input.serverId}', '${agentId}', '${connectionId}');
+         values ('${input.serverId}', '${input.agentId}', '${connectionId}');
          insert into github_installations (
            id, server_id, connection_id, installation_id, account_id, account_login, account_type,
            repository_selection, permissions, events, status, accessible_repository_ids,

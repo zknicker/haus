@@ -1,5 +1,5 @@
-import { captainsProjectId } from '../support/project.ts';
-import { captainTile, createTestServer, runPsql } from '../support/server.ts';
+import { createTestCaptain } from '../support/captains.ts';
+import { captainTile, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('agent DM menus work before the first message and on the selected conversation', async ({
@@ -9,20 +9,12 @@ test('agent DM menus work before the first message and on the selected conversat
         displayName: 'DM menus',
         slug: 'dm-menus',
     });
-    const homeProjectId = await captainsProjectId(client, server.id);
-    runPsql(
-        session.databaseUrl,
-        `
-        insert into computers (id, server_id, attached_by_user_id, credential_hash, health)
-        select 'cmp_e2edmmenus000000', '${server.id}', user_id, md5(random()::text) || md5(random()::text), 'offline'
-        from server_memberships where server_id = '${server.id}' and role = 'owner';
-        insert into agents (id, server_id, computer_id, handle, display_name, home_timezone,
-            desired_runtime_id, desired_model_id, home_project_id)
-        values ('agt_e2edmmenus000000', '${server.id}', 'cmp_e2edmmenus000000', 'marlow', 'Marlow',
-            'America/New_York', 'codex', 'gpt-5.6-sol',
-            '${homeProjectId}');
-    `
-    );
+    const agentId = await createTestCaptain(client, {
+        databaseUrl: session.databaseUrl,
+        displayName: 'Marlow',
+        handle: 'marlow',
+        serverId: server.id,
+    });
     await page.reload();
     const row = captainTile(page, 'Marlow');
     const profile = page.getByRole('menuitem', { name: 'View Captain profile', exact: true });
@@ -43,7 +35,7 @@ test('agent DM menus work before the first message and on the selected conversat
     await expect(page.getByRole('menuitem', { name: 'View tasks', exact: true })).toHaveCount(0);
     await profile.click();
     await expect(profile).toBeHidden();
-    await expect(page).toHaveURL(/\/captain\/agt_e2edmmenus000000/u);
+    await expect(page).toHaveURL(new RegExp(`/captain/${agentId}$`, 'u'));
     await expect(panel).toBeVisible();
     await expect(header).toBeVisible();
 

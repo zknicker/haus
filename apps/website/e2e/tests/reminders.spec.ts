@@ -1,5 +1,5 @@
 import { signInAsAppHuman } from '../support/app-session.ts';
-import { captainsProjectId } from '../support/project.ts';
+import { createTestCaptain } from '../support/captains.ts';
 import { attachComputer, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -23,15 +23,16 @@ test('an Owner sees an Agent reminder in the Captain panel', async ({
     if (!chatId) {
         throw new Error('The reminder fixture did not resolve #all.');
     }
-    seedReminderState({
-        chatId,
-        homeProjectId: await captainsProjectId(client, server.id),
+    const agentId = await createTestCaptain(client, {
         computerId: computer.computerId,
         databaseUrl: session.databaseUrl,
+        displayName: 'Cove',
+        handle: 'reminder-cove',
         serverId: server.id,
     });
+    seedReminderState({ agentId, chatId, databaseUrl: session.databaseUrl, serverId: server.id });
 
-    await page.goto('/s/reminders/agents/agt_e2e_reminder/home');
+    await page.goto(`/s/reminders/agents/${agentId}/home`);
     const panel = page.getByRole('complementary', { name: 'Captain panel' });
     await expect(panel.getByRole('heading', { level: 2, name: /^Cove/u })).toBeVisible();
     await panel
@@ -98,7 +99,7 @@ test('an Owner sees an Agent reminder in the Captain panel', async ({
     try {
         const other = await context.newPage();
         await signInAsAppHuman(other);
-        await other.goto('/s/reminders/agents/agt_e2e_reminder/automations');
+        await other.goto(`/s/reminders/agents/${agentId}/automations`);
         const schedule = other.getByText('Daily at 10:00 PM', {
             exact: true,
         });
@@ -192,22 +193,14 @@ test('an Owner sees an Agent reminder in the Captain panel', async ({
 });
 
 function seedReminderState(input: {
+    agentId: string;
     chatId: string;
-    computerId: string;
     databaseUrl: string;
-    homeProjectId: string;
     serverId: string;
 }) {
     runPsql(
         input.databaseUrl,
         `begin;
-         insert into agents (
-           id, server_id, computer_id, handle, display_name, home_timezone,
-           desired_runtime_id, desired_model_id, home_project_id
-         ) values (
-           'agt_e2e_reminder', '${input.serverId}', '${input.computerId}', 'reminder-cove', 'Cove',
-           'America/New_York', 'codex', 'gpt-5.6-sol', '${input.homeProjectId}'
-         );
          insert into chat_messages (
            id, server_id, chat_id, sequence, author_user_id, content, nonce, created_at
          ) values (
@@ -223,7 +216,7 @@ function seedReminderState(input: {
            id, server_id, chat_id, sequence, author_agent_id, content, nonce, created_at
          ) values (
            'msg_e2e_reminder_answer', '${input.serverId}', '${input.chatId}', 2,
-           'agt_e2e_reminder', 'The deploy looks clean.', 'e2e-reminder-answer',
+           '${input.agentId}', 'The deploy looks clean.', 'e2e-reminder-answer',
            now() - interval '2 days'
          );
          update chats set last_message_sequence = 2
@@ -232,31 +225,31 @@ function seedReminderState(input: {
            id, server_id, owner_agent_id, title, anchor_chat_id, anchor_message_id,
            fire_at, repeat, timezone, script, status, version, created_at, updated_at
          ) values (
-           'rem_e2e_watchdog', '${input.serverId}', 'agt_e2e_reminder',
+           'rem_e2e_watchdog', '${input.serverId}', '${input.agentId}',
            'Local watchdog', '${input.chatId}', 'msg_e2e_reminder_anchor',
            '2099-07-27T13:00:00.000Z', 'daily@09:00', 'America/New_York',
            'check-deploy.sh', 'scheduled', 1,
            '2026-07-26T12:00:00.000Z', '2026-07-26T12:00:00.000Z'
          ), (
-           'rem_e2e_deploy', '${input.serverId}', 'agt_e2e_reminder',
+           'rem_e2e_deploy', '${input.serverId}', '${input.agentId}',
            'Deploy check', '${input.chatId}', 'msg_e2e_reminder_anchor',
            now() - interval '2 days', null, 'America/New_York',
            null, 'fired', 2,
            '2026-07-26T12:00:00.000Z', now() - interval '2 days'
          ), (
-           'rem_e2e_standup', '${input.serverId}', 'agt_e2e_reminder',
+           'rem_e2e_standup', '${input.serverId}', '${input.agentId}',
            'Standup nudge', '${input.chatId}', 'msg_e2e_reminder_anchor',
            '2099-08-03T13:00:00.000Z', 'weekly:mon@09:00', 'America/New_York',
            null, 'scheduled', 1,
            '2026-07-26T12:00:00.000Z', '2026-07-26T12:00:00.000Z'
          ), (
-           'rem_e2e_renewal', '${input.serverId}', 'agt_e2e_reminder',
+           'rem_e2e_renewal', '${input.serverId}', '${input.agentId}',
            'Renewal check', '${input.chatId}', 'msg_e2e_reminder_anchor',
            '2099-09-01T16:00:00.000Z', null, 'America/New_York',
            null, 'scheduled', 1,
            '2026-07-26T12:00:00.000Z', '2026-07-26T12:00:00.000Z'
          ), (
-           'rem_e2e_digest', '${input.serverId}', 'agt_e2e_reminder',
+           'rem_e2e_digest', '${input.serverId}', '${input.agentId}',
            'Weekly digest', '${input.chatId}', 'msg_e2e_reminder_anchor',
            '2099-12-27T13:00:00.000Z', null, 'America/New_York',
            null, 'canceled', 2,
@@ -284,7 +277,7 @@ function seedReminderState(input: {
          ) values (
            'msg_e2e_reminder_answer', '${input.serverId}', 'reminder_fire', 'explicit',
            'rem_e2e_deploy', 'fir_e2e_deploy',
-           'Deploy check', 'One time', now() - interval '2 days', 'agt_e2e_reminder',
+           'Deploy check', 'One time', now() - interval '2 days', '${input.agentId}',
            '${input.chatId}'
          );
          commit;`
