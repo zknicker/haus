@@ -5,17 +5,17 @@ import { Alert02Icon, Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
+import { AgentPanel } from '../agent-panel/agent-panel.tsx';
 import { useServerContext } from '../servers/server-context.ts';
 import { tasksRoute } from '../servers/server-routes.ts';
 import { PageColumn } from '../shell/page-column.tsx';
 import { TaskConversation } from './conversation/task-conversation.tsx';
-import { TaskDetailsSection } from './details/task-details.tsx';
 import { TaskHistoryDetails } from './details/task-history-details.tsx';
 import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
 export { TaskBandControls } from './task-band-controls.tsx';
 
-export function TaskPage({ panelShown, shortId }: { panelShown: boolean; shortId: string }) {
+export function TaskPage({ shortId }: { shortId: string }) {
     const { server } = useServerContext();
     const task = useTask(server.id, { shortId });
 
@@ -24,45 +24,22 @@ export function TaskPage({ panelShown, shortId }: { panelShown: boolean; shortId
     }
     if (task.data) {
         return task.data.chatId ? (
-            <TaskDetailView
-                chatId={task.data.chatId}
-                key={task.data.id}
-                panelShown={panelShown}
-                task={task.data}
-            />
+            <div className="relative flex min-h-0 flex-1" key={task.data.id}>
+                <TaskConversation
+                    agent={
+                        task.data.agentId ? { id: task.data.agentId, model: task.data.model } : null
+                    }
+                    chatId={task.data.chatId}
+                    origin={task.data.origin}
+                    title={task.data.title}
+                />
+                <AgentPanel server={server} subject={{ kind: 'task', shortId }} />
+            </div>
         ) : (
             <TaskHistoryView key={task.data.id} task={task.data} />
         );
     }
     return task.error ? <TaskUnavailable title="Task unavailable" /> : null;
-}
-
-function TaskDetailView({
-    chatId,
-    panelShown,
-    task,
-}: {
-    chatId: string;
-    panelShown: boolean;
-    task: TaskDetail;
-}) {
-    return (
-        <div
-            className={
-                panelShown
-                    ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-8 pe-5'
-                    : 'flex min-h-0 flex-1'
-            }
-        >
-            <TaskConversation chatId={chatId} origin={task.origin} title={task.title} />
-            {panelShown ? (
-                <div className="task-rail">
-                    <TaskDetailsSection task={task} />
-                    <TaskWorkPanel task={task} />
-                </div>
-            ) : null}
-        </div>
-    );
 }
 
 function TaskHistoryView({ task }: { task: TaskDetail }) {

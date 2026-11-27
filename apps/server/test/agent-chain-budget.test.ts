@@ -4,12 +4,12 @@ import type { AgentTurnSummary, RunnerDownFrame, RunnerStartFrame } from '@haus/
 import { eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import type { RunnerWire } from '../src/agent-delivery/loop-host.ts';
+import { createCaptainChat } from '../src/chats/captain-chat.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentDeliveryTable,
     agentsTable,
-    chatsTable,
     computersTable,
     serverMembershipsTable,
     serversTable,
@@ -199,7 +199,6 @@ async function seedAgent(chain: { advancedAt: Date; turns: number }): Promise<Se
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
-    const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
@@ -228,12 +227,7 @@ async function seedAgent(chain: { advancedAt: Date; turns: number }): Promise<Se
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    await db.insert(chatsTable).values({
-        captainAgentId: agentId,
-        id: chatId,
-        kind: 'captain',
-        serverId,
-    });
+    const chatId = await createCaptainChat(db, { agentId, ownerUserId: null, serverId });
     await db.insert(agentDeliveryTable).values({
         agentChainAdvancedAt: chain.advancedAt,
         agentChainTurns: chain.turns,

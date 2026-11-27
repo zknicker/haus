@@ -51,8 +51,8 @@ const rows = walkRows({
 
 test('the walk reads the sidebar top to bottom: Captains, Projects, open Tasks, People', () => {
     expect(rows).toEqual([
-        { href: '/s/dev/chats/dm-forge', unread: true },
-        { href: '/s/dev/dm/orbit', unread: false },
+        { href: '/s/dev/captain/forge', unread: true },
+        { href: '/s/dev/captain/orbit', unread: false },
         { href: '/s/dev/chats/eng', unread: false },
         { href: '/s/dev/chats/sec', unread: true },
         { href: '/s/dev/tasks/eng00001', unread: true },
@@ -63,12 +63,12 @@ test('the walk reads the sidebar top to bottom: Captains, Projects, open Tasks, 
 test('Alt+Down goes to the next unread row below the open one, wrapping at the end', () => {
     expect(nextUnreadHref(rows, '/s/dev/chats/eng', 'next')).toBe('/s/dev/chats/sec');
     expect(nextUnreadHref(rows, '/s/dev/chats/sec', 'next')).toBe('/s/dev/tasks/eng00001');
-    expect(nextUnreadHref(rows, '/s/dev/chats/dm-ada', 'next')).toBe('/s/dev/chats/dm-forge');
-    expect(nextUnreadHref(rows, '/s/dev', 'next')).toBe('/s/dev/chats/dm-forge');
+    expect(nextUnreadHref(rows, '/s/dev/chats/dm-ada', 'next')).toBe('/s/dev/captain/forge');
+    expect(nextUnreadHref(rows, '/s/dev', 'next')).toBe('/s/dev/captain/forge');
 });
 
 test('Alt+Up goes to the previous unread row, and nothing unread goes nowhere', () => {
-    expect(nextUnreadHref(rows, '/s/dev/chats/sec', 'previous')).toBe('/s/dev/chats/dm-forge');
+    expect(nextUnreadHref(rows, '/s/dev/chats/sec', 'previous')).toBe('/s/dev/captain/forge');
     expect(nextUnreadHref(rows, '/s/dev', 'previous')).toBe('/s/dev/chats/dm-ada');
     expect(
         nextUnreadHref(
@@ -106,7 +106,7 @@ test('the team room walks first among the Projects, ahead of any reorder', () =>
         slug: 'dev',
     });
     expect(walk.map((row) => row.href)).toEqual([
-        '/s/dev/chats/dm-forge',
+        '/s/dev/captain/forge',
         '/s/dev/chats/all',
         '/s/dev/chats/sec',
         '/s/dev/chats/eng',

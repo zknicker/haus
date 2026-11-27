@@ -56,11 +56,11 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await page.getByRole('option', { name: '🎉', exact: true }).click();
     await createDialog.getByRole('button', { name: 'Create Captain' }).click();
 
-    // A Captain made from the sidebar opens its DM, with the Captain panel beside it.
-    await expect(page).toHaveURL(/\/s\/agent-hq\/dm\/[^/]+$/u);
+    // A Captain made from the sidebar opens its Captain chat, with the Captain panel beside it.
+    await expect(page).toHaveURL(/\/s\/agent-hq\/captain\/[^/]+$/u);
     const agentId = new URL(page.url()).pathname.split('/').at(-1);
     await page.goto(`/s/agent-hq/agents/${agentId}/home`);
-    await expect(page).toHaveURL(/\/s\/agent-hq\/dm\/[^/]+$/u);
+    await expect(page).toHaveURL(/\/s\/agent-hq\/captain\/[^/]+$/u);
     const panel = page.getByRole('complementary', { name: 'Captain panel' });
     await expect(panel.getByRole('heading', { level: 2, name: /^Scout/u })).toBeVisible();
 

@@ -163,6 +163,23 @@ test('a Captain another Captain creates takes its creator’s owner and gets its
     expect(memberUserId).not.toBe(fixture.ownerUserId);
 });
 
+test('a Captain a person creates gets its Captain chat, its read, and its owner as member', async () => {
+    const agentId = await fixture.createAgent('Sloop', 'sloop');
+    const chats = (await fixture.harness.sql`
+        select chat.id,
+            (select count(*)::int from agent_chat_reads read
+                where read.chat_id = chat.id and read.agent_id = ${agentId}) as reads,
+            array(select member.user_id from captain_chat_members member
+                where member.chat_id = chat.id) as members
+        from chats chat
+        where chat.kind = 'captain' and chat.captain_agent_id = ${agentId}
+    `) as { id: string; members: string[]; reads: number }[];
+    expect(chats).toHaveLength(1);
+    expect(chats[0]).toMatchObject({ members: [fixture.ownerUserId], reads: 1 });
+    const opened = await openCaptainChat(fixture.owner, { agentId, serverId: fixture.serverId });
+    expect(opened.id).toBe(chats[0]?.id ?? '');
+});
+
 async function sendAs(runner: { token: string }, target: string, nonce: string) {
     const response = await fetch(new URL('/api/agent/messages/send', fixture.harness.url), {
         body: JSON.stringify({ content: 'A note.', nonce, target }),

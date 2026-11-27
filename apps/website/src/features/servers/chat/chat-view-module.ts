@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { serverRouteModules } from '../../../routes/app/server-route-modules.ts';
 import type { ChatView } from './chat-view.tsx';
-import type { ImplicitAgentDmPage } from './implicit-agent-dm-page.tsx';
 
 /** The code-split chat chunk (`routes/app/chat-page-content.tsx`). */
 export interface ChatViewModule {
     ChatView: typeof ChatView;
-    ImplicitAgentDmPage: typeof ImplicitAgentDmPage;
 }
 
 let loaded: ChatViewModule | undefined;

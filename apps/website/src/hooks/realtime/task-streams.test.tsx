@@ -119,13 +119,14 @@ describe('Task stream hooks', () => {
             () => useTaskUpdatedStream(serverId),
             event
         );
-        expect(onEvent).toHaveLength(5);
+        expect(onEvent).toHaveLength(6);
         expect(onEvent).toEqual(
             expect.arrayContaining([
                 read('task.get', { key: 'SEC-12', serverId }),
                 read('task.get', { serverId, taskId: 'tsk_12' }),
                 read('task.list', { serverId }),
                 read('task.listActive', { serverId }),
+                read('task.crewLifecycle', { serverId }),
                 read('chat.unreadPreviews', { serverId }),
             ])
         );
@@ -133,6 +134,7 @@ describe('Task stream hooks', () => {
             read('task.get', { serverId }),
             read('task.list', { serverId }),
             read('task.listActive', { serverId }),
+            read('task.crewLifecycle', { serverId }),
             read('chat.unreadPreviews', { serverId }),
         ]);
     });

@@ -1,15 +1,16 @@
-import { runPsql } from './server.ts';
+import { createTestCaptain } from './captains.ts';
+import { type createClient, runPsql } from './server.ts';
 
-export function seedArtifactReply(input: SeedInput) {
+export async function seedArtifactReply(client: ReturnType<typeof createClient>, input: SeedInput) {
+    const agentId = await createTestCaptain(client, {
+        databaseUrl: input.databaseUrl,
+        displayName: 'Artifact Auditor',
+        handle: 'artifact-auditor',
+        serverId: input.serverId,
+    });
     runPsql(
         input.databaseUrl,
         `begin;
-         insert into agents (
-           id, server_id, handle, display_name, home_timezone, home_project_id
-         ) values (
-           'agt_e2e_artifact', '${input.serverId}', 'artifact-auditor',
-           'Artifact Auditor', 'America/New_York', '${input.homeProjectId}'
-         );
          insert into chat_messages (
            id, server_id, chat_id, sequence, author_user_id, content, nonce
          )
@@ -32,7 +33,7 @@ export function seedArtifactReply(input: SeedInput) {
          select
            'msg_e2e_artifact_reply', '${input.serverId}', '${input.chatId}',
            last_message_sequence + 1,
-           'agt_e2e_artifact',
+           '${agentId}',
            E'Here is the audit.\\n\\u0060\\u0060\\u0060page\\n{"path":"audits/deterministic.html","title":"Deterministic workspace audit"}\\n\\u0060\\u0060\\u0060',
            'e2e-artifact-reply', 'msg_e2e_artifact_anchor', 'msg_e2e_artifact_anchor'
          from chats
@@ -46,39 +47,25 @@ export function seedArtifactReply(input: SeedInput) {
 interface SeedInput {
     chatId: string;
     databaseUrl: string;
-    homeProjectId: string;
     serverId: string;
 }
 
-export function seedReferenceFixture(input: SeedInput) {
+export async function seedReferenceFixture(
+    client: ReturnType<typeof createClient>,
+    input: SeedInput
+) {
+    const captain = (displayName: string, handle: string) =>
+        createTestCaptain(client, {
+            databaseUrl: input.databaseUrl,
+            displayName,
+            handle,
+            serverId: input.serverId,
+        });
+    const blippyId = await captain('Blippy', 'blippy');
+    const tinyId = await captain('Tiny', 'tiny');
     runPsql(
         input.databaseUrl,
         `begin;
-         insert into computers (
-           id, server_id, attached_by_user_id, credential_hash, health
-         ) values
-           (
-             'cmp_e2e_ref_blippy00', '${input.serverId}',
-             (select user_id from server_memberships where server_id = '${input.serverId}' and role = 'owner'),
-             repeat('a', 64), 'offline'
-           ),
-           (
-             'cmp_e2e_ref_tiny0000', '${input.serverId}',
-             (select user_id from server_memberships where server_id = '${input.serverId}' and role = 'owner'),
-             repeat('b', 64), 'offline'
-           );
-         insert into agents (
-           id, server_id, computer_id, handle, display_name, home_timezone,
-           desired_runtime_id, desired_model_id, home_project_id
-         ) values
-           (
-             'agt_e2e_blippy', '${input.serverId}', 'cmp_e2e_ref_blippy00',
-             'blippy', 'Blippy', 'America/New_York', 'codex', 'gpt-5.6-sol', '${input.homeProjectId}'
-           ),
-           (
-             'agt_e2e_tiny', '${input.serverId}', 'cmp_e2e_ref_tiny0000',
-             'tiny', 'Tiny', 'America/New_York', 'codex', 'gpt-5.6-sol', '${input.homeProjectId}'
-           );
          insert into chats (id, server_id, kind, is_all, name)
          values ('cht_e2e_product', '${input.serverId}', 'channel', false, 'product');
          insert into channel_participants (server_id, chat_id, user_id)
@@ -91,8 +78,8 @@ export function seedReferenceFixture(input: SeedInput) {
          select
            'msg_e2e_reference', '${input.serverId}', '${input.chatId}',
            last_message_sequence + 1,
-           'agt_e2e_blippy',
-           'Coordinate with [@blippy](agent://agt_e2e_blippy), [@tiny](agent://agt_e2e_tiny), and [#product](chat://cht_e2e_product).',
+           '${blippyId}',
+           'Coordinate with [@blippy](agent://${blippyId}), [@tiny](agent://${tinyId}), and [#product](chat://cht_e2e_product).',
            'e2e-reference-message'
          from chats
          where server_id = '${input.serverId}' and id = '${input.chatId}';

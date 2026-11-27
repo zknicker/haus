@@ -1,46 +1,28 @@
 import type { Task } from '@haus/api';
-import { Dropdown, Header, Label, Separator } from '@heroui/react';
-import { CopyLinkIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Dropdown, Label, Separator } from '@heroui/react';
+import {
+    Archive02Icon,
+    ArrowTurnBackwardIcon,
+    CopyLinkIcon,
+    PencilEdit02Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useSetTaskArchived } from '../../hooks/tasks/use-set-task-archived.ts';
 import { copyTaskReference } from './copy-task-reference.ts';
-import { useChangeTaskState } from './task-properties.tsx';
-import { TaskStateDisc } from './task-state-disc.tsx';
-import { isTaskState, taskStateLabels, taskStateOf, taskStateOrder } from './task-state.ts';
 
-export function TaskMenuSections({ task }: { task: Task }) {
-    const changeState = useChangeTaskState();
-    const state = taskStateOf(task);
-    const isHistory = task.chatId === null;
+export function TaskMenuSections({ onRename, task }: { onRename?: () => void; task: Task }) {
+    const archive = useSetTaskArchived();
+    const archived = task.archivedAt !== null;
 
     return (
         <>
-            <Dropdown.Section
-                disallowEmptySelection
-                onSelectionChange={(keys) => {
-                    const next = keys === 'all' ? null : [...keys][0];
-                    if (isTaskState(next) && next !== state) {
-                        changeState(task, next);
-                    }
-                }}
-                selectedKeys={new Set([state])}
-                selectionMode="single"
-            >
-                <Header>State</Header>
-                {taskStateOrder.map((option) => (
-                    <Dropdown.Item
-                        id={option}
-                        isDisabled={isHistory}
-                        key={option}
-                        textValue={taskStateLabels[option]}
-                    >
-                        <TaskStateDisc state={option} />
-                        <Label>{taskStateLabels[option]}</Label>
-                        <Dropdown.ItemIndicator />
-                    </Dropdown.Item>
-                ))}
-            </Dropdown.Section>
-            <Separator />
             <Dropdown.Section>
+                {onRename ? (
+                    <Dropdown.Item id="rename" onAction={onRename} textValue="Rename">
+                        <Icon aria-hidden="true" icon={PencilEdit02Icon} size={16} />
+                        <Label>Rename</Label>
+                    </Dropdown.Item>
+                ) : null}
                 <Dropdown.Item
                     id="copy-reference"
                     onAction={() => copyTaskReference(task)}
@@ -48,6 +30,22 @@ export function TaskMenuSections({ task }: { task: Task }) {
                 >
                     <Icon aria-hidden="true" icon={CopyLinkIcon} size={16} />
                     <Label>Copy reference</Label>
+                </Dropdown.Item>
+            </Dropdown.Section>
+            <Separator />
+            <Dropdown.Section>
+                <Dropdown.Item
+                    id={archived ? 'restore' : 'archive'}
+                    isDisabled={task.chatId === null}
+                    onAction={() => archive.set(task, !archived)}
+                    textValue={archived ? 'Restore' : 'Archive'}
+                >
+                    <Icon
+                        aria-hidden="true"
+                        icon={archived ? ArrowTurnBackwardIcon : Archive02Icon}
+                        size={16}
+                    />
+                    <Label>{archived ? 'Restore' : 'Archive'}</Label>
                 </Dropdown.Item>
             </Dropdown.Section>
         </>

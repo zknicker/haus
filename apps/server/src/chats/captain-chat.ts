@@ -15,7 +15,7 @@ export class RetiredCaptainChatSendError extends Error {
 
 export async function createCaptainChat(
     tx: HausDatabase,
-    input: { agentId: string; ownerUserId: string; serverId: string }
+    input: { agentId: string; ownerUserId: string | null; serverId: string }
 ) {
     const id = createOpaqueId('cht');
     await tx.insert(chatsTable).values({
@@ -24,7 +24,13 @@ export async function createCaptainChat(
         kind: 'captain',
         serverId: input.serverId,
     });
-    await joinCaptainChat(tx, { chatId: id, serverId: input.serverId, userId: input.ownerUserId });
+    if (input.ownerUserId) {
+        await joinCaptainChat(tx, {
+            chatId: id,
+            serverId: input.serverId,
+            userId: input.ownerUserId,
+        });
+    }
     await openAgentChatRead(tx, { agentId: input.agentId, chatId: id, serverId: input.serverId });
     return id;
 }

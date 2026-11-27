@@ -1,11 +1,11 @@
 ---
-summary: The agent panel — a resizable right panel beside an agent conversation, toggled per chat, whose tabs come from the chat's kind. The Captain panel (Overview, Issues, AGENTS.md, and Setup drill-ins) replaces the standalone Captain profile page; `agents/:agentId/:section` redirects into it. Covers what each section reads today and after ADR 0062 lands, the defaults for the mock's open questions, and what is deferred.
+summary: The agent panel — a resizable right panel beside an agent conversation, toggled per chat, whose tabs come from its subject. The Captain panel (Overview, Issues, AGENTS.md, and Setup drill-ins) replaces the standalone Captain profile page; `agents/:agentId/:section` redirects into it, and `/captain/:agentId` lands on the Captain chat. The Task panel (Overview: linked Issues, pull requests, Machine, model, activity, archive and restore) sits beside a Task's chat. Covers what each section reads, the defaults for the mock's open questions, and what is deferred.
 read_when:
   - changing the agent panel shell, its toggle, width, persistence, or ⌘.
   - changing the Captain panel's Overview, Issues, AGENTS.md, or Setup drill-ins
   - changing how the App opens a Captain (strip, @mention, search, View Captain profile)
   - changing the old Captain profile route or its redirect
-  - building the Task page's chat + side panel (ADR 0062 step 6)
+  - changing the Task page's chat + side panel, its header, or its delivery-mode composer
 ---
 
 # Agent panel
@@ -17,12 +17,11 @@ Visual spec: the Captain panel mocks (2026-11-26).
 
 ## Shell
 
-- **Subject.** A chat has a panel when it has a panel subject. Today the only subject is a
-  Captain: a DM whose peer is a Captain. The panel is keyed off "this chat's Captain", never off
-  DM fields, so the shared Captain chat (ADR 0062 step 5) only changes which chat carries the
-  subject. Channels and human DMs have no panel.
-- **Tabs come from the subject kind.** Captain: Overview, Issues, AGENTS.md. Task (step 6): its own
-  set. A chat kind with no tabs has no panel and no toggle.
+- **Subject.** A chat has a panel when it has a panel subject (`AgentPanelSubject`): a Captain,
+  for the Captain chat, or a Task by its short id, for the Task page. Channels and human DMs have
+  no panel.
+- **Tabs come from the subject kind.** Captain: Overview, Issues, AGENTS.md. Task: Overview. A chat
+  kind with no tabs has no panel and no toggle.
 - **Placement.** The panel sits beside the transcript inside the chat surface, on the web and in a
   desktop tab. It starts at 400px, resizes from its left edge between 320px and 640px, and the
   width is one App-wide preference saved on this device. It never takes more than half the chat
@@ -43,9 +42,9 @@ Visual spec: the Captain panel mocks (2026-11-26).
 - The Captain strip, an @mention, a transcript avatar, search, the command menu, and the
   "View Captain profile" menu item all open the Captain's chat with the panel open on Overview
   (or on the drill-in they name).
-- One function maps a Captain to the chat it opens (`captainChatRoute`). Today it returns the
-  Captain's DM with the viewer: the existing DM, else the implicit DM page. After ADR 0062 step 5
-  it returns the shared Captain chat; nothing else changes.
+- One function maps a Captain to the chat it opens (`captainChatRoute`): `/captain/<agentId>`,
+  which lands on the Captain's one shared Captain chat (`/chats/<chatId>`). Every Captain gets that
+  chat when it is created (`createCaptainChat`), so there is no implicit DM page.
 - `agents/:agentId/:section` redirects to that chat with the matching view: `home` → Overview,
   `runtime` → Runs on, and `model`, `settings`, `automations`, `skills`, `connections`,
   `permissions`, `workspace`, `profile` and `activity` → that drill-in. A link that names a drill-in
@@ -87,6 +86,39 @@ Runs on, Model, All settings, and from All settings: Automations, Skills, Connec
 Permissions (Owner or Admin), Workspace, and Profile. Each opens inside the panel under a back
 arrow and reuses the Captain profile's section components. Activity opens the same way.
 
+## Task panel
+
+The Task page (`/tasks/<shortId>`) is the Task's chat with this panel beside it. Its header band
+carries the trail (Tasks › title), the activity chip (Working, Waiting, Idle, Failed, Needs you),
+Follow, the Task menu (Rename, Copy reference, Archive or Restore) and, while the panel is closed,
+its toggle. The composer sends `steer`; the delivery select beside Send offers Interrupt and Queue
+for one send, then returns to Steer.
+In the Task's chat its agent's messages are named by the Task's model ("GPT-5.6 Sol"), as Capy
+names thread rows, never by its Captain.
+
+### Overview
+
+Sections in order; an empty one hides.
+
+| Section | Reads |
+| --- | --- |
+| Issue | Issues whose `taskIds` hold this Task (`issue.list`): state glyph, code, title, state. A row opens the Issue page. |
+| Pull requests | The Task's attached pull requests (`task.get`). |
+| Details | Status (the activity chip, with Archived when it is), Machine (with its health when not healthy), and model. |
+| Reminders | Pending one-time reminders on the Task: "Orbit checks back at 7:35". |
+| Archive or Restore | `task.archive` / `task.unarchive`. Restore starts no turn. |
+
+The panel's open state is saved per Task like a Captain's, and it opens on the first visit.
+
+### Crew lines in the Captain chat
+
+The Captain chat shows its crew's lifecycle as quiet lines between messages, as Capy does:
+"GEN-12 and Write the notes finished, worked for 23s", "… failed after 4m", "… archived". They
+read `task.crewLifecycle` (settled crew turns and archived crew), grouped when they land within a
+minute of each other, each Task named by its linked Issue code, else its title. They are App-side
+rows, never messages; `task.onUpdated`, which a Task's run starting or settling now publishes,
+refreshes them.
+
 ## Defaults for the open questions
 
 - **Permissions** sits behind All settings, not in •••.
@@ -100,7 +132,8 @@ arrow and reuses the Captain profile's section components. Activity opens the sa
 ## Deferred
 
 - Expand (the panel full-width) and `+` to pin other Drive files as tabs.
-- The Task panel (ADR 0062 step 6) reuses this shell with its own tabs.
+- The Task panel's change summary (the turn-boundary `--stat` of each worktree,
+  [tasks.md](tasks.md#worktrees-commits-and-pull-requests)): the Computer does not report one yet.
 - The model column on Crew rows, until the Task record carries a model.
 - The machine column on Crew rows, until a Task's Machine can differ from its Captain's.
 - Opening an Issue from a row: the App has no Issue page yet, so Issue rows open nothing.

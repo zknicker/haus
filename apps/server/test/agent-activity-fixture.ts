@@ -1,11 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
+import { createCaptainChat } from '../src/chats/captain-chat.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
-    chatsTable,
     computersTable,
     serverMembershipsTable,
     serversTable,
@@ -82,7 +82,6 @@ export async function seedActivity(db: HausDatabase): Promise<Seed> {
     const serverId = createOpaqueId('srv');
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
-    const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db.insert(serversTable).values({
         displayName: 'Activity',
@@ -114,12 +113,7 @@ export async function seedActivity(db: HausDatabase): Promise<Seed> {
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    await db.insert(chatsTable).values({
-        captainAgentId: agentId,
-        id: chatId,
-        kind: 'captain',
-        serverId,
-    });
+    const chatId = await createCaptainChat(db, { agentId, ownerUserId: null, serverId });
     return { agentId, chatId, computerId, serverId };
 }
 

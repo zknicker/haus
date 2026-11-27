@@ -22,7 +22,7 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'search', Component: serverRouteComponent('SearchRoute') },
         { path: 'archived', element: <Navigate replace to="../settings/archived" /> },
         { path: 'chats/:chatId', Component: serverRouteComponent('ChatRoute') },
-        { path: 'dm/:agentId', Component: serverRouteComponent('ImplicitAgentDmRoute') },
+        { path: 'captain/:agentId', Component: serverRouteComponent('CaptainChatRoute') },
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
         { path: 'issues', Component: serverRouteComponent('IssuesPageRoute') },
         { path: 'issues/:code', Component: serverRouteComponent('IssuePageRoute') },

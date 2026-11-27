@@ -1,7 +1,7 @@
 ---
-summary: Tasks in the App — a Task as a place an Agent starts from a message, named by a short id, active or archived; its page with conversation and attached work, the Channel preview under its origin message, the sidebar's active Tasks, the flat Tasks page, and following.
+summary: Tasks in the App — a Task as a place an Agent starts from a message, named by a short id, active or archived; its page with its chat and the Task panel, the Channel preview under its origin message, the sidebar's active Tasks, the flat Tasks page, and following.
 read_when:
-  - changing the Task page, its started-from element, Details, or the attached-work panel
+  - changing the Task page, its started-from element, its header, its composer's delivery modes, or its panel
   - changing the Channel's Task previews under an origin message
   - changing the sidebar's Task rows or the Tasks page and its filter
   - changing how a person follows, unfollows, or sees a Task as unread
@@ -33,20 +33,20 @@ shaped like a reply preview. Pressing it opens the Task.
 
 ## The Task page
 
-`/tasks/k3mq7xta`. The conversation is on the left, with a "started from" element at the top that
-points back at the origin message. It works like a Channel: messages, mentions, unread, and a
-composer.
+`/tasks/k3mq7xta`. The page is the Task's chat with the Task panel beside it
+([specs/agent-panel.md](../../specs/agent-panel.md#task-panel)). The conversation has a "started
+from" element at the top that points back at the origin message, and works like a Channel:
+messages, mentions, unread, and a composer. The composer steers the Task by default; the select
+beside Send interrupts it or queues the message instead, for one send.
 
-On a wide enough pane, a right-hand panel on the page background, with no dividing border, holds
-the Task's description and its attached work: each attached pull request with its state, checks,
-and review, and any reminder the Agent set on the Task, such
-as "checks back at 7:35".
+The header band holds the trail (Tasks › title), the Task's activity (Working, Waiting, Idle,
+Failed, or Needs you), Follow, and the Task menu: **Rename**, **Copy reference** (a Markdown link to
+the Task, which is what a message references), and **Archive** or **Restore**.
 
-A counted **Pull requests** section lists the Task's pull requests.
-
-**Mentioned in** lists the messages that reference the Task. A section with nothing to list is
-absent. **Copy reference** copies a Markdown link to the Task, which is what a message
-references.
+The panel's Overview lists the linked Issue (code, title, state), the Task's pull requests with
+their state and checks, its Details (status, Machine and model), any reminder an Agent set on it
+("checks back at 7:35"), and Archive or Restore. It opens
+the first time, toggles from its header or with ⌘., and remembers its state per Task.
 
 A Task from before Tasks were places has no conversation and reads as history. An address that no
 longer resolves says **Task not found**.

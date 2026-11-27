@@ -6,6 +6,7 @@ import {
 } from '../agent-delivery/chat-engagement-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
+import { installTaskActivityEvents } from '../tasks/task-activity-events.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { registerAgentInboxConversationsRoute } from './inbox-conversations-route.ts';
 import { attestAgentEvents, inspectAgentInbox, pullAgentEvents } from './inbox.ts';
@@ -32,7 +33,11 @@ export function registerAgentInboxRoutes(
     const { db, postCommitWork } = options;
     // Engagement starts on these reads and ends on the lifecycle facts (ADR 0035).
     const uninstallProjector = installChatEngagementProjector(db, postCommitWork);
-    app.addHook('onClose', async () => uninstallProjector());
+    const uninstallTaskActivity = installTaskActivityEvents(db, postCommitWork);
+    app.addHook('onClose', async () => {
+        uninstallProjector();
+        uninstallTaskActivity();
+    });
     registerAgentInboxConversationsRoute(app, { db });
     app.get('/api/agent/events', async (request, reply) => {
         const runner = await authorizeAgentRunner(db, request);

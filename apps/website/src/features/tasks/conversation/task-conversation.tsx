@@ -15,7 +15,7 @@ import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { getTurnDetailAccess } from '../../members/agent-profile/agent-activity-model.ts';
-import { ChatComposer } from '../../servers/chat/chat-composer-variants.tsx';
+import { TaskComposer } from '../../servers/chat/chat-composer-variants.tsx';
 import { ChatReadState } from '../../servers/chat/chat-read-state.tsx';
 import { ChatTranscript } from '../../servers/chat/chat-transcript.tsx';
 import { ChatTypingIndicator } from '../../servers/chat/chat-typing-indicator.tsx';
@@ -26,18 +26,22 @@ import { usePendingChatMessages } from '../../servers/chat/use-pending-messages.
 import { useVisibleChatSequenceSource } from '../../servers/chat/use-visible-chat-sequence.ts';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
+import { useTaskAgentName } from '../use-task-agent-name.ts';
 import { TaskOrigin } from './task-origin.tsx';
 
 export function TaskConversation({
+    agent,
     chatId,
     origin,
     title,
 }: {
+    agent: { id: string; model: string | null } | null;
     chatId: string;
     origin: TaskOriginRecord | null;
     title: string;
 }) {
     const { server } = useServerContext();
+    const agentNames = useTaskAgentName(server.id, agent);
     const navigate = useNavigate();
     const openers = useDesktopPageOpeners();
     const messages = useChatMessages(server.id, chatId);
@@ -99,13 +103,12 @@ export function TaskConversation({
                             serverId={messages.data ? server.id : undefined}
                             visibleSequence={visibleSequence}
                         />
-                        <ChatComposer
+                        <TaskComposer
                             chatId={chatId}
                             chatName={title}
                             inlineReply={inlineReply}
                             onInlineReplyCancel={clearInlineReply}
                             onInlineReplySent={clearSentInlineReply}
-                            pendingChatId={chatId}
                             serverId={server.id}
                             status={<ChatTypingIndicator chatId={chatId} serverId={server.id} />}
                         />
@@ -120,6 +123,7 @@ export function TaskConversation({
                 scrollerRef={scrollerRef}
                 timelineContent={(scrollContentRef) => (
                     <ChatTranscript
+                        agentNames={agentNames}
                         chatId={chatId}
                         leadingContent={leadingContent}
                         messages={entries}

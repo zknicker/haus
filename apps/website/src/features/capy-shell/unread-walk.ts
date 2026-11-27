@@ -1,5 +1,6 @@
 import type { Chat, ChatUnreadPreview } from '@haus/api';
-import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/server-routes.ts';
+import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
+import { serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { orderChannelIds } from '../shell/channel-order.ts';
 import type { CapySidebarSection } from './sidebar-layout.ts';
 import { taskUnread } from './sidebar-model.ts';
@@ -34,9 +35,10 @@ export function walkRows({
             case 'captains':
                 return section.agentIds.map((agentId) => {
                     const dmChatId = section.agentDmChatIds[agentId];
-                    return dmChatId
-                        ? chatRow(dmChatId)
-                        : { href: serverAgentDmRoute(slug, agentId), unread: false };
+                    return {
+                        href: captainChatRoute(slug, agentId),
+                        unread: dmChatId ? (unreadByChat.get(dmChatId) ?? false) : false,
+                    };
                 });
             case 'projects':
                 return [

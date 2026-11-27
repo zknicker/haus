@@ -6,6 +6,7 @@ import { useIssueList } from '../../../hooks/issues/use-issue-list.ts';
 import { useAgent } from '../../../hooks/members/use-agent.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { agentPanelBodyClass } from '../agent-panel-layout.ts';
 import { canOpenCaptainDrill, captainPanelTabs } from '../agent-panel-model.ts';
 import { setAgentPanelView, useAgentPanelState } from '../agent-panel-store.ts';
 import { AgentPanelToggle } from '../agent-panel-toggle.tsx';
@@ -74,7 +75,7 @@ export function CaptainPanel({
                 </Tabs.ListContainer>
                 <AgentPanelToggle panelKey={panelKey} />
             </div>
-            <Tabs.Panel className={panelBody} id="overview">
+            <Tabs.Panel className={agentPanelBodyClass} id="overview">
                 {issueDrill ??
                     (agent ? (
                         drill ? (
@@ -89,7 +90,7 @@ export function CaptainPanel({
                         )
                     ) : null)}
             </Tabs.Panel>
-            <Tabs.Panel className={panelBody} id="issues">
+            <Tabs.Panel className={agentPanelBodyClass} id="issues">
                 {issueDrill ?? (
                     <CaptainIssues
                         agentId={agentId}
@@ -98,14 +99,12 @@ export function CaptainPanel({
                     />
                 )}
             </Tabs.Panel>
-            <Tabs.Panel className={panelBody} id="agents-md">
+            <Tabs.Panel className={agentPanelBodyClass} id="agents-md">
                 {agent ? <CaptainAgentsMd agent={agent} server={server} /> : null}
             </Tabs.Panel>
         </Tabs>
     );
 }
-
-const panelBody = '@container min-h-0 flex-1 overflow-y-auto px-2 pt-3 pb-6';
 
 function panelTab(key: string) {
     return captainPanelTabs.find((tab) => tab === key) ?? 'overview';

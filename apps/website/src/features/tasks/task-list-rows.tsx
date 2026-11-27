@@ -3,7 +3,7 @@ import { ListView } from '@heroui-pro/react';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { useServerContext } from '../servers/server-context.ts';
 import { TaskActivityChip } from './task-activity.tsx';
-import { TaskRowMenu } from './task-row-menu.tsx';
+import { TaskMenu } from './task-menu.tsx';
 import { taskAge } from './tasks-page-model.ts';
 import { useOpenTask } from './use-open-task.ts';
 import { useMachineLabels, useModelLabels, useTaskIssueCodes } from './use-task-facts.ts';
@@ -72,7 +72,7 @@ function TaskListRow({
                         {taskAge(task, now)}
                     </span>
                     <span className="task-list__menu">
-                        <TaskRowMenu task={task} />
+                        <TaskMenu task={task} />
                     </span>
                 </span>
             </ListView.ItemAction>

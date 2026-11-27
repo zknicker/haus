@@ -21,9 +21,9 @@ import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-re
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { ChatReadState } from './chat-read-state.tsx';
 import { ChatTopbar } from './chat-topbar.tsx';
-import { ChatTranscript } from './chat-transcript.tsx';
 import { ChatViewFooter } from './chat-view-footer.tsx';
 import { ChatViewSidePanel } from './chat-view-side-panel.tsx';
+import { ChatViewTranscript } from './chat-view-transcript.tsx';
 import { composerDropSurfaceProps } from './composer-file-drop.ts';
 import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
@@ -174,7 +174,8 @@ export function ChatView({
                 rowCount={transcriptMessages?.length ?? 0}
                 scrollerRef={scrollerRef}
                 timelineContent={(scrollContentRef) => (
-                    <ChatTranscript
+                    <ChatViewTranscript
+                        chat={chat}
                         chatId={chat.id}
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}

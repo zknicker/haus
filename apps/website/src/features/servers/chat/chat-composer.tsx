@@ -21,7 +21,7 @@ import { ComposerAttachments } from './composer-attachments.tsx';
 import { ComposerDropOverlay } from './composer-drop-overlay.tsx';
 import { useComposerFileDrop } from './composer-file-drop.ts';
 import { pastedFiles } from './composer-paste.ts';
-import { submitChatComposer } from './submit-chat-composer.ts';
+import { type ChatComposerTarget, submitChatComposer } from './submit-chat-composer.ts';
 import { useChatComposerCommands } from './use-chat-composer-commands.ts';
 import { useChatDraft } from './use-chat-draft.ts';
 import { useCompactComposerLayout } from './use-compact-composer-layout.ts';
@@ -47,6 +47,7 @@ export function ServerChatComposer({
     serverId,
     status,
     target,
+    toolbarEnd,
 }: {
     /** Focus on mount and on a kept view's reveal; an Inbox row passes false and focuses via `ref`. */
     autoFocus?: boolean;
@@ -68,7 +69,9 @@ export function ServerChatComposer({
     serverId: string;
     /** The typing row; the composer reserves its height above the shell. */
     status?: React.ReactNode;
-    target: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
+    target: ChatComposerTarget;
+    /** Controls beside Send, such as a Task chat's delivery mode. */
+    toolbarEnd?: React.ReactNode;
 }) {
     // Mentions read who each Agent is, never its availability.
     const agentList = useAgentAppearances(serverId);
@@ -252,6 +255,7 @@ export function ServerChatComposer({
                             ) : null}
                         </PromptInput.ToolbarStart>
                         <PromptInput.ToolbarEnd>
+                            {toolbarEnd}
                             <PromptInput.Send aria-label="Send" isDisabled={!canSubmit} />
                         </PromptInput.ToolbarEnd>
                     </PromptInput.Toolbar>

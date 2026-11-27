@@ -51,7 +51,6 @@ export function ChatViewFooter({
                         />
                     ) : null}
                     <ChatComposer
-                        agentDmId={chat.peerAgentId ?? undefined}
                         chatId={chat.id}
                         chatName={chatName}
                         inlineReply={inlineReply}

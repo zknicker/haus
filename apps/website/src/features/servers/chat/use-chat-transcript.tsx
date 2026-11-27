@@ -20,14 +20,17 @@ import {
 import type { ChatTranscriptInput } from './chat-transcript-input.ts';
 import { projectPendingChatMessageRows } from './pending-messages.tsx';
 import { ServerChatMessageContent } from './server-chat-message-content.tsx';
+import { mergeTimelineNotes, type TimelineNote } from './timeline-notes.ts';
 import { useRenderMessageMedia } from './use-message-media.tsx';
 import type { PendingChatMessage } from './use-pending-messages.ts';
 
 const conversationLayout = { showAgentIdentity: true, showHumanIdentity: true } as const;
 const emptyPendingMessages: readonly PendingChatMessage[] = [];
+const emptyTimelineNotes: readonly TimelineNote[] = [];
 
 /** Rows and render context retain identity across unchanged refetches to avoid rerendering every turn. */
 export function useChatTranscript({
+    agentNames,
     chatId,
     messages,
     onOpenArtifact,
@@ -38,6 +41,7 @@ export function useChatTranscript({
     pendingMessages = emptyPendingMessages,
     replyTargetMessageId,
     serverId,
+    timelineNotes = emptyTimelineNotes,
     turnDetailsAccess = 'summary',
     viewerUserId,
 }: ChatTranscriptInput) {
@@ -70,9 +74,13 @@ export function useChatTranscript({
         () => (viewerUserId ? projectPendingChatMessageRows(pendingMessages, viewerUserId) : []),
         [pendingMessages, viewerUserId]
     );
+    const notedRows = React.useMemo(
+        () => mergeTimelineNotes(projectedRows, timelineNotes),
+        [projectedRows, timelineNotes]
+    );
     const rows = React.useMemo(
-        () => (pendingRows.length === 0 ? projectedRows : [...projectedRows, ...pendingRows]),
-        [pendingRows, projectedRows]
+        () => (pendingRows.length === 0 ? notedRows : [...notedRows, ...pendingRows]),
+        [notedRows, pendingRows]
     );
     const agentsById = React.useMemo(
         () => new Map(agentList.map((agent) => [agent.id, agent])),
@@ -94,6 +102,7 @@ export function useChatTranscript({
         ),
     });
     const resolveActorProfile = useResolveActorProfile({
+        agentNames,
         agentsById,
         humans,
         messages: messageList,

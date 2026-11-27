@@ -7,6 +7,7 @@ import { advanceSeenCursor, markCursorSubsumedSeen } from '../src/agent-delivery
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { countQueuedInboxItems, readDeliveryState } from '../src/agent-delivery/store.ts';
+import { createCaptainChat } from '../src/chats/captain-chat.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -86,7 +87,6 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
     const computerId = createOpaqueId('cmp');
     const agentId = createOpaqueId('agt');
     const agentHandle = `ada-${randomBytes(4).toString('hex')}`;
-    const chatId = createOpaqueId('cht');
     await db.insert(usersTable).values({ authSubject: createOpaqueId('clk'), id: userId });
     await db
         .insert(serversTable)
@@ -115,12 +115,7 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
         homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
-    await db.insert(chatsTable).values({
-        captainAgentId: agentId,
-        id: chatId,
-        kind: 'captain',
-        serverId,
-    });
+    const chatId = await createCaptainChat(db, { agentId, ownerUserId: null, serverId });
     return { agentHandle, agentId, chatId, computerId, serverId, userId };
 }
 

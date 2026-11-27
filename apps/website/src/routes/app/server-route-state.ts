@@ -73,8 +73,8 @@ export function resolveSelectedChatId(pathname: string, slug: string) {
         : undefined;
 }
 
-export function resolveSelectedAgentDmId(pathname: string, slug: string) {
-    const prefix = `${serverRoute(slug)}/dm/`;
+export function resolveSelectedCaptainId(pathname: string, slug: string) {
+    const prefix = `${serverRoute(slug)}/captain/`;
     return pathname.startsWith(prefix)
         ? decodeURIComponent(pathname.slice(prefix.length))
         : undefined;

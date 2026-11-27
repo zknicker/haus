@@ -6,11 +6,12 @@ import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import {
-    resolveSelectedAgentDmId,
+    resolveSelectedCaptainId,
     resolveSelectedChatId,
 } from '../../routes/app/server-route-state.ts';
+import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
-import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/server-routes.ts';
+import { serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { ListedChatNavigationRow } from '../shell/chat-navigation-row.tsx';
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
@@ -39,7 +40,7 @@ export function CapySidebar({
     const openNewCaptain = React.useCallback(() => setCreating('captain'), []);
     const selection = {
         pathname,
-        selectedAgentDmId: resolveSelectedAgentDmId(pathname, slug),
+        selectedCaptainId: resolveSelectedCaptainId(pathname, slug),
         selectedChatId: resolveSelectedChatId(pathname, slug),
     };
 
@@ -64,7 +65,7 @@ export function CapySidebar({
             <CreateAgentDialog
                 onCreated={(agentId) => {
                     setCreating(null);
-                    navigate(serverAgentDmRoute(slug, agentId));
+                    navigate(captainChatRoute(slug, agentId));
                 }}
                 onOpenChange={(open) => setCreating(open ? 'captain' : null)}
                 open={creating === 'captain'}
@@ -93,7 +94,7 @@ function CapySidebarSectionView({
     section: CapySidebarSection;
     selection: {
         pathname: string;
-        selectedAgentDmId: string | undefined;
+        selectedCaptainId: string | undefined;
         selectedChatId: string | undefined;
     };
     serverId: string;
@@ -110,7 +111,7 @@ function CapySidebarSectionView({
                     }
                     agentDmChatIds={section.agentDmChatIds}
                     agentIds={section.agentIds}
-                    selectedAgentDmId={selection.selectedAgentDmId}
+                    selectedCaptainId={selection.selectedCaptainId}
                     selectedChatId={selection.selectedChatId}
                     serverId={serverId}
                     slug={slug}

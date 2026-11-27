@@ -1,5 +1,5 @@
-import { captainsProjectId } from '../support/project.ts';
-import { attachComputer, captainTile, createTestServer, runPsql } from '../support/server.ts';
+import { createTestCaptain } from '../support/captains.ts';
+import { attachComputer, captainTile, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('a cold Captain panel keeps identity and navigation available before its content arrives', async ({
@@ -24,16 +24,13 @@ test('a cold Captain panel keeps identity and navigation available before its co
         credential: 'agent-performance-computer-credential-1234',
         slug: server.slug,
     });
-    const homeProjectId = await captainsProjectId(client, server.id);
-    runPsql(
-        session.databaseUrl,
-        `insert into agents (
-        id, server_id, computer_id, handle, display_name, home_timezone,
-        desired_runtime_id, desired_model_id, created_at, home_project_id
-    ) values ('agt_performance', '${server.id}', '${computer.computerId}',
-        'iris', 'Iris', 'America/New_York', 'codex', 'gpt-5.6-sol', now(),
-        '${homeProjectId}')`
-    );
+    await createTestCaptain(client, {
+        computerId: computer.computerId,
+        databaseUrl: session.databaseUrl,
+        displayName: 'Iris',
+        handle: 'iris',
+        serverId: server.id,
+    });
     await page.reload();
     const row = captainTile(page, 'Iris');
     await expect(row).toBeVisible();

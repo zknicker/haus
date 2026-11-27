@@ -9,8 +9,8 @@ import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
+import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
 import { AgentHoverCardContent } from '../members/agent-hover-card.tsx';
-import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
 import { DmNavigationContextMenu } from '../shell/dm-navigation-context-menu.tsx';
 import { CapySection } from './capy-section.tsx';
 import type { CaptainPresence } from './sidebar-model.ts';
@@ -23,7 +23,7 @@ export function CaptainTiles({
     action,
     agentDmChatIds,
     agentIds,
-    selectedAgentDmId,
+    selectedCaptainId,
     selectedChatId,
     serverId,
     slug,
@@ -31,7 +31,7 @@ export function CaptainTiles({
     action?: React.ReactNode;
     agentDmChatIds: Readonly<Record<string, string>>;
     agentIds: readonly string[];
-    selectedAgentDmId: string | undefined;
+    selectedCaptainId: string | undefined;
     selectedChatId: string | undefined;
     serverId: string;
     slug: string;
@@ -49,7 +49,7 @@ export function CaptainTiles({
                             <CaptainTileLink
                                 agentId={agentId}
                                 isCurrent={
-                                    agentId === selectedAgentDmId ||
+                                    agentId === selectedCaptainId ||
                                     (selectedChatId !== undefined &&
                                         agentDmChatIds[agentId] === selectedChatId)
                                 }
@@ -84,7 +84,7 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
         preloadChat();
         preloadAgent();
     }, [preloadAgent, preloadChat]);
-    const href = dmChatId ? serverChatRoute(slug, dmChatId) : serverAgentDmRoute(slug, agentId);
+    const href = captainChatRoute(slug, agentId);
     const open = React.useCallback(() => showCaptainPanel(agentId), [agentId]);
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, () => {
         preload();

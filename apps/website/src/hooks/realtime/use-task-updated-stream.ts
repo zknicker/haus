@@ -43,5 +43,6 @@ export function applyTaskUpdate(
 function invalidateServerReads(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.list, { serverId }) });
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.listActive, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.crewLifecycle, { serverId }) });
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
 }

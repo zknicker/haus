@@ -155,8 +155,10 @@ all Captains (`apps/server/src/postgres/schema/agents.ts:75-78`). Task rules key
 **The Captain chat** (step 5) replaces per-person Captain DMs
 (`apps/server/src/chats/ensure-agent-dm.ts:16`):
 
-- Each Captain has exactly one Chat of kind `captain`, created with the Captain. It has no parent
-  and is not a Project. It is visible to everyone on the Server; there is no private Captain chat
+- Each Captain has exactly one Chat of kind `captain`, created with the Captain by
+  `createCaptainChat` (`apps/server/src/chats/captain-chat.ts`) on every creation path (`agent.create`,
+  `haus agent create`, the dev seed), which also opens the Captain's read of it and joins its owner. It has no parent and is not
+  a Project. It is visible to everyone on the Server; there is no private Captain chat
   in v1.
 - Each person has two flags on it, Capy's `member` and `subscribed`. A member sees it in their
   sidebar; a subscribed member gets unread and push for every message. Posting makes you a member
@@ -173,7 +175,9 @@ all Captains (`apps/server/src/postgres/schema/agents.ts:75-78`). Task rules key
   DMs are unchanged. The shared chats start fresh; the one-off script handles old Captain DM rows
   and the reminders, Triggers and claims anchored in them.
 - Recurring reminders and claims may anchor in the Captain chat.
-- The Captain page is the Captain chat plus its side panel (step 6).
+- The Captain page is the Captain chat plus its side panel (step 6), at `/captain/<agentId>`, which
+  lands on the chat. The chat shows its crew's finishes, failures and archives as quiet lines
+  ([agent-panel.md](agent-panel.md#crew-lines-in-the-captain-chat)).
 
 ## Starting a Task
 
@@ -374,6 +378,7 @@ its deliverables through the runner (step 5), as Capy threads edit their drive:
   goes to the Task agent itself.
 - **Change summary.** At each turn boundary the Computer reports a `--stat` summary of each
   worktree the turn touched, with its Computer and repo. The side panel shows the newest one.
+  Not built yet: the Computer reports no summary, so the Task panel has no Changes section.
 
 ## Followers and unread
 

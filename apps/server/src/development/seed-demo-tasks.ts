@@ -8,20 +8,26 @@ import {
     taskFollowsTable,
     tasksTable,
 } from '../postgres/schema.ts';
+import { insertTaskAgent } from '../tasks/task-agent.ts';
 import { randomShortId } from '../tasks/task-short-id.ts';
 import { seedDemoTaskWork } from './seed-demo-task-work.ts';
 
 type Tx = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
+const demoCrewModel = 'gpt-5.6-sol';
+
+type DemoAuthor = TaskActor | 'crew';
+
 interface DemoTask {
     archived?: true;
-    conversation?: readonly { author: TaskActor; content: string }[];
+    conversation?: readonly { author: DemoAuthor; content: string }[];
     createdBy: TaskActor;
     origin: { chatId: string; messageId: string };
     title: string;
 }
 
 export interface SeededDemoTask {
+    agentId: string | null;
     chatId: string;
     id: string;
     messageCount: number;
@@ -48,19 +54,18 @@ export async function seedServerDemoTasks(
     const blippy = { agentId: agents.blippyId, kind: 'agent' } as const;
     const tiny = { agentId: agents.tinyId, kind: 'agent' } as const;
     const owner = { kind: 'user', userId: input.userId } as const;
+    const crew = 'crew' as const;
     const inAll = (messageId: string) => ({ chatId: channels.allId, messageId });
     const [ship] = await seedDemoTasks(tx, {
+        computerId: input.computerId,
         projectId: channels.demoId,
         serverId: input.serverId,
         tasks: [
             {
                 conversation: [
-                    { author: blippy, content: 'Taking this. Upload, crop, and save in one pass.' },
+                    { author: crew, content: 'Taking this. Upload, crop, and save in one pass.' },
                     { author: owner, content: 'Keep the crop square for now.' },
-                    {
-                        author: blippy,
-                        content: 'Square it is. Starting the build now.',
-                    },
+                    { author: crew, content: 'Square it is. Starting the build now.' },
                 ],
                 createdBy: blippy,
                 origin: inAll(messages.shipTaskMessageId),
@@ -73,7 +78,7 @@ export async function seedServerDemoTasks(
             },
             {
                 conversation: [
-                    { author: tiny, content: '5 MB covers every phone photo I tried.' },
+                    { author: crew, content: '5 MB covers every phone photo I tried.' },
                     { author: owner, content: 'Let me check what the iPhone sends first.' },
                 ],
                 createdBy: tiny,
@@ -88,9 +93,9 @@ export async function seedServerDemoTasks(
             {
                 archived: true,
                 conversation: [
-                    { author: tiny, content: 'Drafted the welcome copy and posted it in #all.' },
+                    { author: crew, content: 'Drafted the welcome copy and posted it in #all.' },
                     { author: owner, content: 'Reads well. Ship it.' },
-                    { author: tiny, content: 'Shipped. Archiving this.' },
+                    { author: crew, content: 'Shipped. Archiving this.' },
                 ],
                 createdBy: tiny,
                 origin: inAll(messages.planMessageId),
@@ -98,11 +103,11 @@ export async function seedServerDemoTasks(
             },
         ],
     });
-    if (!ship) {
-        throw new Error('The dev seed wrote no active Task to attach work to.');
+    if (!ship?.agentId) {
+        throw new Error('The dev seed wrote no active crew Task to attach work to.');
     }
     await seedDemoTaskWork(tx, {
-        agentId: agents.blippyId,
+        agentId: ship.agentId,
         serverId: input.serverId,
         task: ship,
     });
@@ -110,15 +115,33 @@ export async function seedServerDemoTasks(
 
 export async function seedDemoTasks(
     tx: Tx,
-    input: { projectId: string; serverId: string; tasks: readonly DemoTask[] }
+    input: { computerId: string; projectId: string; serverId: string; tasks: readonly DemoTask[] }
 ): Promise<SeededDemoTask[]> {
-    const { projectId, serverId } = input;
+    const { computerId, projectId, serverId } = input;
     const now = new Date();
-    const rows = input.tasks.map((task) => ({
-        chatId: createOpaqueId('cht'),
-        id: createOpaqueId('tsk'),
-        task,
-    }));
+    const rows = await Promise.all(
+        input.tasks.map(async (task) => {
+            const shortId = randomShortId();
+            const captainId = agentIdOf(task.createdBy);
+            const agentId = captainId
+                ? await insertTaskAgent(tx, {
+                      serverId,
+                      session: { computerId, modelId: demoCrewModel, runtimeId: 'codex' },
+                      shortId,
+                      starter: task.createdBy,
+                      title: task.title,
+                  })
+                : null;
+            return {
+                agentId,
+                captainId,
+                chatId: createOpaqueId('cht'),
+                id: createOpaqueId('tsk'),
+                shortId,
+                task,
+            };
+        })
+    );
     await tx.insert(chatsTable).values(
         rows.map(({ chatId, task }) => ({
             id: chatId,
@@ -131,26 +154,30 @@ export async function seedDemoTasks(
         }))
     );
     await tx.insert(tasksTable).values(
-        rows.map(({ chatId, id, task }) => ({
+        rows.map(({ agentId, captainId, chatId, id, shortId, task }) => ({
+            agentId,
             archivedAt: task.archived ? now : null,
+            captainId,
             chatId,
+            computerId: agentId ? computerId : null,
             createdByAgentId: agentIdOf(task.createdBy),
             createdByUserId: userIdOf(task.createdBy),
             id,
             originChatId: task.origin.chatId,
             originMessageId: task.origin.messageId,
             projectId,
+            model: agentId ? demoCrewModel : null,
             serverId,
-            shortId: randomShortId(),
+            shortId,
             title: task.title,
         }))
     );
-    const conversation = rows.flatMap(({ chatId, task }) =>
+    const conversation = rows.flatMap(({ agentId, chatId, task }) =>
         (task.conversation ?? []).map((line, index) => {
             const id = createOpaqueId('msg');
             return {
-                authorAgentId: agentIdOf(line.author),
-                authorUserId: userIdOf(line.author),
+                authorAgentId: line.author === 'crew' ? agentId : agentIdOf(line.author),
+                authorUserId: line.author === 'crew' ? null : userIdOf(line.author),
                 chatId,
                 content: line.content,
                 id,
@@ -165,7 +192,8 @@ export async function seedDemoTasks(
         await tx.insert(chatMessagesTable).values(conversation);
     }
     await seedFollows(tx, serverId, rows);
-    return rows.map(({ chatId, id, task }) => ({
+    return rows.map(({ agentId, chatId, id, task }) => ({
+        agentId,
         chatId,
         id,
         messageCount: task.conversation?.length ?? 0,
@@ -178,10 +206,12 @@ async function seedFollows(
     rows: readonly { chatId: string; task: DemoTask }[]
 ) {
     const followers = rows.flatMap(({ chatId, task }) =>
-        [task.createdBy, ...(task.conversation ?? []).map((line) => line.author)].map((actor) => ({
-            actor,
-            chatId,
-        }))
+        [
+            task.createdBy,
+            ...(task.conversation ?? []).flatMap((line) =>
+                line.author === 'crew' ? [] : [line.author]
+            ),
+        ].map((actor) => ({ actor, chatId }))
     );
     const people = unique(
         followers.flatMap(({ actor, chatId }) => {

@@ -1,6 +1,5 @@
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import { seedArtifactReply, seedReferenceFixture } from '../support/messaging-seeds.ts';
-import { captainsProjectId } from '../support/project.ts';
 import {
     assertOpaqueId,
     createClient,
@@ -50,9 +49,8 @@ test.beforeAll(async () => {
         nonce: 'e2e-peer-message',
         serverId,
     });
-    const homeProjectId = await captainsProjectId(owner, serverId);
-    seedArtifactReply({ chatId: allChatId, databaseUrl, homeProjectId, serverId });
-    seedReferenceFixture({ chatId: allChatId, databaseUrl, homeProjectId, serverId });
+    await seedArtifactReply(owner, { chatId: allChatId, databaseUrl, serverId });
+    await seedReferenceFixture(owner, { chatId: allChatId, databaseUrl, serverId });
 });
 
 test('a human messages in #all with only the hosted Server online', async ({ page }) => {

@@ -7,6 +7,7 @@ import { type AgentPanelSubject, agentPanelKey } from './agent-panel-model.ts';
 import { AgentPanelShortcut } from './agent-panel-shortcut.tsx';
 import { useAgentPanelState } from './agent-panel-store.ts';
 import { CaptainPanel } from './captain/captain-panel.tsx';
+import { TaskPanel } from './task/task-panel.tsx';
 import { agentPanelWidthLimits, useAgentPanelWidth } from './use-agent-panel-width.ts';
 
 export function AgentPanel({
@@ -22,9 +23,19 @@ export function AgentPanel({
         <>
             <AgentPanelShortcut panelKey={panelKey} />
             {open ? (
-                <AgentPanelFrame label="Captain panel">
-                    <CaptainPanel agentId={subject.agentId} panelKey={panelKey} server={server} />
-                </AgentPanelFrame>
+                subject.kind === 'captain' ? (
+                    <AgentPanelFrame label="Captain panel">
+                        <CaptainPanel
+                            agentId={subject.agentId}
+                            panelKey={panelKey}
+                            server={server}
+                        />
+                    </AgentPanelFrame>
+                ) : (
+                    <AgentPanelFrame label="Task panel">
+                        <TaskPanel panelKey={panelKey} server={server} shortId={subject.shortId} />
+                    </AgentPanelFrame>
+                )
             ) : null}
         </>
     );

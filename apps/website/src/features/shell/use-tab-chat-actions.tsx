@@ -76,7 +76,7 @@ export function useTabChatMenu(actions: TabChatActions, tabId: string | null) {
     });
     const page = location ? parseTabPage(location) : null;
     const chat = useListedChat(actions.serverId, page?.kind === 'chat' ? page.chatId : '') ?? null;
-    const agentId = page?.kind === 'dm' ? page.agentId : chat?.peerAgentId;
+    const agentId = page?.kind === 'captain' ? page.agentId : chat?.peerAgentId;
     const agent = useAgentMark(actions.serverId, agentId ?? '') ?? null;
 
     const onAction = (key: React.Key) => {
@@ -86,7 +86,7 @@ export function useTabChatMenu(actions: TabChatActions, tabId: string | null) {
         actions.beginAction(tabId, key);
         if (chat?.kind === 'channel') {
             actions.channel.run(chat, key);
-        } else if (chat || page?.kind === 'dm') {
+        } else if (chat || page?.kind === 'captain') {
             actions.dm.run({ agentId: agent?.id ?? null, chatId: chat?.id ?? null }, key);
         }
     };
@@ -94,7 +94,7 @@ export function useTabChatMenu(actions: TabChatActions, tabId: string | null) {
     let items: React.ReactNode = null;
     if (chat?.kind === 'channel') {
         items = <ChannelContextMenuItems actions={actions.channel} chat={chat} />;
-    } else if (chat || page?.kind === 'dm') {
+    } else if (chat || page?.kind === 'captain') {
         items = <DmContextMenuItems files hasAgent={Boolean(agent)} hasChat={Boolean(chat)} />;
     }
     const label = chat?.kind === 'channel' ? 'Project' : 'DM';

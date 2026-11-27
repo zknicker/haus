@@ -20,10 +20,12 @@ interface ProfileSource {
  * that message's profile.
  */
 export function useResolveActorProfile({
+    agentNames,
     agentsById,
     humans,
     messages,
 }: {
+    agentNames?: ReadonlyMap<string, string> | undefined;
     agentsById: ReadonlyMap<string, Agent>;
     humans: HumanDirectory;
     messages: readonly Pick<ChatMessage, 'author'>[];
@@ -40,10 +42,12 @@ export function useResolveActorProfile({
 
             if (actor.kind === 'agent') {
                 const agent = agentsById.get(actor.id);
-
-                return agent
+                const profile = agent
                     ? liveAgentActorProfile(agent)
                     : (historicalRef.current.get(`agent:${actor.id}`) ?? null);
+                const name = agentNames?.get(actor.id);
+
+                return name ? renamedAgentProfile(actor.id, profile, name) : profile;
             }
 
             const member = humans.member(actor.id);
@@ -63,7 +67,7 @@ export function useResolveActorProfile({
                 availability: { kind: 'none' },
             };
         },
-        [agentsById, humans]
+        [agentNames, agentsById, humans]
     );
 }
 
@@ -77,6 +81,23 @@ export function liveAgentActorProfile(agent: Agent): TranscriptActorProfile {
         name: agent.displayName,
         availability: { kind: 'live', serverId: agent.serverId },
     };
+}
+
+export function renamedAgentProfile(
+    id: string,
+    profile: TranscriptActorProfile | null,
+    name: string
+) {
+    return {
+        availability: { kind: 'none' },
+        deleted: false,
+        id,
+        isSelf: false,
+        kind: 'agent',
+        ...profile,
+        avatarUrl: null,
+        name,
+    } satisfies TranscriptActorProfile;
 }
 
 /**

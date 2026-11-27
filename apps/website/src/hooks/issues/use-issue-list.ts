@@ -4,10 +4,14 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 
 export type IssueListFilters = Omit<IssueListInput, 'serverId'>;
 
-export function useIssueList(serverId: string, filters: IssueListFilters) {
+export function useIssueList(
+    serverId: string,
+    filters: IssueListFilters,
+    options: { enabled?: boolean } = {}
+) {
     const { data, error } = hausTrpc.issue.list.useQuery(
         { ...filters, serverId },
-        queryPolicy.syncedSnapshot
+        { ...queryPolicy.syncedSnapshot, enabled: options.enabled }
     );
     return { data, error };
 }

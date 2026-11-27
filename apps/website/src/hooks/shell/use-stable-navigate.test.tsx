@@ -39,7 +39,7 @@ test('router openers keep one identity across navigations and act on the latest 
     await act(() => navigates.at(-1)?.('/s/two/chats/b'));
     await act(() => openers.at(-1)?.('agt_tiny'));
 
-    expect(paths).toEqual(['/s/one/chats/a', '/s/two/chats/b', '/s/two/dm/agt_tiny']);
+    expect(paths).toEqual(['/s/one/chats/a', '/s/two/chats/b', '/s/two/captain/agt_tiny']);
     expect(new Set(navigates).size).toBe(1);
     expect(new Set(openers).size).toBe(1);
 
