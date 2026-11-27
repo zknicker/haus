@@ -164,8 +164,8 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
         assert.match(workflow, new RegExp(`name: ${jobName}`));
     }
     assert.equal((workflow.match(/runs-on: macos-15$/gm) ?? []).length, 2);
-    assert.equal((workflow.match(/runs-on: macos-26$/gm) ?? []).length, 1);
-    assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 1);
+    assert.equal((workflow.match(/runs-on: macos-26$/gm) ?? []).length, 0);
+    assert.equal((workflow.match(/runs-on: xcode-27$/gm) ?? []).length, 2);
     assert.match(workflow, /name: Publish Computer[\s\S]*?GH_TOKEN: \$\{\{ github\.token \}\}/);
     assert.match(workflow, /bun run computer:release "\$\{COMPUTER_VERSION\}"/);
     assert.match(
@@ -174,7 +174,7 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     );
     assert.match(
         workflow,
-        /name: Upload iOS[\s\S]*?needs: plan[\s\S]*?runs-on: macos-26[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_26\.6\.app\/Contents\/Developer[\s\S]*?HAUS_PRECOMPILED_IOS_ICON_DIR: \$\{\{ github\.workspace \}\}\/assets\/ios-icon[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
+        /name: Upload iOS[\s\S]*?needs: plan[\s\S]*?runs-on: xcode-27[\s\S]*?DEVELOPER_DIR: \/Applications\/Xcode_27\.1\.app\/Contents\/Developer[\s\S]*?HAUS_PRECOMPILED_IOS_ICON_DIR: \$\{\{ github\.workspace \}\}\/assets\/ios-icon[\s\S]*?bun run ios:release "\$\{IOS_VERSION\}" --build-number "\$\{IOS_BUILD_NUMBER\}"/
     );
     assert.match(prepareIOSIconSource, /requiredIOSIconXcodeBuild/);
     assert.doesNotMatch(workflow, /haus-xcode27|prepare_ios_icon|haus-ios-icon/);

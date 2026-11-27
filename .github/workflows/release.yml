@@ -154,12 +154,12 @@ jobs:
       github.event_name == 'push' &&
       needs.plan.outputs.initial_ledger_migration == 'false' &&
       needs.plan.outputs.publish_ios == 'true'
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 60
     permissions:
       contents: read
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       HAUS_PRECOMPILED_IOS_ICON_DIR: ${{ github.workspace }}/assets/ios-icon
     steps:
       - name: Check out release source

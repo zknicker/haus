@@ -112,13 +112,14 @@ checksums. When any icon source changes, regenerate the catalog with `bun run io
 under the Xcode build named in the manifest and commit both changes. Routine releases do not
 compile it again.
 
-The stable Xcode 26.6 job validates the committed artifact, rejects catalogs where any icon lacks
-light, dark, tinted, specular, or 1024px renditions, verifies that each checksum-bound Icon Composer
-source keeps an active refractive layer, then archives without recompiling the `.icon`.
-It installs the verified catalog before code signing and confirms that archive and export preserve
-its exact bytes. This split is required while App Store Connect rejects archives built entirely by
-preview Xcode 27. Keep the `.icon` canonical and do not flatten or remove its Icon Composer 2
-effects.
+The Upload iOS job runs on the `xcode-27` image with Xcode 27.1 pinned through `DEVELOPER_DIR`,
+because iPhone Duo layout needs the iOS 27.1 SDK. An older SDK runs the app in iPhone compatibility
+mode on the Duo inner display. The job validates the committed artifact, rejects catalogs where any
+icon lacks light, dark, tinted, specular, or 1024px renditions, verifies that each checksum-bound
+Icon Composer source keeps an active refractive layer, then archives without recompiling the
+`.icon`. It installs the verified catalog before code signing and confirms that archive and export
+preserve its exact bytes. Keep the `.icon` canonical and do not flatten or remove its Icon Composer
+2 effects.
 
 ## Target impact
 
