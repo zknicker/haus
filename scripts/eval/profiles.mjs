@@ -46,12 +46,56 @@ export const placementProfiles = {
         spec: 'S7',
     },
     'ack-reaction-thanks': { channel: [0, 0], reaction: true, spec: 'S3' },
+    // S8: a quick question in the Agent's own chat (the Captain chat, or the Owner DM before
+    // ADR 0062) gets one short answer there and nothing anywhere else. A top-level reply in a
+    // one-to-one chat is where the asker looks.
+    'captain-chat-quick-answer': {
+        cap: 30,
+        channel: [1, 1],
+        inChat: true,
+        maxQuestions: 0,
+        result: (post) => /\b24\b/u.test(post.content),
+        spec: 'S8',
+    },
     'placement-recommendation': {
         cap: 80,
         channel: [1, 1],
         options: recommendationOptions,
         result: (post) => recommendationOptions.some((option) => option.test(post.content)),
         spec: 'S6',
+    },
+};
+
+/**
+ * Crew (ADR 0062).
+ *
+ * Issue (C1, runner verdict only): handed an Issue that is real work, a good Captain picks it up
+ * without being asked in chat, starts one crew Task linked to it with a brief naming the Issue,
+ * and leaves the Issue's state alone except for moving it to in progress. Wrong: doing the work
+ * in its own turn, a channel post, or closing the Issue.
+ *
+ * Report (C2): asked in its Captain chat for a crew Task, a good Captain says once that the Task
+ * is started; the Task ends its turn with one report; when the report comes back the Captain
+ * tells the person the result in a line or two, in the Captain chat where they asked. Wrong:
+ * silence after the report, a recap of the report, or an offer.
+ *
+ * Home Task (C4): a Task a person started answers in its own chat, briefly, with nothing extra,
+ * and posts nowhere else. Both graded profiles read the last post carrying the result.
+ */
+export const crewProfiles = {
+    'crew-report-reaches-person': {
+        cap: 50,
+        channel: [1, 2],
+        inChat: true,
+        result: (post) => /\b[0-9a-f]{12}\b/iu.test(post.content),
+        spec: 'C2',
+    },
+    'home-task-works-with-person': {
+        cap: 30,
+        channel: [1, 2],
+        inChat: true,
+        result: (post) => /\b782\b/u.test(post.content),
+        spec: 'C4',
     },
 };
 

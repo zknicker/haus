@@ -1,4 +1,4 @@
-// The same no-response contract in the Agent's Owner DM, where every message
+// The same no-response contract in the Agent's own chat, where every message
 // is addressed by definition. The DM belongs to the Agent, so this scenario
 // anchors on its head and lets Agent retirement carry it away.
 
@@ -7,13 +7,13 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A DM that explicitly requires no response wakes a turn that settles with no durable output and leaves the Owner DM unchanged after its head.',
+        'A DM that explicitly requires no response wakes a turn that settles with no durable output and leaves the own chat unchanged after its head.',
     name: 'fyi-silence-dm',
     async run({ agents, expect, kit, log }) {
         const [worker] = agents;
-        const dmChatId = worker.dmChatId;
+        const dmChatId = worker.ownChatId;
         if (!dmChatId) {
-            throw new Error(`Agent @${worker.handle} has no Owner DM to send into.`);
+            throw new Error(`Agent @${worker.handle} has no own chat to send into.`);
         }
 
         const head = await kit.readHead(dmChatId);
@@ -31,7 +31,7 @@ export default defineScenario({
         expect(turn.messageCount, 'durable messages in the turn').toBe(0);
 
         const messages = await kit.readMessages(dmChatId);
-        expect(kit.authoredBy(messages, worker.id, head), 'replies in the Owner DM').toHaveLength(
+        expect(kit.authoredBy(messages, worker.id, head), 'replies in the own chat').toHaveLength(
             0
         );
     },

@@ -122,7 +122,7 @@ export function newComputerId() {
     return `cmp_${[...bytes].map((byte) => idAlphabet[byte % idAlphabet.length]).join('')}`;
 }
 
-function openStackDatabase() {
+export function openStackDatabase() {
     const { postgresSocketRoot } = createDevStackStatePaths({
         baseEnvironment: process.env,
         repositoryRoot: process.cwd(),

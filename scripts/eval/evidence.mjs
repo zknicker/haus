@@ -39,7 +39,12 @@ export async function findEvidence(name, transcript, evidenceDir) {
         }
         const evidence = JSON.parse(await readFile(file, 'utf8'));
         if (evidence.chats.some((chat) => chat.chatId === rootChatId)) {
-            return { ...evidence, agentId: evidence.diagnostics?.[0]?.agentId, rootChatId };
+            // A scenario may name the chat its request lands in (a Task chat it opened later).
+            return {
+                ...evidence,
+                agentId: evidence.diagnostics?.[0]?.agentId,
+                rootChatId: evidence.rootChatId ?? rootChatId,
+            };
         }
     }
     return null;
@@ -63,7 +68,10 @@ export function evidenceMessages(evidence) {
 }
 
 export function evidenceTaskChatIds(evidence) {
-    return evidence.chats.flatMap((chat) => (chat.tasks ?? []).map((task) => task.chatId));
+    return [
+        ...evidence.chats.flatMap((chat) => (chat.tasks ?? []).map((task) => task.chatId)),
+        ...(evidence.taskChatIds ?? []),
+    ];
 }
 
 /** Whether a post's body is one the turn sent with `--done`. */

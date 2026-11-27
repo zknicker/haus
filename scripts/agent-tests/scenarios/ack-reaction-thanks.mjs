@@ -12,9 +12,9 @@ export default defineScenario({
     name: 'ack-reaction-thanks',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
         const [worker] = agents;
-        const dmChatId = worker.dmChatId;
+        const dmChatId = worker.ownChatId;
         if (!dmChatId) {
-            throw new Error(`Agent @${worker.handle} has no Owner DM to send into.`);
+            throw new Error(`Agent @${worker.handle} has no own chat to send into.`);
         }
         await kit.trackChat(dmChatId);
 
