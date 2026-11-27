@@ -17,8 +17,9 @@ export const taskReplayMessageSchema = z
 
 /**
  * `GET /api/agent/tasks/replay?before=<sequence>`: the Task chat the runner replays when a Task's
- * session starts fresh, as after unarchive. `messages` are the newest messages before `before`,
- * oldest first; `brief` is the chat's first message when it falls outside them.
+ * session starts fresh, as after unarchive. `brief` is the chat's first message, null when nothing
+ * comes before `before`; `messages` are the newest messages after it and before `before`, oldest
+ * first, so the brief is never among them.
  */
 export const taskReplaySchema = z
     .object({

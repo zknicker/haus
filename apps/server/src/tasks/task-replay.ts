@@ -4,7 +4,7 @@ import {
     type TaskReplay,
     type TaskReplayMessage,
 } from '@haus/api';
-import { and, asc, desc, eq, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, lt } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
@@ -31,10 +31,21 @@ export async function readTaskReplay(
         eq(chatMessagesTable.serverId, input.serverId),
         eq(chatMessagesTable.chatId, task.chatId)
     );
+    const [first] = await selectMessages(db)
+        .where(inChat)
+        .orderBy(asc(chatMessagesTable.sequence))
+        .limit(1);
+    const brief =
+        first && (input.before === undefined || first.sequence < input.before) ? first : null;
+    if (!brief) {
+        const empty: TaskReplay = { brief: null, messages: [] };
+        return empty;
+    }
     const newest = await selectMessages(db)
         .where(
             and(
                 inChat,
+                gt(chatMessagesTable.sequence, brief.sequence),
                 input.before === undefined
                     ? undefined
                     : lt(chatMessagesTable.sequence, input.before)
@@ -42,16 +53,9 @@ export async function readTaskReplay(
         )
         .orderBy(desc(chatMessagesTable.sequence))
         .limit(TASK_REPLAY_MESSAGES);
-    const [first] = await selectMessages(db)
-        .where(inChat)
-        .orderBy(asc(chatMessagesTable.sequence))
-        .limit(1);
-    const messages = [...newest].reverse().map(toReplayMessage);
-    const briefOutside =
-        first && !messages.some((message) => message.id === first.id) ? first : null;
     const replay: TaskReplay = {
-        brief: briefOutside && messages.length > 0 ? toReplayMessage(briefOutside) : null,
-        messages,
+        brief: toReplayMessage(brief),
+        messages: [...newest].reverse().map(toReplayMessage),
     };
     return replay;
 }

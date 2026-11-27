@@ -383,9 +383,9 @@ Captain as a `crew_report` inbox item unless it is `needs-you` for a named perso
 `agent-task-refusals.ts`.
 
 `GET /api/agent/tasks/replay?before=<sequence>` answers a Task agent's own chat for a fresh
-session (`packages/haus-api/src/task-replay.ts`): `messages`, the newest 50 before `before`,
-oldest first, and `brief`, the chat's first message when it falls outside them. Any other caller
-gets `400 INVALID_ARG`. A `sequence`-less call reads the newest 50.
+session (`packages/haus-api/src/task-replay.ts`): `brief`, the chat's first message (null when
+nothing comes before `before`), and `messages`, the newest 50 after it and before `before`,
+oldest first. Any other caller gets `400 INVALID_ARG`. A call without `before` reads to the end.
 
 A Task credential is refused `403 TASK_CREDENTIAL_SCOPE` before the route runs on every non-GET
 route under `/api/agent/agents`, `/artifacts`, `/channels`, `/claims`, `/connections`,

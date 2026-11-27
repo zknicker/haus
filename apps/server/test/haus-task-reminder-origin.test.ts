@@ -101,6 +101,37 @@ test('a reminder a Captain sets on its crew Task belongs to the Task agent, so i
     ).toEqual([{ owner_agent_id: task.agentId }]);
 });
 
+test('a Task cannot set a reminder on another Task', async () => {
+    const other = await agentPost('/api/agent/tasks/start', {
+        brief: 'Check the other offer.',
+        machine: fixture.computerId,
+    });
+    const otherTask = await fixture.owner.trpc.task.get.query({
+        serverId: fixture.serverId,
+        shortId: other.body.task?.shortId ?? '',
+    });
+    const asOther = await fixture.mintRunner(
+        'run_task_reminder_other',
+        otherTask.agentId ?? '',
+        otherTask.chatId ?? '',
+        false
+    );
+    const response = await fetch(new URL('/api/agent/reminders/schedule', fixture.harness.url), {
+        body: JSON.stringify({
+            commandId: 'task-reminder-other',
+            fireAt: '2099-01-01T00:00:00.000Z',
+            target: `task:${taskShortId}`,
+            title: 'Poke the sibling',
+        }),
+        headers: { authorization: `Bearer ${asOther.token}`, 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    expect(response.status).toBe(404);
+    expect(
+        await fixture.harness.sql`select id from reminders where title = 'Poke the sibling'`
+    ).toEqual([]);
+});
+
 test('a Task sets reminders only in its own chat', async () => {
     const task = await fixture.owner.trpc.task.get.query({
         serverId: fixture.serverId,

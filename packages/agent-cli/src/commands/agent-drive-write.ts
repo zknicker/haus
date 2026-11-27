@@ -8,13 +8,13 @@ import {
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { readAgentStdin } from '../stdin.ts';
+import { readAgentStdinBytes } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
 
 export interface DriveWriteDeps {
     client: AgentApiRequester;
     readFile(filePath: string): Promise<Buffer>;
-    readStdin(): Promise<string>;
+    readStdin(): Promise<Buffer>;
     write(text: string): void;
 }
 
@@ -49,7 +49,7 @@ export async function runDriveWrite(args: ParsedArgs, deps: DriveWriteDeps) {
         });
     }
     const from = args.values['--from'];
-    const content = from ? await readFrom(deps, from) : Buffer.from(await deps.readStdin());
+    const content = from ? await readFrom(deps, from) : await deps.readStdin();
     if (content.byteLength === 0) {
         throw new AgentCliError('INVALID_ARG', 'Give the file on stdin or with --from.');
     }
@@ -86,7 +86,7 @@ function defaultDeps() {
     const deps: DriveWriteDeps = {
         client: createAgentApiClient(),
         readFile: (filePath) => fs.readFile(filePath),
-        readStdin: readAgentStdin,
+        readStdin: readAgentStdinBytes,
         write: (text) => process.stdout.write(text),
     };
     return deps;

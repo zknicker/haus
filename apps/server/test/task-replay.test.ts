@@ -34,8 +34,19 @@ test('a fresh Task session rereads its newest 50 messages before the ones that w
     );
     expect(body.messages[0]?.author).toBe('ada');
 
-    expect(await read(asTask, '?before=2')).toMatchObject({
-        body: { brief: null, messages: [{ body: 'Rotate the signing key.' }] },
+    expect(await read(asTask, `?before=${sent[2]}`)).toMatchObject({
+        body: {
+            brief: { body: 'Rotate the signing key.' },
+            messages: [{ body: 'Note 1.' }, { body: 'Note 2.' }],
+        },
+        status: 200,
+    });
+    expect(await read(asTask, `?before=${sent[0]}`)).toMatchObject({
+        body: { brief: { body: 'Rotate the signing key.' }, messages: [] },
+        status: 200,
+    });
+    expect(await read(asTask, '?before=1')).toMatchObject({
+        body: { brief: null, messages: [] },
         status: 200,
     });
     expect(await read(captain, '')).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });

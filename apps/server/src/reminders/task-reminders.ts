@@ -58,6 +58,9 @@ export async function readReminderOwner(
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
+    if (setter?.kind === 'task' && anchorTask?.agentId !== input.agentId) {
+        return null;
+    }
     if (anchorTask?.agentId) {
         return {
             agentId: anchorTask.agentId,
@@ -65,7 +68,7 @@ export async function readReminderOwner(
                 anchorTask.agentId === input.agentId ? null : (setter?.homeTimezone ?? null),
         };
     }
-    return setter?.kind === 'task' ? null : { agentId: input.agentId, setterTimezone: null };
+    return { agentId: input.agentId, setterTimezone: null };
 }
 
 export async function refuseRecurringTaskReminder(

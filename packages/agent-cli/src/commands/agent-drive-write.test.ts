@@ -43,7 +43,7 @@ test('drive write sends stdin as one base64 file and prints its citation', async
                     token: `grta_${'a'.repeat(43)}`,
                 }),
                 readFile: () => Promise.reject(new Error('stdin only')),
-                readStdin: () => Promise.resolve('# Report\n'),
+                readStdin: () => Promise.resolve(Buffer.from('# Report\n')),
                 write: (text) => written.push(text),
             }
         );
@@ -66,7 +66,7 @@ test('drive write refuses an empty file before it calls the Server', async () =>
             {
                 client,
                 readFile: () => Promise.reject(new Error('unused')),
-                readStdin: () => Promise.resolve(''),
+                readStdin: () => Promise.resolve(Buffer.alloc(0)),
                 write: () => undefined,
             }
         )

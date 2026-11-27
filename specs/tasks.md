@@ -450,9 +450,9 @@ deletion; the chat and its history stay readable.
 fresh session whose first input is the composed Task input ([What a Task reads](#what-a-task-reads))
 plus the newest 50 messages of the Task's chat, cut to at most 24,000 characters from the oldest
 end, and the current state of its linked Issues. The runner rereads the chat on every fresh Task
-session (`GET /api/agent/tasks/replay?before=<sequence>`, Task credentials only): the newest 50
-messages before the ones that woke it, oldest first, plus the brief (the chat's first message)
-when it falls outside them; the 24,000-character cut drops whole messages and never the brief.
+session (`GET /api/agent/tasks/replay?before=<sequence>`, Task credentials only): the brief (the
+chat's first message), always and apart, then the newest 50 messages after it and before the ones
+that woke it, oldest first; the 24,000-character cut drops whole messages and never the brief.
 The linked Issues ride the Task instructions, read fresh each turn. If a worktree was kept, the
 checkout Haus runs resumes there on its branch; otherwise it makes a new one on the same branch
 name from the remote.
