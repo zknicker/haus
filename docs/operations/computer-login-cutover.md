@@ -42,7 +42,7 @@ missing.
 Publish the independent `computer` target from the cutover source. The release record names the
 Computer version, protocol, source identity, and the expanded Server prerequisite. The target job
 must prove the signed standalone artifact and public descriptor from the
-[Computer release and update spec](../../specs/raft-alignment/computer-release-and-update.md).
+[Computer release and update spec](../../specs/computer-release-and-update.md).
 
 Upgrade the production Computer through Haus App or the local recovery command:
 

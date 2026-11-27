@@ -36,7 +36,9 @@ test('a send to a thread-shaped target is refused with the inline-reply and Task
         expect(error.options.nextAction).toStartWith(
             `Reply inline instead: haus message send --target "${parent}" --reply-to 1a2b3c4d.`
         );
-        expect(error.options.nextAction).toContain('start a Task');
+        expect(error.options.nextAction).toContain(
+            `Work that outlasts a reply goes to a Task: haus task start --target "${parent}" --from 1a2b3c4d --title <text> < brief.`
+        );
     }
 });
 

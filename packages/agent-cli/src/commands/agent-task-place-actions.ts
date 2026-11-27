@@ -53,8 +53,11 @@ export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<nu
             `Queued ${describeTask(response.task)}`,
             `Its brief posted as its first message, and its first turn is queued. Task target: ${response.target}`,
             ...(from && target
-                ? [`Started from message ${shortMessageId(from)} in ${target}.`]
+                ? [
+                      `Started from message ${shortMessageId(from)} in ${target}; people there see the Task, its state and newest messages under it.`,
+                  ]
                 : []),
+            'Its report reaches you as a crew report when its turn ends.',
             '',
         ].join('\n')
     );
@@ -73,7 +76,7 @@ function renderHeldStart(target: string, held: Extract<TaskStartResponse, { stat
         '',
         ...held.shownMessages.map(formatHistoryLine),
         '',
-        'If the Task is still right, run the same haus task start again. If the newer messages change the brief, start it with the new brief or skip it.',
+        'Running haus task start again starts it, with the same brief or a new one.',
     ];
     return `${lines.join('\n')}\n`;
 }
@@ -94,7 +97,7 @@ export async function runTaskAttachPullRequest(args: ParsedArgs, deps: TaskDeps)
     );
     deps.write(
         [
-            `Attached ${pullRequest.repository}#${pullRequest.number} to ${task.shortId}. When it becomes ready for review or its checks finish, Haus wakes you on the Task.`,
+            `Attached ${pullRequest.repository}#${pullRequest.number} to ${task.shortId}. When it becomes ready for review or its checks finish, Haus wakes the Task.`,
             taskPlaceLine(task.shortId),
             '',
         ].join('\n')

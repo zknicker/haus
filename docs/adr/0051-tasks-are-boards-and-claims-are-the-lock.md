@@ -138,7 +138,7 @@ both is a Reminder that references the Task. The CLI splits accordingly:
 
 Raft's `### Tasks` section and command family describe what Haus will call claims. Renaming them
 diverges from Raft-verbatim text: the Tasks, command-family, envelope-marker, and open-task claim
-line rows in the [divergence register](../../specs/raft-alignment/prompt-divergences.md) each change,
+line rows in the divergence register (removed 2026-11-27) each change,
 and the prompt cap moves with the new `haus task` and `haus board` text. The alternative — keep
 `task` as the claim and name the board product something else (Issues) — keeps Raft parity but puts
 the plain word *task* on the thing nobody looks at. The product name wins.

@@ -13,7 +13,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A Task request in the Captain chat starts one crew Task whose brief carries the input; the Task files exactly one done report carrying the result; the person gets it by following the Task (they wrote its origin) or from a Captain relay; neither agent posts in a channel.',
+        'A Task request in the Captain chat starts one crew Task whose brief carries the input; the Task files exactly one done report carrying the result; the Captain tells the person the result in the Captain chat; neither agent posts in a channel.',
     name: 'crew-report-reaches-person',
     run: withRoutingEvidence(async ({ agents, evidence, expect, kit, log, settleTurn }) => {
         const [captain] = agents;
@@ -80,8 +80,8 @@ export default defineScenario({
                 `person follows the Task: ${followed}; relays in the Captain chat: ${summaries.length}`
             );
             expect(
-                followed || summaries.length >= 1,
-                'the person gets the result: they follow the Task, or the Captain relays it'
+                summaries.length >= 1,
+                'the Captain tells the person the result in the Captain chat'
             ).toBe(true);
         } finally {
             ledger.close();

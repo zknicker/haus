@@ -1,7 +1,6 @@
 # Reminders
 
-Reminders are the only scheduling primitive (D4 in
-`specs/raft-alignment/README.md`; the cron/automations product is retired). A
+Reminders are the only scheduling primitive (D4 of the Raft alignment program; the cron/automations product is retired). A
 reminder is an author-owned, persistent, observable, snoozable, updatable, and
 cancelable wake anchored to a message in a Channel or the owning Agent's DM, or
 to a Task. A Task holds one-time reminders only; closing it cancels them

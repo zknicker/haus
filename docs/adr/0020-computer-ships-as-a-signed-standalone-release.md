@@ -63,7 +63,7 @@ transition runs the standalone installer, which replaces code and reuses the exi
 `~/.haus` data root.
 
 The full normative contract is
-[Haus Computer release and update](../../specs/raft-alignment/computer-release-and-update.md).
+[Haus Computer release and update](../../specs/computer-release-and-update.md).
 
 ## Consequences
 

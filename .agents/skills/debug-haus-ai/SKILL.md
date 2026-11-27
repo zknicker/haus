@@ -26,7 +26,7 @@ Run the repository's docs-list command and read documents whose `read_when` hint
 failing capability. For Agent execution, also read
 [references/haus-agent-model.md](references/haus-agent-model.md) completely and its core docs.
 Preserve the Raft-derived contract: one Agent owns one continuous global execution session across
-Chats. Include only the relevant Raft-alignment workstreams.
+Chats.
 
 Confirm the checkout and environment without printing secrets. Follow repository setup and dev-port
 conventions. Prefer deterministic tests and seeded fixtures over noisy hosted or local Chats.
@@ -81,12 +81,10 @@ evidence.
 Give it the raw symptom and ask it to:
 
 1. Read Raft's source: https://github.com/botiverse/raft-source, pinned at commit
-   `26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6` (release `v1.21.2-source.1`, daemon `1.0.43`, the
-   pin in `specs/raft-alignment/prompt-divergences.md`) — clone or browse it read-only rather than reconstructing behavior from the installed CLI/binary.
+   `26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6` (release `v1.21.2-source.1`, daemon `1.0.43`) — clone or browse it read-only rather than reconstructing behavior from the installed CLI/binary.
 2. Research primary public Raft sources when source doesn't settle intent: `raft.build`,
    `docs.raft.build`, and Raft's blog.
-3. Read the repository's Raft-alignment specs.
-4. Return a source-backed behavioral model, parity and deliberate divergences, three to five
+3. Return a source-backed behavioral model, parity and deliberate divergences, three to five
    falsifiable questions, and a challenge to the leading hypothesis.
 
 Do not give the partner a suspected answer as fact. Do not let it edit Haus or the Raft source

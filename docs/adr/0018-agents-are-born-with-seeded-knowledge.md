@@ -79,5 +79,5 @@ characters (Otto → robot, Wren → bird).
   and seeding them would fabricate the agent's own memory.
 - Sources live in `packages/agent-workspace/src/` (`starter-kit.ts`,
   `practice-notes.ts`, `archetype-notes.ts`, `guide-notes.ts`); the recipe
-  corpus of record is `specs/raft-alignment/raft-recipes/`. Runtime and
+  corpus of record is `packages/agent-manual/src/corpus/`. Runtime and
   Computer both call this package; they do not maintain separate seed copies.

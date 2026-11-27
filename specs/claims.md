@@ -8,7 +8,7 @@ read_when:
 
 # Claims
 
-Chat-first claims implement D8 from `specs/raft-alignment/README.md`, where they were called tasks;
+Chat-first claims implement D8 of the Raft alignment program, where they were called tasks;
 [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) renamed them to claims so
 the Tasks product can own the word *task*. A claim is one canonical hosted message plus
 Server-owned lifecycle metadata: the hidden, Agent-only lock on a Message. A Task does not mark

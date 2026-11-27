@@ -16,7 +16,7 @@ const assignment: AgentIssueAssignment = {
 
 test("a Captain's assignment run also names crew as the way to work an Issue", () => {
     expect(composeIssueAssignmentInput([assignment], 'captain').split('\n').at(-1)).toBe(
-        '`haus issue show <code>` prints an Issue with its comments, and `haus issue list` is your whole queue. Take them one at a time, by priority then age: set the one you start `in_progress` with `haus issue update <code> --state in_progress`, and leave the rest until it is done or waiting on a person. An Issue that takes longer than a reply is crew work: `haus task start --issue <code> --title <text> < brief` starts a Task that holds it.'
+        '`haus issue show <code>` prints an Issue with its comments, and `haus issue list` is your whole queue, by priority then age. An Issue moves only when someone edits it: `haus issue update <code> --state in_progress`. An Issue that takes longer than a reply is crew work: `haus task start --issue <code> --title <text> < brief` starts a Task that holds it.'
     );
 });
 
@@ -32,7 +32,7 @@ test('an assignment run lists each Issue and teaches the queue once', () => {
             '[Haus issue assignment GEN-12 priority=high state=todo by=@ada] Rotate the deploy key',
             '[Haus issue assignment GEN-9 priority=high state=todo] Rotate the deploy key',
             '',
-            '`haus issue show <code>` prints an Issue with its comments, and `haus issue list` is your whole queue. Take them one at a time, by priority then age: set the one you start `in_progress` with `haus issue update <code> --state in_progress`, and leave the rest until it is done or waiting on a person.',
+            '`haus issue show <code>` prints an Issue with its comments, and `haus issue list` is your whole queue, by priority then age. An Issue moves only when someone edits it: `haus issue update <code> --state in_progress`.',
         ].join('\n')
     );
 });
@@ -72,7 +72,7 @@ test('an event run quotes a comment and names state changes and closed sub-issue
             '[Haus issue state GEN-12 todo→done by=task:k3mq7xta] Rotate the deploy key',
             '[Haus issue sub-issues closed GEN-12 total=3 by=@ada] Rotate the deploy key',
             '',
-            '`haus issue show <code>` prints the whole Issue. Answer a comment with `haus issue comment <code> --reply-to <commentId>`; an update that needs nothing from you needs no reply.',
+            '`haus issue show <code>` prints the whole Issue, and `haus issue comment <code> --reply-to <commentId>` answers a comment on it. An update that needs nothing from you needs no reply.',
         ].join('\n')
     );
 });

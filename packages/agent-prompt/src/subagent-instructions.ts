@@ -1,6 +1,5 @@
 /**
- * Raft v1.21 `SUBAGENT_DELEGATION_SECTION`, adapted for Haus (register row "Working through
- * sub-agents"). `renderAgentInstructions` renders it between Tasks and @Mentions, only
+ * Raft v1.21 `SUBAGENT_DELEGATION_SECTION`, adapted for Haus. `renderAgentInstructions` renders it between Tasks and @Mentions, only
  * for runtimes whose harness starts sub-agents. Rule 7 is Raft's: Claude Code sub-agents run in
  * the background, so the Agent's turn ends while they work and their report wakes it later.
  * The two role bullets and rule 2 are a deliberate Haus divergence (operator decision,

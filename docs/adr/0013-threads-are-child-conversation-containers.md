@@ -12,8 +12,7 @@ read_when:
 
 Superseded 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): Threads are migrated into inline replies and deleted.
 
-Accepted. Part of the Raft-alignment program (`specs/raft-alignment/README.md`,
-decisions T1/T2/T3/U5). Normative contract: `specs/threads.md`.
+Accepted. Part of the Raft-alignment program (decisions T1/T2/T3/U5, removed 2026-11-27). Normative contract: `specs/threads.md`.
 
 Amended by [ADR 0029](0029-inline-replies-preserve-conversation.md): inline replies are restored
 as same-chat message relationships. The child-thread model below remains; its retirement of inline

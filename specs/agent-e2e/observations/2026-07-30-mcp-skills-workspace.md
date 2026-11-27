@@ -5,8 +5,7 @@ read_when:
 
 # MCP, skills, and workspace — 2026-07-30
 
-The comparison baseline is recorded in
-`specs/raft-alignment/tranche-5-audit.md`. It used ordinary business requests
+The comparison baseline was the tranche 5 audit (removed 2026-11-27). It used ordinary business requests
 with GPT-5.6 Terra where possible and observed managed-tool use, revoked
 access, skill-backed work, durable workspace files, and shared workspace
 artifacts.

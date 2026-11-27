@@ -35,9 +35,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
         'There are no threads: a `<target>:<shortId>` target is refused.'
     );
     expect(topic?.body).not.toContain('one-line preview');
-    expect(topic?.body).toContain(
-        'Work your reply will not finish goes to your crew: answer the request with a link to the Task you start (see tasks), whose chat whoever asked follows.'
-    );
+    expect(topic?.body).toContain('Work that outlasts your reply goes to your crew (see tasks).');
     expect(topic?.body).not.toContain('`#channel:<noteShortId>`');
     expect(topic?.body).not.toContain('Sidebars go in threads');
     expect(topic?.body).not.toContain('final answer in order');
@@ -124,7 +122,8 @@ test('retires the Ask topic and teaches asking a human by @mention', () => {
         'An @mention of them or an inline reply to their message (`haus message send --reply-to`) both notify them'
     );
     expect(recipe?.body).toContain('any other message only shows as unread');
-    expect(recipe?.body).toContain('Every message in their DM notifies them too');
+    expect(recipe?.body).toContain('every message in your Captain chat notifies its members');
+    expect(recipe?.body).not.toContain('DM');
     expect(recipe?.body).toContain('Their reply there wakes you');
     expect(
         searchManualTopics('ask a human for a decision', { limit: 5, scope: 'all' }).map(

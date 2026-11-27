@@ -20,7 +20,7 @@ export interface DriveWriteDeps {
 
 export const DRIVE_WRITE_SUBCOMMAND: SubCommand = {
     examples: [
-        'haus drive write agents/orbit/reports/k3mq7xta/report.md < report.md',
+        'haus drive write agents/orbit/reports/k3mq7xta/report.md --from ./report.md',
         'haus drive write agents/orbit/renders/k3mq7xta/chart.png --from ./chart.png',
     ],
     flags: [
@@ -38,20 +38,24 @@ export const DRIVE_WRITE_SUBCOMMAND: SubCommand = {
     positionals: ['<path>'],
     run: (args) => runDriveWrite(args, defaultDeps()),
     summary: 'Write a Task deliverable to Drive',
-    usage: 'haus drive write <path> [--from <file>] [< file]',
+    usage: "haus drive write <path> (--from <file> | <<'HAUSMSG')",
 };
 
 export async function runDriveWrite(args: ParsedArgs, deps: DriveWriteDeps) {
     const path = args.positionals[0];
     if (!path) {
         throw new AgentCliError('INVALID_ARG', 'Name the Drive path to write.', {
-            nextAction: 'haus drive write agents/<captain>/reports/<task id>/report.md < report.md',
+            nextAction:
+                'haus drive write agents/<captain>/reports/<task id>/report.md --from ./report.md',
         });
     }
     const from = args.values['--from'];
     const content = from ? await readFrom(deps, from) : await deps.readStdin();
     if (content.byteLength === 0) {
-        throw new AgentCliError('INVALID_ARG', 'Give the file on stdin or with --from.');
+        throw new AgentCliError(
+            'INVALID_ARG',
+            'Give the file with --from, or its text in a heredoc.'
+        );
     }
     if (content.byteLength > DRIVE_WRITE_MAX_BYTES) {
         throw new AgentCliError('INVALID_ARG', 'haus drive write sends at most 50 MB.');

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { renderAgentInstructions } from './managed-instructions.ts';
 
-test('the Inbox family entry teaches the unread-conversation list in Raft 26f77ef wording', () => {
+test('the Inbox family entry teaches the unread-conversation list', () => {
     const prompt = renderPrompt();
 
     expect(prompt).toContain(

@@ -53,7 +53,6 @@ Run `bun run docs:list`. For delivery, context, inbox, or session bugs, read thi
 - `docs/features/context-management.md`
 - `docs/operations/development.md`
 - `docs/operations/testing.md`
-- `specs/raft-alignment/README.md`
 
 Then use `read_when` hints and the epic index to select only the workstream notes, prompts, evals,
 recipes, or superseded ADRs implicated by the symptom. Read superseded ADRs only to understand

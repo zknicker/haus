@@ -1,9 +1,8 @@
 import { expect, test } from 'bun:test';
 import { renderAgentInstructions } from './managed-instructions.ts';
 
-// Raft reaches its Artifacts App through Integrations plus a Manual pointer; Haus's Drive is
-// native and edited through the Agent's drive/ folder, so it gets a family entry beside
-// Attachments (register: CLI ONLY, command families).
+// Drive is native and edited through the Agent's drive/ folder, so it gets a family entry
+// beside Attachments.
 test('the Drive family entry points at the drive/ folder and the drive Manual topic', () => {
     const prompt = renderAgentInstructions({
         agentId: 'agt_prompt_test',

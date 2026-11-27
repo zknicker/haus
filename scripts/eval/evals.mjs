@@ -168,7 +168,7 @@ export const evals = {
             'home-task-works-with-person',
         ],
         summary:
-            'A Captain turns an assigned Issue into one crew Task, relays its crew report to the person who asked, and a Task a person starts works with them in its own chat.',
+            'A Captain turns an assigned Issue into one crew Task without narrating it, tells the person who asked for crew work once when it is done, and a Task a person starts works with them in its own chat.',
     },
     // Two Agents and a human in one channel, each scenario with a decoy the
     // Manual card warns against. Serial: the scenarios assert silence.

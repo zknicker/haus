@@ -4,7 +4,7 @@ import { getManualTopic, manualTopics } from './index.ts';
 test('the tasks topic says a Task is crew with its own chat (ADR 0062)', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain('A Task is your crew: a fresh agent session with its own chat');
-    expect(body).toContain('When your reply is the whole of the work, just reply.');
+    expect(body).not.toContain('When to start one');
     expect(body).toContain('A Task does not mark work as yours; claim the request first');
     expect(body).toContain('It is unread only for its followers');
     expect(body).toContain('You do not follow your own crew; their reports reach you instead.');
@@ -26,12 +26,12 @@ test('a Task starts with its brief on stdin, in the home Project', () => {
     }
 });
 
-test('crew report back, and task send is the one way to message a Task', () => {
+test('crew report to the Captain, and task send messages a Task', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain('reaches you as a crew report, batched with your other crew');
-    expect(body).toContain(
-        'A turn that ends with no report sends you a receipt with its last message.'
-    );
+    expect(body).toContain('a turn that ends without one sends you its last message');
+    expect(body).toContain('The person who asked you for the work talks to you, not to your crew.');
+    expect(body).toContain('Only the Task itself posts there with `message send`.');
     expect(body).toContain('`haus task send k3mq7xta < follow-up.md`');
     expect(body).toContain('`--delivery steer` (the default)');
     expect(body).toContain('A send to an archived Task brings it back.');
@@ -81,14 +81,16 @@ test('the issues topic teaches the queue, claiming, and explicit state edits (AD
     const topic = getManualTopic('issues');
     expect(topic?.id).toBe('issues');
     expect(topic?.body).toContain(
-        '`haus issue list` shows the open Issues assigned to you, by priority then age.'
+        '`haus issue list` shows the open Issues assigned to you, by priority then age, the order the people who set them want.'
     );
     expect(topic?.body).toContain('--assignee me --expect-assignee none');
     expect(topic?.body).toContain('Only an edit moves an Issue');
     expect(topic?.body).toContain('ISSUE_ASSIGNEE_ARCHIVED');
+    expect(topic?.body).not.toContain('You are woken');
     expect(getManualTopic('inbox')?.body).toContain(
-        'A Task, in your Project or any other, reaches you only when a message @mentions you or you follow it'
+        'Anywhere else, Tasks included, you hear what @mentions you, the claims assigned to you, and what you follow'
     );
+    expect(getManualTopic('inbox')?.body).toContain('Your crew reaches you through its reports');
 });
 
 test('work split for other Agents is Issues; a claim stays inside the conversation', () => {

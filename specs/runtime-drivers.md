@@ -343,7 +343,7 @@ The runner composes every turn's instructions from the Server's current Drive re
 the run credential, never from a machine. The guarded prompt text, the inbox formatters, and the
 memory block live in `packages/agent-prompt` (`@haus/agent-prompt`), so the Computer and the
 runner render the same text from one source until R4 deletes the Computer's composition. The
-prompt contract (the size cap, the divergence register, `test:prompt-contract`, and
+prompt contract (the size cap, `test:prompt-contract`, and
 `managed-instructions.test.ts`) moved there in R3.
 
 A resumed Claude Agent SDK session keeps the instructions it started with. A Pi session re-renders

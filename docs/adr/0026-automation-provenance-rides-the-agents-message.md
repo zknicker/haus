@@ -89,7 +89,7 @@ that writes no Chat row, and overdue recovery rides inbox items
 item kinds. The one sentence in Raft's system prompt claiming an anchored
 reminder's fire receipt is visible in that surface is not corroborated by any
 observed transcript or by the product UI sweep in
-`specs/raft-alignment/raft-ux-notes.md`, which looked for those rows and found
+the Raft UX notes (removed 2026-11-27), which looked for those rows and found
 none; we read it as prompt text, not as shipped behavior.
 
 So Raft draws nearly the line Haus now draws: durable chat rows are

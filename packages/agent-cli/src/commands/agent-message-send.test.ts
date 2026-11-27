@@ -255,9 +255,9 @@ test('a freshness hold explains recovery without automatically sending a human a
     expect(outputs[0]).toContain('Your message was not sent');
     expect(outputs[0]).toContain('--send-draft');
     expect(outputs[0]).toContain(
-        'If a human request still needs an answer, first verify it against the newer context'
+        'If what you just read already says what you meant to say (for example, someone already answered), or makes your message unnecessary, send nothing.'
     );
-    expect(outputs[0]).toContain('Stay silent only if no reply is needed');
+    expect(outputs[0]).not.toContain('If a human request still needs an answer');
     expect(outputs[0]).not.toContain('Message sent to');
 });
 

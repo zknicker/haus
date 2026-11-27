@@ -10,7 +10,7 @@ Date: 2026-07-22
 ## Status
 
 Accepted. Implements decisions D1/D5/I1–I4 of the Raft-alignment program
-contract ([specs/raft-alignment/README.md](../../specs/raft-alignment/README.md));
+contract (removed 2026-11-27);
 supersedes the reply-based turn model of ADR 0007/0011 (the global-session
 core of ADR 0011 survives).
 

@@ -33,7 +33,8 @@ test('start sends the brief from stdin and says the Task is queued, never starte
         [
             'Queued k3mq7xta "Rotate the signing key" · started by @kit',
             'Its brief posted as its first message, and its first turn is queued. Task target: task:k3mq7xta',
-            'Started from message 1a2b3c4d in #security.',
+            'Started from message 1a2b3c4d in #security; people there see the Task, its state and newest messages under it.',
+            'Its report reaches you as a crew report when its turn ends.',
             '',
         ].join('\n')
     );
@@ -92,7 +93,7 @@ test('attach-pr attaches the pull request and names the Task target', async () =
     await run(runTaskAttachPullRequest, args({ positionals: ['k3mq7xta', url] }));
     expect(calls[0]?.input?.body).toEqual({ task: 'k3mq7xta', url });
     expect(lines.join('')).toBe(
-        'Attached haus/haus#12 to k3mq7xta. When it becomes ready for review or its checks finish, Haus wakes you on the Task.\nTask target: task:k3mq7xta\n'
+        'Attached haus/haus#12 to k3mq7xta. When it becomes ready for review or its checks finish, Haus wakes the Task.\nTask target: task:k3mq7xta\n'
     );
 });
 

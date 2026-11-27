@@ -46,7 +46,7 @@ test('teaches hearing by home Project, with unfollow as the only narrowing', () 
     });
 
     expect(prompt).toContain(
-        'You belong to one Project, which `haus server info --channels --home` names. You hear everything in its channel, but no Task unless it @mentions you or you follow it. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; your Captain chat always reaches you. You can read and post in every Project. `haus task unfollow --target task:<shortId>` stops a Task you follow, and outside your Project `haus message unfollow` stops a reply chain.'
+        'You belong to one Project, which `haus server info --channels --home` names. You hear everything in its channel and your Captain chat. Anywhere else, Tasks included, you hear what @mentions you, is assigned to you, or you follow. You can read and post in every Project. `haus task unfollow --target task:<shortId>` and `haus message unfollow` stop what you follow.'
     );
     expect(prompt).toContain(
         '3. **Conversation attention**: `haus task unfollow`, `haus message follow`, `haus message unfollow`.'

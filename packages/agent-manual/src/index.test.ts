@@ -1,14 +1,10 @@
 import { expect, test } from 'bun:test';
-import sourceManifest from '../../../specs/raft-alignment/manual-source.json' with { type: 'json' };
 import {
     getManualTopic,
     type ManualRecipeTopic,
     manualTopics,
     searchManualTopics,
 } from './index.ts';
-import { manualBehaviorAdaptations } from './manual-behavior-adaptations.ts';
-import { placeAdaptations } from './place-adaptations.ts';
-import { taskRouting } from './task-routing.ts';
 
 const recipeIds = [
     'recipes/archetype/analyst',
@@ -44,11 +40,6 @@ const recipeIds = [
     'recipes/technique/trigger-webhook',
     'recipes/technique/video-review',
 ] as const;
-
-// Cards written for Haus itself, with no captured source card behind them.
-// The fidelity test below asserts each really has no source file, so this list
-// cannot quietly become an escape hatch for a drifted adapted card.
-const hausNativeIds = new Set<string>(sourceManifest.hausNativeRecipeIds);
 
 const seededIds = [
     'recipes/decision/one-or-many',
@@ -116,53 +107,6 @@ test('keeps recipe graph metadata valid and product language truthful', () => {
     expect(corpus).not.toMatch(/\b(raft|slock)\b/i);
     expect(corpus).not.toMatch(/login-with-raft|save-as-a-skill/i);
     expect(corpus).not.toMatch(/integration login/i);
-});
-
-test('keeps every published body faithful to its captured source card', async () => {
-    for (const topic of recipes()) {
-        const [, recipeClass, slug] = topic.id.split('/');
-        const sourceFile = Bun.file(
-            new URL(
-                `../../../specs/raft-alignment/raft-recipes/${recipeClass}--${slug}.md`,
-                import.meta.url
-            )
-        );
-        if (hausNativeIds.has(topic.id)) {
-            expect(await sourceFile.exists()).toBe(false);
-            continue;
-        }
-        const source = await sourceFile.text();
-        const boundaries = [...source.matchAll(/^---$/gm)];
-        const body = source
-            .slice(boundaries[1].index + 3, boundaries[2]?.index ?? source.length)
-            .trim();
-        const adapted = [
-            ...(taskRouting.get(topic.id) ?? []),
-            ...(manualBehaviorAdaptations.get(topic.id) ?? []),
-            ...(placeAdaptations.get(topic.id) ?? []),
-        ].reduce(
-            (text, [raftLine, hausLine]) => {
-                expect(text).toContain(raftLine);
-                return text.replace(raftLine, hausLine);
-            },
-            body.replaceAll(/\bRaft\b/g, 'Haus').replaceAll(/\braft\b/g, 'haus')
-        );
-
-        if (topic.id === 'recipes/technique/html-artifact-discussion') {
-            // Haus adds the page fence the captured card predates.
-            expect(topic.body.split('### In Haus')[0]?.trim()).toBe(adapted);
-        } else if (topic.id === 'recipes/decision/when-to-ask-human') {
-            // Haus names its medium: an @mention where the work lives (ADR 0037).
-            expect(topic.body.split('### In Haus')[0]?.trim()).toBe(adapted);
-        } else if (topic.id === 'recipes/technique/reminder-cron') {
-            // Haus's script/inbox guidance replaces Raft's historical proof paragraph.
-            expect(topic.body.split('### Scripts and fires')[0]?.trim()).toBe(
-                adapted.split('### Proof it works')[0]?.trim()
-            );
-        } else {
-            expect(topic.body).toBe(adapted);
-        }
-    }
 });
 
 test('indexes enumerate every recipe and only the seeded tier', () => {

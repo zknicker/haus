@@ -37,8 +37,8 @@ export const TASK_SEND_SUBCOMMAND: SubCommand = {
 
 export const TASK_REPORT_SUBCOMMAND: SubCommand = {
     examples: [
-        'haus task report --outcome done --pr https://github.com/haus/haus/pull/12 < report.md',
-        'haus task report --outcome needs-you --ask "Ship it behind the flag?" --person zach < report.md',
+        'haus task report --outcome done --pr https://github.com/haus/haus/pull/12 <<< "Opened the fix; checks pass."',
+        'haus task report --outcome needs-you --ask "Ship it behind the flag?" --person zach <<< "Ready to ship."',
     ],
     flags: [
         { description: 'done, needs-you or failed', name: '--outcome', valueName: '<outcome>' },
@@ -61,7 +61,7 @@ export const TASK_REPORT_SUBCOMMAND: SubCommand = {
     positionals: [],
     run: (args) => runTaskReport(args, defaultDeps()),
     summary: 'Report your turn',
-    usage: 'haus task report --outcome done|needs-you|failed [--ask <text>] [--person <handle>] [--pr <url>]... < report',
+    usage: "haus task report --outcome done|needs-you|failed [--ask <text>] [--person <handle>] [--pr <url>]... <<'HAUSMSG'",
 };
 
 export async function runTaskSend(args: ParsedArgs, deps: TaskDeps) {
@@ -91,7 +91,7 @@ export async function runTaskReport(args: ParsedArgs, deps: TaskDeps) {
     const text = (await deps.readStdin()).trim();
     if (!text) {
         throw new AgentCliError('INVALID_ARG', 'Give the report on stdin.', {
-            nextAction: 'haus task report --outcome done < report.md',
+            nextAction: "haus task report --outcome done <<'HAUSMSG'",
         });
     }
     const { reachesCaptain } = await deps.client.request(

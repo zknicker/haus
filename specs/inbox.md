@@ -21,9 +21,11 @@ The agent inbox is the only lane that carries work no human sees, and `agent_inb
 is the table that holds it (ADR 0026). Everything an Agent is given to act on is an
 inbox item: a delivery planner queues items per attention rules, notice turns preserve
 Agent pull discretion, and exact visibility plus a verified contiguous boundary are the
-only truth about what an agent has seen. Decisions I1–I4 in
-[raft-alignment/README.md](raft-alignment/README.md); wire surface in
+only truth about what an agent has seen. Decisions I1–I4 of the Raft alignment program; wire surface in
 [haus-cli.md](haus-cli.md).
+
+**Reference.** Raft's inbox is the concept reference for this spec and its agent-facing wording.
+It was last compared against Raft `botiverse/raft-source` at `da842d0` (v1.33.1, 2026-11-23).
 
 **Delivery host.** Every Agent runs on the runner ([Runtime drivers](runtime-drivers.md), R4d), so
 where this spec says the Computer accepts, caches, mirrors, or pulls local envelopes, read the
@@ -363,7 +365,8 @@ so the standing system prompt keeps only the collaboration principle (collaborat
 asynchronously; choose when to read; a notice needs no immediate interruption). The guidance
 states that the bodies are withheld to avoid flooding the Agent, not absent; that the notice is not
 itself a request and is not acknowledged; how to pull (`haus message read --target <target>
---unread` for one conversation, `haus message check` for all of them, in Raft 26f77ef's wording);
+--unread` for one conversation, `haus inbox check` to list every conversation with unread
+messages, in Raft `da842d0`'s wording);
 and that deferral needs no visible reply and the messages remain queryable, to be read before the
 Agent stops, as the prompt's Messaging section says. The unread-elsewhere digest closes by pointing at `haus inbox check`, which
 lists every unread conversation with the command that opens it. With no concrete message and no notice,

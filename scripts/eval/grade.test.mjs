@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { gradeBuild, isInfraFailure } from './grade.mjs';
-import { githubTriggerProfiles, placementProfiles, probeStart } from './profiles.mjs';
+import { crewProfiles, githubTriggerProfiles, placementProfiles, probeStart } from './profiles.mjs';
 import { summarizeEval } from './summary.mjs';
 import { quickFactEvidence, temporaryRoot, writeRun } from './test-fixtures.mjs';
 
@@ -104,6 +104,47 @@ test('a scenario can name the chat its request lands in and Task chats it opened
     expect(labels).toEqual({ msg_ans33333: 'top-level', msg_brief666: 'task' });
     expect(grade.request.chatId).toBe('cht_own');
     expect(grade.checks.filter((check) => !check.ok)).toEqual([]);
+});
+
+test('crew work passes on an acknowledgement and one completion, and fails on narration or silence', async () => {
+    const graded = async (replies) => {
+        const evidence = quickFactEvidence();
+        const [, ask, answer] = evidence.chats[0].messages;
+        const posts = replies.map((content, index) => ({
+            ...answer,
+            chatId: 'cht_own',
+            content,
+            createdAt: `2026-10-15T10:01:0${index}.000Z`,
+            id: `msg_post${index}`,
+            reply: null,
+        }));
+        evidence.chats[0].messages = [evidence.chats[0].messages[0]];
+        evidence.chats.push({
+            chatId: 'cht_own',
+            messages: [{ ...ask, chatId: 'cht_own' }, ...posts],
+            tasks: [],
+        });
+        evidence.rootChatId = 'cht_own';
+        const root = await temporaryRoot();
+        await writeRun(root, '20261015T100000', [
+            { evidence, name: 'crew-report-reaches-person', ok: true },
+        ]);
+        const [grade] = await gradeBuild({
+            names: ['crew-report-reaches-person'],
+            profiles: crewProfiles,
+            root,
+            runs: [{ pass: 1, stamp: '20261015T100000' }],
+        });
+        return grade.checks.filter((check) => !check.ok).map((check) => check.name);
+    };
+    const ack = 'A crew Task is on it; I will send you the hash when it is done.';
+    const done = 'Done: the first 12 hex characters are `146d084de157`.';
+    expect(await graded([ack, done])).toEqual([]);
+    expect(await graded([done])).toEqual([]);
+    expect(await graded([ack, 'The [hash task](task://g6rywqc4) is running.', done])).toEqual([
+        'channel posts 1-2',
+    ]);
+    expect(await graded([ack])).toEqual(['result post found']);
 });
 
 test('a probe-ending profile grades up to the scenario probe and still catches earlier strays', async () => {

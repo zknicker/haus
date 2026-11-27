@@ -50,7 +50,7 @@ export function refuseRemovedThreadTarget(target: string): void {
         'THREAD_TARGET_REMOVED',
         `Threads are gone: "${target}" names a thread on message ${shortId}, and Haus has no threads.`,
         {
-            nextAction: `Reply inline instead: haus message send --target "${parent}" --reply-to ${shortId}. For work that outlasts a reply, start a Task from a channel message: haus task start --target "#channel" --from <shortid> --title <text>.`,
+            nextAction: `Reply inline instead: haus message send --target "${parent}" --reply-to ${shortId}. Work that outlasts a reply goes to a Task: haus task start --target "${parent}" --from ${shortId} --title <text> < brief.`,
         }
     );
 }

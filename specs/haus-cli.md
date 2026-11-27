@@ -12,7 +12,7 @@ read_when:
 
 Normative contract for the agent-facing `haus` CLI and the HTTP surface behind
 it. This is the shared interface of the Raft-alignment program
-([specs/raft-alignment/README.md](raft-alignment/README.md)): WS2 teaches it in
+(removed 2026-11-27): WS2 teaches it in
 the prompt, WS3–WS5 add verbs to it, WS6 moves its server side to haus.chat
 without changing it. The wire contract IS the future haus.chat server API —
 served today from the chat surface of `@haus/api` co-hosted in the local
@@ -20,7 +20,7 @@ Runtime process.
 
 Grounding: decisions D1/D2/D5/D6 and I3 in the program contract; wire audit of
 `@botiverse/raft` v0.0.17 (2026-07-21) recorded in
-[raft-cli-surface.md](raft-alignment/raft-cli-surface.md). Divergences from
+the Raft CLI surface notes (removed 2026-11-27). Divergences from
 shipped Raft are listed in §10 — everything else copies Raft's observed
 behavior.
 

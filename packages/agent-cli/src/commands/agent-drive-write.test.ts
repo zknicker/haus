@@ -70,5 +70,5 @@ test('drive write refuses an empty file before it calls the Server', async () =>
                 write: () => undefined,
             }
         )
-    ).rejects.toThrow('Give the file on stdin or with --from.');
+    ).rejects.toThrow('Give the file with --from, or its text in a heredoc.');
 });

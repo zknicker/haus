@@ -56,7 +56,7 @@ and this list only.
 - [ ] Machines run tools. No model call for an Agent happens on a Computer.
 - [ ] Every tool invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome.
 - [ ] Each phase migrates every caller and deletes the retired path in the same wave. No lasting mixed state.
-- [ ] The prompt contract holds. Prompt text changes go through the cap, the divergence register, `bun run test:prompt-contract`, and `.agents/skills/tune-agent-behavior/SKILL.md`. Event wording rides the inbox item, not the prompt.
+- [ ] The prompt contract holds. Prompt text changes go through the cap, `bun run test:prompt-contract`, and `.agents/skills/tune-agent-behavior/SKILL.md`. Event wording rides the inbox item, not the prompt.
 - [ ] Lint is Ultracite on Oxlint and Oxfmt with the landmines preset. `landmines-style/no-comments` stays an error. No test doubles, sleeps, retries, or explicit return types.
 - [ ] Architecture boundaries are Oxlint rules in the repo's plugin, each with valid and invalid tests, never prose alone.
 - [ ] HeroUI v3 stock components and theme tokens for every UI change, per AGENTS.md.

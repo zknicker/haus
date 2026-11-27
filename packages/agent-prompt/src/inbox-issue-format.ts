@@ -4,13 +4,13 @@ export const nextTurnNoticeGuidance =
     'Their details arrive in your next turn. Keep working; the notice is not itself a request, so do not acknowledge it.';
 
 const assignmentGuidance =
-    '`haus issue show <code>` prints an Issue with its comments, and `haus issue list` is your whole queue. Take them one at a time, by priority then age: set the one you start `in_progress` with `haus issue update <code> --state in_progress`, and leave the rest until it is done or waiting on a person.';
+    '`haus issue show <code>` prints an Issue with its comments, and `haus issue list` is your whole queue, by priority then age. An Issue moves only when someone edits it: `haus issue update <code> --state in_progress`.';
 
 const crewGuidance =
     'An Issue that takes longer than a reply is crew work: `haus task start --issue <code> --title <text> < brief` starts a Task that holds it.';
 
 const eventGuidance =
-    '`haus issue show <code>` prints the whole Issue. Answer a comment with `haus issue comment <code> --reply-to <commentId>`; an update that needs nothing from you needs no reply.';
+    '`haus issue show <code>` prints the whole Issue, and `haus issue comment <code> --reply-to <commentId>` answers a comment on it. An update that needs nothing from you needs no reply.';
 
 /**
  * A Captain starts crew for an Issue. A Task cannot, and a session whose kind the runner could

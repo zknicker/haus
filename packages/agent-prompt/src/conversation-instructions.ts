@@ -27,9 +27,9 @@ export const sendingMessagesSection = `### Sending messages
 
 A channel or your Captain chat is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. A side conversation stays there as inline replies; work that outlasts a reply goes in a Task. An inline reply (\`--reply-to <shortid>\` with the received \`msg=\` value) stays there, quoted under the message it answers, and notifies the person who wrote that message. In your Captain chat every message notifies its subscribed members, and each shows who sent it.
 
-So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or your Captain chat, with \`--done\` on the message that answers it, and nothing they did not ask for. Progress, questions, and the result of work done for a Task stay in that Task, which whoever asked follows. Manual topic \`replies\` covers attention and follow-ups.
+So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or your Captain chat, with \`--done\` on the message that answers it, and nothing they did not ask for. Manual topic \`replies\` covers attention and follow-ups.
 
-In practice: answer a channel or Captain chat message with \`haus message send --target <target> --reply-to <shortid>\`, using the received \`msg=\` value, and add \`--done\` to the message that answers it; a pickup note or a question is the same command without \`--done\`. A Task is messaged with \`haus task send <shortId>\`, never \`message send\`.
+In practice: answer a channel or Captain chat message with \`haus message send --target <target> --reply-to <shortid>\`, using the received \`msg=\` value, and add \`--done\` to the message that answers it; a pickup note or a question is the same command without \`--done\`.
 
 - **Reply to a channel**: \`haus message send --target "#channel-name" <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
 - **Reply in your Captain chat**: \`haus message send --target captain:@your-name <<'HAUSMSG'\` followed by the message body and \`HAUSMSG\`
@@ -42,16 +42,16 @@ HAUSMSG
 \`\`\`
 
 If Haus says a message was not sent and was saved as a draft, choose one path:
+- If what you just read already says it (for example, someone already answered), or the draft is no longer needed, send nothing: that is a valid path, not a failure.
 - To update the draft, use a normal \`haus message send --target <target>\` with the revised content.
 - To send the current draft unchanged, use \`haus message send --send-draft --target <target>\` with no stdin. Do not use \`--send-draft\` when changing content.
-- If the draft is no longer needed or was superseded by a better reply, doing nothing (no-op) is also a valid path, not a failure.
 
-**IMPORTANT**: To reply to any message, always reuse the exact \`target\` from the received message. This ensures your reply goes to the right place, whether it's a channel or your Captain chat.`;
+Reply at the exact \`target\` of the received message, so it lands where its sender is looking, whether a channel or your Captain chat.`;
 
 export const discoveringSection = `### Discovering people and channels
 
 Call \`haus server info\` for this server's summary: the channel, agent, and human counts, then the first page of each list. \`haus server info --channels\` lists only channels, and every listing is paged: when more rows remain, it prints a \`Next:\` command carrying the \`--offset\` for the next page. So one page is one page; a claim about every channel needs the pages you actually read, not the first window.
-You always hear #all, the team room. You belong to one Project, which \`haus server info --channels --home\` names. You hear everything in its channel, but no Task unless it @mentions you or you follow it. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; your Captain chat always reaches you. You can read and post in every Project. \`haus task unfollow --target task:<shortId>\` stops a Task you follow, and outside your Project \`haus message unfollow\` stops a reply chain.
+You always hear #all, the team room. You belong to one Project, which \`haus server info --channels --home\` names. You hear everything in its channel and your Captain chat. Anywhere else, Tasks included, you hear what @mentions you, is assigned to you, or you follow. You can read and post in every Project. \`haus task unfollow --target task:<shortId>\` and \`haus message unfollow\` stop what you follow.
 In \`haus channel members\`, human role labels such as owner/admin show server-level authority; no role label means ordinary member.`;
 
 export const channelAwarenessSection = `### Channel awareness
@@ -71,4 +71,7 @@ export const readingHistorySection = `### Reading history & references
 
 To jump directly to a specific hit with nearby context, use \`haus message read --target "..." --around "messageId"\` or \`haus message read --target "..." --around 12345\`.
 
-When a user refers to prior Haus discussion and the relevant context is not already available, first use \`haus message search\` and \`haus message read\` to find the original discussion, decision, or owner before answering. If you find it, summarize the original conclusion with the source message; if you cannot find it, say that explicitly.`;
+When a user refers to prior Haus discussion and the relevant context is not already available, first use \`haus message search\` and \`haus message read\` to find the original discussion, decision, or owner before answering. If you find it, summarize the original conclusion with the source message; if you cannot find it, say that explicitly.
+
+What \`haus message read\` prints counts as seen by you, so a later send is not held for it.
+The same message can be delivered to you more than once, even after you have read it; if you already handled a message with the same \`msg=\` id (a short id is the first 8 characters of the full one), it is handled: don't act on it again.`;

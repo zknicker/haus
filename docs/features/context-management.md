@@ -112,8 +112,8 @@ model session. Per-turn message delivery is an inbox concern; see
 The composed instructions are bounded by a size cap asserted in
 `packages/agent-prompt/src/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
 decision, not a hard or runtime limit: a justified addition raises the cap with a recorded reason,
-and other prompt text is never cut just to make room. Raft-verbatim text is never trimmed. See
-AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
+and other prompt text is never cut just to make room. See
+AGENTS.md, "Agent System Prompt Changes".
 
 Durable Agent knowledge lives in the Agent's Drive area (`MEMORY.md`, notes and
 skills). Only `MEMORY.md` and the three `AGENTS.md` rule layers reach the turn input, and only

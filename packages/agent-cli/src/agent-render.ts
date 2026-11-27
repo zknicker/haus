@@ -168,18 +168,15 @@ function renderHeld(
     }
     lines.push('', ...response.shownMessages.map(formatHistoryLine), '', 'Choose one path:');
     lines.push(
+        '- If what you just read already says what you meant to say (for example, someone already answered), or makes your message unnecessary, send nothing.',
         `- Revise: send a new plain message to ${target}; it replaces the saved draft.`,
-        `- Send unchanged: haus message send --send-draft --target "${target}"`,
-        '- Stay silent only if no reply is needed or a delivered reply supersedes this draft.'
+        `- Send unchanged: haus message send --send-draft --target "${target}"`
     );
     if (response.continueAnywaySuggested) {
         lines.push(
             `- After repeated holds, send unchanged anyway: haus message send --send-draft --anyway --target "${target}"`
         );
     }
-    lines.push(
-        'If a human request still needs an answer, first verify it against the newer context; then revise or send the valid draft before ending the turn.'
-    );
     return `${lines.join('\n')}\n`;
 }
 
