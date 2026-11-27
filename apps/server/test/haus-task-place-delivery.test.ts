@@ -7,8 +7,8 @@ import { inferMessageCause } from '../src/automations/infer-message-cause.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { tickReminders } from '../src/reminders/scheduler.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
-import { startTestTask } from './task-place-fixture.ts';
 import { taskBoardFixture } from './task-board.fixture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 const fixture = taskBoardFixture();
 const { agentPost } = fixture;

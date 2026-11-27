@@ -2,11 +2,11 @@ import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { createHomedAgent } from './agent-home.fixture.ts';
 import { readTargetAsAgent } from './agent-read-target.ts';
+import { computerSocketFixture } from './computer-socket.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
-import { computerSocketFixture } from './computer-socket.fixture.ts';
 
 export function taskBoardFixture() {
     let harness: HausServerHarness;

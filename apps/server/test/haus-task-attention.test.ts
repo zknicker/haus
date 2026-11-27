@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { createTestProject } from './project.fixture.ts';
-import { startTestTask } from './task-place-fixture.ts';
 import { taskBoardFixture } from './task-board.fixture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 const fixture = taskBoardFixture();
 const { agentPost } = fixture;
