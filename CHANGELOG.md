@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v30.9.1 - 2026-11-27
+
+- Haus for iPhone 13.1.2 is built with the iOS 27.1 SDK, so on iPhone Duo's inner display Home, Projects and Tasks show their list beside the open place instead of running as a narrow iPhone app. The iPhone app's code is unchanged from 13.1.1.
+- Haus for iPhone 13.1.2 (build 81) ships alone. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
 ## v30.9.0 - 2026-11-26
 
 - Search results are one list of single-line rows: author, the text around the first match, then the place and age on the right, with matches as the only highlight. Snippets show a link's label instead of its address, and a message in a Task's chat names the Task key. Filters appear once you type a query or pick a filter, with **Clear filters**.
