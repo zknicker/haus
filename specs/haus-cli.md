@@ -438,8 +438,11 @@ a stable code and never fake data. Not copied from Raft: `agent login/bridge`,
 
 `haus drive` gains `write <path> [--from <file>]` (step 5) for Task agents: stdin or a file on
 the Task's Machine becomes a new revision under the Task's own folders, and the receipt prints
-its `drive://` citation ([tasks.md](tasks.md#drive)). Outside them it fails
-`DRIVE_WRITE_OUTSIDE_TASK`; a Captain gets `DRIVE_WRITE_USE_FOLDER`.
+its `drive://` citation ([tasks.md](tasks.md#drive)). It sends at most 50 MB. Outside them it
+fails `DRIVE_WRITE_OUTSIDE_TASK`; a Captain gets `DRIVE_WRITE_USE_FOLDER`. A Task credential
+calling a command that changes anything beyond its chat, its Issues and its Drive folders
+(`agent create`, `trigger`, `claim`, `connection grant`, `profile update`, other Drive writes)
+fails `TASK_CREDENTIAL_SCOPE`.
 
 Refusals are typed and say what to do: `ISSUE_TAKEN`, `ISSUE_PARENT_PROJECT`,
 `ISSUE_PARENT_CYCLE`, `ISSUE_PROJECT_NOT_HOME`, `ISSUE_ASSIGNEE_ARCHIVED`, `TASK_PROJECT_NOT_HOME`,

@@ -1,7 +1,7 @@
 import type { AgentTaskRefusalCode } from '@haus/api';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable, chatMessagesTable, chatsTable, tasksTable } from '../postgres/schema.ts';
 import { TaskInvariantError } from '../tasks/task-errors.ts';
 
 export class TaskRecurringReminderError extends Error {
@@ -36,6 +36,39 @@ export async function readTaskReminderAnchor(
         );
     }
     return { anchorChatId: input.chatId, anchorMessageId: newest.id };
+}
+
+export async function readReminderOwner(
+    db: Pick<HausDatabase, 'select'>,
+    input: { agentId: string; anchorChatId: string; serverId: string }
+) {
+    const [anchorTask] = await db
+        .select({ agentId: tasksTable.agentId })
+        .from(tasksTable)
+        .where(
+            and(
+                eq(tasksTable.serverId, input.serverId),
+                eq(tasksTable.chatId, input.anchorChatId),
+                isNotNull(tasksTable.agentId)
+            )
+        )
+        .limit(1);
+    const [setter] = await db
+        .select({ homeTimezone: agentsTable.homeTimezone, kind: agentsTable.kind })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
+        .limit(1);
+    if (setter?.kind === 'task' && anchorTask?.agentId !== input.agentId) {
+        return null;
+    }
+    if (anchorTask?.agentId) {
+        return {
+            agentId: anchorTask.agentId,
+            setterTimezone:
+                anchorTask.agentId === input.agentId ? null : (setter?.homeTimezone ?? null),
+        };
+    }
+    return { agentId: input.agentId, setterTimezone: null };
 }
 
 export async function refuseRecurringTaskReminder(

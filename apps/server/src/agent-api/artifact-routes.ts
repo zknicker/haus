@@ -18,6 +18,7 @@ import { registerAgentArtifactPublicLinkRoutes } from './artifact-public-link-ro
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { registerAgentDriveChangesRoute } from './drive-changes-route.ts';
 import { registerAgentDrivePushRoutes } from './drive-push-routes.ts';
+import { registerAgentDriveWriteRoute } from './drive-write-route.ts';
 import { authorizeDriveReader } from './worker-auth.ts';
 
 export function registerAgentArtifactRoutes(
@@ -37,6 +38,7 @@ export function registerAgentArtifactRoutes(
     registerAgentArtifactPublicLinkRoutes(app, options);
     registerAgentDriveChangesRoute(app, options);
     registerAgentDrivePushRoutes(app, options);
+    registerAgentDriveWriteRoute(app, options);
     for (const path of [
         '/api/agent/artifacts/publish-artifact-raw',
         '/api/agent/actions/publish-artifact-raw',

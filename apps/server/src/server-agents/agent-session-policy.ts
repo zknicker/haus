@@ -1,6 +1,7 @@
 import { captainWarmIdleMs, type RunnerSessionPolicy, taskWarmIdleMs } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import { taskDriveFolders } from '../drive/task-folders.ts';
 import { readIssues } from '../issues/issue-read.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -78,6 +79,11 @@ export async function readRunnerSessionPolicy(
             ],
             task: {
                 captainHandle: agent.captainHandle,
+                driveFolders: taskDriveFolders({
+                    captainHandle: agent.captainHandle,
+                    projectKey: agent.taskProjectKey,
+                    shortId: agent.shortId,
+                }),
                 issues: await readTaskIssues(db, { ...input, taskId: agent.taskId }),
                 repo: agent.repo ? { name: agent.repo, ref: agent.repoRef } : null,
                 shortId: agent.shortId,

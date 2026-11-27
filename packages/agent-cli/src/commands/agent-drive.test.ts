@@ -76,8 +76,13 @@ test('an invalid path is refused before any request', async () => {
     });
 });
 
-test('the drive family is versions, view, share, always JSON', () => {
-    expect(DRIVE_SUBCOMMANDS.map((sub) => sub.name)).toEqual(['versions', 'view', 'share']);
+test('the drive family is versions, view, share and write, never --json', () => {
+    expect(DRIVE_SUBCOMMANDS.map((sub) => sub.name)).toEqual([
+        'versions',
+        'view',
+        'share',
+        'write',
+    ]);
     for (const sub of DRIVE_SUBCOMMANDS) {
         expect(sub.usage).toStartWith(`haus drive ${sub.name} `);
         expect(sub.flags.map((flag) => flag.name)).not.toContain('--json');

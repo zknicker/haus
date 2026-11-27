@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { TaskDeliveryMode } from '@haus/api';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
+import { readAgentDispatchConfig } from '../src/agent-delivery/dispatch-config.ts';
+import { startFrame } from '../src/agent-delivery/drain-selection.ts';
 import { readDeliveryState } from '../src/agent-delivery/store.ts';
 import { sendChatMessage } from '../src/chats/send-message.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -71,7 +73,7 @@ test('a busy Task hears steer at its next boundary, never queue', async () => {
     expect(pulledContent).not.toContain('Only after this turn.');
 });
 
-test('interrupt aborts the live turn and runs again with its unseen work', async () => {
+test('interrupt aborts the live turn and runs again, the interrupting message first', async () => {
     const task = await startCrew(orbit, 'Rotate the signing key.');
     const { delivery, runner } = liveDelivery(task);
     await delivery.dispatchAgent(task.agentId, fixture.serverId);
@@ -86,12 +88,37 @@ test('interrupt aborts the live turn and runs again with its unseen work', async
     const second = runner.starts()[1];
     expect(second?.runId).not.toBe(first?.runId);
     expect(second?.inbox.map((item) => item.content)).toEqual([
-        'Rotate the signing key.',
         'Stop: use the new vault.',
+        'Rotate the signing key.',
     ]);
     expect((await readDeliveryState(connection.db, task.agentId))?.activeRunId).toBe(
         second?.runId ?? ''
     );
+});
+
+test('an interrupting message drains ahead of older messages that fill the budget, on resend too', async () => {
+    const task = await startCrew(orbit, 'Audit the vault.');
+    const { delivery, runner } = liveDelivery(task);
+    await delivery.dispatchAgent(task.agentId, fixture.serverId);
+    const first = runner.starts()[0];
+    await delivery.onAck({ agentId: task.agentId, runId: first?.runId ?? '' });
+    for (const index of [1, 2, 3]) {
+        await post(task.chatId, `${index}${'x'.repeat(9000)}`, 'steer', delivery);
+    }
+    const sent = await post(task.chatId, 'Stop: wrong vault.', 'interrupt', delivery);
+    await delivery.interrupt({ agentId: task.agentId, serverId: fixture.serverId });
+
+    const second = runner.starts()[1];
+    expect(second?.drainItemIds).toContain(sent.receipt.message.id);
+    expect(second?.inbox[0]?.content).toBe('Stop: wrong vault.');
+    const state = await readDeliveryState(connection.db, task.agentId);
+    const config = await readAgentDispatchConfig(connection.db, task.agentId);
+    if (!(state && config)) {
+        throw new Error('The Task has no delivery state.');
+    }
+    const resent = (await startFrame(connection.db, state, config)) as typeof second;
+    expect(resent?.drainItemIds).toEqual(second?.drainItemIds ?? []);
+    expect(resent?.inbox[0]?.content).toBe('Stop: wrong vault.');
 });
 
 test('task send from a Captain brings back an archived Task; from a Task it is refused', async () => {
