@@ -224,8 +224,8 @@ function typedSenderHandle(source: string): AgentAutomationEvent['senderHandle']
 /**
  * The short id `haus inbox check` prints in a target's `first msg=`/`latest
  * msg=` slot, by the rule the notice's `shortInboxId` applies to the same item.
- * A Trigger or Reminder fire and a Worker Run have no Chat message behind
- * them, so they print `-`; a claim assignment prints the claim message it hands
+ * A Trigger or Reminder fire has no Chat message behind
+ * it, so they print `-`; a claim assignment prints the claim message it hands
  * over, which is the id the Agent can actually address.
  */
 function shortId(id: string) {

@@ -18,14 +18,6 @@ export function noAccessText(computer: ComputerFacts, appOrigin: string) {
     return `You don't have access to ${computer.name}. Only ${person} can give you access, in ${page}. ${listHint}`;
 }
 
-export function workerNoAccessText(computer: ComputerFacts, appOrigin: string | null) {
-    const person = computer.attacherHandle
-        ? `@${computer.attacherHandle}`
-        : `the person who attached ${computer.name}`;
-    const link = appOrigin ? ` (${computerSettingsLink(appOrigin, computer)})` : '';
-    return `You don't have access to ${computer.name}, so no Worker started there. Only ${person} can give you access, in Settings → Devices → ${computer.name}${link}. Ask them once in plain text, or start the Worker on another place.`;
-}
-
 export function movedText(machineName: string | null) {
     const now = machineName ? `Your Machine is now ${machineName}` : 'Your Machine changed';
     return `${now}, and this run started before that, so a call that names no Computer ran nothing. Your next turn runs on the new Machine. To reach a Computer now, name it with \`computer\`. ${listHint}`;

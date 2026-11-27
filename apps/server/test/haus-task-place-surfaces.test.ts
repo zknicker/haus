@@ -1,24 +1,20 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { WorkerUpdatedEvent, TaskUpdatedEvent } from '@haus/api';
-import { workerUpdatedTopic, taskUpdatedTopic } from '../src/realtime/topics.ts';
+import type { TaskUpdatedEvent } from '@haus/api';
+import { taskUpdatedTopic } from '../src/realtime/topics.ts';
 import { captureTopic, type TopicCapture } from './realtime-capture.ts';
+import { taskBoardFixture } from './task-board.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
-import { workerLinkHelpers } from './worker-link-helpers.ts';
-import { workerRecordFixture } from './worker-record-fixture.ts';
 
-const fixture = workerRecordFixture();
-const { agentPost } = workerLinkHelpers(fixture);
+const fixture = taskBoardFixture();
+const { agentPost } = fixture;
 let taskEvents: TopicCapture<TaskUpdatedEvent>;
-let workEvents: TopicCapture<WorkerUpdatedEvent>;
 
 beforeAll(() => {
     taskEvents = captureTopic(taskUpdatedTopic);
-    workEvents = captureTopic(workerUpdatedTopic);
 });
 
 afterAll(() => {
     taskEvents?.stop();
-    workEvents?.stop();
 });
 
 test('the Agent Task list shows active or archived Tasks, mine or all, and one Project', async () => {
@@ -84,28 +80,6 @@ test('a reminder set on a Task shows on it, naming the Agent that set it', async
             title: 'Check back on the flaky test',
         }),
     ]);
-});
-
-test('starting a Worker on a Task names the Task in its event and its Happening now row', async () => {
-    const runner = await fixture.mintRunner('run_surfaces_launch');
-    await fixture.readTarget(runner, `task:${fixture.task.shortId}`);
-    const started = await fixture.postStart(
-        runner,
-        fixture.startBody({ nonce: 'surfaces-launch' })
-    );
-    expect(started.status).toBe(200);
-    const workerId = started.body.worker?.id ?? '';
-
-    const workEvent = await workEvents.next((event) => event.workerId === workerId);
-    expect(workEvent.taskId).toBe(fixture.task.id);
-
-    const rows = await fixture.owner.trpc.worker.listActive.query({
-        serverId: fixture.serverId,
-    });
-    expect(rows.find((row) => row.worker.id === workerId)).toMatchObject({
-        taskId: fixture.task.id,
-        taskShortId: fixture.task.shortId,
-    });
 });
 
 test('attaching a pull request to a Task announces the Task', async () => {

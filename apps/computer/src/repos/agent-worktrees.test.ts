@@ -201,7 +201,7 @@ describe('Agent worktree cleanup', () => {
         expect(existsSync(join(path, 'fresh.md'))).toBe(true);
     });
 
-    test('a path inside an Agent worktree names it; Worker worktrees and other paths do not', () => {
+    test('a path inside an Agent worktree names it; other worktrees and paths do not', () => {
         const root = '/data/servers/srv_1/worktrees';
 
         expect(agentWorktreeOf(`${root}/agt_alpha/acme/app/src/index.ts`, root)).toBe(

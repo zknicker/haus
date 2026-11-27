@@ -27,6 +27,6 @@ test('repo refuses a missing action, a bad repo, and a bad Server slug', () => {
 test('repo has a help page that names the folder risk', () => {
     expect(resolveComputerHelpRequest(['repo', '--help'])?.kind).toBe('command');
     expect(findComputerCommandHelp('repo')?.notes).toContain(
-        'A Worker can change its branches, including main, and its hooks and config.'
+        'A Task can change its branches, including main, and its hooks and config.'
     );
 });

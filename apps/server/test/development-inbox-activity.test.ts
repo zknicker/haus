@@ -2,7 +2,6 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { seedDevelopmentInboxActivity } from '../src/development/seed-inbox-activity.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { listComputerWorker } from '../src/workers/list-computer-worker.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -98,37 +97,6 @@ test('Unread holds Tiny’s inline answer in the DM; the claim is on Claims', as
     expect(held[0]?.message.content).toContain('Reminders on the weekly digest fired twice');
 });
 
-// No running Worker is seeded: Computer would reconcile a fake run
-// against the provider every minute and wedge the Server's connection pool.
-test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
-    const active = await owner.trpc.worker.listActive.query({ serverId });
-    // Gallery samples are closed history, so only the demo Task's live Worker is happening now.
-    expect(active).toHaveLength(1);
-
-    const chats = await owner.trpc.chat.list.query({ serverId });
-    const productChatId = chats.find((chat) => chat.name === 'product')?.id ?? '';
-    const chatWork = await owner.trpc.worker.listForChat.query({
-        chatId: productChatId,
-        serverId,
-    });
-    const settled = chatWork.find((entry) => entry.worker.title === 'Sidebar Inbox badge');
-
-    // The channel lists its Tasks' Workers too, so the demo Task's Worker shows here.
-    expect(chatWork.map((entry) => entry.worker.title).toSorted()).toEqual([
-        'Avatar upload: crop, resize, and save',
-        'Sidebar Inbox badge',
-    ]);
-    expect(settled?.worker).toMatchObject({
-        place: { kind: 'cursor' },
-        repository: 'zknicker/haus',
-        status: 'done',
-    });
-    expect(settled?.worker.turns[0]?.branches[0]).toMatchObject({
-        branch: 'cloud/sidebar-inbox-badge',
-        pullRequestUrl: 'https://github.com/zknicker/haus/pull/482',
-    });
-});
-
 test('the roster reads seven days of turns for every demo Agent', async () => {
     const agents = await owner.trpc.agent.list.query({ serverId });
     const turnsByHandle = new Map<string, number>();
@@ -169,8 +137,6 @@ async function countActivity() {
         select
             (select count(*) from chat_messages where server_id = ${serverId}) as messages,
             (select count(*) from message_claims where server_id = ${serverId}) as claims,
-            (select count(*) from workers where server_id = ${serverId}) as work,
-            (select count(*) from worker_turns where server_id = ${serverId}) as runs,
             (select count(*) from agent_turns where server_id = ${serverId}) as turns,
             (select count(*) from chats where server_id = ${serverId}) as chats
     `) as Record<string, string>[];
@@ -201,50 +167,14 @@ test('a Server without the demo shape is left alone', async () => {
     );
 });
 
-test('UI gallery reads the attachment combinations and isolates live samples', async () => {
+test('UI gallery reads its sample messages', async () => {
     const chats = await owner.trpc.chat.list.query({ serverId });
     const gallery = chats.find((chat) => chat.name === 'ui-gallery');
     expect(gallery).toBeDefined();
     const chatId = gallery?.id ?? '';
     const transcript = await owner.trpc.chat.messages.query({ serverId, chatId });
-    expect(transcript.messages).toHaveLength(43);
+    expect(transcript.messages).toHaveLength(22);
     expect(
         transcript.messages.filter((message) => message.content.includes('user://'))
     ).toHaveLength(6);
-    const works = await owner.trpc.worker.listForChat.query({ serverId, chatId });
-    expect(works).toHaveLength(20);
-    // Follow-ups read as the job they follow, never as queued.
-    const followUps = works
-        .filter((entry) => entry.worker.job.followUp !== null)
-        .map((entry) => [entry.worker.job.state, entry.worker.job.followUp?.state]);
-    expect(followUps.sort()).toEqual([
-        ['done', 'waiting'],
-        ['failed', 'waiting'],
-        ['working', 'running'],
-    ]);
-    expect([...new Set(works.map((entry) => entry.worker.status))].sort()).toEqual([
-        'done',
-        'failed',
-        'needs-you',
-        'queued',
-        'stopped',
-        'working',
-    ]);
-    const [devComputer] = await harness.sql`
-        select computer_id from agents where server_id = ${serverId} and handle = 'blippy'
-    `;
-    expect(
-        await listComputerWorker(database.db, {
-            serverId,
-            computerId: devComputer.computer_id,
-        })
-    ).toEqual([]);
-    const active = works.filter(
-        (entry) => entry.worker.status === 'working' || entry.worker.status === 'queued'
-    );
-    expect(active).toHaveLength(9);
-    expect(
-        active.every((entry) => entry.worker.carrierComputerId !== devComputer.computer_id)
-    ).toBe(true);
-    expect(works.every((entry) => entry.worker.providerUrl === null)).toBe(true);
 });

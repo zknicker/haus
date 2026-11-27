@@ -17,7 +17,7 @@ interface AgentScope {
 /**
  * Settles items that can never reach the model, so they stop failing every
  * batch they join, and tells the Agent about each one with an ordinary inbox
- * item of its own (specs/worker-turn-lifecycle.md). The note is built from
+ * item of its own. The note is built from
  * plain row fields, never the item's content, so it cannot fail the same way.
  * Rows settle `seen` because every other reader treats anything unseen as live.
  */

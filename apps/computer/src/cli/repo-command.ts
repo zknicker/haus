@@ -17,7 +17,7 @@ export interface RepoCommandInput {
 }
 
 export const repoFolderDisclosure =
-    'Workers and Captains work in git worktrees of this folder and share its `.git`. A Worker can change its branches, including `main`, and its hooks and config.';
+    'Captains and Tasks work in git worktrees of this folder and share its `.git`. A Task can change its branches, including `main`, and its hooks and config.';
 
 const usage =
     'Run haus-computer repo add <path> [/server-slug], repo list [/server-slug], or repo remove <owner/name> [/server-slug].';

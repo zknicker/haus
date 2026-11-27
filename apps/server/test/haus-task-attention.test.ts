@@ -1,11 +1,10 @@
 import { expect, test } from 'bun:test';
 import { createTestProject } from './project.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
-import { workerLinkHelpers } from './worker-link-helpers.ts';
-import { workerRecordFixture } from './worker-record-fixture.ts';
+import { taskBoardFixture } from './task-board.fixture.ts';
 
-const fixture = workerRecordFixture();
-const { agentPost } = workerLinkHelpers(fixture);
+const fixture = taskBoardFixture();
+const { agentPost } = fixture;
 
 test('a followed Task outside the home wakes the Agent; unfollow quiets it until a mention', async () => {
     const design = await createTestProject(fixture.owner, {

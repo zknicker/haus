@@ -104,16 +104,11 @@ test('two pushes never coalesce: each runs alone', async () => {
     expect(second?.runId).not.toBe(first?.runId);
 });
 
-test("a Worker's push reaches its Agent, and no one else", async () => {
+test("a push's conflict reaches its writer, and no one else", async () => {
     const seed = await seedAgent(connection.db);
     const other = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
-    const attention = conflictOf('run_push_worker', {
-        agentId: seed.agentId,
-        taskId: 'tsk_worker_push',
-        type: 'worker',
-        workerId: 'wkr_one',
-    });
+    const attention = conflictOf('run_push_writer', { agentId: seed.agentId, type: 'agent' });
 
     await expect(
         queueDriveConflict(connection.db, delivery, {
@@ -121,17 +116,12 @@ test("a Worker's push reaches its Agent, and no one else", async () => {
             recipientAgentId: other.agentId,
             serverId: other.serverId,
         })
-    ).rejects.toThrow("Drive conflict drive-conflict:run_push_worker belongs to the writer's");
+    ).rejects.toThrow("Drive conflict drive-conflict:run_push_writer belongs to the writer's");
     expect(await conflictRows(other.agentId)).toEqual([]);
 
     await queue(delivery, seed, attention);
     const start = await wake();
-    expect(start?.driveConflict?.writer).toEqual({
-        agentId: seed.agentId,
-        taskId: 'tsk_worker_push',
-        type: 'worker',
-        workerId: 'wkr_one',
-    });
+    expect(start?.driveConflict?.writer).toEqual({ agentId: seed.agentId, type: 'agent' });
 });
 
 test('a busy Agent gets no notice, then the item as its next run', async () => {

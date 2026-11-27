@@ -33,9 +33,8 @@ test('maps each inbox source to its narrow trigger kind', () => {
     expect(at('claim_assignment', 'not-a-claim-key')).toBeNull();
     expect(at('reminder')).toEqual({ chatId: 'cht_one', kind: 'reminder' });
     expect(at('trigger')).toEqual({ chatId: 'cht_one', kind: 'trigger' });
-    expect(at('worker_report')).toEqual({ chatId: 'cht_one', kind: 'worker' });
-    expect(at('worker_stall')).toEqual({ chatId: 'cht_one', kind: 'worker' });
-    expect(at('pull_request')).toEqual({ chatId: 'cht_one', kind: 'worker' });
+    expect(at('worker_report')).toBeNull();
+    expect(at('pull_request')).toEqual({ chatId: 'cht_one', kind: 'pull_request' });
     expect(at('onboarding')).toEqual({ chatId: 'cht_one', kind: 'onboarding' });
     expect(at('greeting', 'greeting:agt_one')).toEqual({ chatId: 'cht_one', kind: 'greeting' });
     expect(at('something_new')).toBeNull();

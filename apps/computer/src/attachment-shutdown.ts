@@ -38,7 +38,6 @@ export async function withAttachmentShutdown<T>(
             () => work.close(),
             async () => {
                 await closeDaemonRuntimeResources(
-                    // Worker work is drained; release this Server's volumes.
                     () => detachPartitionWorkspaces(partition),
                     () =>
                         closeDaemonRuntimeResources(

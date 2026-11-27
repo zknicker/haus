@@ -59,7 +59,7 @@ export async function seedServerDemoTasks(
                     { author: owner, content: 'Keep the crop square for now.' },
                     {
                         author: blippy,
-                        content: 'Square it is. Handing the build to a Worker.',
+                        content: 'Square it is. Starting the build now.',
                     },
                 ],
                 createdBy: blippy,

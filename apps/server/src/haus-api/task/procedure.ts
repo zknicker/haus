@@ -24,7 +24,7 @@ export const taskProcedure = memberProcedure.use(async ({ next }) => {
 });
 
 /**
- * After a Task write commits: publish its events, stop closed Workers, and wake
+ * After a Task write commits: publish its events and wake
  * the Agents it enqueued, then answer with the Task as the writer sees it.
  * The response never waits on the wake.
  */

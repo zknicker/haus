@@ -6,8 +6,6 @@ import type { GithubApp } from '../src/github/github-app.ts';
 import { refreshPullRequestReadings } from '../src/github/pull-request-refresh.ts';
 import { attachPullRequestToTask } from '../src/github/task-pull-request-attach.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { seedPullRequestReadings } from '../src/workers/pull-request-readings.ts';
 import { createFakeGithub } from './github-fake.ts';
 import { type GithubTriggerWorld, seedGithubTriggerWorld } from './github-trigger-seed.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
@@ -17,13 +15,13 @@ import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
 const url = 'https://github.com/Acme/Api/pull/1423';
 const headSha = 'ec26c3e57ca3a959ca5aad62de7213c562f8c821';
-const pull: PullRequestWakeReading = { checks: 'pending', draft: false };
+const pull: PullRequestWakeReading = { checks: 'pending', draft: true };
 
 let app: GithubApp;
 let connection: HausConnection;
 let delivery: AgentDelivery;
 let harness: HausServerHarness;
-let runId: string;
+let crew: { agentId: string; chatId: string; shortId: string; taskId: string };
 let task: TestTask;
 let wakes: { agentId: string; serverId: string }[];
 let world: GithubTriggerWorld;
@@ -49,27 +47,17 @@ beforeAll(async () => {
         serverId: world.serverId,
         title: 'Fix the flaky login test',
     });
-    runId = await insertSettledWork();
-    await seedPullRequestReadings(connection.db, {
-        branches: [
-            {
-                branch: 'fix-login',
-                pullRequest: {
-                    additions: 4,
-                    changedFiles: 1,
-                    deletions: 2,
-                    number: 1423,
-                    observedAt: '2026-11-01T12:00:00.000Z',
-                    state: 'draft',
-                },
-                pullRequestUrl: url,
-                repository: 'github.com/acme/api',
-            },
-        ],
-        now: new Date('2026-11-01T12:00:00.000Z'),
+    crew = await seedTaskAgent(harness, {
+        captainId: world.agentId,
+        computerId: world.computerId,
+        projectId: task.projectId,
         serverId: world.serverId,
     });
-    await harness.sql`update pull_request_readings set checks = 'pending'`;
+    await attachPullRequestToTask(
+        { app, db: connection.db },
+        { serverId: world.serverId, taskId: crew.taskId, url }
+    );
+    pull.draft = false;
 });
 
 afterAll(async () => {
@@ -78,38 +66,27 @@ afterAll(async () => {
     await harness?.close();
 });
 
-test('nothing wakes while the newest Run is still working', async () => {
-    await harness.sql`update worker_turns set status = 'running', terminal_at = null where id = ${runId}`;
-    await refresh();
-    expect(await notices()).toEqual([]);
-    expect(wakes).toEqual([]);
-    await harness.sql`
-        update pull_request_readings set state = 'draft', checks = 'pending', refresh_requested_at = now()
-    `;
-    await harness.sql`update worker_turns set status = 'completed', terminal_at = now(), outcome = '{"kind":"stopped"}'::jsonb where id = ${runId}`;
-});
-
-test('a draft turning ready after settlement wakes the Agent in the Task, once', async () => {
-    await refresh();
+test('a draft turning ready wakes the Task’s own agent in the Task, once', async () => {
+    await markAndRefresh();
     expect(await notices()).toEqual([
-        { chat_id: task.chatId, dedupe_key: `acme/api#1423:ready_for_review:${headSha}` },
+        { chat_id: crew.chatId, dedupe_key: `acme/api#1423:ready_for_review:${headSha}` },
     ]);
-    expect(wakes).toEqual([{ agentId: world.agentId, serverId: world.serverId }]);
+    expect(wakes).toEqual([{ agentId: crew.agentId, serverId: world.serverId }]);
     const rows = await listInboxItemsByDedupeKeys(connection.db, {
-        agentId: world.agentId,
+        agentId: crew.agentId,
         dedupeKeys: [`acme/api#1423:ready_for_review:${headSha}`],
         runId: 'run_unused',
     });
+    expect(rows.map((row) => row.chatId)).toEqual([crew.chatId]);
     expect(await buildInboxItems(connection.db, rows)).toMatchObject([
         {
-            worker: {
-                notice: 'pull_request',
-                pullRequestChange: {
-                    change: 'ready_for_review',
-                    url: 'https://github.com/acme/api/pull/1423',
-                },
+            content: `Pull request acme/api#1423 is ready for review (head ${headSha.slice(0, 7)}).`,
+            pullRequestNotice: {
+                change: 'ready_for_review',
+                url: 'https://github.com/acme/api/pull/1423',
             },
-            target: `task:${task.shortId}`,
+            senderType: 'system',
+            target: `task:${crew.shortId}`,
         },
     ]);
 
@@ -169,56 +146,6 @@ test('attaching an unread pull request seeds its reading with one GitHub read', 
     ]);
 });
 
-test('a pull request on an active crew Task with no cloud work wakes the Task’s own agent', async () => {
-    const place = await startTestTask(harness, world.owner, {
-        channelId: world.channelId,
-        serverId: world.serverId,
-        title: 'Review the vendor patch',
-    });
-    const crew = await seedTaskAgent(harness, {
-        captainId: world.agentId,
-        computerId: world.computerId,
-        projectId: place.projectId,
-        serverId: world.serverId,
-    });
-    const bare = { chatId: crew.chatId, id: crew.taskId, shortId: crew.shortId };
-    pull.draft = true;
-    pull.checks = 'pending';
-    await attachPullRequestToTask(
-        { app, db: connection.db },
-        { serverId: world.serverId, taskId: bare.id, url: 'https://github.com/acme/api/pull/1500' }
-    );
-    pull.draft = false;
-    await markAndRefresh();
-    const key = `acme/api#1500:ready_for_review:${headSha}`;
-    const rows = await listInboxItemsByDedupeKeys(connection.db, {
-        agentId: crew.agentId,
-        dedupeKeys: [key],
-        runId: 'run_unused',
-    });
-    expect(rows.map((row) => ({ chatId: row.chatId, runId: row.workerTurnId }))).toEqual([
-        { chatId: bare.chatId, runId: null },
-    ]);
-    expect(wakes).toContainEqual({ agentId: crew.agentId, serverId: world.serverId });
-    const [item] = await buildInboxItems(connection.db, rows);
-    expect(item).toMatchObject({
-        content: `Pull request acme/api#1500 is ready for review (head ${headSha.slice(0, 7)}).`,
-        pullRequestNotice: {
-            change: 'ready_for_review',
-            url: 'https://github.com/acme/api/pull/1500',
-        },
-        senderType: 'system',
-        sequence: 0,
-        target: `task:${bare.shortId}`,
-    });
-    expect(item?.worker).toBeUndefined();
-
-    await markAndRefresh();
-    expect(
-        await harness.sql`select count(*)::int as count from agent_inbox where dedupe_key = ${key}`
-    ).toEqual([{ count: 1 }]);
-});
-
 async function refresh() {
     wakes = [];
     await refreshPullRequestReadings(
@@ -235,31 +162,12 @@ async function markAndRefresh() {
 async function notices() {
     return (await harness.sql`
         select chat_id, dedupe_key from agent_inbox
-        where agent_id = ${world.agentId} and source = 'pull_request'
+        where agent_id = ${crew.agentId} and source = 'pull_request'
         order by created_at
     `) as { chat_id: string; dedupe_key: string }[];
 }
 
-async function insertSettledWork(): Promise<string> {
-    const workId = createOpaqueId('caw');
-    const id = createOpaqueId('car');
-    await harness.sql`
-        insert into workers
-            (id, server_id, agent_id, origin_chat_id, carrier_computer_id, launch_message_id, place,
-             repository, title, task_id, status, terminal_at)
-        values (${workId}, ${world.serverId}, ${world.agentId}, ${task.chatId},
-                'cmp_githubtriggers01', ${world.anchorMessageId}, 'cursor', 'acme/api',
-                'Fix the flaky login test', ${task.id}, 'completed', now())
-    `;
-    await harness.sql`
-        insert into worker_turns (id, server_id, worker_id, status, terminal_at, branches)
-        values (${id}, ${world.serverId}, ${workId}, 'completed', now(),
-                ${[{ branch: 'fix-login', pullRequestUrl: url, repository: 'github.com/acme/api' }]}::jsonb)
-    `;
-    return id;
-}
-
-async function mintRunner(): Promise<string> {
+async function mintRunner() {
     const response = await fetch(new URL('/computer/runner/mint', harness.url), {
         body: JSON.stringify({
             agentId: world.agentId,

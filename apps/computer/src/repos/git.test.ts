@@ -33,14 +33,14 @@ function sshRepo() {
     return { marker, repo };
 }
 
-test("a Captain's git never runs the machine's SSH setup; a Worker's does", async () => {
+test("a Captain's git never runs the machine's SSH setup; the machine's own git does", async () => {
     const captain = sshRepo();
-    const worker = sshRepo();
+    const machine = sshRepo();
 
     expect(await gitSucceeds(['fetch', '--quiet', 'origin'], captain.repo, 'none')).toBe(false);
-    expect(await gitSucceeds(['fetch', '--quiet', 'origin'], worker.repo, 'machine')).toBe(false);
+    expect(await gitSucceeds(['fetch', '--quiet', 'origin'], machine.repo, 'machine')).toBe(false);
     expect(existsSync(captain.marker)).toBe(false);
-    expect(existsSync(worker.marker)).toBe(true);
+    expect(existsSync(machine.marker)).toBe(true);
 });
 
 test('only github.com remotes name a repo, and a .github repo is one', () => {

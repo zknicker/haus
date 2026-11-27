@@ -54,7 +54,7 @@ export async function requireRepoFolderAdder(
     if (!(access.canAdd && userId)) {
         throw new RepoFolderRefusalError(
             'denied',
-            `Only the person who attached ${access.name} can add a folder there, because a folder lets Workers and Captains into their own checkout.`
+            `Only the person who attached ${access.name} can add a folder there, because a folder lets Captains and Tasks into their own checkout.`
         );
     }
     return { ...access, userId };

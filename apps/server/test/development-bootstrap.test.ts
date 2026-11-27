@@ -14,7 +14,6 @@ import {
     avatarsTable,
     chatMessagesTable,
     chatsTable,
-    workersTable,
     computersTable,
     mcpConnectionsTable,
     messageClaimsTable,
@@ -63,7 +62,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
 
     expect(second).toEqual(first);
     expect(await connection.db.select().from(serversTable)).toHaveLength(1);
-    expect(await connection.db.select().from(computersTable)).toHaveLength(2);
+    expect(await connection.db.select().from(computersTable)).toHaveLength(1);
     const agents = await connection.db.select().from(agentsTable);
     expect(agents).toHaveLength(2);
     expect(await connection.db.select().from(chatsTable)).toHaveLength(11);
@@ -191,9 +190,6 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     ]);
     const open = tasks.find((task) => task.title === 'Ship the avatar upload flow end to end');
     expect(messages.filter((message) => message.chatId === open?.chatId)).toHaveLength(4);
-    const works = await connection.db.select().from(workersTable);
-    const openWork = works.filter((work) => work.taskId === open?.id);
-    expect(openWork.map((work) => work.status)).toEqual(['completed']);
     expect(await connection.db.select().from(taskPullRequestsTable)).toMatchObject([
         { number: 512, repository: 'zknicker/haus', taskId: open?.id },
     ]);

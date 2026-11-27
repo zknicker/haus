@@ -9,7 +9,6 @@ import { markGithubTriggersProblem } from '../src/github/trigger-problems.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { ServerPostCommitWork } from '../src/server-post-commit-work.ts';
 import { TriggerRateLimiter } from '../src/triggers/trigger-rate-limit.ts';
-import { seedPullRequestReadings } from '../src/workers/pull-request-readings.ts';
 import { checkSuitePayload, pullRequestPayload } from './github-delivery-fixtures.ts';
 import { createFakeGithub } from './github-fake.ts';
 import { type GithubTriggerWorld, seedGithubTriggerWorld } from './github-trigger-seed.ts';
@@ -47,25 +46,12 @@ beforeEach(async () => {
     requests = [];
     respond = mergedPullRequest;
     await harness.sql`delete from pull_request_readings`;
-    await seedPullRequestReadings(connection.db, {
-        branches: [
-            {
-                branch: 'fix-login',
-                pullRequest: {
-                    additions: 4,
-                    changedFiles: 1,
-                    deletions: 2,
-                    number: 1423,
-                    observedAt: '2026-11-01T12:00:00.000Z',
-                    state: 'open',
-                },
-                pullRequestUrl: url,
-                repository: 'github.com/acme/api',
-            },
-        ],
-        now: new Date('2026-11-01T12:00:00.000Z'),
-        serverId: world.serverId,
-    });
+    await harness.sql`
+        insert into pull_request_readings (server_id, repository, number, url, state, additions,
+            changed_files, deletions, source, observed_at, refresh_requested_at)
+        values (${world.serverId}, 'acme/api', 1423, ${url}, 'open', 4, 1, 2, 'computer',
+            '2026-11-01T12:00:00.000Z', '2026-11-01T12:00:00.000Z')
+    `;
 });
 
 afterAll(async () => {
@@ -75,7 +61,7 @@ afterAll(async () => {
     await runtime.dispose();
 });
 
-test('a Run snapshot seeds a Computer reading and asks for one GitHub read', async () => {
+test('a Computer reading from before Tasks waits for one GitHub read', async () => {
     expect(await reading()).toMatchObject({
         checks: 'unknown',
         number: 1423,
@@ -115,30 +101,6 @@ test('a mark written by Postgres itself, with microseconds, clears after its rea
     expect((await reading())?.source).toBe('github');
 });
 
-test('a later snapshot never overwrites a GitHub reading', async () => {
-    await refresh();
-    await seedPullRequestReadings(connection.db, {
-        branches: [
-            {
-                branch: 'fix-login',
-                pullRequest: {
-                    additions: 1,
-                    changedFiles: 1,
-                    deletions: 1,
-                    number: 1423,
-                    observedAt: '2026-12-01T12:00:00.000Z',
-                    state: 'open',
-                },
-                pullRequestUrl: url,
-                repository: 'github.com/acme/api',
-            },
-        ],
-        now: new Date('2026-12-01T12:00:00.000Z'),
-        serverId: world.serverId,
-    });
-    expect(await reading()).toMatchObject({ source: 'github', state: 'merged' });
-});
-
 test('webhooks mark a known pull request by number or head, whatever the Triggers', async () => {
     await refresh();
     await ingest('pull_request', pullRequestPayload({ action: 'closed' }));
@@ -150,7 +112,7 @@ test('webhooks mark a known pull request by number or head, whatever the Trigger
     expect((await reading())?.refresh_requested_at).not.toBeNull();
 });
 
-test('a webhook for a pull request no work reported marks nothing', async () => {
+test('a webhook for a pull request Haus never read marks nothing', async () => {
     await refresh();
     await ingest('check_suite', {
         ...checkSuitePayload(),
