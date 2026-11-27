@@ -75,19 +75,19 @@ export const placementProfiles = {
  * in its own turn, a channel post, or closing the Issue.
  *
  * Report (C2): asked in its Captain chat for a crew Task, a good Captain says once that the Task
- * is started; the Task ends its turn with one report; when the report comes back the Captain
- * tells the person the result in a line or two, in the Captain chat where they asked. Wrong:
- * silence after the report, a recap of the report, or an offer.
+ * is started, with its link; the Task ends its turn with one report, which the person reads in
+ * the Task they follow (the result stays in the Task, per the prompt's Sending messages
+ * section). A one-line relay in the Captain chat is allowed, not required. Wrong: a separate
+ * pickup note and a start note, a recap of the report, or an offer.
  *
  * Home Task (C4): a Task a person started answers in its own chat, briefly, with nothing extra,
  * and posts nowhere else. Both graded profiles read the last post carrying the result.
  */
 export const crewProfiles = {
     'crew-report-reaches-person': {
-        cap: 50,
+        cap: 30,
         channel: [1, 2],
         inChat: true,
-        result: (post) => /\b[0-9a-f]{12}\b/iu.test(post.content),
         spec: 'C2',
     },
     'home-task-works-with-person': {
