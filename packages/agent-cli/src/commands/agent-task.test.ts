@@ -13,7 +13,7 @@ const startArgs = {
 
 const started = { state: 'started', target: 'task:k3mq7xta', task };
 
-test('start sends the brief from stdin and says the Task is queued, never started', async () => {
+test('start sends the brief from stdin and says who sees the Task, never that its work began', async () => {
     const { calls, lines, run } = harness(() => started);
 
     await run(runTaskStart, args({ values: { ...startArgs, '--request-id': 'req-1' } }));
@@ -31,9 +31,11 @@ test('start sends the brief from stdin and says the Task is queued, never starte
     });
     expect(lines.join('')).toBe(
         [
-            'Queued k3mq7xta "Rotate the signing key" · started by @kit',
-            'Its brief posted as its first message, and its first turn is queued. Task target: task:k3mq7xta',
-            'Started from message 1a2b3c4d in #security; people there see the Task, its state and newest messages under it.',
+            'k3mq7xta "Rotate the signing key" · started by @kit',
+            'Its brief is its first message, and it is starting on it. Task target: task:k3mq7xta',
+            "It shows under message 1a2b3c4d in #security with its state and newest messages, and that message's author follows it.",
+            'SEC-12 is assigned to it, in the state it had.',
+            'Your Captain panel lists it under Crew.',
             'You hear when each of its turns ends; its chat holds what it did.',
             '',
         ].join('\n')

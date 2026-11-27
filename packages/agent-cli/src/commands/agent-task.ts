@@ -72,7 +72,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         notes: [
             'Starts crew in your home Project: a fresh agent session with its own chat. The brief on stdin is its first message.',
             '--issue never changes the Issue’s state; an Issue someone else holds is refused with ISSUE_TAKEN.',
-            'The receipt says the Task is queued, with its short id. Pass --request-id to make a retry safe.',
+            'The receipt prints its short id and where people see it. Pass --request-id to make a retry safe.',
         ],
         positionals: [],
         run: (args) => runTaskStart(args, defaultDeps()),

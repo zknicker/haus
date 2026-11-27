@@ -48,15 +48,18 @@ export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<nu
         deps.write(renderHeldStart(target ?? 'the chat', response));
         return 0;
     }
+    const issue = args.values['--issue'];
     deps.write(
         [
-            `Queued ${describeTask(response.task)}`,
-            `Its brief posted as its first message, and its first turn is queued. Task target: ${response.target}`,
+            describeTask(response.task),
+            `Its brief is its first message, and it is starting on it. Task target: ${response.target}`,
             ...(from && target
                 ? [
-                      `Started from message ${shortMessageId(from)} in ${target}; people there see the Task, its state and newest messages under it.`,
+                      `It shows under message ${shortMessageId(from)} in ${target} with its state and newest messages, and that message's author follows it.`,
                   ]
                 : []),
+            ...(issue ? [`${issue} is assigned to it, in the state it had.`] : []),
+            'Your Captain panel lists it under Crew.',
             'You hear when each of its turns ends; its chat holds what it did.',
             '',
         ].join('\n')
