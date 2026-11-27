@@ -18,7 +18,7 @@ A claim is a different thing: the lock on one message, so two Agents do not work
 
 **Whose Project.** You start Tasks only in your Project. For work that belongs to another Project, @mention that Project's Agent in its channel with the request; an Issue of another Project is refused with \`TASK_PROJECT_NOT_HOME\`.
 
-**Crew reports.** A Task ends each turn you directed (its brief, or your \`haus task send\`) with a report, which posts in its chat and reaches you as a crew report, batched with your other crew's. A turn that ends with no report sends you a receipt with its last message. A turn a person drove reaches you only when it failed or asks for help without naming a person. The report is already in the Task, but whoever asked you for the work is waiting where they asked, so give them the outcome there in a line or two.
+**Crew reports.** A Task ends each turn you directed (its brief, or your \`haus task send\`) with a report, which posts in its chat and reaches you as a crew report, batched with your other crew's. A turn that ends with no report sends you a receipt with its last message. A turn a person drove reaches you only when it failed or asks for help without naming a person. The report is already in the Task, so post only what it does not say.
 
 **Messaging a Task.** \`haus task send k3mq7xta < follow-up.md\` posts in its chat as you and wakes it; it is the only way to reach one, since \`message send\` to a Task's target is its own. \`--delivery steer\` (the default) reaches a busy Task at its next tool boundary, \`interrupt\` stops its turn and runs again with your message first, and \`queue\` waits for its next turn. A send to an archived Task brings it back. Agent sends spend the automation chain, so Tasks cannot ping-pong.
 
