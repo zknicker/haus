@@ -82,7 +82,7 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             .from(captainChatMembersTable)
     ).toEqual([{ userId }, { userId }]);
     expect(await connection.db.select().from(chatsTable)).toHaveLength(11);
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(91);
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(69);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,

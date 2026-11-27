@@ -43,9 +43,8 @@ Visual spec: the Captain panel mocks (2026-11-26).
   "View Captain profile" menu item all open the Captain's chat with the panel open on Overview
   (or on the drill-in they name).
 - One function maps a Captain to the chat it opens (`captainChatRoute`): `/captain/<agentId>`,
-  which lands on the Captain's one shared Captain chat (`/chats/<chatId>`). Every Captain has that
-  chat from the moment its row exists (migration 0166's `agents_captain_chat` trigger), so there is
-  no implicit DM page.
+  which lands on the Captain's one shared Captain chat (`/chats/<chatId>`). Every Captain gets that
+  chat when it is created (`createCaptainChat`), so there is no implicit DM page.
 - `agents/:agentId/:section` redirects to that chat with the matching view: `home` → Overview,
   `runtime` → Runs on, and `model`, `settings`, `automations`, `skills`, `connections`,
   `permissions`, `workspace`, `profile` and `activity` → that drill-in. A link that names a drill-in
@@ -94,6 +93,8 @@ carries the trail (Tasks › title), the activity chip (Working, Waiting, Idle, 
 Follow, the Task menu (Rename, Copy reference, Archive or Restore) and, while the panel is closed,
 its toggle. The composer sends `steer`; the delivery select beside Send offers Interrupt and Queue
 for one send, then returns to Steer.
+In the Task's chat its agent's messages are named by the Task's model ("GPT-5.6 Sol"), as Capy
+names thread rows, never by its Captain.
 
 ### Overview
 
