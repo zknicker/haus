@@ -49,6 +49,7 @@ test('a custom theme is created from the current theme, edited live, and deleted
 
     await expect(root).toHaveAttribute('data-color-theme', /^custom-/u);
     await expect(page.getByRole('textbox', { name: 'Theme name' })).toHaveValue('Custom');
+    await page.getByRole('button', { name: 'Pick background color' }).click();
     await page.getByRole('textbox', { name: 'Background hex' }).fill('#fff8f0');
     await page.getByRole('textbox', { name: 'Background hex' }).press('Enter');
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 248, 240)');

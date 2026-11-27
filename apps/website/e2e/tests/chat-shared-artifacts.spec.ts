@@ -49,7 +49,11 @@ test('a shared-artifact link in a message opens the artifact in the App', async 
 
     await chip.click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts/${conceptId}$`, 'u'));
-    await expect(page.getByRole('heading', { name: 'Concept render', exact: true })).toBeVisible();
+    await expect(
+        page
+            .getByRole('region', { name: 'File preview' })
+            .getByRole('img', { exact: true, name: 'Concept render' })
+    ).toBeVisible();
 
     await page.goBack();
     await page.getByTestId('shared-artifact-tile').click();

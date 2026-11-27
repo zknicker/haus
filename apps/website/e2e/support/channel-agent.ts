@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { captainsProjectId, createHomedAgent } from './project.ts';
+import { createHomedAgent } from './project.ts';
 import { assertOpaqueId, createClient, runPsql } from './server.ts';
 
 /**
@@ -47,12 +47,12 @@ export async function createChannelAgent(input: {
         runtimeId: 'codex',
         serverId: input.serverId,
     });
-    const homeProjectId = await captainsProjectId(owner, input.serverId);
-    runPsql(
-        input.databaseUrl,
-        `update projects set default_task_computer_id = '${agentComputerId}'
-         where chat_id = '${homeProjectId}'`
-    );
+    await owner.agent.setCrewDefaults.mutate({
+        agentId: created.agent.id,
+        crewComputerId: agentComputerId,
+        crewModel: null,
+        serverId: input.serverId,
+    });
     const runnerToken = await mintAgentRunner(created.agent.id, chatId, agentCredentialHash);
 
     const agentPost = (path: string, body: unknown) =>

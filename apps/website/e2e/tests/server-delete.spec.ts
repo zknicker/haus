@@ -11,7 +11,7 @@ test('an Owner confirms the immutable address and permanently deletes a Server',
     });
     await page.goto(`/s/${slug}/settings/server`);
 
-    await page.getByRole('button', { name: 'Delete Server' }).click();
+    await page.getByRole('button', { exact: true, name: 'Delete' }).click();
     const dialog = page.getByRole('alertdialog', { name: 'Delete Server' });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/offline devices/iu)).toBeVisible();
@@ -24,7 +24,7 @@ test('an Owner confirms the immutable address and permanently deletes a Server',
     await expect(deleteButton).toBeEnabled();
 
     await dialog.getByRole('button', { name: 'Cancel' }).click();
-    await page.getByRole('button', { name: 'Delete Server' }).click();
+    await page.getByRole('button', { exact: true, name: 'Delete' }).click();
     const reopenedDialog = page.getByRole('alertdialog', { name: 'Delete Server' });
     await expect(reopenedDialog.getByLabel(`Type ${slug} to confirm`)).toHaveValue('');
     await expect(reopenedDialog.getByRole('button', { name: 'Delete Server' })).toBeDisabled();

@@ -34,6 +34,7 @@ import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
 import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { abandonsResentRun } from './abandoned-run.ts';
 import { listActiveRunAgents } from './active-runs.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { planBusyNotice } from './busy-notice.ts';
@@ -550,12 +551,7 @@ export class AgentDelivery {
                 // model were frozen onto the run, so a mid-flight reconfigure
                 // never changes what an in-flight run launches with.
                 const frame = await startFrame(tx, state, config);
-                if (
-                    frame.type === 'start' &&
-                    frame.inboxDelivery === 'notice' &&
-                    frame.inbox.length === 0 &&
-                    !frame.greets
-                ) {
+                if (await abandonsResentRun(tx, { agentId, frame, serverId: state.serverId })) {
                     const activity = await appendServerAgentActivity(tx, {
                         agentId,
                         category: 'working',

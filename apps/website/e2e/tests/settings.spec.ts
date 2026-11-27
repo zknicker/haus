@@ -69,8 +69,16 @@ test('settings navigation names the page and reaches Server deletion', async ({
     await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
     const groups = {
-        Captains: ['Models', 'Skills', 'Connections'],
-        Haus: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'],
+        Captains: ['Models', 'Git', 'Skills', 'Connections'],
+        Haus: [
+            'General',
+            'Members',
+            'Projects',
+            'Repositories',
+            'Devices',
+            'Usage',
+            'Archived chats',
+        ],
         You: ['Profile', 'Preferences', 'Appearance', 'Notifications', 'Shortcuts', 'Servers'],
     };
     for (const [group, rows] of Object.entries(groups)) {
@@ -93,7 +101,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
     await page.getByRole('row', { exact: true, name: 'General' }).click();
     await expect(page.getByText(slug, { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Copy Server ID' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Delete Server', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
     await page.getByRole('row', { name: 'Back to chat', exact: true }).hover();
     await page.screenshot({ path: testInfo.outputPath('settings-server.png') });
 

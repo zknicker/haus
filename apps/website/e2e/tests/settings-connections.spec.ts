@@ -50,7 +50,10 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await merchbase.getByRole('button', { exact: true, name: 'Add MerchBase' }).click();
     await expect(merchbase).toHaveCount(0);
     await explore.getByRole('button', { exact: true, name: 'Done' }).click();
-    const connection = page.getByRole('button', { name: /MerchBase Built in/u });
+    const connection = page.getByRole('button', {
+        exact: true,
+        name: 'MerchBase Sign in required Built in',
+    });
     await expect(connection).toBeVisible();
 
     await page.reload();
@@ -88,7 +91,7 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await (await signInTab).close();
     await expect(title('MerchBase account')).toBeVisible();
     await page.goto(`/s/${slug}/settings/connections`);
-    const secondAccount = page.getByRole('button', { name: /MerchBase account Built in/u });
+    const secondAccount = page.getByRole('button', { name: /^MerchBase account .*Built in$/u });
     await expect(secondAccount).toHaveCount(1);
     await secondAccount.click();
     await expect(title('MerchBase account')).toBeVisible();
