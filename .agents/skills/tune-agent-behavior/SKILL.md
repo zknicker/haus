@@ -60,15 +60,13 @@ Artifact: the hypothesis and its disproof condition, written before any edit.
 
 Prompt edits follow AGENTS.md "Agent System Prompt Changes" exactly: Raft-verbatim text stays
 untouched, every Haus-only sentence earns a register row, the cap moves to the measured render in
-the same change, and docs move with it. Then apply these rules:
+the same change, and docs move with it.
 
-- **Recipe beside consequence.** A description of what the human experiences needs a
-  command-shaped mechanics line next to it. Codex follows recipes: the description alone lost
-  `--done` and `--reply-to`.
-- **Receipts state facts.** A receipt says where the message landed, who was notified, and the
-  message's own thread target. It never suggests where to post next.
-- **Every-turn mechanics stay in the prompt.** Anything the Agent needs on most turns lives in the
-  managed prompt; the Manual holds what it looks up occasionally.
+Write the text with `.agents/skills/write-agent-text/SKILL.md`, which owns the house style: what
+to describe, where each fact goes (prompt, Manual, receipt, event input, or code), the recipe
+beside the concept, and the cold read. Codex follows recipes; the description alone once lost
+`--done` and `--reply-to`.
+
 - **Edit only with the stack down.** Saving any file under `apps/computer` while a dev stack runs
   restarts the Computer and tears the stack down. Finish Computer edits, then boot.
 

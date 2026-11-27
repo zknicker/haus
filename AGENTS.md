@@ -252,8 +252,10 @@ When changing prompt text or that contract test:
    changed, or removed row, and run `bun run test:prompt-contract`. The register's
    "TODO — no owner" rows are the current debt.
 
-For any Agent behavior change (prompt, Manual, CLI receipts, inbox text) and its baseline eval and
-report, use `.agents/skills/tune-agent-behavior/SKILL.md`.
+Write every sentence an Agent reads in the house style of `.agents/skills/write-agent-text/SKILL.md`:
+describe what things are, what they do, and what people see, not routing ladders. For any Agent
+behavior change (prompt, Manual, CLI receipts, inbox text) and its baseline eval and report, use
+`.agents/skills/tune-agent-behavior/SKILL.md`.
 
 ## Agent skills
 

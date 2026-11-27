@@ -75,7 +75,7 @@ test('claim updates follow the requesting conversation', () => {
     const prompt = renderPrompt();
 
     expect(prompt).toContain(
-        'To reply to any message, always reuse the exact `target` from the received message.'
+        'Reply at the exact `target` of the received message, so it lands where its sender is looking'
     );
     expect(prompt).toContain(
         '**Keep the conversation together.** Acknowledge and answer each request in the chat where it was asked'
@@ -142,7 +142,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     // Channel mutes and membership are deleted (ADR 0055); unfollow is the only narrowing.
     expect(prompt).not.toContain('To mute ordinary Activity delivery');
     expect(prompt).toContain(
-        '`haus task unfollow --target task:<shortId>` stops a Task you follow, and outside your Project `haus message unfollow` stops a reply chain.'
+        '`haus task unfollow --target task:<shortId>` and `haus message unfollow` stop what you follow.'
     );
 
     // A human is asked by @mention where the work lives (ADR 0037); there is no Ask command.
@@ -224,8 +224,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 128 (37,648 → 37,776) for the Computers entry (ADR 0057), 116 (→ 37,892) for Repos (ADR 0060).
     // Raised by exactly 59 (37,892 → 37,951): web sources are cited as Markdown links (ADR 0061).
     // Lowered by exactly 38 (37,951 → 37,913): Tasks name `archive` (ADR 0062). Raised by exactly 364 (→ 38,277): Captains work from Issues (step 3). Lowered by exactly 198 (→ 38,079): Captain chat, crew Tasks (step 5b).
-    // Lowered by exactly 469 (38,079 → 37,610): Workers deleted (ADR 0062 step 7): the `### Workers` section (-262) and family entry (-177), the sub-agent separate-tools sentence (-33), and WORKER.md names crew Tasks (+3). Lowered by exactly 50 (→ 37,560): crew work says what the asker sees, not a link reply or a result kept in the Task (Captain voice).
-    expect(prompt.length).toBeLessThanOrEqual(37_560);
+    // Lowered by exactly 469 (38,079 → 37,610): Workers deleted (ADR 0062 step 7): the `### Workers` section (-262) and family entry (-177), the sub-agent separate-tools sentence (-33), and WORKER.md names crew Tasks (+3).
+    // Lowered by exactly 698 (37,610 → 36,912) by the house-style rewrite (write-agent-text skill): the Tasks section, Sending messages, Discovering and six Raft-origin passages describe the world instead of routing rules; a deliberate shrink.
+    expect(prompt.length).toBeLessThanOrEqual(36_912);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');

@@ -136,11 +136,6 @@ function communicationSection() {
         "17. **Repos**: `haus repo list`, `haus repo checkout` (your own worktree of a repo already on the call's Computer).",
         '18. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
-    const criticalRules = [
-        '- Always communicate through `haus` CLI commands. This is your only output channel: text you produce outside a `haus` command is not delivered to anyone.',
-        '- Use only the provided `haus` CLI commands for messaging.',
-        '- Prefer running one `haus` CLI command per tool call: read its result before choosing the next action.',
-    ].join('\n');
 
     return `## Communication: haus CLI ONLY
 
@@ -160,8 +155,7 @@ Credentials follow human intent: do not solicit, expose, or relay credentials on
 
 When work needs an API key or other secret, read the \`secrets\` Manual topic before asking anyone for it.
 
-CRITICAL RULES:
-${criticalRules}`;
+Text you produce outside a \`haus\` command reaches no one: people see only what you send with these commands. Prefer one \`haus\` command per tool call, and read its result before choosing the next.`;
 }
 
 // Standing principles only: notice mechanics ride the notice itself (`composeInboxNotice`),
@@ -169,16 +163,16 @@ ${criticalRules}`;
 function startupSection(handle: string) {
     return `## Startup sequence
 
-1. If this turn already includes a concrete incoming message, first decide whether that message needs a visible acknowledgment, blocker question, or ownership signal. If it does, send it early with \`haus message send\` before deep context gathering.
+1. People see nothing of your work until you post, so a message that will take a while gets its acknowledgment, blocker question, or ownership signal early, with \`haus message send\`, before deep context gathering.
 2. MEMORY.md (in \`drive/agents/${handle}/\`) arrives in your turn input whenever it changed. Read only the additional memory/files you need to handle the current turn well.
 3. Handle the input supplied for this turn. If there is no pending work, stop.
 4. When a message needs a reply, send it with \`haus message send\`. Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (\`haus message react --message-id <id> --emoji <emoji>\`); an explicit FYI gets nothing. For acknowledgment-only thanks or celebration, use \`haus message react\`; an emoji-only message is still a reply.
-5. **Complete ALL your work before stopping.** If a task requires multi-step work (research, code changes, testing), finish everything, report results, then stop. You do not need to stay active or repeatedly poll just to wait for new messages.`;
+5. Finish the work before you stop: the research, changes, and checks it needs, then the result. You do not need to stay active or repeatedly poll just to wait for new messages.`;
 }
 
 const claimsSection = `### Claims
 
-**Claim rule:** if fulfilling a message requires you to take action beyond just replying (running tools, making changes, investigating), use \`haus claim\` before starting. If you're only answering a question or having a conversation, no claim is needed.
+**Claim rule:** a claim is the lock on a message, so two agents don't do the same work. Claim a message with \`haus claim\` before acting on it beyond a reply (running tools, making changes, investigating); answering a question or talking needs none.
 
 If a claim fails, do not start conflicting execution or take over its scope without a redirect. A failed claim is a concurrency lock, not a ruling on lane ownership. If you are that lane's canonical owner, correct the routing in the original conversation.
 
@@ -217,7 +211,7 @@ When a human is your audience (you're replying to them, mentioning them, in your
 function etiquetteSection() {
     const bullets = [
         '- **Respect ongoing conversations.** If a human is having a back-and-forth with another person (human or agent) on a topic, their follow-up messages are directed at that person; only join if you are explicitly @mentioned or clearly addressed.',
-        "- **Only the person doing the work should report on it.** If someone else completed a task, don't echo or summarize their work; let them respond to questions about it.",
+        "- **Let whoever did the work speak for it.** Someone else's finished work is theirs to report and answer for, and an echo from you is a second copy without their context. Your crew's work is yours to tell.",
         '- **Silence is deliberate.** Your Captain chat is addressed to you, but step 4 holds: an explicit FYI gets nothing, a thanks or ack one reaction, unless action, correction, or a blocker requires a reply.',
         '- **Before stopping, check for concrete blockers you own.** If you still owe a specific handoff, review, decision, or reply that is currently blocking a specific person, send one minimal actionable message to that person or channel before stopping.',
         '- **Skip idle narration.** Only send messages when you have actionable content; avoid broadcasting that you are waiting or idle.',

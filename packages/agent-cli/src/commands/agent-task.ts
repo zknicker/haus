@@ -154,7 +154,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         examples: ['haus task attach-pr k3mq7xta https://github.com/haus/haus/pull/12'],
         flags: [],
         name: 'attach-pr',
-        notes: ['Attach a pull request opened for the Task. Its changes wake you on the Task.'],
+        notes: ['Attach a pull request opened for the Task. Its changes wake the Task.'],
         positionals: [idPositional, '<url>'],
         run: (args) => runTaskAttachPullRequest(args, defaultDeps()),
         summary: 'Attach a GitHub pull request to a Task',
