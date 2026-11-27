@@ -16,7 +16,7 @@ export interface TurnSessionView {
     readonly isColdStart: boolean;
     readonly resumesInterruptedTurn: boolean;
     readonly sessionGeneration: number;
-    readonly sessionKind: 'captain' | 'task';
+    readonly sessionKind: 'captain' | 'task' | null;
 }
 
 export interface TurnInput {

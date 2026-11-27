@@ -208,8 +208,9 @@ test('an Issue assignment teaches crew to a Captain and not to a Task, which can
     });
     const session = { isColdStart: false, resumesInterruptedTurn: false, sessionGeneration: 2 };
     const crew = /haus task start --issue/u;
-    const as = (sessionKind: 'captain' | 'task') =>
+    const as = (sessionKind: 'captain' | 'task' | null) =>
         composeTurnInput(assigned, { ...session, sessionKind }, []).turnContent;
     expect(as('captain')).toMatch(crew);
     expect(as('task')).not.toMatch(crew);
+    expect(as(null)).not.toMatch(crew);
 });

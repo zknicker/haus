@@ -12,10 +12,13 @@ const crewGuidance =
 const eventGuidance =
     '`haus issue show <code>` prints the whole Issue. Answer a comment with `haus issue comment <code> --reply-to <commentId>`; an update that needs nothing from you needs no reply.';
 
-/** A Captain starts crew for an Issue; a Task, which cannot, works it itself. */
+/**
+ * A Captain starts crew for an Issue. A Task cannot, and a session whose kind the runner could
+ * not read gets no crew line rather than a recipe it may be refused.
+ */
 export function composeIssueAssignmentInput(
     assignments: readonly AgentIssueAssignment[],
-    recipient: 'captain' | 'task'
+    recipient: 'captain' | 'task' | null
 ) {
     return [
         `${assignments.length} ${plural(assignments.length, 'Issue')} assigned to you:`,
