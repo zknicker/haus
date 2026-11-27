@@ -40,7 +40,7 @@ function usePanePanelKey(pane: PaneSide) {
             { serverId },
             { ...queryPolicy.syncedSnapshot, enabled: serverId !== '' && chatId !== null, select }
         ).data ?? null;
-    if (page?.kind === 'dm') {
+    if (page?.kind === 'captain') {
         return agentPanelKey({ agentId: page.agentId, kind: 'captain' });
     }
     return chatId ? chatKey : null;

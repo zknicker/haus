@@ -35,7 +35,7 @@ export type TabPage =
       }
     | { kind: 'browser'; title: string; url: string; viewId: string }
     | { kind: 'chat'; chatId: string }
-    | { kind: 'dm'; agentId: string }
+    | { kind: 'captain'; agentId: string }
     | { kind: 'files'; chatId: string }
     | { kind: 'home' }
     | { code: string; kind: 'issue' }
@@ -92,7 +92,7 @@ export function parseTabPage(location: TabLocation): TabPage {
 const idPages = {
     agents: (agentId: string) => ({ agentId, kind: 'agent' }),
     chats: (chatId: string) => ({ chatId, kind: 'chat' }),
-    dm: (agentId: string) => ({ agentId, kind: 'dm' }),
+    captain: (agentId: string) => ({ agentId, kind: 'captain' }),
     files: (chatId: string) => ({ chatId, kind: 'files' }),
 } as const satisfies Record<string, (id: string) => TabPage>;
 
@@ -121,7 +121,7 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
             const chat = records.chats?.find((item) => item.id === page.chatId) ?? null;
             return chat ? chatIdentity(chat, records) : pending;
         }
-        case 'dm': {
+        case 'captain': {
             const agent = findAgent(records, page.agentId);
             return agent ? { label: agent.displayName, mark: avatar(agent), place: 'DM' } : pending;
         }

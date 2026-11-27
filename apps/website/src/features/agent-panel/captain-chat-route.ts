@@ -1,5 +1,5 @@
-import { serverAgentDmRoute } from '../servers/server-routes.ts';
+import { serverRoute } from '../servers/server-routes.ts';
 
 export function captainChatRoute(slug: string, agentId: string) {
-    return serverAgentDmRoute(slug, agentId);
+    return `${serverRoute(slug)}/captain/${encodeURIComponent(agentId)}`;
 }

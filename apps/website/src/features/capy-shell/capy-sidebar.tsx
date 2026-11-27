@@ -1,3 +1,4 @@
+import { captainChatRoute } from '../agent-panel/captain-chat-route.ts';
 import { Sidebar } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
@@ -6,11 +7,11 @@ import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import {
-    resolveSelectedAgentDmId,
+    resolveSelectedCaptainId,
     resolveSelectedChatId,
 } from '../../routes/app/server-route-state.ts';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
-import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/server-routes.ts';
+import { serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { ListedChatNavigationRow } from '../shell/chat-navigation-row.tsx';
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
@@ -39,7 +40,7 @@ export function CapySidebar({
     const openNewCaptain = React.useCallback(() => setCreating('captain'), []);
     const selection = {
         pathname,
-        selectedAgentDmId: resolveSelectedAgentDmId(pathname, slug),
+        selectedAgentDmId: resolveSelectedCaptainId(pathname, slug),
         selectedChatId: resolveSelectedChatId(pathname, slug),
     };
 
@@ -64,7 +65,7 @@ export function CapySidebar({
             <CreateAgentDialog
                 onCreated={(agentId) => {
                     setCreating(null);
-                    navigate(serverAgentDmRoute(slug, agentId));
+                    navigate(captainChatRoute(slug, agentId));
                 }}
                 onOpenChange={(open) => setCreating(open ? 'captain' : null)}
                 open={creating === 'captain'}

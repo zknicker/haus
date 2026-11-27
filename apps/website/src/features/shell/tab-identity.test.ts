@@ -21,7 +21,7 @@ const records: TabIdentityRecords = {
             color: null,
             icon: null,
             id: 'd1',
-            kind: 'dm',
+            kind: 'captain',
             name: null,
             peerAgentDisplayName: 'Blippy',
             peerAgentId: 'ag1',
@@ -34,7 +34,7 @@ test('app paths parse to the page they show', () => {
         chatId: 'c1',
         kind: 'chat',
     });
-    expect(parseTabPage(app('/s/acme/dm/ag1'))).toEqual({ agentId: 'ag1', kind: 'dm' });
+    expect(parseTabPage(app('/s/acme/captain/ag1'))).toEqual({ agentId: 'ag1', kind: 'captain' });
     expect(parseTabPage(app('/s/acme/agents/ag1/setup'))).toEqual({
         agentId: 'ag1',
         kind: 'agent',

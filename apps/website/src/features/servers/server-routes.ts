@@ -20,10 +20,6 @@ export function serverChatMessageRoute(slug: string, chatId: string, messageId: 
 
 export const chatMessageParam = 'message';
 
-export function serverAgentDmRoute(slug: string, agentId: string) {
-    return `${serverRoute(slug)}/dm/${encodeURIComponent(agentId)}`;
-}
-
 export function serverArchivedChatsRoute(slug: string) {
     return serverSettingsSectionRoute(slug, 'archived');
 }
