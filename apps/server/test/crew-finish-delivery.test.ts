@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { AgentCommand, CrewReportAttention } from '@haus/api';
+import type { AgentCommand, CrewFinish } from '@haus/api';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { settleCrewTurn } from '../src/tasks/crew-turn-settlement.ts';
+import { settleCrewTurn } from '../src/tasks/crew-finish.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { RecordingRunner } from './recording-runner.ts';
 
@@ -20,53 +20,32 @@ interface Crew {
 
 beforeAll(async () => {
     connection = await connectHausDatabase(fixture.harness.databaseUrl);
-    orbit = await fixture.mintRunner('run_crew_report_orbit');
+    orbit = await fixture.mintRunner('run_crew_finish_orbit');
 });
 
 afterAll(async () => {
     await connection?.close();
 });
 
-test('a report on a turn the Captain directed posts in the Task and reaches the Captain', async () => {
-    const crew = await startCrew('Rotate the signing key.');
-    const runId = await takeQueuedTurn(crew);
-    const report = await reportAs(crew, runId, {
-        outcome: 'done',
-        text: 'Rotated the key and updated the deploy secret.',
-    });
-    expect(report).toMatchObject({ body: { reachesCaptain: true }, status: 200 });
-    const page = await fixture.owner.trpc.chat.messages.query({
-        chatId: crew.chatId,
-        serverId: fixture.serverId,
-    });
-    expect(page.messages.at(-1)).toMatchObject({
-        author: { agentId: crew.agentId, kind: 'agent' },
-        content: 'Rotated the key and updated the deploy secret.',
-    });
-    expect(await crewReports()).toContainEqual(
-        expect.objectContaining({
-            id: `crew-report:${crew.id}:${runId}`,
-            outcome: 'done',
-            taskShortId: crew.shortId,
-            text: 'Rotated the key and updated the deploy secret.',
-        })
-    );
-});
-
-test('a directed turn that settles with no report sends one unreported receipt', async () => {
+test('a crew turn that settles sends its Captain one content-free finish', async () => {
     const crew = await startCrew('Audit the member directory copy.');
     const runId = await takeQueuedTurn(crew);
+    await post(crew, runId, 'Audited it; two labels need a rename.');
     await connection.db.transaction(async (tx) => {
         await settleCrewTurn(tx, { ...ids(crew), runId, status: 'completed' });
         await settleCrewTurn(tx, { ...ids(crew), runId, status: 'completed' });
     });
-    const receipts = (await crewReports()).filter((item) => item.taskShortId === crew.shortId);
-    expect(receipts).toEqual([
-        expect.objectContaining({ id: `crew-report:${crew.id}:${runId}`, outcome: 'unreported' }),
+    expect(await finishesOf(crew)).toEqual([
+        {
+            ending: 'finished',
+            id: `crew-finish:${crew.id}:${runId}`,
+            taskShortId: crew.shortId,
+            title: expect.any(String),
+        },
     ]);
 });
 
-test('a turn a person drove reaches the Captain only when it fails or asks for help', async () => {
+test('a turn a person drove reaches the Captain too, and an interrupted turn does not', async () => {
     const crew = await startCrew('Profile the nightly export.');
     await takeQueuedTurn(crew);
     await fixture.owner.trpc.chat.send.mutate({
@@ -76,41 +55,26 @@ test('a turn a person drove reaches the Captain only when it fails or asks for h
         serverId: fixture.serverId,
     });
     const personRun = await takeQueuedTurn(crew);
-    const done = await reportAs(crew, personRun, { outcome: 'done', text: 'The index is fine.' });
-    expect(done.body.reachesCaptain).toBe(false);
-    await connection.db.transaction((tx) =>
-        settleCrewTurn(tx, { ...ids(crew), runId: personRun, status: 'completed' })
-    );
-    expect((await crewReports()).map((item) => item.id)).not.toContain(
-        `crew-report:${crew.id}:${personRun}`
-    );
-    await connection.db.transaction((tx) =>
-        settleCrewTurn(tx, { ...ids(crew), runId: 'run_person_failed', status: 'failed' })
-    );
-    expect(await crewReports()).toContainEqual(
-        expect.objectContaining({
-            id: `crew-report:${crew.id}:run_person_failed`,
-            outcome: 'failed',
-        })
-    );
+    await connection.db.transaction(async (tx) => {
+        await settleCrewTurn(tx, { ...ids(crew), runId: personRun, status: 'completed' });
+        await settleCrewTurn(tx, { ...ids(crew), runId: 'run_person_stop', status: 'interrupted' });
+        await settleCrewTurn(tx, { ...ids(crew), runId: 'run_person_failed', status: 'failed' });
+    });
+    expect((await finishesOf(crew)).map((item) => [item.id, item.ending])).toEqual([
+        [`crew-finish:${crew.id}:${personRun}`, 'finished'],
+        [`crew-finish:${crew.id}:run_person_failed`, 'failed'],
+    ]);
 });
 
-test('needs-you naming a person mentions them, wakes no Captain, and waits on them', async () => {
+test('a Task that @mentions a person waits on them until a person posts', async () => {
     const crew = await startCrew('Ship the avatar upload flow.');
     const runId = await takeQueuedTurn(crew);
-    const asked = await reportAs(crew, runId, {
-        ask: 'Ship it behind the flag?',
-        outcome: 'needs-you',
-        person: 'ada',
-        text: 'The upload works; the flag is still off.',
-    });
-    expect(asked).toMatchObject({ body: { reachesCaptain: false }, status: 200 });
-    const posted = await fixture.harness.sql`
-        select mentioned_user_ids from chat_messages
-        where chat_id = ${crew.chatId} and author_agent_id = ${crew.agentId}
-    `;
-    expect(posted).toEqual([{ mentioned_user_ids: [fixture.ownerUserId] }]);
+    await post(crew, runId, '@ada The upload works. Ship it behind the flag?');
     expect(await readTask(crew)).toMatchObject({ activity: 'waiting', needsYou: true });
+    await connection.db.transaction((tx) =>
+        settleCrewTurn(tx, { ...ids(crew), runId, status: 'completed' })
+    );
+    expect((await finishesOf(crew)).map((item) => item.ending)).toEqual(['waiting']);
     await fixture.owner.trpc.chat.send.mutate({
         chatId: crew.chatId,
         content: 'Yes, behind the flag.',
@@ -118,25 +82,29 @@ test('needs-you naming a person mentions them, wakes no Captain, and waits on th
         serverId: fixture.serverId,
     });
     expect((await readTask(crew)).needsYou).toBe(false);
-
-    const unknown = await reportAs(crew, runId, {
-        outcome: 'needs-you',
-        person: 'nobody-here',
-        text: 'Who decides?',
-    });
-    expect(unknown).toMatchObject({ body: { code: 'TASK_PERSON_UNKNOWN' }, status: 400 });
 });
 
-test('crew reports from several Tasks of one Captain ride one run', async () => {
+test('a later Task message with no mention ends the wait', async () => {
+    const crew = await startCrew('Draft the release notes.');
+    const runId = await takeQueuedTurn(crew);
+    await post(crew, runId, '@ada Which version number?');
+    expect((await readTask(crew)).needsYou).toBe(true);
+    await post(crew, runId, 'Found it in the changelog; drafting now.');
+    expect((await readTask(crew)).needsYou).toBe(false);
+});
+
+test('finishes from several Tasks of one Captain ride one run', async () => {
     const first = await startCrew('Patch the login bug.');
     const second = await startCrew('Patch the logout bug.');
     for (const crew of [first, second]) {
         const runId = await takeQueuedTurn(crew);
-        await reportAs(crew, runId, { outcome: 'done', text: `Patched for ${crew.shortId}.` });
+        await connection.db.transaction((tx) =>
+            settleCrewTurn(tx, { ...ids(crew), runId, status: 'completed' })
+        );
     }
     await fixture.harness.sql`
         update agent_inbox set state = 'seen', seen_at = now()
-        where agent_id = ${fixture.orbitAgentId} and source <> 'crew_report' and state = 'queued'
+        where agent_id = ${fixture.orbitAgentId} and source <> 'crew_finish' and state = 'queued'
     `;
     const runner = new RecordingRunner();
     runner.attach(fixture.orbitAgentId);
@@ -144,12 +112,12 @@ test('crew reports from several Tasks of one Captain ride one run', async () => 
     const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await delivery.dispatchAgent(fixture.orbitAgentId, fixture.serverId);
     const start = runner.starts()[0] as Extract<AgentCommand, { type: 'start' }> | undefined;
-    const shortIds = (start?.crewReports ?? []).map((item) => item.taskShortId);
+    const shortIds = (start?.crewFinishes ?? []).map((item) => item.taskShortId);
     expect(shortIds).toEqual(expect.arrayContaining([first.shortId, second.shortId]));
     expect(start).toMatchObject({ chatId: null, inboxDelivery: 'concrete' });
 });
 
-test('an Issue assigned to a Task wakes the Task agent; its own edits ride its report', async () => {
+test('an Issue assigned to a Task wakes the Task agent, and its own edits wake no one', async () => {
     const filed = await call(orbit, '/api/agent/issues/create', { title: 'Rotate the API key' });
     const { code } = filed.body.issue as { code: string };
     const [stored] = (await fixture.harness.sql`
@@ -171,14 +139,6 @@ test('an Issue assigned to a Task wakes the Task agent; its own edits ride its r
     });
     expect(moved.status).toBe(200);
     expect(await issueItems(fixture.orbitAgentId)).toEqual([]);
-    await reportAs(crew, runId, { outcome: 'done', text: 'Rotated.' });
-    expect(await crewReports()).toContainEqual(
-        expect.objectContaining({
-            issueCodes: [issue.code],
-            issueEdits: [{ change: 'state todo → in_progress', code: issue.code }],
-            taskShortId: crew.shortId,
-        })
-    );
 });
 
 async function issueItems(agentId: string) {
@@ -200,16 +160,13 @@ async function call(runner: { token: string }, path: string, body: unknown) {
 }
 
 async function startCrew(brief: string, issue?: string) {
-    const response = await fetch(new URL('/api/agent/tasks/start', fixture.harness.url), {
-        body: JSON.stringify({ brief, issue, machine: fixture.computerId }),
-        headers: { authorization: `Bearer ${orbit.token}`, 'content-type': 'application/json' },
-        method: 'POST',
+    const reply = await call(orbit, '/api/agent/tasks/start', {
+        brief,
+        issue,
+        machine: fixture.computerId,
     });
-    const reply = (await response.json()) as { task: { shortId: string } };
-    const task = await fixture.owner.trpc.task.get.query({
-        serverId: fixture.serverId,
-        shortId: reply.task.shortId,
-    });
+    const { shortId } = reply.body.task as { shortId: string };
+    const task = await fixture.owner.trpc.task.get.query({ serverId: fixture.serverId, shortId });
     const crew: Crew = {
         agentId: task.agentId ?? '',
         chatId: task.chatId ?? '',
@@ -234,26 +191,31 @@ async function takeQueuedTurn(crew: Crew) {
     return runId;
 }
 
-async function reportAs(crew: Crew, runId: string, body: Record<string, unknown>) {
+async function post(crew: Crew, runId: string, content: string) {
     const runner = await fixture.mintRunner(runId, crew.agentId, crew.chatId, false);
-    const response = await fetch(new URL('/api/agent/tasks/report', fixture.harness.url), {
-        body: JSON.stringify(body),
-        headers: { authorization: `Bearer ${runner.token}`, 'content-type': 'application/json' },
-        method: 'POST',
-    });
-    return {
-        body: (await response.json()) as { code?: string; reachesCaptain?: boolean },
-        status: response.status,
-    };
+    const path = '/api/agent/messages/send';
+    const target = `task:${crew.shortId}`;
+    const first = await call(runner, path, { content, nonce: createOpaqueId('non'), target });
+    const sent =
+        'shownMessages' in first.body
+            ? await call(runner, path, {
+                  nonce: createOpaqueId('non'),
+                  sendDraft: true,
+                  target,
+              })
+            : first;
+    expect(sent.body).toMatchObject({ message: { id: expect.any(String) } });
 }
 
-async function crewReports() {
+async function finishesOf(crew: Crew) {
     const rows = (await fixture.harness.sql`
         select content from agent_inbox
-        where agent_id = ${fixture.orbitAgentId} and source = 'crew_report'
+        where agent_id = ${fixture.orbitAgentId} and source = 'crew_finish'
         order by created_at
     `) as { content: string }[];
-    return rows.map((row) => JSON.parse(row.content) as CrewReportAttention);
+    return rows
+        .map((row) => JSON.parse(row.content) as CrewFinish)
+        .filter((item) => item.taskShortId === crew.shortId);
 }
 
 function ids(crew: Crew) {

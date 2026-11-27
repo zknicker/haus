@@ -7,11 +7,11 @@ import { clearPendingNotice, type NoticeReceipt, writePendingNotice } from './pe
 
 type InboxItem = AgentStartCommand['inbox'][number];
 type IssueItemsNotice = NonNullable<AgentNoticeCommand['issueItems']>;
-type CrewReportsNotice = NonNullable<AgentNoticeCommand['crewReports']>;
+type CrewFinishesNotice = NonNullable<AgentNoticeCommand['crewFinishes']>;
 
 interface PendingInbox {
     readonly consumedMessageIds: readonly string[];
-    readonly crewReports?: CrewReportsNotice;
+    readonly crewFinishes?: CrewFinishesNotice;
     readonly items: readonly InboxItem[];
     readonly issueItems?: IssueItemsNotice;
     readonly totalPending: number;
@@ -19,7 +19,7 @@ interface PendingInbox {
 
 const pendingSchema = z.object({
     consumedMessageIds: z.array(z.string()),
-    crewReports: z.custom<CrewReportsNotice>().optional(),
+    crewFinishes: z.custom<CrewFinishesNotice>().optional(),
     items: z.array(z.custom<InboxItem>((value) => typeof value === 'object' && value !== null)),
     issueItems: z.custom<IssueItemsNotice>().optional(),
     totalPending: z.number().int().nonnegative(),
@@ -46,7 +46,7 @@ export function inboxStore(runtimeDir: string) {
     const write = async (state: PendingInbox, receipt?: NoticeReceipt) => {
         await writeJsonAtomic(pendingPath, state);
         const notice = composeInboxNotice([...state.items], state.totalPending, {
-            ...(state.crewReports ? { crewReports: state.crewReports } : {}),
+            ...(state.crewFinishes ? { crewFinishes: state.crewFinishes } : {}),
             ...(state.issueItems ? { issueItems: state.issueItems } : {}),
         });
         if (notice) {
@@ -58,12 +58,12 @@ export function inboxStore(runtimeDir: string) {
     };
     const consumeLocked = async (
         ids: readonly string[],
-        drop: { crewReports?: boolean; issueItems?: boolean } = {}
+        drop: { crewFinishes?: boolean; issueItems?: boolean } = {}
     ) => {
         const state = await read();
         const visible = new Set(ids);
         const remaining = state.items.filter((item) => !visible.has(item.id));
-        const { crewReports, issueItems, ...rest } = state;
+        const { crewFinishes, issueItems, ...rest } = state;
         await write({
             ...rest,
             consumedMessageIds: [...new Set([...state.consumedMessageIds, ...ids])],
@@ -73,7 +73,7 @@ export function inboxStore(runtimeDir: string) {
                 state.totalPending - (state.items.length - remaining.length)
             ),
             ...(issueItems && !drop.issueItems ? { issueItems } : {}),
-            ...(crewReports && !drop.crewReports ? { crewReports } : {}),
+            ...(crewFinishes && !drop.crewFinishes ? { crewFinishes } : {}),
         });
     };
     return {
@@ -96,7 +96,7 @@ export function inboxStore(runtimeDir: string) {
                 await consumeLocked(
                     start.inbox.map((item) => item.id),
                     {
-                        crewReports: start.crewReports !== undefined,
+                        crewFinishes: start.crewFinishes !== undefined,
                         issueItems:
                             start.issueAssignments !== undefined || start.issueEvents !== undefined,
                     }
@@ -128,7 +128,7 @@ export function inboxStore(runtimeDir: string) {
                             notice.totalPending - alreadyVisible
                         ),
                         ...(notice.issueItems ? { issueItems: notice.issueItems } : {}),
-                        ...(notice.crewReports ? { crewReports: notice.crewReports } : {}),
+                        ...(notice.crewFinishes ? { crewFinishes: notice.crewFinishes } : {}),
                     },
                     receipt
                 );

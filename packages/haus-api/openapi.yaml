@@ -1216,30 +1216,6 @@ paths:
                 $ref: '#/components/schemas/AgentTaskSendResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/report:
-    post:
-      operationId: reportAgentTask
-      tags: [Agent CLI]
-      summary: A Task reports its turn.
-      description: >-
-        Posts the report in the Task's own chat. A Captain-directed turn's report reaches its
-        Captain as a crew report; a person-driven turn's reaches it only when it is needs-you
-        without a person. `needs-you` with `person` mentions that person instead.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AgentTaskReportRequest'
-      responses:
-        '200':
-          description: The posted report.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentTaskReportResponse'
-        default:
-          $ref: '#/components/responses/AgentError'
   /api/agent/tasks/archive:
     post:
       operationId: archiveAgentTask
@@ -3177,32 +3153,6 @@ components:
       required: [message, task]
       properties:
         message: { type: object }
-        task: { $ref: '#/components/schemas/AgentTaskRow' }
-    AgentTaskReportRequest:
-      type: object
-      additionalProperties: false
-      required: [outcome, text]
-      description: A Task agent reports its own turn to its Captain (ADR 0062).
-      properties:
-        ask: { type: string, minLength: 1, maxLength: 8000 }
-        outcome: { type: string, enum: [done, needs-you, failed] }
-        person:
-          type: string
-          minLength: 1
-          maxLength: 128
-          description: A human who can read the Task, asked by a needs-you report.
-        pullRequestUrls:
-          type: array
-          maxItems: 20
-          items: { type: string, format: uri, maxLength: 500 }
-        text: { type: string, minLength: 1, maxLength: 8000 }
-    AgentTaskReportResponse:
-      type: object
-      additionalProperties: false
-      required: [message, reachesCaptain, task]
-      properties:
-        message: { type: object }
-        reachesCaptain: { type: boolean }
         task: { $ref: '#/components/schemas/AgentTaskRow' }
     AgentTaskStartResponse:
       oneOf:

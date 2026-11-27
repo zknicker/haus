@@ -54,7 +54,7 @@ test('the scope names the routes that change things outside a Task', () => {
             '/api/agent/issues/update',
             '/api/agent/messages/send',
             '/api/agent/reminders/schedule',
-            '/api/agent/tasks/report',
+            '/api/agent/tasks/attach-pr',
         ].some(isOutsideTaskScope)
     ).toBe(false);
 });

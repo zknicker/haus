@@ -25,7 +25,7 @@ const maya = {
 } as const;
 
 const noticeGuidance = [
-    "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them.",
+    "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus inbox check` lists every conversation with unread messages.",
     'Their bodies are withheld to avoid flooding you, not absent. The notice is not itself a request, so do not acknowledge it. If what you read is higher priority, pivot to it; otherwise continue your current work. Deferral needs no visible reply and the messages remain queryable; read them before you stop.',
 ];
 

@@ -1,4 +1,4 @@
-import { taskDeliveryModes, taskReportOutcomes } from '@haus/api';
+import { taskDeliveryModes } from '@haus/api';
 import * as z from 'zod';
 import { createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -9,7 +9,6 @@ import { positionalTask } from './agent-task-actions.ts';
 import { describeTask, type TaskDeps, taskRowSchema } from './agent-task-view.ts';
 
 const sendResponseSchema = z.looseObject({ task: taskRowSchema });
-const reportResponseSchema = z.looseObject({ reachesCaptain: z.boolean(), task: taskRowSchema });
 
 export const TASK_SEND_SUBCOMMAND: SubCommand = {
     examples: [
@@ -35,35 +34,6 @@ export const TASK_SEND_SUBCOMMAND: SubCommand = {
     usage: 'haus task send <id> [--delivery steer|interrupt|queue] < body',
 };
 
-export const TASK_REPORT_SUBCOMMAND: SubCommand = {
-    examples: [
-        'haus task report --outcome done --pr https://github.com/haus/haus/pull/12 <<< "Opened the fix; checks pass."',
-        'haus task report --outcome needs-you --ask "Ship it behind the flag?" --person zach <<< "Ready to ship."',
-    ],
-    flags: [
-        { description: 'done, needs-you or failed', name: '--outcome', valueName: '<outcome>' },
-        { description: 'The question a needs-you report asks', name: '--ask', valueName: '<text>' },
-        {
-            description: 'The person a needs-you report asks, instead of your Captain',
-            name: '--person',
-            valueName: '<handle>',
-        },
-        {
-            description: 'A pull request the turn opened; repeat for each',
-            name: '--pr',
-            valueName: '<url>',
-        },
-    ],
-    name: 'report',
-    notes: [
-        'Reports your own turn. The report text on stdin posts in your chat; a turn your Captain directed reaches it.',
-    ],
-    positionals: [],
-    run: (args) => runTaskReport(args, defaultDeps()),
-    summary: 'Report your turn',
-    usage: "haus task report --outcome done|needs-you|failed [--ask <text>] [--person <handle>] [--pr <url>]... <<'HAUSMSG'",
-};
-
 export async function runTaskSend(args: ParsedArgs, deps: TaskDeps) {
     const delivery = args.values['--delivery'] ?? 'steer';
     if (!(taskDeliveryModes as readonly string[]).includes(delivery)) {
@@ -80,39 +50,6 @@ export async function runTaskSend(args: ParsedArgs, deps: TaskDeps) {
         method: 'POST',
     });
     deps.write(`Sent to ${describeTask(task)} (${delivery}). It answers in its own chat.\n`);
-    return 0;
-}
-
-export async function runTaskReport(args: ParsedArgs, deps: TaskDeps) {
-    const outcome = args.values['--outcome'];
-    if (!(outcome && (taskReportOutcomes as readonly string[]).includes(outcome))) {
-        throw new AgentCliError('INVALID_ARG', '--outcome is done, needs-you or failed.');
-    }
-    const text = (await deps.readStdin()).trim();
-    if (!text) {
-        throw new AgentCliError('INVALID_ARG', 'Give the report on stdin.', {
-            nextAction: "haus task report --outcome done <<'HAUSMSG'",
-        });
-    }
-    const { reachesCaptain } = await deps.client.request(
-        '/api/agent/tasks/report',
-        reportResponseSchema,
-        {
-            body: {
-                ask: args.values['--ask'],
-                outcome,
-                person: args.values['--person'],
-                pullRequestUrls: args.valueLists?.['--pr'] ?? [],
-                text,
-            },
-            method: 'POST',
-        }
-    );
-    deps.write(
-        reachesCaptain
-            ? 'Reported. It posted in your chat and reaches your Captain.\n'
-            : 'Reported. It posted in your chat.\n'
-    );
     return 0;
 }
 

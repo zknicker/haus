@@ -23,7 +23,7 @@ export const concreteInboxSources = [
     'subagent',
     'issue_assignment',
     'issue_event',
-    'crew_report',
+    'crew_finish',
     'drive_conflict',
     'process_exit',
 ] as const;

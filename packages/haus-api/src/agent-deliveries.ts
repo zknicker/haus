@@ -5,7 +5,7 @@ import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 /**
  * Inbox sources with no Chat: the sub-agent wake, a Drive push's conflicts (ADR 0054), and,
  * from ADR 0062, a background process's exit, an Issue assigned to the agent, a change on
- * an Issue it is derived for, and a crew Task's report to its Captain. Each leads its own
+ * an Issue it is derived for, and a crew Task's finished turn, for its Captain. Each leads its own
  * chatless run, and the Server schema's chat checks name exactly these sources.
  */
 export const chatlessInboxSources = [
@@ -14,14 +14,14 @@ export const chatlessInboxSources = [
     'process_exit',
     'issue_assignment',
     'issue_event',
-    'crew_report',
+    'crew_finish',
 ] as const;
 
 /** The chatless sources that coalesce: every queued item of one kind rides one run. */
 export const batchedChatlessInboxSources = [
     'issue_assignment',
     'issue_event',
-    'crew_report',
+    'crew_finish',
 ] as const;
 
 export function isBatchedChatlessInboxSource(source: string): boolean {

@@ -429,8 +429,8 @@ export class AgentDelivery {
             serverId,
         });
         this.emit(settlement.plan);
-        if (settlement.crewReport) {
-            await this.dispatchAgent(settlement.crewReport.agentId, settlement.crewReport.serverId);
+        if (settlement.crewFinish) {
+            await this.dispatchAgent(settlement.crewFinish.agentId, settlement.crewFinish.serverId);
         }
         await this.advanceMachineChange(summary.agentId);
     }

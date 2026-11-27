@@ -1,6 +1,6 @@
 import {
     type AgentInboxItem,
-    composeCrewReportInput,
+    composeCrewFinishInput,
     composeDriveConflictInput,
     composeInboxDrain,
     composeInboxNotice,
@@ -85,8 +85,8 @@ function composeChatlessBody(
     start: AgentStartCommand,
     sessionKind: TurnSessionView['sessionKind']
 ) {
-    if (start.crewReports) {
-        return composeCrewReportInput(start.crewReports);
+    if (start.crewFinishes) {
+        return composeCrewFinishInput(start.crewFinishes);
     }
     if (start.issueAssignments) {
         return composeIssueAssignmentInput(start.issueAssignments, sessionKind);

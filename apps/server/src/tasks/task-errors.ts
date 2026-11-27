@@ -1,7 +1,7 @@
 /** A typed Task refusal the Agent API names by its code (ADR 0062). */
 export class TaskRefusalError extends Error {
     constructor(
-        readonly code: 'TASK_ARCHIVED' | 'TASK_PERSON_UNKNOWN' | 'TASK_START_NOT_CAPTAIN',
+        readonly code: 'TASK_ARCHIVED' | 'TASK_START_NOT_CAPTAIN',
         message: string
     ) {
         super(message);

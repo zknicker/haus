@@ -134,7 +134,6 @@ function sendAgentTaskError(reply: FastifyReply, cause: unknown) {
 
 const refusalStatus: Record<TaskRefusalError['code'], number> = {
     TASK_ARCHIVED: 409,
-    TASK_PERSON_UNKNOWN: 400,
     TASK_START_NOT_CAPTAIN: 403,
 };
 
