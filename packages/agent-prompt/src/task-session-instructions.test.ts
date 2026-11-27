@@ -32,12 +32,14 @@ test('a crew Task works in its one chat and its Captain reads its reports', () =
         'Haus checks out haus/haus at main for you when your session starts; your first input says where.'
     );
     expect(prompt).toContain(
-        'Put deliverables in Drive with `haus drive write <path> < file` under `agents/orbit/reports/k3mq7xta/`, `agents/orbit/renders/k3mq7xta/`, `agents/orbit/handoffs/k3mq7xta/`, and cite the link it prints.'
+        'Put deliverables in Drive with `haus drive write <path> --from <file>` under `agents/orbit/reports/k3mq7xta/`, `agents/orbit/renders/k3mq7xta/`, `agents/orbit/handoffs/k3mq7xta/`, and cite the link it prints.'
     );
     expect(prompt).toContain(
         "Your Captain reads your reports, not your chat. `haus task report --outcome done|needs-you|failed <<'HAUSMSG'`, the report, then `HAUSMSG`, posts one in your chat and to your Captain: what you did, what is left, and links, with `--pr <url>` for each pull request you opened."
     );
-    expect(prompt).toContain('with any body in a heredoc, not a file or a pipe');
+    expect(prompt).toContain(
+        'a message or report body goes in a heredoc, and a file goes by its flag, such as `--from`.'
+    );
     expect(prompt).toContain(
         '`--outcome needs-you --ask "<question>"` asks your Captain, or a person in your chat with `--person <handle>`; their answer wakes you.'
     );
@@ -85,5 +87,5 @@ test('a Task working an Issue carries its code, title and description, and its t
 });
 
 test('keeps the Task prompt within its reviewed size budget', () => {
-    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2582);
+    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2630);
 });

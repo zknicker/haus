@@ -52,7 +52,7 @@ function workSection(task: TaskFacts, target: string) {
 - Your chat is your only place, and every message in it wakes you. Post there with \`haus message send --target ${target}\`; text outside a \`haus\` command reaches no one.
 - People there see everything you post. Keep it short: what you did, what you found, what you need.
 - Work in your own worktree with \`haus repo checkout <owner/name>\`, on the branch \`haus/${task.shortId}-<slug>\`. End every commit with \`Haus-Task: ${task.shortId}\`${task.issues.map((issue) => ` and \`Haus-Issue: ${issue.code}\``).join('')}.${repo}
-- Put deliverables in Drive with \`haus drive write <path> < file\` under ${folders}, and cite the link it prints.
+- Put deliverables in Drive with \`haus drive write <path> --from <file>\` under ${folders}, and cite the link it prints.
 - You have no memory file. Your chat, your Issues and your pull requests are the record.
 - \`haus task send <shortId>\` messages another active Task of your Project. Work in another Project goes through an Issue.
 - \`haus task archive\` archives you: your session ends and you leave your followers' sidebars.`;
@@ -93,4 +93,4 @@ const cliSection = `## haus CLI
 - **Drive**: \`haus drive write\`, \`haus drive versions\`, \`haus drive view\`, \`haus drive share\`.
 - **Manual**: \`haus manual get\`, \`haus manual search\`, each with \`--intent\` and \`--reason\`.
 
-Run any subcommand with \`--help\` for syntax. A \`haus\` command runs alone, with any body in a heredoc, not a file or a pipe; read its result before the next.`;
+Run any subcommand with \`--help\` for syntax. A \`haus\` command runs alone: a message or report body goes in a heredoc, and a file goes by its flag, such as \`--from\`. Read its result before the next.`;

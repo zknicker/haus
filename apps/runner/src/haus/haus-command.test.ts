@@ -20,6 +20,11 @@ describe('routeBashCommand', () => {
             'line one\nline two\n',
         ],
         ["haus message send <<< 'hi there'", ['message', 'send'], 'hi there\n'],
+        [
+            'haus drive write agents/orbit/renders/k3mq7xta/chart.png --from ./chart.png',
+            ['drive', 'write', 'agents/orbit/renders/k3mq7xta/chart.png', '--from', './chart.png'],
+            null,
+        ],
         ['haus', [], null],
     ])('runs a lone haus command on the runner: %j', async (command, argv, stdin) => {
         expect(await routeBashCommand(command)).toEqual({ argv, kind: 'haus', stdin });
@@ -34,6 +39,8 @@ describe('routeBashCommand', () => {
         'haus attachment upload --path *.png',
         'haus attachment upload --path ~/chart.png',
         'haus message check > inbox.txt',
+        'haus task report --outcome done < report.md',
+        'cat report.md | haus task report --outcome done',
         'haus message check 2>&1',
         'cd project && haus message check',
         'haus message send <<EOF\nCost: $PRICE\nEOF',
