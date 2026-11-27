@@ -153,6 +153,7 @@ export async function runTurn(input: RunTurnInput) {
             isColdStart: !live.isResume,
             resumesInterruptedTurn: live.isResume && session.interruptedTurn,
             sessionGeneration: session.generation,
+            sessionKind: context.policy?.kind ?? 'captain',
         },
         await unknown.read()
     );

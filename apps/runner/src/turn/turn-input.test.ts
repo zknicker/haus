@@ -60,7 +60,12 @@ test('a cold reset turn drains the addressed message and notices the rest', () =
             inbox: [first, second],
             unreadElsewhere: [{ count: 3, target: '#all' }],
         }),
-        { isColdStart: true, resumesInterruptedTurn: false, sessionGeneration: 2 },
+        {
+            isColdStart: true,
+            resumesInterruptedTurn: false,
+            sessionGeneration: 2,
+            sessionKind: 'captain',
+        },
         []
     );
     expect(input.drained.map((item) => item.id)).toEqual([first.id]);
@@ -90,7 +95,12 @@ test('a cold reset turn drains the addressed message and notices the rest', () =
 test('a resumed notice-lane turn after a Stop carries the interruption line and the notice', () => {
     const input = composeTurnInput(
         start({ drainItemIds: [], inbox: [first, second], inboxDelivery: 'notice' }),
-        { isColdStart: false, resumesInterruptedTurn: true, sessionGeneration: 2 },
+        {
+            isColdStart: false,
+            resumesInterruptedTurn: true,
+            sessionGeneration: 2,
+            sessionKind: 'captain',
+        },
         []
     );
     expect(input.drained).toEqual([]);
@@ -112,7 +122,12 @@ test('a resumed notice-lane turn after a Stop carries the interruption line and 
 test('a cold first-generation turn with nothing pending is bare Start.', () => {
     const input = composeTurnInput(
         start({ inbox: [], totalPending: 0 }),
-        { isColdStart: true, resumesInterruptedTurn: false, sessionGeneration: 1 },
+        {
+            isColdStart: true,
+            resumesInterruptedTurn: false,
+            sessionGeneration: 1,
+            sessionKind: 'captain',
+        },
         []
     );
     expect(input.turnContent).toBe('Start.');
@@ -139,7 +154,12 @@ test('a Drive conflict run is chatless and tells its own edits apart by handle',
             },
             totalPending: 0,
         }),
-        { isColdStart: false, resumesInterruptedTurn: false, sessionGeneration: 2 },
+        {
+            isColdStart: false,
+            resumesInterruptedTurn: false,
+            sessionGeneration: 2,
+            sessionKind: 'captain',
+        },
         []
     );
     expect(input).toEqual({
@@ -156,10 +176,40 @@ test('a Drive conflict run is chatless and tells its own edits apart by handle',
 test('the turn after a runner crash names the tool calls the crash left unknown', () => {
     const input = composeTurnInput(
         start({ inbox: [], inboxDelivery: 'notice', totalPending: 0 }),
-        { isColdStart: false, resumesInterruptedTurn: false, sessionGeneration: 2 },
+        {
+            isColdStart: false,
+            resumesInterruptedTurn: false,
+            sessionGeneration: 2,
+            sessionKind: 'captain',
+        },
         ['toolu_1', 'toolu_2']
     );
     expect(input.turnContent).toBe(
         'Haus restarted during your last turn, so these tool calls may or may not have taken effect: toolu_1, toolu_2. Check their effects before running them again.\n\nResume the interrupted turn.'
     );
+});
+
+test('an Issue assignment teaches crew to a Captain and not to a Task, which cannot start one', () => {
+    const assigned = start({
+        chatId: null,
+        issueAssignments: [
+            {
+                by: '@ada',
+                byAgent: false,
+                code: 'GEN-12',
+                id: 'issue-assign:iss_12:2',
+                issueId: 'iss_12',
+                priority: 'high',
+                state: 'todo',
+                title: 'Rotate the deploy key',
+            },
+        ],
+        totalPending: 0,
+    });
+    const session = { isColdStart: false, resumesInterruptedTurn: false, sessionGeneration: 2 };
+    const crew = /haus task start --issue/u;
+    const as = (sessionKind: 'captain' | 'task') =>
+        composeTurnInput(assigned, { ...session, sessionKind }, []).turnContent;
+    expect(as('captain')).toMatch(crew);
+    expect(as('task')).not.toMatch(crew);
 });

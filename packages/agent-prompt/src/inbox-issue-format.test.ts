@@ -14,9 +14,18 @@ const assignment: AgentIssueAssignment = {
     title: 'Rotate the\n deploy key',
 };
 
+test("a Captain's assignment run also names crew as the way to work an Issue", () => {
+    expect(composeIssueAssignmentInput([assignment], 'captain').split('\n').at(-1)).toBe(
+        '`haus issue show <code>` prints an Issue with its comments, and `haus issue list` is your whole queue. Take them one at a time, by priority then age: set the one you start `in_progress` with `haus issue update <code> --state in_progress`, and leave the rest until it is done or waiting on a person. An Issue that takes longer than a reply is crew work: `haus task start --issue <code> --title <text> < brief` starts a Task that holds it.'
+    );
+});
+
 test('an assignment run lists each Issue and teaches the queue once', () => {
     expect(
-        composeIssueAssignmentInput([assignment, { ...assignment, by: null, code: 'GEN-9' }])
+        composeIssueAssignmentInput(
+            [assignment, { ...assignment, by: null, code: 'GEN-9' }],
+            'task'
+        )
     ).toBe(
         [
             '2 Issues assigned to you:',

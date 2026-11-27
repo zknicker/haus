@@ -6,10 +6,17 @@ export const nextTurnNoticeGuidance =
 const assignmentGuidance =
     '`haus issue show <code>` prints an Issue with its comments, and `haus issue list` is your whole queue. Take them one at a time, by priority then age: set the one you start `in_progress` with `haus issue update <code> --state in_progress`, and leave the rest until it is done or waiting on a person.';
 
+const crewGuidance =
+    'An Issue that takes longer than a reply is crew work: `haus task start --issue <code> --title <text> < brief` starts a Task that holds it.';
+
 const eventGuidance =
     '`haus issue show <code>` prints the whole Issue. Answer a comment with `haus issue comment <code> --reply-to <commentId>`; an update that needs nothing from you needs no reply.';
 
-export function composeIssueAssignmentInput(assignments: readonly AgentIssueAssignment[]) {
+/** A Captain starts crew for an Issue; a Task, which cannot, works it itself. */
+export function composeIssueAssignmentInput(
+    assignments: readonly AgentIssueAssignment[],
+    recipient: 'captain' | 'task'
+) {
     return [
         `${assignments.length} ${plural(assignments.length, 'Issue')} assigned to you:`,
         ...assignments.map(
@@ -17,7 +24,7 @@ export function composeIssueAssignmentInput(assignments: readonly AgentIssueAssi
                 `[Haus issue assignment ${issue.code} priority=${issue.priority} state=${issue.state}${byField(issue)}] ${flattened(issue.title)}`
         ),
         '',
-        assignmentGuidance,
+        recipient === 'captain' ? `${assignmentGuidance} ${crewGuidance}` : assignmentGuidance,
     ].join('\n');
 }
 
