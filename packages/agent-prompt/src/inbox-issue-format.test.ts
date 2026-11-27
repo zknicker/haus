@@ -72,7 +72,7 @@ test('an event run quotes a comment and names state changes and closed sub-issue
             '[Haus issue state GEN-12 todo→done by=task:k3mq7xta] Rotate the deploy key',
             '[Haus issue sub-issues closed GEN-12 total=3 by=@ada] Rotate the deploy key',
             '',
-            '`haus issue show <code>` prints the whole Issue, and `haus issue comment <code> --reply-to <commentId>` answers a comment on it.',
+            '`haus issue show <code>` prints the whole Issue, and `haus issue comment <code> --reply-to <commentId>` answers a comment on it. An update that needs nothing from you needs no reply.',
         ].join('\n')
     );
 });

@@ -117,7 +117,7 @@ This is authoritative context injected by Haus. Prefer using the computer identi
 
 function communicationSection() {
     const families = [
-        '1. **Messages**: `haus message check`, `haus message send`, `haus message read`, `haus message search`, `haus message resolve`, `haus message react`.',
+        '1. **Messages**: `haus message send`, `haus message read`, `haus message search`, `haus message resolve`, `haus message react`. To catch up, `haus inbox check` lists what is unread, then `haus message read --target <target> --unread` reads one conversation; read the ones you need, one at a time.',
         '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`.',
         '3. **Conversation attention**: `haus task unfollow`, `haus message follow`, `haus message unfollow`.',
         '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (your Captain chat, channels, Tasks), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <key>` from the `More:` line pages.',
@@ -188,7 +188,7 @@ In channel group chats, you can @mention people by their unique name (e.g. @alic
 - Your display name is \`${input.agentName}\`. Treat it as presentation only; when reasoning about identity and @mentions, prefer your stable \`name\`.
 - Every human and agent has a unique \`name\`; this is their stable identifier for @mentions.
 - Mention others, not yourself; assign reviews and follow-ups to teammates.
-- @mentions only reach people inside the channel; channels are the isolation boundary.
+- An @mention wakes that person and interrupts what they are doing, in any Project; in a Captain chat it wakes no other agent. @mention whoever must act or answer; to just let someone know, write their name without the @.
 - When you need a human's decision or action, @mention them where the work lives. Ask one question, a default only if reversible, and what you prepared. Their reply wakes you. Irreversible acts wait for an explicit yes.`;
 }
 

@@ -42,9 +42,9 @@ HAUSMSG
 \`\`\`
 
 If Haus says a message was not sent and was saved as a draft, choose one path:
+- If what you just read already says it (for example, someone already answered), or the draft is no longer needed, send nothing: that is a valid path, not a failure.
 - To update the draft, use a normal \`haus message send --target <target>\` with the revised content.
 - To send the current draft unchanged, use \`haus message send --send-draft --target <target>\` with no stdin. Do not use \`--send-draft\` when changing content.
-- If the draft is no longer needed or was superseded by a better reply, doing nothing (no-op) is also a valid path, not a failure.
 
 Reply at the exact \`target\` of the received message, so it lands where its sender is looking, whether a channel or your Captain chat.`;
 
@@ -71,4 +71,7 @@ export const readingHistorySection = `### Reading history & references
 
 To jump directly to a specific hit with nearby context, use \`haus message read --target "..." --around "messageId"\` or \`haus message read --target "..." --around 12345\`.
 
-When a user refers to prior Haus discussion and the relevant context is not already available, first use \`haus message search\` and \`haus message read\` to find the original discussion, decision, or owner before answering. If you find it, summarize the original conclusion with the source message; if you cannot find it, say that explicitly.`;
+When a user refers to prior Haus discussion and the relevant context is not already available, first use \`haus message search\` and \`haus message read\` to find the original discussion, decision, or owner before answering. If you find it, summarize the original conclusion with the source message; if you cannot find it, say that explicitly.
+
+What \`haus message read\` prints counts as seen by you, so a later send is not held for it.
+The same message can be delivered to you more than once, even after you have read it; if you already handled a message with the same \`msg=\` id (a short id is the first 8 characters of the full one), it is handled: don't act on it again.`;

@@ -249,14 +249,14 @@ test('a notice closes with its pull, non-request, and read-before-you-stop guida
     const guidance = lines.slice(lines.indexOf(']') + 1).join('\n');
 
     expect(lines[0]).toBe('[Haus inbox notice:');
-    // Raft db5e399's closing line, noun-substituted, verbatim: no "Deferring them" sentence.
+    // Raft da842d0's closing line, noun-substituted, verbatim: no "Deferring them" sentence.
     expect(lines[lines.indexOf(']') + 1]).toBe(
-        "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them."
+        "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus inbox check` lists every conversation with unread messages."
     );
     expect(guidance).toContain('Their bodies are withheld to avoid flooding you, not absent.');
     expect(guidance).toContain('The notice is not itself a request, so do not acknowledge it.');
     expect(guidance).not.toContain('locally cached bodies');
-    expect(guidance).not.toContain('haus inbox check');
+    expect(guidance).not.toContain('haus message check');
     expect(guidance).toContain(
         'Deferral needs no visible reply and the messages remain queryable; read them before you stop.'
     );

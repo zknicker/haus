@@ -10,7 +10,7 @@ const crewGuidance =
     'An Issue that takes longer than a reply is crew work: `haus task start --issue <code> --title <text> < brief` starts a Task that holds it.';
 
 const eventGuidance =
-    '`haus issue show <code>` prints the whole Issue, and `haus issue comment <code> --reply-to <commentId>` answers a comment on it.';
+    '`haus issue show <code>` prints the whole Issue, and `haus issue comment <code> --reply-to <commentId>` answers a comment on it. An update that needs nothing from you needs no reply.';
 
 /**
  * A Captain starts crew for an Issue. A Task cannot, and a session whose kind the runner could
