@@ -46,6 +46,25 @@ test('a Task cannot write outside its own folders, nor through the push routes',
     expect(await push.json()).toMatchObject({ code: 'TASK_CREDENTIAL_SCOPE' });
 });
 
+test('a Task reads Drive files through the Server, another Task’s deliverable included', async () => {
+    const writer = await startCrew('Write the summary.');
+    const reader = await startCrew('Read the summary, then write the plan.');
+    const summary = `agents/orbit/reports/${writer.shortId}/summary.md`;
+    const plan = `agents/orbit/reports/${reader.shortId}/plan.md`;
+    await write(writer.runner, summary, { body: 'Summary.\n' });
+    await write(reader.runner, plan, { body: 'Plan.\n' });
+
+    for (const path of [summary, plan]) {
+        const found = await read(reader.runner, `/api/agent/artifacts/by-path?path=${path}`);
+        expect(found).toMatchObject({ body: { artifact: { path } }, status: 200 });
+        const { artifact_id: id } = (found.body as { artifact: { artifact_id: string } }).artifact;
+        expect(await read(reader.runner, `/api/agent/artifacts/${id}/download`)).toMatchObject({
+            body: { artifact: { path }, download_url: expect.any(String) },
+            status: 200,
+        });
+    }
+});
+
 test('a Captain is told to edit its drive folder instead', async () => {
     const captain = await fixture.mintRunner('run_task_drive_captain');
     expect(await write(captain, 'agents/orbit/notes.md', { body: 'Notes.' })).toMatchObject({
@@ -89,6 +108,13 @@ async function write(
         body: (await response.json()) as Record<string, unknown> & { code?: string },
         status: response.status,
     };
+}
+
+async function read(runner: { token: string }, path: string) {
+    const response = await fetch(new URL(path, fixture.harness.url), {
+        headers: { authorization: `Bearer ${runner.token}` },
+    });
+    return { body: (await response.json()) as Record<string, unknown>, status: response.status };
 }
 
 function request(runner: { token: string }, body: unknown) {

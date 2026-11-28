@@ -7,8 +7,7 @@ export interface MachineFlag {
 
 type CommandAccess =
     | { readonly kind: 'run'; readonly machineFlags: readonly MachineFlag[] }
-    | { readonly kind: 'repo-checkout' }
-    | { readonly kind: 'workspace'; readonly nextAction: string };
+    | { readonly kind: 'repo-checkout' };
 
 export type HausCommandAccess =
     | { readonly kind: 'run'; readonly machineFlags: readonly MachineFlag[] }
@@ -18,8 +17,6 @@ export type HausCommandAccess =
 const bare = '[flags]';
 const serverOnly = { kind: 'run', machineFlags: [] } as const satisfies CommandAccess;
 const repoCheckout = { kind: 'repo-checkout' } as const satisfies CommandAccess;
-const readDriveFolder =
-    'Read the current version in your `drive/` folder with file commands; `haus drive versions` lists its history.';
 
 const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAccess>>>> = {
     agent: { avatar: serverOnly, create: serverOnly, update: serverOnly },
@@ -47,7 +44,7 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
     drive: {
         share: serverOnly,
         versions: serverOnly,
-        view: { kind: 'workspace', nextAction: readDriveFolder },
+        view: writes('--output'),
         write: reads('--from'),
     },
     image: { generate: reads('--reference'), models: serverOnly, wait: writes('--out') },
@@ -140,13 +137,6 @@ export function hausCommandAccess(argv: readonly string[]) {
             subcommands
                 ? `Run \`haus ${group} --help\` for its commands.`
                 : 'Run `haus help` for the command list.'
-        );
-    }
-    if (access.kind === 'workspace') {
-        return refused(
-            `\`haus ${group} ${name}\` moves files between Drive and your workspace, which \`haus\` cannot reach on its own.`,
-            'HAUS_WORKSPACE_UNREACHABLE',
-            access.nextAction
         );
     }
     return access satisfies HausCommandAccess;

@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { ensureCaptainsProject } from './agent-home.fixture.ts';
 import {
     connectComputer,
     type FrameClient,
     type InvocationHarness,
     startInvocationHarness,
 } from './agent-invocations.fixture.ts';
-import { ensureCaptainsProject } from './agent-home.fixture.ts';
 import { openCaptainChat } from './captain-chat.fixture.ts';
 import {
     connectRunner,
@@ -135,9 +135,7 @@ test('a Task agent run on the same Machine sends no Drive frames while its Capta
         serverId,
     });
     const captainRunId = runIdOf(
-        await runner.next(
-            (frame) => startFor(setup.agentId)(frame) && !earlier.has(runIdOf(frame))
-        )
+        await runner.next((frame) => startFor(setup.agentId)(frame) && !earlier.has(runIdOf(frame)))
     );
     await computer.next(frameOfType('drive-pull', { runId: captainRunId }));
 
@@ -156,8 +154,7 @@ test('a Task agent run on the same Machine sends no Drive frames while its Capta
 
 function startFor(agentId: string) {
     return (frame: RunnerFrame) =>
-        frame.type === 'runner-start' &&
-        (frame.start as { agentId: string }).agentId === agentId;
+        frame.type === 'runner-start' && (frame.start as { agentId: string }).agentId === agentId;
 }
 
 function runIdOf(frame: RunnerFrame) {

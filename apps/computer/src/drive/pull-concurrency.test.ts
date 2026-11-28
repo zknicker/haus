@@ -99,7 +99,10 @@ test('two changes to one path apply in sequence order when the later download la
         route: (_request, url) => {
             if (url.pathname === '/api/agent/drive/changes') {
                 return Response.json({
-                    areas: areas.map((area) => ({ ...area, counter: area.area === 'haus' ? 2 : 0 })),
+                    areas: areas.map((area) => ({
+                        ...area,
+                        counter: area.area === 'haus' ? 2 : 0,
+                    })),
                     changes: [first, later].map((revision, index) =>
                         changeOf({
                             area: 'haus',
