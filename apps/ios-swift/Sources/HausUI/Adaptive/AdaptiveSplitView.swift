@@ -23,6 +23,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
     @State private var taskMode = TaskModeColumn()
     @State private var columnWidth = ListColumnWidth()
     @State private var refusedVisibility = 0
+    @State private var besideActiveFold = false
 
     public init(
         column: Binding<ListColumn>,
@@ -58,8 +59,12 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
             .onChange(of: ListColumnLayout.foldedWidth(fold: fold, width: size.width, besideTask: besideTask), initial: true) {
                 columnWidth.fold(to: $1)
             }
+            .onChange(of: ListColumnLayout.pinsTaskModeAside(fold: fold, width: size.width, besideTask: besideTask), initial: true) {
+                besideActiveFold = $1
+            }
         }
         .animation(.smooth(duration: 0.3), value: besideTask)
+        .animation(.smooth(duration: 0.3), value: besideActiveFold)
         .animation(.smooth(duration: 0.3), value: columnWidth.folded)
         .onChange(of: besideTask) { _, isOpen in
             if !isOpen { taskMode.taskClosed() }
@@ -95,6 +100,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
             content
                 .frame(maxWidth: .infinity)
                 .environment(\.revealListColumn, shown == .hidden ? { choose(.full) } : nil)
+                .environment(\.listColumnIsFull, shown == .full)
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: .sidebarToggle)
@@ -106,7 +112,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
     }
 
     private var shown: ListColumn {
-        isFolded ? .full : taskMode.shown(column, besideTask: besideTask, hasRail: hasRail)
+        isFolded ? .full : taskMode.shown(column, besideTask: besideTask, hasRail: hasRail, besideActiveFold: besideActiveFold)
     }
 
     private func choose(_ next: ListColumn) {
@@ -151,4 +157,7 @@ extension EnvironmentValues {
     /// True inside a split tab's list column, whose screen titles lead the
     /// column under stock bars.
     @Entry public var isListColumn = false
+    /// True in a split's detail while the full list leads it, so Task mode's
+    /// panes split what is left instead of meeting at a fold they no longer span.
+    @Entry public var listColumnIsFull = false
 }

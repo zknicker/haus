@@ -237,6 +237,11 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
   - The rail's Show list makes the same choice as the handle (`\.revealListColumn`, set by the split).
     Beside a Task it brings back the full list for that Task alone, as a drag does, and never writes
     the stored column. It had written `.full` to the stored column, which Task mode ignored.
+  - With the full list leading a Task, the conversation and the Task split the rest of the detail evenly
+    (`\.listColumnIsFull`, `TaskModePanes.layout(listIsFull:)`): the column then starts past the book fold, and
+    meeting at it crushed the conversation to about 120 pt. A fold running across still stacks them. Half open
+    like a book the list stays aside beside a Task whatever the reader chose (`ListColumnLayout.pinsTaskModeAside`),
+    so the panes meet at the fold with its clearance; opening fully brings the chosen full list back.
   - `ListColumn` (HausModels) is the state, `ListColumnPreference` (HausAppModel) keeps it per
     Server in `UserDefaults` per user, owned by `ServerLifecycle` beside the launch snapshots and
     cleared with them. It never reaches Server.

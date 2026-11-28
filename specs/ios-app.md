@@ -230,6 +230,8 @@ Layout follows size classes and the system's bar placement, never orientation or
 - **Task mode:**
   - A Task opened from its card in a conversation opens beside that conversation. The two get equal panes meeting
     at the fold, and the list steps aside to the rail.
+  - Bringing back the full list beside a Task splits the rest of the screen evenly between them. Half open like a
+    book the list stays aside, so the panes keep to either side of the fold.
   - The conversation's composer gets a target chip for that Task, inside the pill after the plus, and sends to it
     as steer. The chip's × sends to the conversation again.
   - The chip and an inline reply never share the composer: choosing Reply lets go of the chip, and opening the

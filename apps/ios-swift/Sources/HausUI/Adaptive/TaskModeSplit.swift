@@ -9,6 +9,8 @@ public struct TaskModeSplit<Conversation: View, TaskPane: View>: View {
     private let conversation: Conversation
     private let task: TaskPane
 
+    @Environment(\.listColumnIsFull) private var listIsFull
+
     public init(isOpen: Bool, @ViewBuilder conversation: () -> Conversation, @ViewBuilder task: () -> TaskPane) {
         self.isOpen = isOpen
         self.conversation = conversation()
@@ -17,9 +19,9 @@ public struct TaskModeSplit<Conversation: View, TaskPane: View>: View {
 
     public var body: some View {
         FoldReader { size, fold in
-            let panes = TaskModePanes.layout(size: size, fold: fold, isOpen: isOpen)
+            let panes = TaskModePanes.layout(size: size, fold: fold, isOpen: isOpen, listIsFull: listIsFull)
             let edge: Edge = (panes.task?.minY ?? 0) > 0 ? .top : .leading
-            TaskModeLayout(frames: TaskModePanes.placements(size: size, fold: fold, isOpen: isOpen)) {
+            TaskModeLayout(frames: TaskModePanes.placements(size: size, fold: fold, isOpen: isOpen, listIsFull: listIsFull)) {
                 conversation
                 if isOpen {
                     task

@@ -4,15 +4,17 @@ import CoreGraphics
 /// Half-open). A Task beside its conversation splits along the fold: side by
 /// side when it runs top to bottom, above and below when it runs across,
 /// meeting at its midline fully open and keeping 28 pt clear of it half open.
-/// With no fold the two split the column evenly side by side. A conversation
-/// alone keeps to the larger side of an active fold.
+/// With no fold the two split the column evenly side by side, and so they do
+/// with the full list leading: the column then starts past where the panes
+/// would meet a book fold. A conversation alone keeps to the larger side of an
+/// active fold.
 public struct TaskModePanes: Equatable, Sendable {
     public let conversation: CGRect
     public let task: CGRect?
 
-    public static func layout(size: CGSize, fold: Fold?, isOpen: Bool) -> TaskModePanes {
+    public static func layout(size: CGSize, fold: Fold?, isOpen: Bool, listIsFull: Bool = false) -> TaskModePanes {
         guard isOpen else { return alone(size: size, fold: fold) }
-        guard let fold, splits(at: fold, size: size) else {
+        guard let fold, splits(at: fold, size: size), !(listIsFull && fold.direction == .vertical) else {
             let half = (size.width / 2).rounded(.down)
             return TaskModePanes(
                 conversation: CGRect(x: 0, y: 0, width: half, height: size.height),
@@ -33,9 +35,10 @@ public struct TaskModePanes: Equatable, Sendable {
     /// The frames the layout places its subviews at, conversation first. A
     /// closing Task pane stays a subview for its exit transition, so it keeps
     /// the frame it had open and leaves from there.
-    public static func placements(size: CGSize, fold: Fold?, isOpen: Bool) -> [CGRect] {
-        let panes = layout(size: size, fold: fold, isOpen: isOpen)
-        return [panes.conversation, panes.task ?? layout(size: size, fold: fold, isOpen: true).task].compactMap(\.self)
+    public static func placements(size: CGSize, fold: Fold?, isOpen: Bool, listIsFull: Bool = false) -> [CGRect] {
+        let panes = layout(size: size, fold: fold, isOpen: isOpen, listIsFull: listIsFull)
+        let leaving = layout(size: size, fold: fold, isOpen: true, listIsFull: listIsFull).task
+        return [panes.conversation, panes.task ?? leaving].compactMap(\.self)
     }
 
     /// A fold running across still splits when the keyboard has shortened the

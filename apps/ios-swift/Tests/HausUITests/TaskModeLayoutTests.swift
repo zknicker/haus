@@ -26,6 +26,36 @@ struct TaskModeLayoutTests {
         #expect(mode.choose(.rail, besideTask: false) == .rail)
     }
 
+    @Test func withTheFullListLeadingThePanesSplitWhatIsLeftEvenly() {
+        let fold = Fold(direction: .vertical, span: 120...140, isActive: false)
+        let size = CGSize(width: 591, height: 669)
+        let panes = TaskModePanes.layout(size: size, fold: fold, isOpen: true, listIsFull: true)
+        #expect(panes.conversation == CGRect(x: 0, y: 0, width: 295, height: 669))
+        #expect(panes.task == CGRect(x: 295, y: 0, width: 296, height: 669))
+        #expect(TaskModePanes.placements(size: size, fold: fold, isOpen: false, listIsFull: true).last == panes.task)
+    }
+
+    @Test func withTheFullListLeadingAFoldRunningAcrossStillStacksThePanes() {
+        let fold = Fold(direction: .horizontal, span: 440...460, isActive: false)
+        let panes = TaskModePanes.layout(size: CGSize(width: 263, height: 900), fold: fold, isOpen: true, listIsFull: true)
+        #expect(panes.conversation == CGRect(x: 0, y: 0, width: 263, height: 450))
+        #expect(panes.task == CGRect(x: 0, y: 450, width: 263, height: 450))
+    }
+
+    @Test func halfOpenLikeABookTheListStaysAsideSoThePanesMeetAtTheFold() {
+        let halfOpen = Fold(direction: .vertical, span: 466...486, isActive: true)
+        #expect(ListColumnLayout.pinsTaskModeAside(fold: halfOpen, width: 951, besideTask: true))
+        #expect(!ListColumnLayout.pinsTaskModeAside(fold: halfOpen, width: 951, besideTask: false))
+        #expect(!ListColumnLayout.pinsTaskModeAside(fold: Fold(direction: .vertical, span: 466...486, isActive: false), width: 951, besideTask: true))
+        #expect(!ListColumnLayout.pinsTaskModeAside(fold: Fold(direction: .horizontal, span: 466...486, isActive: true), width: 669, besideTask: true))
+
+        var mode = TaskModeColumn()
+        #expect(mode.choose(.full, besideTask: true) == nil)
+        #expect(mode.shown(.full, besideTask: true, hasRail: true, besideActiveFold: true) == .rail)
+        #expect(mode.shown(.full, besideTask: true, hasRail: false, besideActiveFold: true) == .hidden)
+        #expect(mode.shown(.rail, besideTask: true, hasRail: true, besideActiveFold: false) == .full)
+    }
+
     @Test func withNoFoldThePanesSplitEvenlySideBySide() {
         let panes = TaskModePanes.layout(size: CGSize(width: 801, height: 600), fold: nil, isOpen: true)
         #expect(panes.conversation == CGRect(x: 0, y: 0, width: 400, height: 600))

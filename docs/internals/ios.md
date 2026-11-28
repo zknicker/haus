@@ -788,7 +788,10 @@ marks, Project tiles, people and Task discs, with the accent unread dot or the g
 Captain or Task at work), the Projects' tiles, the Tasks view's discs, and You's settings symbols.
 Compose sits at the top (none on You) and the full-list button at the bottom; that button makes the
 same choice as the handle (`\.revealListColumn`, set on the rail by the split), so beside a Task it
-moves only that Task's column. The selected mark
+moves only that Task's column. With the full list beside a Task, the split tells its detail
+(`\.listColumnIsFull`) and `TaskModePanes` splits the rest evenly instead of meeting at a book fold
+the column no longer spans; half open like a book the list stays aside beside a Task
+(`ListColumnLayout.pinsTaskModeAside`), so the panes keep the fold's clearance. The selected mark
 gets `listSelection`'s tint and a 4 pt indicator on the rail's leading edge. The state is
 remembered per Server by `ListColumnPreference` (HausAppModel), owned by `ServerLifecycle` beside
 the launch snapshots: app-local presentation state in `UserDefaults` per signed-in user, cleared

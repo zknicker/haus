@@ -34,6 +34,13 @@ public enum ListColumnLayout {
         return fold.span.lowerBound
     }
 
+    /// Half open like a book beside a Task: the panes must meet at the fold,
+    /// so the list stays aside (`TaskModeColumn`).
+    public static func pinsTaskModeAside(fold: Fold?, width: CGFloat, besideTask: Bool) -> Bool {
+        guard besideTask, let fold else { return false }
+        return fold.isActive && fold.direction == .vertical && fold.divides(width)
+    }
+
     /// Where the edge handle's grip and touch area go: the whole edge, or the
     /// larger side of an active fold running across it.
     public static func handleSpan(height: CGFloat, fold: Fold?) -> ClosedRange<CGFloat> {
