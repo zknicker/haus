@@ -1,4 +1,4 @@
-import type { ChatMessage, TaskOrigin as TaskOriginRecord } from '@haus/api';
+import type { Agent, Chat, ChatMessage, TaskOrigin as TaskOriginRecord } from '@haus/api';
 import { Button } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,11 +21,12 @@ export function TaskOrigin({ origin }: { origin: TaskOriginRecord }) {
     const entity = useChatMessage(server.id, origin.chatId, origin.messageId);
     const channel = useListedChat(server.id, origin.chatId);
     const author = useMessageAuthorName(entity?.message ?? null);
+    const agents = useAgentAppearances(server.id);
     if (!entity) {
         return null;
     }
     const { message } = entity;
-    const place = channel?.kind === 'channel' ? `#${channel.name ?? 'channel'}` : 'DM';
+    const place = originPlace(channel, agents);
     const open = () => {
         requestMessageReveal(origin.chatId, { id: message.id, sequence: message.sequence });
         navigate(serverChatRoute(server.slug, origin.chatId));
@@ -48,6 +49,20 @@ export function TaskOrigin({ origin }: { origin: TaskOriginRecord }) {
             </Button>
         </div>
     );
+}
+
+function originPlace(
+    chat: Pick<Chat, 'kind' | 'name' | 'peerAgentId'> | undefined,
+    agents: readonly Pick<Agent, 'displayName' | 'id'>[]
+) {
+    if (chat?.kind === 'channel') {
+        return `#${chat.name ?? 'channel'}`;
+    }
+    if (chat?.kind === 'captain') {
+        const captain = agents.find((agent) => agent.id === chat.peerAgentId);
+        return captain ? `${captain.displayName}’s Captain chat` : 'Captain chat';
+    }
+    return 'DM';
 }
 
 function OriginLine({ message }: { message: ChatMessage }) {
