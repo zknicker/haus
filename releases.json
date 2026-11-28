@@ -2693,5 +2693,19 @@
             "computer": "27.0.1",
             "agent": "18.1.0"
         }
+    },
+    {
+        "version": "31.2.0",
+        "date": "2026-11-28",
+        "targets": {
+            "server": null,
+            "app": null,
+            "ios": {
+                "version": "14.0.0",
+                "buildNumber": 83
+            },
+            "computer": null,
+            "agent": null
+        }
     }
 ]

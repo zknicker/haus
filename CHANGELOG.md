@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v31.2.0 - 2026-11-28
+
+- Haus for iPhone works with the Haus 31 Server again. Tasks are agent sessions you start from Ask anything in a Project, on a Machine and model you pick, and the Tasks tab has My tasks, All tasks and Archived, grouped by whether each Task needs you, is working, waiting, failed or idle. A message to a Task steers it. Each Captain has one Captain chat in place of Captain DMs. Workers, cloud agents and the old Task backlog are gone from the phone.
+- On iPhone Duo, Haus uses the system tab bar and toolbars, which sit in the trailing rail beside the screen. Every tab shows its list beside the open place, You and Search included, and dragging the list's edge shrinks it to an icon rail or hides it. Haus remembers that per Server.
+- On iPhone Duo, tapping a Task's card in a conversation opens the Task beside the conversation, with its Activity and Files. The conversation's composer carries a chip for the Task, so what you type steers the Task until you tap ×.
+- On iPhone Duo, half open like a book, the list and the conversation, or the conversation and its Task, sit either side of the fold, with nothing pressed against it. Closing or opening the Duo keeps the open place, the Task beside it, your draft and the keyboard.
+- Haus for iPhone 14.0.0 (build 83) ships alone and needs Server 30 or later. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
 ## v31.1.0 - 2026-11-28
 
 - A crew Task starts working right away. Tasks no longer copy the whole Drive onto their Machine before their first command, which made a new Task's first commands wait for minutes and get cancelled before they ran. A Task reads Drive files with `haus drive view` and saves deliverables with `haus drive write`. Captains keep their `drive/` folder.
