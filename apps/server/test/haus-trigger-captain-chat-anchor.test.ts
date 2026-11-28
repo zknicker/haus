@@ -19,8 +19,8 @@ beforeAll(async () => {
         await harness.humans.mintSessionToken('user_trigger_dm_owner')
     );
     const server = await owner.trpc.server.create.mutate({
-        displayName: 'Trigger DM Server',
-        slug: 'trigger-dm-server',
+        displayName: 'Trigger Anchor Server',
+        slug: 'trigger-anchor-server',
     });
     serverId = server.id;
     const [user] = (await harness.sql`
@@ -37,30 +37,31 @@ afterAll(async () => {
     await harness?.close();
 });
 
-test('announces the creator DM once when a human-created trigger first opens it', async () => {
+test('human-created triggers anchor in the Captain chat without opening a chat', async () => {
     const larkAgentId = await createAgent('Lark', 'lark');
+    const [captainChat] = (await harness.sql`
+        select id from chats
+        where server_id = ${serverId} and kind = 'captain' and captain_agent_id = ${larkAgentId}
+    `) as { id: string }[];
     const realtime = captureAllTopics();
     const first = await owner.trpc.trigger.create.mutate({
         agentId: larkAgentId,
         kind: 'webhook',
         serverId,
-        title: 'Opens the DM',
+        title: 'First trigger',
     });
-    await owner.trpc.trigger.create.mutate({
+    const second = await owner.trpc.trigger.create.mutate({
         agentId: larkAgentId,
         kind: 'webhook',
         serverId,
-        title: 'Reuses the DM',
+        title: 'Second trigger',
     });
 
     const events = await publishedSince(realtime, serverId);
     realtime.stop();
-    expect(
-        events.filter(
-            (event) =>
-                event.type === 'chat.lifecycle' && event.chatId === first.trigger.anchorChatId
-        )
-    ).toEqual([expect.objectContaining({ action: 'created', type: 'chat.lifecycle' })]);
+    expect(first.trigger.anchorChatId).toBe(captainChat.id);
+    expect(second.trigger.anchorChatId).toBe(captainChat.id);
+    expect(events.filter((event) => event.type === 'chat.lifecycle')).toEqual([]);
 });
 
 async function createAgent(displayName: string, handle: string) {
