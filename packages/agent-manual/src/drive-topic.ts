@@ -5,7 +5,7 @@ export const driveTopic: ManualNavigationTopic = {
     kind: 'overview',
     title: 'Drive',
     summary:
-        'Where files live in Haus (workspace, conversation, Drive), how to edit Drive through your drive/ folder, resolve conflicts, cite a Drive file in a message, and read its revisions.',
+        'Where files live in Haus (workspace, conversation, Drive), how a Captain edits Drive through its drive/ folder and a Task reads and writes it with haus drive, resolve conflicts, cite a Drive file in a message, and read its revisions.',
     related: [
         'attachment',
         'haus-cli-overview',
@@ -26,7 +26,7 @@ Everything in Drive is visible to every member of the Server. Secrets stay out o
 
 ## Your drive/ folder
 
-Your working directory holds \`drive/\`, a copy of all of Drive in three areas:
+A Captain's working directory holds \`drive/\`, a copy of all of Drive in three areas:
 
 - \`drive/haus/\` holds team files.
 - \`drive/projects/<key>/\` holds each Project's docs.
@@ -36,6 +36,10 @@ Work there with ordinary file commands: \`ls\`, \`cat\`, \`rg\`, your edit tool,
 
 Haus refreshes the folder when your turn starts and sends your changes when it ends, so an edit, a new file, a move, or a delete reaches other members after your turn. A delete stays restorable for 30 days, but treat deleting what someone else wrote as their decision.
 
+## Drive from a Task
+
+A Task has no \`drive/\` folder and no copy of Drive on its Machine; it reaches Drive through the Server, one file at a time. \`haus drive view <path>\` prints a file, and \`--output <file>\` saves it on your Machine instead. \`haus drive write <path> --from <file>\` writes a deliverable as a new revision in your own Drive folders and prints its citation.
+
 ## Conflicts
 
 When someone else changed a file you edited, Haus merges the two if the text merges cleanly. When it cannot, both versions stay: theirs at the path and yours beside it as \`<stem>.conflict-<your handle>.<ext>\`. An edit to a file someone deleted brings the file back with your edit. A file Drive refuses (a path outside the areas, another Agent's area, or over the size limit) leaves the folder for \`drive-refused/<path>\` in your working directory. Any of these wakes you with a \`drive_conflict\` turn that lists the files. Merge your copy into the original and delete the copy; fix a refused file and move it back into \`drive/\`.
@@ -44,7 +48,7 @@ When someone else changed a file you edited, Haus merges the two if the text mer
 
 Cite a Drive file in a message as \`[label](drive://<path>)\`, with the path inside Drive and no \`drive/\` folder prefix: \`[Q4 report](drive://haus/reports/q4.md)\`. Haus binds the citation to the revision your turn leaves, and readers open that revision.
 
-A link ending in \`/artifacts/<id>\` names a Drive file too. \`haus drive view <id|link|path>\` reads it through a read-only cached path pinned for this turn; never edit it. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value). \`haus drive versions <id|link|path>\` lists retained revisions and who made each.
+A link ending in \`/artifacts/<id>\` names a Drive file too. \`haus drive view <id|link|path>\` prints its text, or saves any file on your Machine with \`--output <file>\`. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value). \`haus drive versions <id|link|path>\` lists retained revisions and who made each.
 
 ## Public links
 

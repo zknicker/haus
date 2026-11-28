@@ -11,7 +11,7 @@ export const computersTopic: ManualNavigationTopic = {
     title: 'Computers',
     body: `# Computers
 
-Your Machine is your default Computer. Your \`drive/\` folder lives there, and every tool call that names no Computer runs there. \`haus computer list\` marks it \`machine\`.
+Your Machine is your default Computer. A Captain's \`drive/\` folder lives there, and every tool call that names no Computer runs there. \`haus computer list\` marks it \`machine\`.
 
 **When your Machine changes.** An Owner or Admin can change it in your settings. It changes between your turns, everywhere at once, and your next turn runs on the new one: its \`drive/\` folder starts fresh from Drive, so anything you never pushed stays in the old folder. Worktrees and uncommitted work stay on the old Machine too; run \`haus repo checkout\` again on the new one, or reach the old one with \`computer\` if you still have access there.
 
