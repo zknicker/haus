@@ -1,5 +1,5 @@
 ---
-summary: Build plan for Haus on iPhone Duo, from the design Zach accepted on 2026-11-27. Stock tab bars and toolbars move into the trailing rail, every tab becomes list | detail, the list column can be dragged down to an icon rail, and a Task opened from its card splits the screen at the fold with one composer. It lists the decisions, slices D0 to D5 with the router, chrome and header changes each needs, the 27.1-SDK APIs still to confirm, and verification by pose.
+summary: Build plan for Haus on iPhone Duo, from the design Zach accepted on 2026-11-27. Stock tab bars and toolbars move into the trailing rail, every tab becomes list | detail, the list column can be dragged down to an icon rail, and a Task opened from its card splits the screen at the fold with one composer. It lists the decisions, slices D0 to D5 with the router, chrome and header changes each needs, the 27.1-SDK API signatures confirmed in D0, and verification by pose.
 read_when:
   - building or reviewing any iPhone Duo layout, pose, or fold behavior in apps/ios-swift
   - changing the iPhone tab shell, HausBottomChrome, Ask anything, ChatScreenHeader, or toolbar placement at regular width or on vertical bars
@@ -91,25 +91,47 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 - Local and Simulator builds use Xcode 27.1 (`DEVELOPER_DIR` or `xcode-select`), matching the release workflow's
   `Xcode_27.1.app`.
 - Set `project.yml`'s `xcodeVersion` to 27.1. It is XcodeGen compatibility only and does not pick the SDK.
-- Keep the iOS 26.0 deployment target. Gate every 27.1 API with `#available`, and fall back below 27.1 to today's
-  size-class behavior.
+- Keep the iOS 26.0 deployment target. Gate every Duo API with `#available(iOS 27.1, *)` (the visibility priority
+  needs only 27.0), and fall back below it to today's size-class behavior.
 - Building with the 27.1 SDK ends letterboxing. The app doesn't set `UIRequiresFullScreen`, which would bring it
   back, so keep it unset.
-- The 27.1 names this plan uses, from Apple's documentation (confirm each compiles before D1's brief):
-  - `@Environment(\.toolbarVerticalEdge)` (`HorizontalEdge?`) tells a view its bars are vertical and on which
-    edge. It reports the preferred edge even while no bar is showing. UIKit's trait is `verticalBarEdge`.
-  - System containers lay bars out vertically on their own with the 27.1 SDK. `TabView` needs no opt-in, and
-    `.toolbarVerticalBehavior(.disabled)` opts a view out.
-  - `.toolbarVerticalCompressionBehavior(.prefersTabBar)` or `(.prefersToolbarItems)`, with
-    `ToolbarItemVisibilityPriority`, decides what stays when the keyboard compresses the rail.
-  - `GeometryProxy.reservedRegions(kind: .division)` returns the fold. It is empty when the Duo is fully open or
-    closed. `.occlusion` regions are the camera and sensors.
-  - `ArrangementView` must not sit inside a `NavigationSplitView`, `List` or `ScrollView`, so Haus doesn't use it.
-  - `.onHingeChange` and `DeviceHinge` report the angle and pose. Use them for effects only, never layout.
-- Still unverified until it runs on the Duo Simulator:
-  - whether `.toolbar(.hidden, for: .tabBar)` hides a vertical tab bar
-  - whether `NavigationSplitView` columns resize by drag, as in Messages
-- Proof: the app runs edge to edge on the Device Hub's iPhone Duo Simulator, not letterboxed.
+- **Done (2026-11-27).** The app target built clean with Xcode 27.2 (27B52, iOS 27.2 SDK, Swift 6.4.2) for the
+  iPhone Duo (iOS 27.2) and iPhone 17 Pro (iOS 26.3) Simulators. Nothing needed a code change; the new SDK adds
+  warnings only. `xcodeVersion` is 27.1.
+- **Confirmed in the iOS 27.2 SDK's `.swiftinterface` files and UIKit headers.** `anyAppleOS 27.1` means iOS 27.1.
+
+  | API | Exact declaration | Available |
+  | --- | --- | --- |
+  | `EnvironmentValues.toolbarVerticalEdge` | `var toolbarVerticalEdge: HorizontalEdge? { get }` (SwiftUICore) | iOS 27.1 |
+  | `View.toolbarVerticalBehavior(_:)` | takes `ToolbarVerticalBehavior`: `.automatic`, `.disabled` | iOS 27.1 |
+  | `View.toolbarVerticalCompressionBehavior(_:)` | takes `ToolbarVerticalCompressionBehavior`: `.automatic`, `.prefersToolbarItems`, `.prefersTabBar` | iOS 27.1 |
+  | `ToolbarItemVisibilityPriority` | `.automatic`, `.low`, `.high`, `init(lowerThan:)`, `init(higherThan:)`, `Comparable`; applied with `ToolbarContent.visibilityPriority(_:)` | iOS 27.0 |
+  | `ToolbarContent.axisBehavior(_:)` | takes `ToolbarItemAxisBehavior`: `.automatic`, `.horizontalOnly`, `.verticalPreferred` | iOS 27.1 |
+  | `GeometryProxy.reservedRegions` | `func reservedRegions(kind: ReservedRegion.Kind, options: ReservedRegion.QueryOptions = [], layoutDirectionBehavior: LayoutDirectionBehavior = .mirrors) -> [ReservedRegion]` | iOS 27.1 |
+  | `ReservedRegion` | `id`, `kind` (`.occlusion`, `.division`), `frame: CGRect`, `margins: EdgeInsets`, `isActive: Bool`; `QueryOptions.includeInactive` | iOS 27.1 |
+  | `ArrangementView` | `init(primary:secondary:)`, styled by `.arrangementViewStyle(_:)`: `.automatic`, `.split` (`.axes(_:)`), `.overlay` | iOS 27.1 |
+  | `View.onHingeChange` | `func onHingeChange(isEnabled: Bool = true, _ action: @escaping (_ oldContext: DeviceHingeContext, _ newContext: DeviceHingeContext) -> Void)` | iOS 27.1 |
+  | `DeviceHinge` | `status` (`.closed`, `.partiallyOpen`, `.fullyOpen`), `angle: Angle`; `DeviceHingeContext.hinge: DeviceHinge?` | iOS 27.1 |
+  | UIKit `UITraitCollection.verticalBarEdge` | `UIVerticalBarEdge` (`.unspecified`, `.leading`, `.trailing`), not optional; `systemTraitsAffectingVerticalBarEdge` | iOS 27.1 |
+  | UIKit bar behavior | `UIViewController.preferredVerticalBarBehavior` (`.automatic`, `.disabled`), `UINavigationItem.verticalBarCompressionBehavior` (`.prefersBarItems`, `.prefersTabBar`) | iOS 27.1 |
+
+- **What the interfaces don't say.** They don't state that the division region is empty when the Duo is fully
+  open or closed. A region carries `isActive`, and inactive regions come back only with `.includeInactive`, so
+  query with the default options. They also don't carry the rule that `ArrangementView` stays out of
+  `NavigationSplitView`, `List` and `ScrollView`; that rule comes from Apple's documentation. `DeviceHinge`
+  has no pose type: its `status` is the pose.
+- **Tab bar hiding: answered for the outer display.** Each tab root sets `.toolbar(.hidden, for: .tabBar)`. With
+  the Duo closed, the outer display's rail shows the status bar, the camera and Home's `+`, and no tab bar. The
+  system had already moved the navigation bar's trailing `+` into the rail without any code change.
+  `HausBottomChrome` stays in the content column and ends at the rail. The inner display in landscape is still
+  unchecked. `.toolbar(_:for:)` is soft-deprecated in favor of `toolbarVisibility(_:for:)` (iOS 18) and doesn't
+  warn.
+- **Still unverified: column resizing.** Neither SwiftUI nor `UISplitViewController` gains a column-resize API in
+  27.x. The only width controls are `navigationSplitViewColumnWidth(min:ideal:max:)` (iOS 16) and UIKit's
+  min, max and preferred widths. Whether a drag resizes the columns is runtime behavior on the open inner display.
+- **Proof.** The app runs edge to edge on the iPhone Duo Simulator's outer display (closed, 1398 × 2034 px),
+  signed in against the local dev Server, with no letterbox bars. `simctl io screenshot` on the Duo needs
+  `--display=1` for the outer display or `--display=3` for the inner one (2007 × 2853 px).
 
 ### D1. Stock bars and the chat toolbar
 
