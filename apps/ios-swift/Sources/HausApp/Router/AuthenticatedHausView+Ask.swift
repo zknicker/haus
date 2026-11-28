@@ -19,6 +19,15 @@ struct AskAnythingDraft {
 }
 
 extension AuthenticatedHausView {
+    @ToolbarContentBuilder
+    var askAnythingCompose: some ToolbarContent {
+        if shellChrome == .stock {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Ask anything", systemImage: "square.and.pencil") { router.present(.askAnything) }
+            }
+        }
+    }
+
     var askAnythingCard: some View {
         let projects = askProjects
         let projectID = AskAnythingPlan.choice(projects.map(\.id), picked: ask.projectID)

@@ -148,6 +148,17 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 - `HausRouter.showsTabBar` keeps its rule. On the outer display, a pushed screen hides the tab bar and Back sits at
   the top of the rail.
 - Proof: in every pose, no Haus bar spans more than one pane, and the outer display shows the system rail.
+- **Built (2026-11-27).**
+  - `ShellChrome` (`HausUI/Adaptive/ShellChrome.swift`) holds the decision: stock when bars are vertical or the
+    width is regular, custom otherwise, and always custom below iOS 27.1. The shell reads it once
+    (`onShellChromeChange`) and passes it down as `\.shellChrome`.
+  - Back is the system's own back button, not a Haus `ToolbarItem`: with the navigation bar shown, the system
+    draws it. A Chat that is a split selection has none.
+  - The compose button is on Home and Projects. Tasks keeps its `+`, which already presents Ask anything. You gets
+    none until D2 gives it a list column.
+  - On the open inner display in landscape the list column's toolbar stays at the top of the column (title
+    leading, compose and `+` in one capsule), and the tab bar is one glass capsule at the bottom of the rail.
+  - With stock chrome the Chat pads itself by the horizontal safe area so it ends at the rail.
 
 ### D2. Every tab splits
 

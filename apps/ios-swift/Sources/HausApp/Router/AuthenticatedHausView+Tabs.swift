@@ -4,36 +4,40 @@ import HausUI
 import SwiftUI
 
 /// The root: five tabs, each with its own `NavigationStack` bound to the
-/// router, and the router's one sheet. The system tab bar stays hidden; the
-/// Capy-sized bottom chrome floats over the tabs instead, and each tab's
-/// content clears it through the bottom safe area.
+/// router, and the router's one sheet. With stock chrome the system draws the
+/// tab bar, in the trailing rail wherever bars are vertical. With custom
+/// chrome the system tab bar stays hidden; the Capy-sized bottom chrome floats
+/// over the tabs instead, and each tab's content clears it through the bottom
+/// safe area.
 extension AuthenticatedHausView {
     var tabShell: some View {
         TabView(selection: $router.selectedTab) {
-            Tab(value: HausTab.home) {
-                adaptiveStack(.home) { homeRoot }.toolbar(.hidden, for: .tabBar)
+            Tab("Home", systemImage: "house", value: HausTab.home) {
+                adaptiveStack(.home) { homeRoot }.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
             }
-            Tab(value: HausTab.projects) {
-                adaptiveStack(.projects) { projectsRoot }.toolbar(.hidden, for: .tabBar)
+            Tab("Projects", systemImage: "number", value: HausTab.projects) {
+                adaptiveStack(.projects) { projectsRoot }.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
             }
-            Tab(value: HausTab.tasks) {
-                adaptiveStack(.tasks) { tasksRoot }.toolbar(.hidden, for: .tabBar)
+            Tab("Tasks", systemImage: "list.bullet", value: HausTab.tasks) {
+                adaptiveStack(.tasks) { tasksRoot }.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
             }
             Tab(value: HausTab.you) {
-                youStack.toolbar(.hidden, for: .tabBar)
+                youStack.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
+            } label: {
+                Label { Text("You") } icon: { youTabIcon ?? Image(systemName: "person.crop.circle") }
             }
-            Tab(value: HausTab.search) {
-                searchRoot.toolbar(.hidden, for: .tabBar)
+            Tab("Search", systemImage: "magnifyingglass", value: HausTab.search, role: .search) {
+                searchRoot.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if router.showsTabBar {
+            if showsBottomChrome {
                 Color.clear.frame(height: max(bottomChromeClearance - deviceBottomInset, 0))
             }
         }
         .overlay(alignment: .bottom) {
             ZStack(alignment: .bottom) {
-                if router.showsTabBar {
+                if showsBottomChrome {
                     HausBottomChrome(
                         selection: $router.selectedTab,
                         items: tabBarItems,
@@ -45,7 +49,7 @@ extension AuthenticatedHausView {
                     .transition(.offset(y: 24).combined(with: .opacity))
                 }
             }
-            .animation(.smooth(duration: 0.3), value: router.showsTabBar)
+            .animation(.smooth(duration: 0.3), value: showsBottomChrome)
             .ignoresSafeArea(.keyboard)
         }
         .background {
@@ -54,6 +58,8 @@ extension AuthenticatedHausView {
             }
             .ignoresSafeArea(.keyboard)
         }
+        .environment(\.shellChrome, shellChrome)
+        .onShellChromeChange { shellChrome = $0 }
         .onRegularWidthChange { router.layout = $0 ? .split : .stack }
         .sheet(item: sheetBinding) { routerSheet($0) }
         .task(id: store.settingsData?.viewer.avatarURL) {
@@ -62,6 +68,18 @@ extension AuthenticatedHausView {
     }
 
     private static let bottomChromeInset: CGFloat = 22
+
+    private var showsBottomChrome: Bool {
+        shellChrome == .custom && router.showsTabBar
+    }
+
+    private var rootTabBarVisibility: Visibility {
+        shellChrome == .stock ? .visible : .hidden
+    }
+
+    var routeTabBarVisibility: Visibility {
+        shellChrome == .stock && router.showsTabBar ? .visible : .hidden
+    }
 
     /// Height from the screen's bottom edge to the top of the chrome.
     private var bottomChromeClearance: CGFloat {

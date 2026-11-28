@@ -10,6 +10,7 @@ struct AuthenticatedHausView: View {
     @State var agentCall: AgentCallRequest?
     @State var ask = AskAnythingDraft()
     @State var youTabIcon: Image?
+    @State var shellChrome = ShellChrome.custom
     /// The bottom safe area without the keyboard, for the chrome's clearance.
     @State var deviceBottomInset: CGFloat = 0
     /// Whether scrolling the selected tab's root has folded the chrome.

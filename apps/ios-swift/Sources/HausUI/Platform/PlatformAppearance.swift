@@ -137,9 +137,9 @@ extension View {
 public extension View {
     /// Hides the system navigation bar on a screen that supplies its own ``ChromeHeader``.
     @ViewBuilder
-    func hausHiddenNavigationBar() -> some View {
+    func hausHiddenNavigationBar(_ isHidden: Bool = true) -> some View {
         #if os(iOS)
-        toolbar(.hidden, for: .navigationBar)
+        toolbarVisibility(isHidden ? .hidden : .automatic, for: .navigationBar)
         #else
         self
         #endif

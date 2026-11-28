@@ -122,6 +122,7 @@ public struct ChatScreenView: View {
                     onBack: onBack ?? onOpenSidebar,
                     onOpenChatDetails: onOpenChatDetails,
                     onOpenSearch: onOpenSearch,
+                    onOpenFiles: chat.kind.isChannel && chat.durableChat != nil ? onOpenWork : nil,
                     onCall: onCall,
                     menuActions: modelMenuActions + menuActions,
                     turnDetails: $turnDetailsFocus

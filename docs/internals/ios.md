@@ -587,7 +587,7 @@ label; they do not restyle the control or set their own geometry. The sidebar an
 both open with that same row, so a chrome button in either pane lands on one centerline. A
 fixed-size chrome circle must not be placed in a system navigation bar, which compresses it into an
 ellipse: a screen that wants the chrome circle supplies its own `ChromeHeader` and hides the
-navigation bar, as the Chat shell root does. Pushed screens keep the standard navigation bar with
+navigation bar, as the Chat shell root does with custom chrome (`ShellChrome`). Pushed screens keep the standard navigation bar with
 its system back button and text actions.
 
 One navigation stack answers to one bar decision, and inside a sheet that is not a preference. A
@@ -727,6 +727,22 @@ and reaches the screen as a binding or by reference. A page arriving for a Chat 
 nothing is that Chat's first paint and settles at the bottom without animation; only genuine
 appends animate.
 
+Which bars the shell draws is one decision, `ShellChrome` (`HausUI/Adaptive/ShellChrome.swift`):
+stock wherever the system lays bars out vertically (`toolbarVerticalEdge` non-nil, iOS 27.1) or
+the width is regular, custom otherwise. The shell reads it once with `onShellChromeChange` and
+hands it down as `\.shellChrome`; below iOS 27.1 it is always custom. Custom is the regular
+iPhone: the system tab bar stays hidden, `HausBottomChrome` (icon tabs and the Ask anything field)
+floats over the tabs, and a Chat hides the navigation bar under its floating `ChatScreenHeader`.
+Stock is the iPhone Duo and regular width: every `Tab` carries a title and symbol (You shows the
+viewer's photo, Search is `role: .search`), the `TabView` draws its own bar — in the trailing rail
+where bars are vertical — and there is no bottom chrome. A tab root shows the bar; a pushed screen
+follows `HausRouter.showsTabBar`, so it hides stacked and stays beside a split selection. Home and
+Projects get a compose button that presents the same Ask anything sheet (the Tasks `+` already
+does). A Chat keeps the system navigation bar, with the system's Back; `ChatScreenHeader` keeps
+the identity and live work leading in the column, and `ChatHeaderToolbar` puts Files (a Project),
+Call (a Captain chat) and More in one system toolbar group, with Search in Chat inside More. The
+Chat honors the horizontal safe area there, so it ends at the rail.
+
 Both transcripts — the Chat timeline and a Task's messages — sit on `TranscriptListView`, the
 flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each
 cell's `contentView` scaled back, data reversed so the newest item is row zero. This is the
@@ -855,7 +871,8 @@ seams.
 The Tasks tab (`TaskListScreen`) shows the web Tasks page's chips: My tasks (active Tasks the reader
 started), All tasks, and Archived. `TaskListSections` groups an active list by activity, Needs you
 first, and lists Archived flat; rows run newest first with the Project, `Machine · model`, and age,
-and an unread Task chat wears a dot. Its `+` and Home's "Ask anything" accessory start a Task with
+and an unread Task chat wears a dot. Its `+` and Home's "Ask anything" accessory (a compose button
+with stock chrome) start a Task with
 `task.start` (`AskAnythingPlan`): a Project, a Machine (the Project's default first), a model from the
 runner catalog, and the text as the first message. The Project picker, like the web Home composer's
 and New Captain's home picker, offers only joined Channels other than `#all` that have a live

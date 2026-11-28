@@ -19,6 +19,7 @@ extension AuthenticatedHausView {
             onRefresh: refreshHome,
             onNewCaptain: store.canManageServer ? { router.present(.newCaptain) } : nil
         )
+        .toolbar { askAnythingCompose }
     }
 
     var projectsRoot: some View {
@@ -30,6 +31,7 @@ extension AuthenticatedHausView {
             isLoaded: store.hasLoadedChats,
             actions: projectsTabActions
         )
+        .toolbar { askAnythingCompose }
     }
 
     var tasksRoot: some View {
