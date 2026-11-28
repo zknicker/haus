@@ -50,9 +50,15 @@ public final class HausRouter {
         paths[tab] ?? []
     }
 
-    /// Writes from a tab's `NavigationStack`: back, interactive pop, or a
-    /// link push.
+    /// Writes the reader asked for: a link push, the Settings hub's own
+    /// stack, or a split's pane. The router now draws the tab from this path,
+    /// so a fold's unseen mark on it goes.
     public func setPath(_ path: [HausRoute], for tab: HausTab) {
+        unseenStacks.remove(tab)
+        write(path, for: tab)
+    }
+
+    func write(_ path: [HausRoute], for tab: HausTab) {
         guard self.path(tab) != path else { return }
         paths[tab] = path.isEmpty ? nil : path
     }
@@ -80,18 +86,25 @@ public final class HausRouter {
     /// selects its tab and replaces that stack with the route over the root;
     /// a route with no tab of its own stays in the current tab, unless that
     /// is Search. A tab that cannot hold the route opens it as from outside.
+    /// Split beside a Task, a route that stacks closes the Task first and
+    /// stacks over its conversation.
     public func open(_ route: HausRoute, from origin: RouteOrigin = .inside) {
         sheet = nil
         reveal = route.revealedMessage
         if origin == .taskCard, case .task = route, Self.canStack(route, on: selectedTab) {
+            unseenStacks.remove(selectedTab)
             openBesideConversation(route)
             return
         }
         if origin == .inside, Self.canStack(route, on: selectedTab) {
             guard topRoute != route else { return }
+            unseenStacks.remove(selectedTab)
             if layout == .split, Self.selects(route, on: selectedTab) {
                 paths[selectedTab] = [route]
                 return
+            }
+            if layout == .split, Self.sidePane(in: path(selectedTab)) != nil {
+                paths[selectedTab]?.removeLast()
             }
             paths[selectedTab, default: []].append(route)
             return
@@ -99,6 +112,7 @@ public final class HausRouter {
         let staysHere = selectedTab != .search && Self.canStack(route, on: selectedTab)
         let tab = route.homeTab ?? (staysHere ? selectedTab : .home)
         selectedTab = tab
+        unseenStacks.remove(tab)
         paths[tab] = [route]
     }
 
@@ -106,6 +120,7 @@ public final class HausRouter {
     public func showRoot(_ tab: HausTab) {
         sheet = nil
         selectedTab = tab
+        unseenStacks.remove(tab)
         paths[tab] = nil
     }
 
@@ -182,23 +197,4 @@ public final class HausRouter {
         }
         paths[selectedTab, default: []].append(route)
     }
-
-    /// You holds settings and the Drive it browses; every other tab holds any
-    /// route but settings, so Search keeps the conversations its hits open
-    /// beside its list.
-    nonisolated static func canStack(_ route: HausRoute, on tab: HausTab) -> Bool {
-        switch (tab, route) {
-        case (.you, .settings), (.you, .driveFile): true
-        case (.you, _): false
-        case (.home, .settings), (.projects, .settings), (.tasks, .settings), (.search, .settings): false
-        case (.home, _), (.projects, _), (.tasks, _), (.search, _): true
-        }
-    }
-}
-
-/// What a push tap or a deep link asks the router for.
-public enum RouterRequest: Hashable, Sendable {
-    case open(HausRoute)
-    /// A tab at its root, for a push the iPhone has no screen for.
-    case root(HausTab)
 }

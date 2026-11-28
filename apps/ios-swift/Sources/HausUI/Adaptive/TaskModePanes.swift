@@ -30,6 +30,14 @@ public struct TaskModePanes: Equatable, Sendable {
         )
     }
 
+    /// The frames the layout places its subviews at, conversation first. A
+    /// closing Task pane stays a subview for its exit transition, so it keeps
+    /// the frame it had open and leaves from there.
+    public static func placements(size: CGSize, fold: Fold?, isOpen: Bool) -> [CGRect] {
+        let panes = layout(size: size, fold: fold, isOpen: isOpen)
+        return [panes.conversation, panes.task ?? layout(size: size, fold: fold, isOpen: true).task].compactMap(\.self)
+    }
+
     /// A fold running across still splits when the keyboard has shortened the
     /// column to end above it: the Task pane is then under the keyboard.
     private static func splits(at fold: Fold, size: CGSize) -> Bool {

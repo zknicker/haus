@@ -25,8 +25,8 @@ public struct TaskPaneView: View {
             ScrollView {
                 Group {
                     switch section {
-                    case .activity: TaskPaneActivity(agentID: pane.agentID)
-                    case .files: TaskPaneFiles(files: pane.agentID == nil ? [] : files, open: actions.openFile)
+                    case .activity: TaskPaneActivity(agent: pane.agent)
+                    case .files: TaskPaneFiles(files: pane.agent.files(files), open: actions.openFile)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -42,8 +42,8 @@ public struct TaskPaneView: View {
                 .frame(width: edge == .top ? nil : 1, height: edge == .top ? 1 : nil)
                 .ignoresSafeArea()
         }
-        .task(id: pane.agentID) {
-            guard let agentID = pane.agentID else { return }
+        .task(id: pane.agent) {
+            guard let agentID = pane.agent.id else { return }
             files = await actions.loadFiles(agentID)
         }
         .carriesAcrossPoses($section, as: "taskPaneSection")

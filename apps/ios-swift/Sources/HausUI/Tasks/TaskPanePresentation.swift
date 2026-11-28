@@ -9,14 +9,41 @@ public struct TaskPanePresentation: Hashable, Sendable {
     public let header: TaskChatHeaderPresentation
     /// The Captain for crew, else the person who started it.
     public let starter: MessageAuthorPresentation?
-    /// The Task's own agent. Nil for a Task from before Tasks were agents.
-    public let agentID: String?
+    public let agent: TaskPaneAgent
 
-    public init(taskID: String, header: TaskChatHeaderPresentation, starter: MessageAuthorPresentation?, agentID: String?) {
+    public init(taskID: String, header: TaskChatHeaderPresentation, starter: MessageAuthorPresentation?, agent: TaskPaneAgent) {
         self.taskID = taskID
         self.header = header
         self.starter = starter
-        self.agentID = agentID
+        self.agent = agent
+    }
+}
+
+/// The agent whose turns and files the pane reads. Until the Task's record
+/// loads the pane can't tell an agent from none, so it stays blank.
+public enum TaskPaneAgent: Hashable, Sendable {
+    case loading
+    /// A Task from before Tasks were agents.
+    case none
+    case agent(String)
+
+    public init(isLoaded: Bool, agentID: String?) {
+        guard isLoaded else { self = .loading; return }
+        self = agentID.map(TaskPaneAgent.agent) ?? .none
+    }
+
+    var id: String? {
+        if case .agent(let id) = self { id } else { nil }
+    }
+
+    /// The Files list: nil (blank) while loading, empty for a Task with no
+    /// agent, else what the agent's read returned.
+    func files(_ loaded: [DriveFilePresentation]?) -> [DriveFilePresentation]? {
+        switch self {
+        case .loading: nil
+        case .none: []
+        case .agent: loaded
+        }
     }
 }
 

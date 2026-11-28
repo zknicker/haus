@@ -77,7 +77,7 @@ extension HausRouter {
             if restoredStacks.insert(tab).inserted { stackRevision += 1 }
             return false
         }
-        setPath(path, for: tab)
+        write(path, for: tab)
         return true
     }
 
@@ -99,6 +99,18 @@ extension HausRouter {
     public func closeSidePane(_ tab: HausTab) {
         guard case .split(_, _, _?) = panes(tab) else { return }
         setPath(Array(path(tab).dropLast()), for: tab)
+    }
+
+    /// You holds settings and the Drive it browses; every other tab holds any
+    /// route but settings, so Search keeps the conversations its hits open
+    /// beside its list.
+    nonisolated static func canStack(_ route: HausRoute, on tab: HausTab) -> Bool {
+        switch (tab, route) {
+        case (.you, .settings), (.you, .driveFile): true
+        case (.you, _): false
+        case (.home, .settings), (.projects, .settings), (.tasks, .settings), (.search, .settings): false
+        case (.home, _), (.projects, _), (.tasks, _), (.search, _): true
+        }
     }
 
     /// What replaces a split tab's selection instead of stacking over it: a

@@ -111,8 +111,17 @@ public enum HausSheet: Hashable, Identifiable, Sendable {
     case archivedProjects
     case chatDetails(HausConversation)
     case chatSearch(chatID: String?)
+    /// A file the Task pane opens, over Task mode, which keeps its panes.
+    case driveFile(path: String)
 
     public var id: Self { self }
+}
+
+/// What a push tap or a deep link asks the router for.
+public enum RouterRequest: Hashable, Sendable {
+    case open(HausRoute)
+    /// A tab at its root, for a push the iPhone has no screen for.
+    case root(HausTab)
 }
 
 /// Where an open comes from: a tap inside a tab, a Task's card in the

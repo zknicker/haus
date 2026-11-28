@@ -216,7 +216,8 @@ Layout follows size classes and the system's bar placement, never orientation or
   - Wherever the system lays bars out vertically, the stock tab bar and toolbars sit in the trailing rail as glass
     capsules, with Back or Close at the top. That covers the outer display in every pose, the inner display in
     landscape, and Split View.
-  - At regular width the stock bars are used in every orientation.
+  - At regular width the stock bars are used in every orientation, below iOS 27.1 too (an iPhone Plus or Pro Max
+    in landscape).
   - `HausBottomChrome` is drawn only on compact displays with horizontal bars.
   - Nothing Haus draws spans more than one pane.
 - **Ask anything:** on vertical bars and at regular width, it is the list column's compose button.
@@ -231,6 +232,10 @@ Layout follows size classes and the system's bar placement, never orientation or
     at the fold, and the list steps aside to the rail.
   - The conversation's composer gets a target chip for that Task, inside the pill after the plus, and sends to it
     as steer. The chip's × sends to the conversation again.
+  - The chip and an inline reply never share the composer: choosing Reply lets go of the chip, and opening the
+    Task from its card again drops the reply.
+  - A file opened from the Task pane opens in a sheet over both panes. Anything else that stacks (Work, a file
+    or pull request link) closes the Task and stacks over its conversation.
   - The toolbar holds the Task's More menu, and Close is at the top of the Task pane. There is no Stop, as on the
     web App. Interrupting a Task is a later delivery choice in the composer (Steer, Queue, Interrupt).
   - The Task pane shows who started it, its activity, its title, then Activity (its turn details) and Files (the

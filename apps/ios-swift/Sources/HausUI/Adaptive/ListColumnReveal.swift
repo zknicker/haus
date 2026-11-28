@@ -1,8 +1,9 @@
 import SwiftUI
 
 extension EnvironmentValues {
-    /// Brings back a split's hidden list column; set inside its detail only
-    /// while the column is hidden.
+    /// Brings back a split's full list column, through the same choice a drag
+    /// makes, so beside a Task it moves only that Task's column. Set inside
+    /// its detail while the column is hidden, and on its rail.
     @Entry public var revealListColumn: (() -> Void)? = nil
 }
 

@@ -13,7 +13,7 @@ extension AuthenticatedHausView {
                     pane: pane,
                     actions: TaskPaneActions(
                         loadFiles: { [store] agentID in await store.taskFiles(agentID: agentID) },
-                        openFile: { router.open(.driveFile(path: $0.metadata.path)) },
+                        openFile: { router.present(.driveFile(path: $0.metadata.path)) },
                         close: { router.closeSidePane(tab) }
                     )
                 )

@@ -114,4 +114,45 @@ struct HausRouterTaskModeTests {
         router.setSplitStack([], for: .projects)
         #expect(router.path(.projects) == [.channel(chatID: "c")])
     }
+
+    @Test("Beside a Task, a screen that stacks closes the Task and stacks over its conversation")
+    func stackingOpenClosesSide() {
+        let router = HausRouter()
+        router.layout = .split
+        router.selectedTab = .projects
+        router.open(.channel(chatID: "c"))
+        router.open(.task(taskID: "task_1"), from: .taskCard)
+
+        router.open(.work(.chat("c")))
+        #expect(router.panes(.projects) == .split(selection: .channel(chatID: "c"), stack: [.work(.chat("c"))]))
+        router.pop()
+        #expect(router.panes(.projects) == .split(selection: .channel(chatID: "c"), stack: []))
+    }
+
+    @Test("Compact, a screen opened over a Task still stacks over it")
+    func compactStackingOpenKeepsTask() {
+        let router = HausRouter()
+        router.selectedTab = .projects
+        router.open(.channel(chatID: "c"))
+        router.open(.task(taskID: "task_1"), from: .taskCard)
+        router.open(.driveFile(path: "notes.md"))
+        #expect(router.path(.projects) == [.channel(chatID: "c"), .task(taskID: "task_1"), .driveFile(path: "notes.md")])
+    }
+
+    @Test("A file from the Task pane opens in a sheet over Task mode, which keeps both panes")
+    func taskPaneFileKeepsSide() {
+        let router = HausRouter()
+        router.layout = .split
+        router.selectedTab = .projects
+        router.open(.channel(chatID: "c"))
+        router.open(.task(taskID: "task_1"), from: .taskCard)
+        let panes = router.panes(.projects)
+
+        router.present(.driveFile(path: "report.md"))
+        #expect(router.sheet == .driveFile(path: "report.md"))
+        #expect(router.panes(.projects) == panes)
+
+        router.dismissSheet()
+        #expect(router.panes(.projects) == panes)
+    }
 }

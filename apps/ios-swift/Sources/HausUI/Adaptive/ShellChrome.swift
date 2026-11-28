@@ -59,8 +59,9 @@ private struct ToolbarItemsWhileTyping: ViewModifier {
 }
 
 /// Builds the shell with `ShellChrome` read straight from the environment, so
-/// the first frame already draws the right bars. Below iOS 27.1 it is always
-/// custom.
+/// the first frame already draws the right bars. Below iOS 27.1 bars are never
+/// vertical, so the size class alone decides: an iPhone Plus or Pro Max turned
+/// to landscape is regular width and splits under stock bars.
 public struct ShellChromeScope<Content: View>: View {
     private let content: (ShellChrome) -> Content
 
@@ -73,7 +74,7 @@ public struct ShellChromeScope<Content: View>: View {
         if #available(iOS 27.1, *) {
             VerticalBarsScope(content: content)
         } else {
-            content(.custom).environment(\.shellChrome, .custom)
+            SizeClassScope(content: content)
         }
         #else
         content(.custom).environment(\.shellChrome, .custom)
@@ -82,6 +83,16 @@ public struct ShellChromeScope<Content: View>: View {
 }
 
 #if os(iOS)
+private struct SizeClassScope<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    let content: (ShellChrome) -> Content
+
+    var body: some View {
+        let chrome = ShellChrome(barsAreVertical: false, isRegularWidth: sizeClass == .regular)
+        content(chrome).environment(\.shellChrome, chrome)
+    }
+}
+
 @available(iOS 27.1, *)
 private struct VerticalBarsScope<Content: View>: View {
     @Environment(\.toolbarVerticalEdge) private var verticalEdge

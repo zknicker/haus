@@ -18,6 +18,8 @@ public struct SettingsSheet: View {
     private let tabPath: Binding<[SettingsRoute]>
     private let sourceData: SettingsData
     private let serverSwitcher: ServerSwitcher?
+    /// A screen this pushed appeared, as the tab's other routes report theirs.
+    private let onScreenAppear: (SettingsRoute) -> Void
     @State var avatarGenerator: AvatarGeneratorSheet?
     /// One generation session per Agent, kept for the life of Settings so that
     /// closing the generator never discards variants or a run in flight.
@@ -41,8 +43,10 @@ public struct SettingsSheet: View {
         server: SettingsServerContent,
         appearance: Binding<AppearancePreference>,
         serverSwitcher: ServerSwitcher?,
-        onSignOut: SettingsSignOut?
+        onSignOut: SettingsSignOut?,
+        onScreenAppear: @escaping (SettingsRoute) -> Void = { _ in }
     ) {
+        self.onScreenAppear = onScreenAppear
         self.root = root
         self.selection = selection
         self.onSignOut = onSignOut
@@ -75,7 +79,7 @@ public struct SettingsSheet: View {
                 }
             }
             .navigationDestination(for: SettingsRoute.self) { route in
-                destination(for: route)
+                destination(for: route).onAppear { onScreenAppear(route) }
             }
             .sheet(item: $avatarGenerator) { generator in avatarGeneration(generator) }
         }

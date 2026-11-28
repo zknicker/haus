@@ -17,7 +17,7 @@ extension ChatScreenView {
                 isTextFocused: $isComposerFocused,
                 allowsAttachments: chat.durableChat != nil,
                 mentionOptions: mentionOptions,
-                inlineReply: inlineReply,
+                inlineReply: composerInlineReply,
                 onCancelInlineReply: { inlineReply = nil },
                 taskChip: composerTask,
                 onClearTaskChip: onClearComposerTask,

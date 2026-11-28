@@ -44,6 +44,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
             HStack(spacing: 0) {
                 if shown == .rail {
                     rail
+                        .environment(\.revealListColumn) { choose(.full) }
                         .overlay(alignment: .trailing) {
                             ListColumnHandle(width: ListColumnLayout.railWidth, hasRail: hasRail) { choose($0) }
                         }

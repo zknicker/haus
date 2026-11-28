@@ -2,23 +2,22 @@ import SwiftUI
 
 /// A list column at rail width (specs/ios-app.md, iPhone Duo): compose at
 /// the top, the tab's marks between, and the button that brings back the
-/// full list at the bottom.
+/// full list at the bottom, which the split chooses (`\.revealListColumn`).
 public struct ListRail<Target: Hashable & Sendable>: View {
     private let items: [ListRailItem<Target>]
     private let onCompose: (() -> Void)?
     private let onSelect: (Target) -> Void
-    private let onExpand: () -> Void
+
+    @Environment(\.revealListColumn) private var reveal
 
     public init(
         items: [ListRailItem<Target>],
         onCompose: (() -> Void)?,
-        onSelect: @escaping (Target) -> Void,
-        onExpand: @escaping () -> Void
+        onSelect: @escaping (Target) -> Void
     ) {
         self.items = items
         self.onCompose = onCompose
         self.onSelect = onSelect
-        self.onExpand = onExpand
     }
 
     public var body: some View {
@@ -40,7 +39,7 @@ public struct ListRail<Target: Hashable & Sendable>: View {
                 }
                 .scrollIndicators(.hidden)
                 .padding(.bottom, ListRailFold.gap(height: size.height, fold: fold))
-                ListRailButton(title: "Show list", systemImage: "sidebar.leading", tint: HausPlatformColor.mutedInk, action: onExpand)
+                ListRailButton(title: "Show list", systemImage: "sidebar.leading", tint: HausPlatformColor.mutedInk) { reveal?() }
             }
             .padding(.top, ListRailFold.topPadding)
             .padding(.bottom, ListRailFold.bottomPadding)

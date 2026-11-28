@@ -151,8 +151,10 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 - Proof: in every pose, no Haus bar spans more than one pane, and the outer display shows the system rail.
 - **Built (2026-11-27).**
   - `ShellChrome` (`HausUI/Adaptive/ShellChrome.swift`) holds the decision: stock when bars are vertical or the
-    width is regular, custom otherwise, and always custom below iOS 27.1. The shell reads it once
-    (`onShellChromeChange`) and passes it down as `\.shellChrome`.
+    width is regular, custom otherwise. Below iOS 27.1 bars are never vertical, so the size class alone decides:
+    an iPhone Plus or Pro Max on iOS 26 turned to landscape is regular width and splits under stock bars. It had
+    been always custom there, which floated the bottom chrome over the split's composer and hid the bars that
+    bring a hidden list back. The shell passes it down as `\.shellChrome`.
   - Back is the system's own back button, not a Haus `ToolbarItem`: with the navigation bar shown, the system
     draws it. A Chat that is a split selection has none.
   - The compose button is on Home and Projects. Tasks keeps its `+`, which already presents Ask anything. You gets
@@ -232,6 +234,9 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
     hidden column; showing it brings back the full list. On the rail the system button is removed
     (`toolbar(removing:)`), since the rail's bottom button does the same and the system one added
     a toolbar row over the detail.
+  - The rail's Show list makes the same choice as the handle (`\.revealListColumn`, set by the split).
+    Beside a Task it brings back the full list for that Task alone, as a drag does, and never writes
+    the stored column. It had written `.full` to the stored column, which Task mode ignored.
   - `ListColumn` (HausModels) is the state, `ListColumnPreference` (HausAppModel) keeps it per
     Server in `UserDefaults` per user, owned by `ServerLifecycle` beside the launch snapshots and
     cleared with them. It never reaches Server.
@@ -294,6 +299,17 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
     (`ComposerLeadingControls`), the field's width is measured from them, and in the card they lead the controls
     row. The chip's title stops at 110 pt. `submit` moved to `MessageComposerView+Send.swift` to make room. The
     first build floated the chip over the transcript, which let message text show around it.
+  - The chip and an inline reply never share the composer. Choosing Reply on a message lets go of the chip, so
+    the reply goes to the conversation; aiming at the Task again (its card) drops the reply. Before, a reply
+    picked with the chip up sent the Task's draft into the conversation as a reply (`ChatScreenView+Reply.swift`).
+  - Opens in Task mode: a file from the Task pane's Files opens in a router sheet (`HausSheet.driveFile`), so
+    both panes stay. Anything else that stacks (Work, a file chip, a pull request) closes the Task and stacks
+    over its conversation, so Back returns to the conversation alone. Before, the route stacked over the Task,
+    which left the Task trapped full screen in the detail stack.
+  - Closing: the Task pane leaves from the frame it had open (`TaskModePanes.placements`), instead of snapping to
+    the column's center while it fades.
+  - The pane is blank until the Task's record loads (`TaskPaneAgent.loading`). "No activity yet." and "No files
+    yet." show only for a loaded Task with no agent.
   - Toolbar: `taskModeChrome` swaps the conversation's items (`\.chatHeaderYieldsToolbar`) for the Task's More
     menu.
     - The first build also had Stop, through `agent.stop`. Review dropped it: the web App has no Stop for a
@@ -389,7 +405,11 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
       `stackAppeared`), once per fold, bumping `stackRevision` so the stack redraws from its path. With it the
       fold keeps the Task, its chip, draft and focus, fully or half open. Back pops one screen and is always
       taken. Each refusal logs one fault under `chat.haus.ios` / `pose`; remove the workaround once that fault
-      stops firing on a newer iOS. Also hardened: a compact stack torn down after the layout moved on writes
+      stops firing on a newer iOS. The mark goes when the stack's top screen appears, and when the router
+      replaces the tab's path itself (`open`, `showRoot`, `setPath`), since the stack then redraws from it.
+      You's Settings screens resolve through `SettingsSheet`'s own destinations and report their appearance
+      too (`onScreenAppear`); before, a fold over Settings refused every later multi-level Back in You.
+      Also hardened: a compact stack torn down after the layout moved on writes
       nothing, and a transcript notes its anchor when a scroll settles instead of forcing table layout inside
       the pose change.
     - Inner portrait: turning the Duo had the system write the split's column visibility, which was stored as

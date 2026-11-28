@@ -22,13 +22,12 @@ extension AuthenticatedHausView {
     func rail(_ tab: HausTab) -> some View {
         switch tab {
         case .home:
-            ListRail(items: homeRail, onCompose: askAnything, onSelect: openHomeRow, onExpand: expandList)
+            ListRail(items: homeRail, onCompose: askAnything, onSelect: openHomeRow)
         case .projects:
             ListRail(
                 items: ListRails.projects(store.projectRows, selectedChatID: selectedChatID(.projects)),
                 onCompose: askAnything,
-                onSelect: { router.open(route(forChatID: $0)) },
-                onExpand: expandList
+                onSelect: { router.open(route(forChatID: $0)) }
             )
         case .tasks:
             ListRail(
@@ -38,11 +37,10 @@ extension AuthenticatedHausView {
                     selectedTaskID: selectedTaskRail
                 ),
                 onCompose: askAnything,
-                onSelect: { router.open(.task(taskID: $0, messageID: nil)) },
-                onExpand: expandList
+                onSelect: { router.open(.task(taskID: $0, messageID: nil)) }
             )
         case .you:
-            ListRail(items: youRail, onCompose: nil, onSelect: { router.open(YouStack.route($0)) }, onExpand: expandList)
+            ListRail(items: youRail, onCompose: nil, onSelect: { router.open(YouStack.route($0)) })
         case .search:
             EmptyView()
         }
@@ -60,10 +58,6 @@ extension AuthenticatedHausView {
 
     private var askAnything: () -> Void {
         { router.present(.askAnything) }
-    }
-
-    private func expandList() {
-        listColumn.wrappedValue = .full
     }
 
     private func railSelection(_ tab: HausTab) -> HausRoute? {

@@ -11,8 +11,8 @@ public struct ChatScreenView: View {
     private let onBack: (() -> Void)?
     private let onOpenChatDetails: () -> Void
     private let onOpenSearch: () -> Void
-    private let onSend: (String, [ComposerAttachment]) async -> Bool
-    private let onSendInlineReply:
+    let onSend: (String, [ComposerAttachment]) async -> Bool
+    let onSendInlineReply:
         ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
@@ -165,6 +165,7 @@ public struct ChatScreenView: View {
             .modelChangeFailure($modelChangeError)
             .background(HausPlatformColor.canvas)
             .task(id: chat.id) { await onLoadMentionOptions() }
+            .onChange(of: composerTask != nil) { dropsReplyWhenAimed($1) }
             .carriesPose(of: self, composerKey: composerPoseKey)
     }
 
@@ -206,35 +207,4 @@ public struct ChatScreenView: View {
         }
     }
 
-    private func selectInlineReply(_ message: MessagePresentation) {
-        guard chat.durableChat != nil, !message.isPending else { return }
-        inlineReply = MessageReplyReferencePresentation(
-            id: message.id,
-            author: message.author,
-            content: message.content,
-            createdAt: message.createdAt,
-            sequence: message.sequence
-        )
-        isComposerFocused = true
-    }
-
-    func sendMessage(
-        _ content: String,
-        _ attachments: [ComposerAttachment]
-    ) async -> Bool {
-        guard let inlineReply else {
-            return await onSend(content, attachments)
-        }
-
-        guard let onSendInlineReply else { return false }
-        // The reply lands in the transcript the moment it is sent, so the
-        // composer lets go of its target with the draft rather than holding it
-        // until Server answers. Only a send that never left brings it back.
-        self.inlineReply = nil
-        let sent = await onSendInlineReply(content, attachments, inlineReply)
-        if !sent, self.inlineReply == nil {
-            self.inlineReply = inlineReply
-        }
-        return sent
-    }
 }

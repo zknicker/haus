@@ -57,6 +57,15 @@ extension AuthenticatedHausView {
                 onSelectChat: { router.open(route(forChatID: $0.id)) },
                 onSelectMessage: { router.open(route(forChatID: $0.chatID, messageID: $0.id)) }
             )
+        case .driveFile(let path):
+            NavigationStack {
+                driveFileDestination(path)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { router.dismissSheet() }
+                        }
+                    }
+            }
         }
     }
 

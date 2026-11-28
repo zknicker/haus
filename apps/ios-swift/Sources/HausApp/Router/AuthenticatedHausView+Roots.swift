@@ -94,7 +94,8 @@ extension AuthenticatedHausView {
                     activeServerID: store.activeServer?.id,
                     onSwitch: { serverID in Task { await switchServer(serverID) } }
                 ),
-                onSignOut: { try await store.signOut() }
+                onSignOut: { try await store.signOut() },
+                onScreenAppear: { stackRouteAppeared(.settings($0), tab: .you) }
             )
         } else {
             Color.clear.navigationTitle("You")

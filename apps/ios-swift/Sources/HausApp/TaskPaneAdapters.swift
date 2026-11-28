@@ -13,7 +13,7 @@ extension HausStore {
             taskID: taskID,
             header: header,
             starter: task.flatMap { actorPresentation(agentID: $0.captainID, userID: $0.createdBy.userID) },
-            agentID: task?.agentID
+            agent: TaskPaneAgent(isLoaded: task != nil, agentID: task?.agentID)
         )
     }
 

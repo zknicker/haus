@@ -3,16 +3,18 @@ import SwiftUI
 
 /// The Task's turn details in place: its live run and steps, then its settled
 /// turns, from the same reads as the turn details sheet. A turn or step opens
-/// that sheet. Blank while the reads load.
+/// that sheet. Blank while the Task and the reads load.
 struct TaskPaneActivity: View {
-    let agentID: String?
+    let agent: TaskPaneAgent
 
     @Environment(\.chatEngagementSource) private var engagementSource
     @State private var content = TurnDetailsContent()
     @State private var opened: TurnDetailsFocus?
 
     var body: some View {
-        if let agentID, let source = engagementSource?.turnDetails {
+        if agent == .loading {
+            EmptyView()
+        } else if let agentID = agent.id, let source = engagementSource?.turnDetails {
             let liveRun = source.liveRun(agentID)
             let request = TurnDetailsRequest(
                 agentIDs: [agentID],

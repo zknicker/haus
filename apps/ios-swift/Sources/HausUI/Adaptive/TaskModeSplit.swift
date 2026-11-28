@@ -19,7 +19,7 @@ public struct TaskModeSplit<Conversation: View, TaskPane: View>: View {
         FoldReader { size, fold in
             let panes = TaskModePanes.layout(size: size, fold: fold, isOpen: isOpen)
             let edge: Edge = (panes.task?.minY ?? 0) > 0 ? .top : .leading
-            TaskModeLayout(panes: panes) {
+            TaskModeLayout(frames: TaskModePanes.placements(size: size, fold: fold, isOpen: isOpen)) {
                 conversation
                 if isOpen {
                     task
@@ -39,14 +39,14 @@ extension EnvironmentValues {
 }
 
 private struct TaskModeLayout: Layout {
-    let panes: TaskModePanes
+    let frames: [CGRect]
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         proposal.replacingUnspecifiedDimensions()
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        for (subview, frame) in zip(subviews, [panes.conversation, panes.task].compactMap(\.self)) {
+        for (subview, frame) in zip(subviews, frames) {
             subview.place(
                 at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
                 anchor: .topLeading,

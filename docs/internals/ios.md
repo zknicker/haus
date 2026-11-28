@@ -731,7 +731,9 @@ Which bars the shell draws is one decision, `ShellChrome` (`HausUI/Adaptive/Shel
 stock wherever the system lays bars out vertically (`toolbarVerticalEdge` non-nil, iOS 27.1) or
 the width is regular, custom otherwise. `ShellChromeScope` reads it from the environment while it
 builds `AuthenticatedHausView`, so the first frame already draws the right bars, and it hands the
-value down as `\.shellChrome`. Below iOS 27.1 it is always custom. An `onChange` reader set it a
+value down as `\.shellChrome`. Below iOS 27.1 bars are never vertical, so the size class alone
+decides: an iPhone Plus or Pro Max on iOS 26 in landscape is regular width, splits, and gets stock
+bars. An `onChange` reader set it a
 frame late, and the Duo flashed `HausBottomChrome` at launch. Custom is the regular
 iPhone: the system tab bar stays hidden, `HausBottomChrome` (icon tabs and the Ask anything field)
 floats over the tabs, and a Chat hides the navigation bar under its floating `ChatScreenHeader`.
@@ -784,7 +786,9 @@ it is removed too, because the rail's bottom button brings back the full list. S
 built from the rows its list already draws (`ListRails`): Home's recent conversations (Captain
 marks, Project tiles, people and Task discs, with the accent unread dot or the green dot for a
 Captain or Task at work), the Projects' tiles, the Tasks view's discs, and You's settings symbols.
-Compose sits at the top (none on You) and the full-list button at the bottom. The selected mark
+Compose sits at the top (none on You) and the full-list button at the bottom; that button makes the
+same choice as the handle (`\.revealListColumn`, set on the rail by the split), so beside a Task it
+moves only that Task's column. The selected mark
 gets `listSelection`'s tint and a 4 pt indicator on the rail's leading edge. The state is
 remembered per Server by `ListColumnPreference` (HausAppModel), owned by `ServerLifecycle` beside
 the launch snapshots: app-local presentation state in `UserDefaults` per signed-in user, cleared
@@ -804,8 +808,12 @@ instead of replacing the selection, and in a split a Task already beside that co
 way to the new one. A Task from the Tasks list, a `task://` reference or a push still opens the old
 way. `TabPanes.split` carries a `side` route: a `.task` directly over a `.captain`, `.dm` or
 `.channel` (`HausRouter.sidePane(in:)`). It is still the top of the stack, so compact draws it
-pushed full screen and folding changes nothing. `closeSidePane` and any write of the conversation's
-own stack (`setSplitStack`) drop it. With a side route, `AdaptiveSplitView(besideTask:)` shows the
+pushed full screen and folding changes nothing. `closeSidePane`, any write of the conversation's
+own stack (`setSplitStack`), and an inside open of a route that stacks (Work, a file or pull
+request link) drop it; the route then stacks over the conversation. The Task pane's Files open a
+file in a router sheet (`HausSheet.driveFile`) instead, so both panes stay. The pane is blank
+until the Task's record loads (`TaskPaneAgent`), and a closing pane leaves from the frame it had
+open (`TaskModePanes.placements`). With a side route, `AdaptiveSplitView(besideTask:)` shows the
 rail, or hides the column on Search, which has no rail, through `TaskModeColumn`. It never writes
 the stored `ListColumn`, so closing the Task brings back the column the tab had. A drag while the
 Task is open moves only that Task's column. `TaskModeSplit` places the detail column's panes with
@@ -823,7 +831,9 @@ shares (`\.taskPaneEdge`). A conversation alone keeps to the larger side of an a
 (`HausRouter.besideTask(of:in:)`) gets two things:
 - `besideTaskID`: its composer sends through `ComposerDraftStore.target`, which is the Task's own
   draft (`.task(id)`, `chat.send` to the Task's chat, steer by default) until the chip's × calls
-  `release`. Opening the card again calls `aim` and brings the chip back. The chip sits inside the
+  `release`. Opening the card again calls `aim` and brings the chip back. The chip and an inline
+  reply never share the composer: Reply calls `release`, and the chip coming back drops the reply
+  (`ChatScreenView+Reply.swift`). The chip sits inside the
   pill after the plus (`ComposerLeadingControls`), and the field's width is measured from that
   leading group.
 - `taskModeChrome`: its bar shows only the Task's More menu (`TaskChatMenu`), and
@@ -866,7 +876,9 @@ the scene's move to the outer display when a Task sat beside its conversation
 (`NavigationColumnState.pop`, run in the window's rotation), before the stack's top screen has
 appeared. Pinning the split to the regular size class did not stop it. The router's refusal is the
 bounded workaround: until a rebuilt stack's top screen appears (`stackAppeared`, from the
-destination's `onAppear`) it refuses a write that drops more than one route, once per fold, and bumps
+destination's `onAppear`, and for You's Settings screens from `SettingsSheet`'s `onScreenAppear`)
+or the router replaces the tab's path itself (`open`, `showRoot`, `setPath`), it refuses a write
+that drops more than one route, once per fold, and bumps
 `stackRevision`, which the stack reads so it redraws from the router's path. Back pops one screen
 and is always taken. Each refusal logs one fault under `chat.haus.ios` / `pose`; remove the
 workaround once that fault stops firing on a newer iOS.

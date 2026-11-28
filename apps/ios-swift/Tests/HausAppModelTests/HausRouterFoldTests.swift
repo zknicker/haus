@@ -182,6 +182,33 @@ struct HausRouterFoldTests {
         #expect(router.path(.projects) == [channel, task])
     }
 
+    @Test("After a fold, You's Settings stack jumps back several levels once its top Settings screen appears")
+    func settingsStackWaitsForItsTop() {
+        let router = HausRouter()
+        router.layout = .split
+        router.selectedTab = .you
+        router.setPath([.settings(.captains), .settings(.agent(id: "agent_1")), .settings(.agentRuntime(id: "agent_1"))], for: .you)
+        router.layout = .stack
+
+        #expect(!router.setStackPath([.settings(.captains)], for: .you))
+        router.stackAppeared(.you)
+        #expect(router.setStackPath([.settings(.captains)], for: .you))
+        #expect(router.path(.you) == [.settings(.captains)])
+    }
+
+    @Test("A path the reader replaces after a fold is the router's to draw, so its unseen mark goes")
+    func replacingAPathClearsUnseen() {
+        let written = taskMode()
+        written.layout = .stack
+        written.setPath([channel, task, .work(.task("task_1"))], for: .projects)
+        #expect(written.setStackPath([], for: .projects))
+
+        let opened = taskMode()
+        opened.layout = .stack
+        opened.open(.work(.task("task_1")))
+        #expect(opened.setStackPath([], for: .projects))
+    }
+
     @Test("Only the conversation right under the Task carries its chip")
     func onlyTheConversationBeneath() {
         let router = taskMode()
