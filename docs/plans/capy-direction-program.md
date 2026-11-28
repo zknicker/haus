@@ -96,7 +96,7 @@ and this list only.
 
 - [ ] `git fetch origin <head-branch> && git checkout <head SHA>` in a fresh worktree.
 - [ ] Start the stack with `bun run dev` and read the Services banner for the ports.
-- [ ] Drive the desktop App through the Browser pane or `control-ui`, and the iPhone app through a dedicated Simulator device.
+- [ ] Drive the desktop App through the Browser pane or `control-ui`, and the iPhone app through the stock iPhone 17 Pro Simulator.
 - [ ] Save every screenshot under `/tmp/haus-<pr-id>/` and return the paths with the report.
 
 ### Clear each phase gate
