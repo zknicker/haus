@@ -16,6 +16,14 @@ test('reminder manual teaches a short title with the instruction in the descript
     expect(body).toContain('--title "Monday Advertising Review" --description');
 });
 
+test('reminder topic teaches resolving the anchor before scheduling, now that the prompt does not', () => {
+    const body = getManualTopic('reminder')?.body;
+    expect(body).toContain(
+        '`--message-id` is the msg= ID of the message the follow-up is about, resolved from the current conversation and passed explicitly; when no anchor can be resolved, a short status in the relevant conversation keeps the intent visible until there is one.'
+    );
+    expect(body).toContain('like a calendar invite subject');
+});
+
 test('trigger manual retains setup, recovery, and payload boundaries', () => {
     const body = getManualTopic('recipes/technique/trigger-webhook')?.body;
     for (const detail of [

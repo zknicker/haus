@@ -96,7 +96,9 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
     expect(prompt).not.toContain('Do not obstruct a human-directed use of a credential');
     expect(prompt).not.toContain('Next action:');
     expect(prompt).toContain('### Capability and execution-surface selection');
-    expect(prompt).toContain("The human's explicit choice of surface is part of the fit, so a surface they name is the one to use.");
+    expect(prompt).toContain(
+        "The human's explicit choice of surface is part of the fit, so a surface they name is the one to use."
+    );
     expect(prompt).not.toContain('URLs in non-English text');
     expect(prompt).not.toContain('## Capabilities');
     expect(prompt).toContain('Haus renders your message as Markdown, GFM tables included');
@@ -129,7 +131,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     );
     // Capy prompt v2 item 8: claims are the channel lock; status details live in the Manual.
     expect(prompt).toContain(
-        '**Claim rule:** in a channel, a claim is the lock on a message, so two agents don\'t do the same work.'
+        "**Claim rule:** in a channel, a claim is the lock on a message, so two agents don't do the same work."
     );
     expect(prompt).toContain(
         'Your Captain chat has no other agent to race, and crew work is tracked on its Task and Issue.'

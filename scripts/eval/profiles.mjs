@@ -5,6 +5,14 @@
 
 import { refersToKit } from '../agent-tests/placement-kit.mjs';
 
+/** A post that says some checks have not finished. */
+export const pendingChecksPattern =
+    /\b(?:running|pending|queued|in progress|not (?:yet )?(?:done|finished|green|ready))\b/iu;
+
+/** A post that calls the pull request ready now: "yes …", "it's ready to merge", "looks good to go". */
+export const readyClaimPattern =
+    /^\W*(?:yes|yep|yeah)\b|\b(?:it'?s|is|looks)\s+(?:ready|good|safe)\s+to\s+(?:merge|ship|go)\b/iu;
+
 export const tailPhrases = [
     'want me to',
     'would you like me to',
@@ -82,8 +90,30 @@ export const placementProfiles = {
  *
  * Home Task (C4): a Task a person started answers in its own chat, briefly, with nothing extra,
  * and posts nowhere else. Both graded profiles read the last post carrying the result.
+ *
+ * Build question (C5, runner verdict only): "could we get a script that…?" is a request to
+ * build. A good Captain starts one crew Task in that turn with a brief that carries the ask, says
+ * so at most once, and puts any question beside the moving work. Wrong: answering "sure, want me
+ * to?", doing the work itself, or a plan with no Task.
+ *
+ * Routine wake (C6, runner verdict only): a crew Task ends a turn with its change pushed and
+ * checks still running. Nobody asked the Captain anything and nothing needs a person yet, so a
+ * good Captain reads the Task and posts nothing. Wrong: a status post in the Captain chat or a
+ * channel.
+ *
+ * Checks pending (C7): asked whether that work is ready to merge, a good Captain looks at what
+ * the Task reported and answers in one short message that it is not ready yet because checks are
+ * still running, naming them. Wrong: "yes", calling it ready on the Task's word, or an offer.
  */
 export const crewProfiles = {
+    'crew-done-checks-pending': {
+        cap: 60,
+        channel: [1, 2],
+        forbid: { label: 'never calls it ready while checks run', pattern: readyClaimPattern },
+        inChat: true,
+        result: (post) => pendingChecksPattern.test(post.content),
+        spec: 'C7',
+    },
     // At most an acknowledgement and the completion; the completion carries the 12-hex digest.
     'crew-finish-reaches-person': {
         cap: 30,

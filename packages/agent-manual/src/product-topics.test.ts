@@ -145,6 +145,10 @@ test('publishes the claims topic the prompt points to for claim mechanics', () =
     );
     expect(claims?.body).not.toContain('then `done` after approval');
     expect(claims?.body).toContain('Haus adds `closed` (reversible)');
+    // Prompt v2 moved the stale-review rule out of the Captain prompt (CLAIM_IN_REVIEW_STALE_DAYS).
+    expect(claims?.body).toContain(
+        'An `in_review` claim whose conversation stays silent for 7 days is closed as stale by the Server'
+    );
     expect(claims?.body).toContain(
         'Claiming is the concurrency lock and moves the claim to `in_progress`'
     );

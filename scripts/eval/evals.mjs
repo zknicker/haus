@@ -158,6 +158,8 @@ export const evals = {
     },
     // ADR 0062 crew: Issues, crew Tasks finishing, and Tasks a person starts. These
     // need Issues and Task agents, so a baseline from before ADR 0062 fails them at setup.
+    // The last three are Capy's prompt v2 cases: a build request phrased as a question, a
+    // routine crew wake, and a Task's "done" while its checks still run.
     crew: {
         judge: null,
         lanes: 2,
@@ -166,9 +168,12 @@ export const evals = {
             'captain-issue-starts-crew',
             'crew-finish-reaches-person',
             'home-task-works-with-person',
+            'captain-build-question-starts-crew',
+            'crew-routine-wake-stays-quiet',
+            'crew-done-checks-pending',
         ],
         summary:
-            'A Captain turns an assigned Issue into one crew Task without narrating it, tells the person who asked for crew work once when it is done, and a Task a person starts works with them in its own chat.',
+            'A Captain turns an assigned Issue or a build question into one crew Task without narrating it, tells the person who asked for crew work once when it is done, stays quiet on a routine crew wake, and does not call work ready while its checks run; a Task a person starts works with them in its own chat.',
     },
     // Two Agents and a human in one channel, each scenario with a decoy the
     // Manual card warns against. Serial: the scenarios assert silence.

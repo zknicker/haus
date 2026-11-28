@@ -5,7 +5,7 @@ import {
     openCrewLedger,
     postsOutside,
     turnsSince,
-    useAgentMachineForTasks,
+    runTasksOnAgentMachine,
 } from '../crew.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
@@ -18,7 +18,7 @@ export default defineScenario({
     run: withRoutingEvidence(async ({ agents, evidence, expect, kit, log, settleTurn }) => {
         const [captain] = agents;
         const channel = await kit.createChannel({ agentIds: [captain.id] });
-        await useAgentMachineForTasks(kit, { agent: captain, projectId: channel.id });
+        await runTasksOnAgentMachine(kit, { agent: captain, projectId: channel.id });
         const chatId = await kit.trackChat(captain.ownChatId);
         evidence.grade({ agent: captain, rootChatId: chatId });
         await awaitQuiet(kit, captain.id);
