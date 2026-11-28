@@ -61,10 +61,28 @@ extension HausRouter {
     /// Writes from a compact tab's `NavigationStack`. Folding and unfolding
     /// swap a tab's stack for its split and back, and a stack being torn down
     /// once the layout has moved on writes nothing: only the stack on screen
-    /// speaks for the tab.
-    public func setStackPath(_ path: [HausRoute], for tab: HausTab) {
-        guard layout == .stack else { return }
+    /// speaks for the tab. A stack rebuilt by the fold that drops several
+    /// routes before its top screen has appeared isn't the reader going
+    /// back, who pops one screen they can see: closing the Duo with a Task
+    /// beside its conversation had the new stack write itself empty while the
+    /// scene was still moving to the outer display. It is refused once and the
+    /// stack redraws from the router's path.
+    /// Returns whether the write was taken.
+    @discardableResult
+    public func setStackPath(_ path: [HausRoute], for tab: HausTab) -> Bool {
+        guard layout == .stack else { return false }
+        if unseenStacks.contains(tab), self.path(tab).count - path.count > 1 {
+            if restoredStacks.insert(tab).inserted { stackRevision += 1 }
+            return false
+        }
         setPath(path, for: tab)
+        return true
+    }
+
+    /// The top screen of a tab's stack appeared, so the reader can see what
+    /// a write would take away.
+    public func stackAppeared(_ tab: HausTab) {
+        unseenStacks.remove(tab)
     }
 
     /// Writes from a split tab's content-pane `NavigationStack`. A changed

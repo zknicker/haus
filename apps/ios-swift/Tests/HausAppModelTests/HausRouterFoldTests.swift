@@ -138,8 +138,48 @@ struct HausRouterFoldTests {
     func compactStackWritesWhileFolded() {
         let router = taskMode()
         router.layout = .stack
+        router.stackAppeared(.projects)
         router.setStackPath([channel], for: .projects)
         #expect(router.path(.projects) == [channel])
+        router.setStackPath([], for: .projects)
+        #expect(router.path(.projects).isEmpty)
+    }
+
+    @Test("The stack the fold rebuilds can't empty itself before its top screen appears")
+    func rebuiltStackKeepsItsRoutesUntilSeen() {
+        let router = taskMode()
+        let revision = router.stackRevision
+        router.layout = .stack
+
+        #expect(!router.setStackPath([], for: .projects))
+        #expect(router.path(.projects) == [channel, task])
+        #expect(router.stackRevision == revision + 1)
+
+        #expect(!router.setStackPath([], for: .projects))
+        #expect(router.stackRevision == revision + 1)
+
+        router.stackAppeared(.projects)
+        #expect(router.setStackPath([], for: .projects))
+        #expect(router.path(.projects).isEmpty)
+    }
+
+    @Test("Back pops one screen even before the rebuilt stack's top has appeared")
+    func backPopsOneWhileUnseen() {
+        let router = taskMode()
+        router.layout = .stack
+        #expect(router.setStackPath([channel], for: .projects))
+        #expect(router.path(.projects) == [channel])
+    }
+
+    @Test("Each fold marks the stacks it rebuilds unseen again")
+    func eachFoldMarksUnseen() {
+        let router = taskMode()
+        router.layout = .stack
+        router.stackAppeared(.projects)
+        router.layout = .split
+        router.layout = .stack
+        #expect(!router.setStackPath([], for: .projects))
+        #expect(router.path(.projects) == [channel, task])
     }
 
     @Test("Only the conversation right under the Task carries its chip")

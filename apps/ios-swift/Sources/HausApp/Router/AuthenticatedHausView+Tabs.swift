@@ -75,7 +75,6 @@ extension AuthenticatedHausView {
     /// which mounts its screens afresh, so what they hold is carried first.
     private func changeLayout(to layout: TabLayout) {
         guard router.layout != layout else { return }
-        logLayoutChange(to: layout)
         poseCarry.carry()
         router.layout = layout
     }
@@ -106,14 +105,21 @@ extension AuthenticatedHausView {
         ]
     }
 
+    /// The stack redraws from the router's path whenever the router refuses
+    /// one of its writes (`stackRevision`).
     func stack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
-        NavigationStack(path: pathBinding(tab)) {
+        let _ = router.stackRevision
+        return NavigationStack(path: pathBinding(tab)) {
             root()
                 .foldsBottomChrome(tab, router: router)
                 .navigationDestination(for: HausRoute.self) { route in
-                    routeDestination(route).onAppear { logAppear(route, tab: tab) }
+                    routeDestination(route).onAppear { stackRouteAppeared(route, tab: tab) }
                 }
         }
+    }
+
+    func stackRouteAppeared(_ route: HausRoute, tab: HausTab) {
+        if router.path(tab).last == route { router.stackAppeared(tab) }
     }
 
     /// `routes` as a `NavigationStack` holds them: settings screens as
@@ -137,8 +143,10 @@ extension AuthenticatedHausView {
         Binding(
             get: { router.path(tab) },
             set: { path in
-                logStackWrite(path, over: router.path(tab), tab: tab)
-                router.setStackPath(path, for: tab)
+                let current = router.path(tab)
+                if !router.setStackPath(path, for: tab), router.layout == .stack {
+                    logRefusedStackWrite(path, over: current, tab: tab)
+                }
             }
         )
     }

@@ -29,7 +29,20 @@ public final class HausRouter {
     public private(set) var serverID: String?
     /// Follows the horizontal size class. A layout change keeps every
     /// stack, so folding and unfolding keep what is open.
-    public var layout: TabLayout = .stack
+    public var layout: TabLayout = .stack {
+        didSet {
+            guard layout != oldValue else { return }
+            unseenStacks = layout == .stack ? Set(paths.keys) : []
+            restoredStacks = []
+        }
+    }
+    /// Tabs whose stack was rebuilt by a layout change and whose top screen
+    /// has not appeared since (`TabPanes.swift`, `setStackPath`).
+    @ObservationIgnored var unseenStacks: Set<HausTab> = []
+    @ObservationIgnored var restoredStacks: Set<HausTab> = []
+    /// Bumped when a rebuilt stack's own write is refused, so the stack
+    /// redraws from the router's path.
+    public internal(set) var stackRevision = 0
 
     public init() {}
 

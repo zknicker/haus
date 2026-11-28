@@ -861,7 +861,12 @@ transcript's coordinator notes its resting anchor when a scroll settles (`Transc
 nil at the newest edge), so `carry()` touches no UIKit layout, and resumes a carried one once the
 table has a height and the item, unless the reader touches it first or a reveal wins. Only the
 stack on screen writes a tab's path: a compact stack torn down after the Duo opened writes nothing
-(`setStackPath`), as a split's already did (`setSplitStack`).
+(`setStackPath`), as a split's already did (`setSplitStack`). Closing the Duo with a Task beside its
+conversation had the rebuilt compact stack write itself empty before either screen appeared, so until
+a rebuilt stack's top screen appears (`stackAppeared`, from the destination's `onAppear`) the router
+refuses a write that drops more than one route, once per fold, and bumps `stackRevision`, which the
+stack reads so it redraws from the router's path. Back pops one screen and is always taken. Refusals
+are logged under `chat.haus.ios` / `pose` with their call stack.
 
 Conversations ask for `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)`
 (`keepsToolbarItemsWhileTyping`): with the keyboard up the rail runs short, and Call, Files and the

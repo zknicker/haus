@@ -10,19 +10,8 @@ extension HausStore {
         let drafts = drafts
         return Binding(
             get: { drafts.text(for: key) },
-            set: { text in
-                if text.isEmpty, !drafts.text(for: key).isEmpty {
-                    Self.logger.notice("Draft emptied for \(String(describing: destination), privacy: .public)")
-                }
-                drafts.setText(text, for: key)
-            }
+            set: { drafts.setText($0, for: key) }
         )
-    }
-
-    /// Each non-empty draft's destination and length, for the pose log.
-    var draftSummary: String {
-        let summary = drafts.texts.map { "\($0.key.destination)=\($0.value.count)" }.sorted().joined(separator: ", ")
-        return summary.isEmpty ? "none" : summary
     }
 
     func composerInteraction(for destination: ComposerDestination) -> ComposerInteraction {

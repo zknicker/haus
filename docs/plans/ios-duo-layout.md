@@ -379,13 +379,19 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
       appeared, so a composer that gained a Task's chip stayed registered under its own draft and carried stale
       focus. `PoseCarry.register` now moves a screen's registration when its key changes, and anything carried
       that no screen took is dropped the moment the reader navigates (`settle`).
-    - Closing from half open lost the Task, the selection and the chip's draft. No router or store write path
-      reproduces it in tests. Hardened what differs from open → closed: the system's own column-visibility writes no
-      longer move a column Haus holds at the fold or beside a Task (`acceptsSystemVisibility`); a compact stack
-      torn down after the layout moved on writes nothing (`setStackPath`, as `setSplitStack` already did); and a
-      transcript notes its anchor when a scroll settles instead of forcing table layout inside the pose change's
-      SwiftUI update. The `chat.haus.ios` `pose` log records each layout change and any stack write that drops more
-      than one route, and the `server` log records a draft being emptied, so a repeat shows its cause.
+    - Closing with a Task beside its conversation, fully or half open, lost the Task and the selection (a plain
+      chat folded fine). Logging showed the router still held `#all > task` at the fold and the Task's draft
+      survived in the Store; then the compact stack the fold rebuilt wrote itself empty about 450 ms later, before
+      either of its screens had appeared, while the scene was still moving to the outer display. Setting the same
+      path at launch, or flipping the size class in place, never reproduced it, and the logged call stack was cut
+      short, so what inside UIKit or SwiftUI pops the unshown stack is still unknown. The router now refuses a
+      rebuilt stack's write that drops more than one route before its top screen has appeared
+      (`setStackPath`, `stackAppeared`), once per fold, and bumps `stackRevision` so the stack redraws from its path.
+      Back pops one screen and is always taken; once the top appears, every write is. A refusal is logged under
+      `chat.haus.ios` / `pose` with its call stack, one frame per line. Also hardened: the system's own
+      column-visibility writes no longer move a column Haus holds at the fold or beside a Task
+      (`acceptsSystemVisibility`); a compact stack torn down after the layout moved on writes nothing; and a
+      transcript notes its anchor when a scroll settles instead of forcing table layout inside the pose change.
   - Proof: `FoldClearanceTests`, `PoseCarryTests`, `TaskModeLayoutTests`, `HausRouterFoldTests`; Duo inner display
     fully open in landscape unchanged.
 
