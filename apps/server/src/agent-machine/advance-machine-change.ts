@@ -53,6 +53,7 @@ export async function advanceMachineChange(tx: HausDatabase, input: AdvanceInput
     const [agent] = await tx
         .select({
             computerId: agentsTable.computerId,
+            kind: agentsTable.kind,
             placementGeneration: agentsTable.placementGeneration,
             retiredAt: agentsTable.retiredAt,
             sessionGeneration: agentsTable.sessionGeneration,
@@ -75,7 +76,7 @@ export async function advanceMachineChange(tx: HausDatabase, input: AdvanceInput
     if (await waitsForOldWork(tx, { ...old, isOnline: input.isOnline })) {
         return { ...scope, kind: 'waiting' } satisfies MachineChangeStep;
     }
-    if (!(change.fromLastSynced || change.flushedAt)) {
+    if (agent.kind === 'captain' && !(change.fromLastSynced || change.flushedAt)) {
         if (!input.isOnline(agent.computerId)) {
             return { ...scope, kind: 'waiting' } satisfies MachineChangeStep;
         }

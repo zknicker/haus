@@ -99,6 +99,7 @@ export interface ComputerAgentRow {
     desiredModelId: string | null;
     desiredReasoningEffort: AgentReasoningEffort;
     desiredRuntimeId: string | null;
+    kind: 'captain' | 'task';
     placementGeneration: number;
     retiredAt: Date | null;
     serverId: string;
@@ -121,6 +122,7 @@ export async function listComputerAgents(
             desiredModelId: agentsTable.desiredModelId,
             desiredReasoningEffort: agentsTable.desiredReasoningEffort,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
+            kind: agentsTable.kind,
             placementGeneration: agentsTable.placementGeneration,
             retiredAt: agentsTable.retiredAt,
             sessionGeneration: agentsTable.sessionGeneration,

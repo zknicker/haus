@@ -8,7 +8,7 @@ import { readDeliveryState } from './store.ts';
 export async function driveReconcileFrames(db: HausDatabase, machineId: string) {
     const frames: AgentCommand[] = [];
     for (const agent of await listComputerAgents(db, machineId)) {
-        if (agent.retiredAt) {
+        if (agent.retiredAt || agent.kind === 'task') {
             continue;
         }
         const run = {

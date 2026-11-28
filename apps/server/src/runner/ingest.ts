@@ -149,7 +149,7 @@ async function pushDrive(ingest: RunnerIngest, run: { agentId: string; runId: st
     ]);
     const machineId = state?.activeRunComputerId;
     if (
-        placement &&
+        placement?.kind === 'captain' &&
         machineId &&
         state.activeRunId === run.runId &&
         ingest.computers.isOnline(machineId)
@@ -168,6 +168,7 @@ async function readAgentPlacement(db: HausDatabase, agentId: string) {
     const [agent] = await db
         .select({
             computerId: agentsTable.computerId,
+            kind: agentsTable.kind,
             placementGeneration: agentsTable.placementGeneration,
             serverId: agentsTable.serverId,
             sessionGeneration: agentsTable.sessionGeneration,
@@ -178,6 +179,7 @@ async function readAgentPlacement(db: HausDatabase, agentId: string) {
     return agent?.computerId
         ? {
               computerId: agent.computerId,
+              kind: agent.kind,
               placementGeneration: agent.placementGeneration,
               serverId: agent.serverId,
               sessionGeneration: agent.sessionGeneration,

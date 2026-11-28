@@ -5,11 +5,13 @@ import {
     type InvocationHarness,
     startInvocationHarness,
 } from './agent-invocations.fixture.ts';
+import { ensureCaptainsProject } from './agent-home.fixture.ts';
 import { openCaptainChat } from './captain-chat.fixture.ts';
 import {
     connectRunner,
     frameOfType,
     type RunnerClient,
+    type RunnerFrame,
     testRunnerToken,
 } from './runner.fixture.ts';
 
@@ -113,11 +115,60 @@ test('a Computer that reconnects after the run settled pushes the folder for tha
     expect(computer.frames.some((frame) => frame.type === 'drive-pull')).toBe(false);
 });
 
-function settledTurn(runId: string) {
+test('a Task agent run on the same Machine sends no Drive frames while its Captain still syncs', async () => {
+    const { owner, serverId } = setup;
+    const { task } = await owner.trpc.task.start.mutate({
+        computerId: setup.computerId,
+        model: 'gpt-5.6-sol',
+        projectId: await ensureCaptainsProject(owner, serverId),
+        prompt: 'Run haus --version and date.',
+        requestId: 'req-task-drive-sync',
+        serverId,
+    });
+    const taskRunId = runIdOf(await runner.next(startFor(task.agentId)));
+    const earlier = new Set(runner.frames.filter(startFor(setup.agentId)).map(runIdOf));
+    const chatId = (await openCaptainChat(owner, { agentId: setup.agentId, serverId })).id;
+    await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'And you?',
+        nonce: 'drive_sync_beside_task',
+        serverId,
+    });
+    const captainRunId = runIdOf(
+        await runner.next(
+            (frame) => startFor(setup.agentId)(frame) && !earlier.has(runIdOf(frame))
+        )
+    );
+    await computer.next(frameOfType('drive-pull', { runId: captainRunId }));
+
+    runner.send({ agentId: task.agentId, runId: taskRunId, type: 'ack' });
+    runner.send(settledTurn(taskRunId, task.agentId));
+    runner.send({ agentId: setup.agentId, runId: captainRunId, type: 'ack' });
+    runner.send(settledTurn(captainRunId));
+    await computer.next(frameOfType('drive-push', { runId: captainRunId }));
+
+    expect(
+        computer.frames.filter(
+            (frame) => frame.agentId === task.agentId && String(frame.type).startsWith('drive-')
+        )
+    ).toEqual([]);
+});
+
+function startFor(agentId: string) {
+    return (frame: RunnerFrame) =>
+        frame.type === 'runner-start' &&
+        (frame.start as { agentId: string }).agentId === agentId;
+}
+
+function runIdOf(frame: RunnerFrame) {
+    return (frame.start as { runId: string }).runId;
+}
+
+function settledTurn(runId: string, agentId = setup.agentId) {
     const now = new Date().toISOString();
     return {
         activity: { operations: [] },
-        agentId: setup.agentId,
+        agentId,
         endedAt: now,
         messageCount: 0,
         modelId: 'gpt-5.6-sol',

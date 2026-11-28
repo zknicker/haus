@@ -101,7 +101,7 @@ export interface DispatchPlan {
     computerId: string;
     configuration?: DeferredConfiguration;
     frame: LoopFrame;
-    /** The Agent's placement generation, set when a run's start is bound for the runner. */
+    /** A Captain's placement generation, set when its run's start is bound for the runner so its Machine pulls its `drive/` folder. A Task agent has no folder (ADR 0062). */
     placementGeneration?: number;
     serverId: string;
     suppressSend?: boolean;

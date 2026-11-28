@@ -100,6 +100,7 @@ export class AgentLoopRoute {
             state?.activeRunId === start.runId ? state.activeRunReasoningEffort : null;
         const [agent] = await tx
             .select({
+                kind: agentsTable.kind,
                 placementGeneration: agentsTable.placementGeneration,
                 sessionResetKind: agentsTable.sessionResetKind,
             })
@@ -117,7 +118,7 @@ export class AgentLoopRoute {
         });
         const bound: DispatchPlan = {
             ...plan,
-            placementGeneration: agent.placementGeneration,
+            ...(agent.kind === 'captain' ? { placementGeneration: agent.placementGeneration } : {}),
             frame: {
                 ...(reasoningEffort ? { reasoningEffort } : {}),
                 modelConnectionId,
