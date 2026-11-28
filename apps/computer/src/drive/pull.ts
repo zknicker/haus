@@ -9,6 +9,7 @@ import {
     isReadOnlyArea,
     openFolderState,
 } from './folder-state.ts';
+import { prefetchBodies } from './pull-bodies.ts';
 import { applyChange, type ChangeResult } from './pull-change.ts';
 
 export async function pullDrive(input: { layout: DriveFolderLayout; remote: DriveRemote }) {
@@ -20,15 +21,23 @@ export async function pullDrive(input: { layout: DriveFolderLayout; remote: Driv
     let since: DriveAreaCounters = { ...state.current().counters };
     let until: DriveAreaCounters | undefined;
     let areas: DriveFolderArea[] = state.current().areas;
+    const downloads: Promise<unknown>[] = [];
     await files.clearScratch();
     try {
         for (;;) {
             const page = await input.remote.changes(since, until);
             until ??= page.until;
             areas = page.areas.map(({ area, root }) => ({ area, root }));
+            const bodies = await prefetchBodies({
+                changes: page.changes,
+                files,
+                remote: input.remote,
+                state,
+            });
+            downloads.push(bodies.settled());
             for (const change of page.changes) {
                 const readOnlyRoot = readOnlyRootOf(areas, change.area, input.layout.writer);
-                const context = { ...input, files, readOnlyRoot, state };
+                const context = { body: bodies.body, files, readOnlyRoot, state };
                 const result = await applyChange(context, change).catch((error: unknown) => {
                     if (!isHeld(error)) {
                         throw error;
@@ -47,6 +56,7 @@ export async function pullDrive(input: { layout: DriveFolderLayout; remote: Driv
             await state.advance(areas, until);
         }
     } finally {
+        await Promise.all(downloads);
         await files.relock();
     }
     return { ...tally, advanced: tally.blocked === 0, held };

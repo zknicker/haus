@@ -1,4 +1,3 @@
-import type { DriveRemote } from './drive-remote.ts';
 import type { DriveChangeEntry } from './drive-response-schema.ts';
 import type { FolderFiles } from './folder-files.ts';
 import { placeJournaled } from './folder-placing.ts';
@@ -8,17 +7,17 @@ import {
     foldedRecord,
     unplacedMtimeMs,
 } from './folder-state.ts';
+import type { PutChange } from './pull-bodies.ts';
 
 export type ChangeResult = 'applied' | 'blocked' | 'kept' | 'skipped';
 
 export interface ChangeContext {
+    body: (change: PutChange) => Promise<string>;
     files: FolderFiles;
     readOnlyRoot: string | null;
-    remote: DriveRemote;
     state: FolderStateStore;
 }
 
-type PutChange = Extract<DriveChangeEntry, { change: 'put' }>;
 type DeleteChange = Extract<DriveChangeEntry, { change: 'delete' }>;
 
 export async function applyChange(context: ChangeContext, change: DriveChangeEntry) {
@@ -88,8 +87,7 @@ async function applyPut(context: ChangeContext, change: PutChange) {
         await state.markSeen(change.path, change.revision_id);
         return 'kept' satisfies ChangeResult;
     }
-    const scratch = await files.scratchFile();
-    await context.remote.download(change, scratch);
+    const scratch = await context.body(change);
     return await blockedOnLocalPath(async () => {
         if ((await placeJournaled(context, facts, scratch, context.readOnlyRoot, local)) === null) {
             await state.markSeen(change.path, change.revision_id);
