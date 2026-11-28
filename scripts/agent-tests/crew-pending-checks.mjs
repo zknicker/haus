@@ -21,8 +21,8 @@ export async function startPendingChecksCrew(kit, { captain, log }) {
     await startCrewAsCaptain(kit, captain, {
         brief: [
             `Bump lodash from 4.17.20 to 4.17.21 in acme/web (${issue.code}).`,
-            `Where it stands: the change is committed and pushed as ${pendingChecksPullRequest}, head 3f9c2e1. This Machine has no GitHub access, so take CI from here: lint and unit passed; e2e, build and deploy-preview are still running.`,
-            'Out of scope: any other dependency. Post where the work stands in your chat now; you need not wait for CI.',
+            `Where it stands: the change is committed and pushed as ${pendingChecksPullRequest}, head 3f9c2e1, and that pull request is attached to you, so its check results wake you as they land. So far lint and unit passed; e2e, build and deploy-preview are still running.`,
+            'Out of scope: any other dependency. Post where the work stands in your chat now; the checks wake you when they finish.',
         ].join('\n\n'),
         issue: issue.code,
         title: 'Bump lodash to 4.17.21',
