@@ -5,17 +5,17 @@ import Observation
 /// projections and launch snapshot.
 public enum ChatsChange: Equatable, Sendable {
     case chatList([ChatSummary])
-    case receiptBackedDMs
+    case receiptBackedCaptainChats
 }
 
-/// The Server's Chat list: Projects, `#all`, and DMs (Channels and DMs on the
-/// wire), with the unread state the Inbox and dots read. Transcripts live in
+/// The Server's Chat list: Projects, `#all`, DMs, and Captain chats, with the
+/// unread state the Inbox and dots read. Transcripts live in
 /// the shared `TranscriptStore` the composition root owns.
 @MainActor
 @Observable
 public final class ChatsModel {
     private var storedChats: [ChatSummary] = []
-    private var storedReceiptBackedAgentDMs: [String: String] = [:]
+    private var storedReceiptBackedCaptainChats: [String: String] = [:]
     /// Whether the Chat list has landed once, so unread stays silent until it
     /// can answer honestly.
     public private(set) var hasLoadedChats = false
@@ -24,7 +24,7 @@ public final class ChatsModel {
     /// message arrives first (`UnreadChats.isUnread`).
     public var markedReadThrough: [String: Int] = [:]
 
-    /// Called after each write that changes the list or the DM receipts.
+    /// Called after each write that changes the list or the Captain chat receipts.
     @ObservationIgnored public var onChange: @MainActor (ChatsChange) -> Void = { _ in }
 
     public init() {}
@@ -43,14 +43,14 @@ public final class ChatsModel {
         }
     }
 
-    /// Captain DMs the Server has materialized but the Chat list has not
-    /// caught up to, by Chat id.
-    public var receiptBackedAgentDMsByChatID: [String: String] {
-        get { storedReceiptBackedAgentDMs }
+    /// Captain chats a send's receipt named but the Chat list has not caught
+    /// up to, by Chat id.
+    public var receiptBackedCaptainChatsByChatID: [String: String] {
+        get { storedReceiptBackedCaptainChats }
         set {
-            guard storedReceiptBackedAgentDMs != newValue else { return }
-            storedReceiptBackedAgentDMs = newValue
-            onChange(.receiptBackedDMs)
+            guard storedReceiptBackedCaptainChats != newValue else { return }
+            storedReceiptBackedCaptainChats = newValue
+            onChange(.receiptBackedCaptainChats)
         }
     }
 
@@ -68,7 +68,7 @@ public final class ChatsModel {
             storedChats = []
             onChange(.chatList([]))
         }
-        receiptBackedAgentDMsByChatID = [:]
+        receiptBackedCaptainChatsByChatID = [:]
         markedReadThrough = [:]
         hasLoadedChats = false
     }

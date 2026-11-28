@@ -1,24 +1,13 @@
 import Foundation
 import HausModels
 
-public enum TaskStateLabel {
-    public static func text(_ state: TaskState) -> String {
-        switch state {
-        case .todo: "Todo"
-        case .open: "In progress"
-        case .done: "Done"
-        case .canceled: "Canceled"
-        case .unknown: "Unknown state"
-        }
-    }
-}
-
+/// A Task as its origin Channel previews it under the message it started from.
 public struct TaskPreviewPresentation: Identifiable, Hashable, Sendable {
     public let taskID: String
     public let chatID: String
-    public let key: String
+    public let shortID: String
     public let title: String
-    public let state: TaskState
+    public let isArchived: Bool
     public let messageCount: Int
     public let unreadCount: Int
     public let recentMessages: [TaskMessagePreviewPresentation]
@@ -28,24 +17,24 @@ public struct TaskPreviewPresentation: Identifiable, Hashable, Sendable {
     public init(
         taskID: String,
         chatID: String,
-        key: String,
+        shortID: String,
         title: String,
-        state: TaskState,
+        isArchived: Bool,
         messageCount: Int,
         unreadCount: Int,
         recentMessages: [TaskMessagePreviewPresentation]
     ) {
         self.taskID = taskID
         self.chatID = chatID
-        self.key = key
+        self.shortID = shortID
         self.title = title
-        self.state = state
+        self.isArchived = isArchived
         self.messageCount = messageCount
         self.unreadCount = unreadCount
         self.recentMessages = recentMessages
     }
 
-    public var stateLabel: String { TaskStateLabel.text(state) }
+    public var disc: TaskDiscState { TaskDiscState(isArchived: isArchived, status: nil) }
 
     public var messagesLabel: String {
         "\(messageCount) \(messageCount == 1 ? "message" : "messages")"
@@ -56,11 +45,12 @@ public struct TaskPreviewPresentation: Identifiable, Hashable, Sendable {
     }
 
     public var summaryLine: String {
-        ([stateLabel, messagesLabel] + [unreadLabel].compactMap { $0 }).joined(separator: " · ")
+        ((isArchived ? ["Archived"] : []) + [messagesLabel] + [unreadLabel].compactMap { $0 })
+            .joined(separator: " · ")
     }
 
     public var accessibilityLabel: String {
-        (["Open task \(key)", title, stateLabel, messagesLabel] + [unreadLabel].compactMap { $0 })
+        (["Open task", title, disc.label, messagesLabel] + [unreadLabel].compactMap { $0 })
             .joined(separator: ", ")
     }
 }
@@ -75,9 +65,9 @@ public enum TaskPreviewProjection {
         TaskPreviewPresentation(
             taskID: preview.taskID,
             chatID: preview.chatID,
-            key: preview.key,
+            shortID: preview.shortID,
             title: preview.title,
-            state: preview.state,
+            isArchived: preview.isArchived,
             messageCount: preview.messageCount,
             unreadCount: preview.unreadCount,
             recentMessages: preview.recentMessages.suffix(recentMessageLimit).compactMap { message in

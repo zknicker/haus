@@ -3,7 +3,7 @@ import HausModels
 import OSLog
 
 /// The Server-wide reads Home and the unread dots stand on: the Chat list,
-/// unread Task chats, and active Workers.
+/// unread Task chats, and the active Tasks.
 ///
 /// Each snapshot lives on the Store rather than on a screen because the dots
 /// outlive any one tab: a durable event refreshes what this client already
@@ -16,8 +16,8 @@ extension HausStore {
     func loadInbox() async {
         async let chats: Void = refreshInboxChats()
         async let unreadTasks: Void = loadUnreadTasks()
-        async let work: Void = loadActiveWorkers()
-        _ = await (chats, unreadTasks, work)
+        async let activeTasks: Void = tasks.refreshActiveTasks()
+        _ = await (chats, unreadTasks, activeTasks)
     }
 
     func markInboxRowRead(id: String) async {

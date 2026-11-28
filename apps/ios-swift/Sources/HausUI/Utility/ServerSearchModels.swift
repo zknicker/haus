@@ -45,6 +45,7 @@ public struct MessageSearchResultPresentation: Identifiable, Hashable, Sendable 
 public enum MessageSearchChatKind: Hashable, Sendable {
     case channel
     case directMessage
+    case task
 }
 
 /// Where a search looks: every Chat on the Server, or only the Chat the sheet

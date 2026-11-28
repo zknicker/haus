@@ -4,8 +4,8 @@ import HausTransport
 import Observation
 import OSLog
 
-/// The Server's Projects (`project.list`): keys, home Captains, repos, the
-/// default Worker place, and whether each is archived. The Chat list stays the
+/// The Server's Projects (`project.list`): keys, home Captains, the default
+/// Machine, and whether each is archived. The Chat list stays the
 /// source of which Projects the viewer has joined; this model adds what only
 /// a Project carries. Every write re-reads the list it changed.
 @MainActor
@@ -85,8 +85,8 @@ public final class ProjectsModel {
 
     // MARK: - Writes
 
-    /// Renames a Project or changes its Task key. A key is editable only
-    /// until the Project has a Task.
+    /// Renames a Project or changes its key. A key is editable only until the
+    /// Project has an Issue, since Issue codes carry it.
     public func update(chatID: String, name: String?, key: String?) async throws {
         let ticket = try scope.requireTicket()
         let projectKey = try key.map { raw in
@@ -100,55 +100,13 @@ public final class ProjectsModel {
         try await reload()
     }
 
-    public func addRepo(projectID: String, repository: String) async throws {
-        let ticket = try scope.requireTicket()
-        guard let input = ProjectRepoInput(projectID: projectID, repository: repository, serverID: ticket.serverID) else {
-            throw ProjectEditError.invalidRepository
-        }
-        _ = try await client.call(ProjectProcedures.addRepo, input)
-        try await reload()
-    }
-
-    public func removeRepo(projectRepoID: String) async throws {
+    /// The Machine a Task started here runs on unless its starter picks one.
+    /// Nil asks each time.
+    public func setDefaultMachine(projectID: String, computerID: String?) async throws {
         let ticket = try scope.requireTicket()
         _ = try await client.call(
-            ProjectProcedures.removeRepo,
-            ProjectRepoTarget(projectRepoID: projectRepoID, serverID: ticket.serverID)
-        )
-        try await reload()
-    }
-
-    public func linkRepo(projectRepoID: String, computerID: String, checkoutPath: String?) async throws {
-        let ticket = try scope.requireTicket()
-        let path = checkoutPath?.trimmingCharacters(in: .whitespacesAndNewlines)
-        _ = try await client.call(
-            ProjectProcedures.linkRepo,
-            ProjectRepoLinkInput(
-                checkoutPath: path?.isEmpty == false ? path : nil,
-                computerID: computerID,
-                projectRepoID: projectRepoID,
-                serverID: ticket.serverID
-            )
-        )
-        try await reload()
-    }
-
-    public func unlinkRepo(projectRepoID: String, computerID: String) async throws {
-        let ticket = try scope.requireTicket()
-        _ = try await client.call(
-            ProjectProcedures.unlinkRepo,
-            ProjectRepoUnlinkInput(computerID: computerID, projectRepoID: projectRepoID, serverID: ticket.serverID)
-        )
-        try await reload()
-    }
-
-    /// Where a Project's Workers run unless someone picks a place. Nil asks
-    /// each time.
-    public func setDefaultWorkerPlace(projectID: String, place: WorkerPlaceTarget?) async throws {
-        let ticket = try scope.requireTicket()
-        _ = try await client.call(
-            ProjectProcedures.setDefaultWorkerPlace,
-            ProjectDefaultWorkerPlaceInput(place: place, projectID: projectID, serverID: ticket.serverID)
+            ProjectProcedures.setDefaultMachine,
+            ProjectSetDefaultMachineInput(computerID: computerID, projectID: projectID, serverID: ticket.serverID)
         )
         try await reload()
     }
@@ -159,13 +117,11 @@ public final class ProjectsModel {
 public enum ProjectEditError: LocalizedError, Equatable {
     case invalidName
     case invalidKey
-    case invalidRepository
 
     public var errorDescription: String? {
         switch self {
         case .invalidName: "A Project name is up to 32 letters, numbers, dashes, or underscores."
         case .invalidKey: "A key is 2 to 5 capital letters or numbers, starting with a letter."
-        case .invalidRepository: "Enter a GitHub repository as owner/name."
         }
     }
 }

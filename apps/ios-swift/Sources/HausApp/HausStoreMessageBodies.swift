@@ -7,66 +7,24 @@ import HausUI
 extension HausStore {
     /// The body parse is the expensive step of a row, so it is memoized per
     /// message and survives every rebuild that cannot change it.
-    func parsedBody(
-        id: String,
-        content: String,
-        chatID: String,
-        taskLinks: [TaskLink] = []
-    ) -> ParsedMessageBody {
+    func parsedBody(id: String, content: String, chatID: String) -> ParsedMessageBody {
         let revision = projections.referenceRevision
-        // Task links ride the Message rather than the reference directory: a
-        if let cached = projections.bodies.cached(id: id, content: content, revision: revision),
-           cached.taskLinks == taskLinks {
+        if let cached = projections.bodies.cached(id: id, content: content, revision: revision) {
             return cached
         }
         let (body, visuals) = MessagePresentation.resolvedBody(content: content)
         let blocks = SharedArtifactLinkScope.$current.withValue(projections.sharedArtifacts.scope) {
             richMessageBlocks(visuals.prose)
         }
-        let richBlocks = TaskLinkChips.apply(taskLinks, to: blocks)
-        let parsed = ParsedMessageBody(
-            body: body,
-            visuals: visuals,
-            richBlocks: richBlocks,
-            taskLinks: taskLinks,
-            taskReferenceIDs: TaskReferenceStates.taskIDs(in: richBlocks)
-        )
+        let parsed = ParsedMessageBody(body: body, visuals: visuals, richBlocks: blocks)
         projections.bodies.remember(parsed, id: id, content: content, revision: revision)
         return parsed
     }
 
-    /// A parsed body with its Task chips wearing their Tasks' states.
-    func stampedBlocks(_ parsed: ParsedMessageBody) -> [RichMessageBlock] {
-        guard !parsed.taskReferenceIDs.isEmpty else { return parsed.richBlocks }
-        return TaskReferenceStates.apply(projections.taskReferenceStates, to: parsed.richBlocks)
-    }
-
     /// A Task description drawn the way a message body is: the Server's
-    /// resolved description through the same reference resolver, with its
-    /// Task keys chipped from the links the Server resolved for it.
+    /// resolved description through the same reference resolver.
     func taskDescriptionBlocks(_ detail: TaskDetail) -> [RichMessageBlock] {
-        TaskReferenceStates.apply(
-            taskReferenceStateIndex,
-            to: TaskLinkChips.apply(detail.descriptionTaskLinks, to: richMessageBlocks(detail.descriptionContent))
-        )
-    }
-
-    /// Retires drawn rows when a Task a chip could show changed state.
-    func syncTaskReferenceStates() {
-        projections.retireTaskReferenceStates(taskReferenceStateIndex)
-    }
-
-    /// Every Task state this client holds, freshest read last: the Task
-    /// previews on loaded pages, the open Tasks, the Tasks list, then details.
-    var taskReferenceStateIndex: [String: TaskState] {
-        var states: [String: TaskState] = [:]
-        for page in messagesByChatID.values {
-            for preview in page.tasks { states[preview.taskID] = preview.state }
-        }
-        for task in tasks.openTasks ?? [] { states[task.id] = task.state }
-        for task in tasks.list?.tasks ?? [] { states[task.id] = task.state }
-        for detail in tasks.detailsByID.values { states[detail.task.id] = detail.task.state }
-        return states
+        richMessageBlocks(detail.descriptionContent)
     }
 
     private func richMessageBlocks(_ content: String) -> [RichMessageBlock] {

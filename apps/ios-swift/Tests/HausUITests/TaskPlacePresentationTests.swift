@@ -4,44 +4,42 @@ import HausModels
 import Testing
 
 struct TaskPlacePresentationTests {
-    // MARK: - Status words
+    // MARK: - Pull request words
 
-    @Test func taskStatesReadAsTheAppSaysThem() {
-        let labels = [TaskState.todo, .open, .done, .canceled, .unknown].map(TaskStateLabel.text)
-        #expect(labels == ["Todo", "In progress", "Done", "Canceled", "Unknown state"])
-    }
-
-    @Test func pullRequestFactsReadAsWords() throws {
+    @Test func pullRequestFactsReadAsWords() {
         let reading = PullRequestReading(
             number: 42, repository: "haus/haus", state: "merged", checks: "failing", review: "changes-requested",
             title: "Rate-limit webhooks", url: "https://github.com/haus/haus/pull/42", changedFiles: 1
         )
-        let pullRequest = TaskPullRequestPresentation(reading: reading)
-        #expect(pullRequest.title == "PR #42 · Rate-limit webhooks")
+        let pullRequest = PullRequestPresentation(reading: reading)
+        #expect(pullRequest.title == "Rate-limit webhooks")
         #expect(pullRequest.stateLabel == "Merged")
-        #expect(pullRequest.facts == "Checks failing · Changes requested · 1 file")
-        #expect(TaskPullRequestPresentation.checksLabel("someday") == "Checks unknown")
-        #expect(TaskPullRequestPresentation.stateLabel("someday") == "Unknown state")
+        #expect(pullRequest.reviewLabel == "Changes requested")
+        #expect(pullRequest.checksLabel == "Failing")
+        #expect(pullRequest.url?.host() == "github.com")
+        #expect(PullRequestPresentation(reading: PullRequestReading(
+            number: 1, repository: "haus/haus", state: "someday", url: "ftp://nowhere"
+        )).url == nil)
     }
 
-    // MARK: - Attached work
+    // MARK: - Chat header
 
-    @Test func aWorkerReadsItsNewestRun() throws {
-        let agent = try WorkerFixture.work(
-            status: "pending_input",
-            job: WorkerFixture.Job.pendingInput(question: "Which key?"),
-            runs: [run(id: "run_new", status: "pending_input", summary: "Paused: **which** key should rotate?"),
-                   run(id: "run_old", status: "completed", summary: "Earlier run")]
+    @Test func theHeaderNamesTheTaskAndItsActivity() {
+        let task = TaskRecord(
+            id: "t", shortID: "k3mq7xta", title: "Rate-limit", activity: .waiting, needsYou: true,
+            projectID: "p", serverID: "s", version: 1, createdAt: .now, updatedAt: .now, createdBy: .user(userID: "u")
         )
-        #expect(agent.newestRun?.runId == "run_new")
-        #expect(agent.newestRunSummary == "Paused: which key should rotate?")
+        let header = TaskChatHeaderPresentation(task)
+        #expect(header.title == "Rate-limit")
+        #expect(header.shortID == "k3mq7xta")
+        #expect(header.disc.label == "Needs you")
     }
 
     // MARK: - Origin preview
 
     @Test func aPreviewQuotesUpToThreeResolvedMessagesAndStatesItsCounts() throws {
         let preview = TaskPreview(
-            taskID: "task_12", chatID: "chat_task_12", key: "SEC-12", title: "Rate-limit", state: .open,
+            taskID: "task_12", chatID: "chat_task_12", shortID: "k3mq7xta", title: "Rate-limit",
             originMessageID: "msg_origin",
             recentMessages: try ["m1", "m2", "gone", "m4"].map(reply),
             messageCount: 9, unreadCount: 2, followed: true
@@ -52,27 +50,28 @@ struct TaskPlacePresentationTests {
         #expect(presentation.recentMessages.map(\.id) == ["m2", "m4"])
         #expect(presentation.messagesLabel == "9 messages")
         #expect(presentation.unreadLabel == "2 new")
-        #expect(presentation.summaryLine == "In progress · 9 messages · 2 new")
-        #expect(presentation.accessibilityLabel == "Open task SEC-12, Rate-limit, In progress, 9 messages, 2 new")
+        #expect(presentation.summaryLine == "9 messages · 2 new")
+        #expect(presentation.accessibilityLabel == "Open task, Rate-limit, Active, 9 messages, 2 new")
     }
 
-    @Test func aQuietPreviewSaysNothingNew() {
+    @Test func anArchivedQuietPreviewSaysSo() {
         let presentation = TaskPreviewPresentation(
-            taskID: "t", chatID: "c", key: "SEC-1", title: "One", state: .done,
+            taskID: "t", chatID: "c", shortID: "k3mq7xta", title: "One", isArchived: true,
             messageCount: 1, unreadCount: 0, recentMessages: []
         )
         #expect(presentation.messagesLabel == "1 message")
         #expect(presentation.unreadLabel == nil)
-        #expect(presentation.summaryLine == "Done · 1 message")
+        #expect(presentation.summaryLine == "Archived · 1 message")
+        #expect(presentation.disc == .archived)
     }
 
     @Test func previewsLandUnderTheirOriginMessage() {
         let previews = [
-            TaskPreview(taskID: "a", chatID: "ca", key: "SEC-1", title: "A", state: .open, originMessageID: "m1", messageCount: 1),
-            TaskPreview(taskID: "b", chatID: "cb", key: "SEC-2", title: "B", state: .todo, originMessageID: "m1", messageCount: 0),
+            TaskPreview(taskID: "a", chatID: "ca", shortID: "aaaaaaaa", title: "A", originMessageID: "m1", messageCount: 1),
+            TaskPreview(taskID: "b", chatID: "cb", shortID: "bbbbbbbb", title: "B", originMessageID: "m1", messageCount: 0),
         ]
         let grouped = TaskPreviewProjection.presentations(previews) { _ in nil }
-        #expect(grouped["m1"]?.map(\.key) == ["SEC-1", "SEC-2"])
+        #expect(grouped["m1"]?.map(\.shortID) == ["aaaaaaaa", "bbbbbbbb"])
     }
 
     // MARK: - Task transcript
@@ -115,12 +114,5 @@ struct TaskPlacePresentationTests {
         try HausJSON.decoder().decode(TaskMessagePreview.self, from: Data("""
         {"authorAgentId":"agent_1","authorUserId":null,"content":"Line \(id)","createdAt":"2026-11-17T10:00:00Z","id":"\(id)"}
         """.utf8))
-    }
-
-    private func run(id: String, status: String, summary: String) -> String {
-        """
-        {"branches":[],"createdAt":"\(WorkerFixture.start)","errorCode":null,"turnId":"\(id)",
-         "startedAt":"\(WorkerFixture.start)","status":"\(status)","summary":"\(summary)","terminalAt":null}
-        """
     }
 }

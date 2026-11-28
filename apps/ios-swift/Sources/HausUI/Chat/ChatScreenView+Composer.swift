@@ -13,12 +13,14 @@ extension ChatScreenView {
             MessageComposerView(
                 text: $draft,
                 interaction: composerInteraction,
-                place: chat.kind.composerPlace(title: chat.title),
+                place: composerTask == nil ? chat.kind.composerPlace(title: chat.title) : .steeringTask,
                 isTextFocused: $isComposerFocused,
                 allowsAttachments: chat.durableChat != nil,
                 mentionOptions: mentionOptions,
-                inlineReply: inlineReply,
+                inlineReply: composerInlineReply,
                 onCancelInlineReply: { inlineReply = nil },
+                taskChip: composerTask,
+                onClearTaskChip: onClearComposerTask,
                 transitionNamespace: composerTransitionNamespace,
                 onSend: sendMessage
             )
@@ -38,13 +40,27 @@ extension ChatScreenView {
         composerInteraction.portalFreeze.bottomInset(live: liveBottomInset)
     }
 
-    var liveBottomInset: CGFloat { keyboardInset ?? contentInsets.bottom }
+    var liveBottomInset: CGFloat {
+        ChatComposerInset.bottom(keyboard: keyboardInset, screen: contentInsets.bottom)
+    }
+}
+
+/// How far the Chat composer sits off the screen bottom. The keyboard reader
+/// knows the keyboard and the home indicator, but not the system's bars: with
+/// bars horizontal at regular width (inner portrait) the tab bar floats at the
+/// bottom, inside the screen's own bottom inset, and the composer sat under
+/// it. The composer clears whichever reaches higher; the keyboard always
+/// covers the tab bar when it is up.
+enum ChatComposerInset {
+    static func bottom(keyboard: CGFloat?, screen: CGFloat) -> CGFloat {
+        max(keyboard ?? 0, screen)
+    }
 }
 
 extension ChatKind {
     /// An Agent DM's peer, whose stopped notice sits over the composer.
     public var peerAgentID: String? {
-        if case .agentDirectMessage(let agent) = self { agent.id } else { nil }
+        if case .captainChat(let agent) = self { agent.id } else { nil }
     }
 
     var isChannel: Bool {
@@ -54,18 +70,18 @@ extension ChatKind {
     /// A Captain DM reads as the assistant layout; Projects, `#all`, and DMs with people keep
     /// roster rows (`specs/ios-app.md`, "Places and transcripts").
     var transcriptStyle: TranscriptStyle {
-        if case .agentDirectMessage = self { .assistant } else { .roster }
+        if case .captainChat = self { .assistant } else { .roster }
     }
 
     /// An Agent DM's title already shows its Agent, so its pill is the thought.
     var engagementStyle: HeaderEngagementStyle {
-        if case .agentDirectMessage = self { .subtitle } else { .roster }
+        if case .captainChat = self { .subtitle } else { .roster }
     }
 
     func composerPlace(title: String) -> ComposerPlace {
         switch self {
         case .channel: .project(name: title)
-        case .agentDirectMessage: .captain
+        case .captainChat: .captain
         case .humanDirectMessage: .person(name: title)
         }
     }

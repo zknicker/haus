@@ -22,14 +22,6 @@ public enum ClaimStatus: String, Codable, Sendable {
     case closed
 }
 
-public enum TaskPriority: String, Codable, Sendable {
-    case none
-    case urgent
-    case high
-    case medium
-    case low
-}
-
 /// How the claim row came to exist. `composed` is a human composing a message
 /// as a claim, `converted` a human promoting an existing message, and `claimed`
 /// an Agent taking the claim before working a message nobody had promoted.
@@ -46,18 +38,6 @@ public enum ClaimOrigin: String, Codable, Sendable {
 public enum ClaimTier: String, Codable, Sendable {
     case background
     case tracked
-}
-
-public struct TaskLabel: Codable, Identifiable, Sendable, Equatable {
-    public let color: String
-    public let id: String
-    public let name: String
-
-    public init(color: String, id: String, name: String) {
-        self.color = color
-        self.id = id
-        self.name = name
-    }
 }
 
 public struct MessageClaim: Codable, Identifiable, Sendable, Equatable {

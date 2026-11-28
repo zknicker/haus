@@ -4,13 +4,14 @@ import HausModels
 /// The Server lifecycle of specs/ios-app.md: which Server is active, what a
 /// cold launch paints, and what a switch, a membership loss, or a sign-out
 /// clears. It owns everything this device keeps per Server: the persisted
-/// choice, the launch snapshots, and the composer drafts.
+/// choice, the launch snapshots, the list column, and the composer drafts.
 @MainActor
 public final class ServerLifecycle<Staged: AnyObject> {
     public let userID: String
     public let scope: ServerScope
     public let preference: ActiveServerPreference
     public let launchSnapshots: LaunchSnapshotStore
+    public let listColumns: ListColumnPreference
     public let drafts: ComposerDraftStore<Staged>
 
     public init(
@@ -18,12 +19,14 @@ public final class ServerLifecycle<Staged: AnyObject> {
         scope: ServerScope,
         preference: ActiveServerPreference,
         launchSnapshots: LaunchSnapshotStore,
+        listColumns: ListColumnPreference,
         drafts: ComposerDraftStore<Staged>
     ) {
         self.userID = userID
         self.scope = scope
         self.preference = preference
         self.launchSnapshots = launchSnapshots
+        self.listColumns = listColumns
         self.drafts = drafts
     }
 
@@ -59,20 +62,22 @@ public final class ServerLifecycle<Staged: AnyObject> {
         return previous == serverID ? .kept(serverID) : .activated(serverID, previous: previous)
     }
 
-    /// The viewer lost `serverID`: its paint and drafts go, and it stops
-    /// being the persisted choice. The next `adopt` picks another Server.
+    /// The viewer lost `serverID`: its paint, list column, and drafts go, and
+    /// it stops being the persisted choice. The next `adopt` picks another Server.
     public func membershipLost(_ serverID: String) async {
         await launchSnapshots.clear(serverID: serverID)
+        listColumns.clear(serverID: serverID)
         drafts.clear(serverID: serverID)
         if preference.serverID == serverID { preference.clear() }
         if scope.isActive(serverID) { scope.activate(nil) }
     }
 
-    /// Sign-out: every Server's paint, drafts, and staged files go, with the
-    /// persisted choice. The scope stays as it is: the signed-out session's
-    /// screens are torn down with it rather than redrawn without a Server.
+    /// Sign-out: every Server's paint, list column, drafts, and staged files
+    /// go, with the persisted choice. The scope stays as it is: the signed-out
+    /// session's screens are torn down with it rather than redrawn without a Server.
     public func signOut() async {
         await launchSnapshots.clearAll()
+        listColumns.clearAll()
         drafts.clearAll()
         preference.clear()
     }

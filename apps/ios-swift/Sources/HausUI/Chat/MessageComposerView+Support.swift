@@ -12,6 +12,8 @@ extension MessageComposerView {
         mentionOptions: [MentionOptionPresentation] = [],
         inlineReply: MessageReplyReferencePresentation? = nil,
         onCancelInlineReply: @escaping () -> Void = {},
+        taskChip: ComposerTaskChip? = nil,
+        onClearTaskChip: @escaping () -> Void = {},
         transitionNamespace: Namespace.ID? = nil,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool
     ) {
@@ -24,6 +26,8 @@ extension MessageComposerView {
             mentionOptions: mentionOptions,
             inlineReply: inlineReply,
             onCancelInlineReply: onCancelInlineReply,
+            taskChip: taskChip,
+            onClearTaskChip: onClearTaskChip,
             transitionNamespace: transitionNamespace,
             onSend: onSend
         )

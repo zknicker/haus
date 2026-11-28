@@ -8,23 +8,32 @@ extension HausStore {
         mentionOptionsByDestinationID[destination.id] ?? []
     }
 
+    func mentionOptions(chatID: String) -> [MentionOptionPresentation] {
+        mentionOptionsByDestinationID[.chat(chatID)] ?? []
+    }
+
     func loadMentionOptions(for destination: ChatDestination) async {
+        switch destination {
+        case .durableChat(let chat):
+            await loadMentionOptions(chatID: chat.id)
+        case .implicitCaptainChat(let agent):
+            guard let serverID = activeServer?.id else { return }
+            await loadMentionOptions(
+                into: destination.id,
+                input: CaptainMentionOptionsInput(agentID: agent.id, serverID: serverID)
+            )
+        }
+    }
+
+    func loadMentionOptions(chatID: String) async {
         guard let serverID = activeServer?.id else { return }
+        await loadMentionOptions(into: .chat(chatID), input: ChatMentionOptionsInput(chatID: chatID, serverID: serverID))
+    }
+
+    private func loadMentionOptions(into id: ChatDestination.ID, input: some Encodable & Sendable) async {
         do {
-            let response: MentionOptions
-            switch destination {
-            case .durableChat(let chat):
-                response = try await client.query(
-                    "chat.mentionOptions",
-                    input: ChatMentionOptionsInput(chatID: chat.id, serverID: serverID)
-                )
-            case .implicitAgentDM(let agent):
-                response = try await client.query(
-                    "chat.mentionOptions",
-                    input: AgentDMMentionOptionsInput(agentID: agent.id, serverID: serverID)
-                )
-            }
-            mentionOptionsByDestinationID[destination.id] = response.options.compactMap {
+            let response: MentionOptions = try await client.query("chat.mentionOptions", input: input)
+            mentionOptionsByDestinationID[id] = response.options.compactMap {
                 mentionPresentation($0)
             }
         } catch is CancellationError {

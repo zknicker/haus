@@ -29,7 +29,6 @@ final class HausStore {
     let chatList: ChatsModel
     let tasks: TasksModel
     let captains: CaptainsModel
-    let workers: WorkersModel
     let projects: ProjectsModel
     let drive: DriveModel
     let settingsModel: SettingsModel
@@ -75,13 +74,10 @@ final class HausStore {
     @ObservationIgnored var launchRetry: Task<Void, Never>?
     @ObservationIgnored var launchSnapshotWrite: Task<Void, Never>?
     @ObservationIgnored var chatListRefreshAgain = false
-    /// The deepest Chat surface on the user's stack, and the only Chat that
-    /// acknowledges reads: it is what the user is actually looking at.
-    var openChatID: String?
-    /// The Chat the shell canvas is showing, whether or not a pushed route
-    /// covers it. A covered canvas still has to stay fresh, but it never
-    /// acknowledges reads, which stay with `openChatID`.
-    var canvasChatID: String?
+    /// The Chats on screen, the only ones that acknowledge reads: the
+    /// selected tab's top route, and beside a Task its conversation too
+    /// (`HausRouter.visibleConversations`).
+    var openChatIDs: Set<String> = []
     /// Memoized Chat projections. Cache writes must stay invisible to
     /// Observation: a projection read happens inside a view body, and a tracked
     /// write there would invalidate the body that just performed it.
@@ -135,12 +131,12 @@ final class HausStore {
             scope: scope,
             preference: ActiveServerPreference(userID: session.user.id),
             launchSnapshots: .applicationSupport(appProtocolVersion: HausAppProtocol.version),
+            listColumns: ListColumnPreference(userID: session.user.id),
             drafts: ComposerDraftStore(makeStaged: ComposerInteraction.init, discardStaged: { $0.cleanUp() })
         )
         chatList = ChatsModel()
         tasks = TasksModel(client: client, scope: scope)
         captains = CaptainsModel(client: client, scope: scope)
-        workers = WorkersModel(client: client, scope: scope)
         projects = ProjectsModel(client: client, scope: scope)
         drive = DriveModel(client: client, scope: scope)
         settingsModel = SettingsModel(client: client, scope: scope)
@@ -200,7 +196,7 @@ final class HausStore {
             case let .chatList(chats):
                 scheduleLaunchSnapshotWrite()
                 projections.retireChatList(chats)
-            case .receiptBackedDMs:
+            case .receiptBackedCaptainChats:
                 projections.chatDestinations = nil
             }
         }

@@ -47,11 +47,7 @@ extension HausStore {
         for (chatID, sequence) in effects.tailSequenceByChatID where !deletedChatIDs.contains(chatID) {
             requestTail(chatID: chatID, through: sequence)
         }
-        // A work change reaches every loaded Message that links it, not only
-        // the linking Messages the Server's events named.
-        let entityRefreshes = effects.entityRefreshes
-            .union(transcripts.refreshes(carryingWorkers: effects.cloudAgentWorkIDs))
-        for refresh in entityRefreshes where !deletedChatIDs.contains(refresh.chatID) {
+        for refresh in effects.entityRefreshes where !deletedChatIDs.contains(refresh.chatID) {
             refreshEntity(refresh)
         }
         for messageID in effects.liveReactionMessageIDs {
@@ -59,12 +55,10 @@ extension HausStore {
         }
         let unreadByChatID = Dictionary(chats.map { ($0.id, $0.unreadCount) }, uniquingKeysWith: max)
         let readsChatList = effects.needsChatListRead { unreadByChatID[$0] }
-        let parentChatIDs = workParentChatIDs(taskChatIDs: effects.cloudAgentWorkChatIDs)
         // Each model refreshes only what this client already holds: an event
         // must not start a Server-wide read nobody has opened.
         await withTaskGroup(of: Void.self) { group in
             if readsChatList { group.addTask { await self.refreshChatList(serverID: serverID) } }
-            group.addTask { await self.workers.apply(effects, parentChatIDs: parentChatIDs) }
             group.addTask { await self.tasks.apply(effects) }
             group.addTask { await self.applyTaskPlaceEffects(effects) }
         }
@@ -127,7 +121,6 @@ extension HausStore {
                 group.addTask { await self.reloadServerList(serverID: serverID) }
             }
             group.addTask { await self.tasks.recover(projections) }
-            group.addTask { await self.workers.recover(projections) }
             if projections.contains(.agentAvailability) {
                 group.addTask { await self.captains.reloadAvailability(serverID: serverID) }
             }

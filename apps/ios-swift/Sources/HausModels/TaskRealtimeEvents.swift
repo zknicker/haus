@@ -29,22 +29,6 @@ public struct ClaimChangedEvent: Decodable, Sendable, Equatable {
     }
 }
 
-/// `taskLabel.onUpdated`: a label was created, renamed, recolored, or deleted.
-public struct TaskLabelUpdatedEvent: Decodable, Sendable, Equatable {
-    public let serverID: String
-    public let labelID: String
-
-    public init(serverID: String, labelID: String) {
-        self.serverID = serverID
-        self.labelID = labelID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case serverID = "serverId"
-        case labelID = "labelId"
-    }
-}
-
 /// `task.onCreated` and `task.onUpdated` share one payload: a Task was created,
 public struct TaskChangedEvent: Decodable, Sendable, Equatable {
     public let serverID: String

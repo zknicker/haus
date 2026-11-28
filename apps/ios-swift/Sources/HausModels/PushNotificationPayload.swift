@@ -7,8 +7,9 @@ public struct PushNotificationPayload: Sendable, Equatable {
     public let conversationChatID: String
     public let messageID: String
     public let taskID: String?
-    public let taskKey: String?
-    /// `conversation.kind`: whether the message is in a Channel or a DM.
+    public let taskShortID: String?
+    /// `conversation.kind`: whether the message is in a Channel, a DM, or a
+    /// Captain chat.
     public let conversationKind: PushConversationKind?
 
     public init(
@@ -17,7 +18,7 @@ public struct PushNotificationPayload: Sendable, Equatable {
         conversationChatID: String,
         messageID: String,
         taskID: String? = nil,
-        taskKey: String? = nil,
+        taskShortID: String? = nil,
         conversationKind: PushConversationKind? = nil
     ) {
         self.serverID = serverID
@@ -25,7 +26,7 @@ public struct PushNotificationPayload: Sendable, Equatable {
         self.conversationChatID = conversationChatID
         self.messageID = messageID
         self.taskID = taskID
-        self.taskKey = taskKey
+        self.taskShortID = taskShortID
         self.conversationKind = conversationKind
     }
 
@@ -48,7 +49,7 @@ public struct PushNotificationPayload: Sendable, Equatable {
             conversationChatID: conversationChatID,
             messageID: messageID,
             taskID: taskID,
-            taskKey: taskID == nil ? nil : Self.string(userInfo["taskKey"]),
+            taskShortID: taskID == nil ? nil : Self.string(userInfo["taskShortId"]),
             conversationKind: (userInfo["conversation"] as? [String: Any])
                 .flatMap { Self.string($0["kind"]) }
                 .flatMap(PushConversationKind.init(rawValue:))
@@ -69,54 +70,44 @@ public struct PushNotificationPayload: Sendable, Equatable {
 public enum PushConversationKind: String, Sendable, Equatable {
     case channel
     case dm
+    case captain
 }
 
-public struct PushTaskAssignment: Sendable, Equatable {
-    public let serverID: String
-    public let taskID: String
-    public let key: String
-
-    public init?(userInfo: [AnyHashable: Any]) {
-        guard userInfo["kind"] as? String == "task_assignment",
-              let serverID = PushUserInfo.id(userInfo["serverId"]),
-              let taskID = PushUserInfo.id(userInfo["taskId"]),
-              let key = (userInfo["key"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
-              key.wholeMatch(of: /[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*/) != nil
-        else { return nil }
-        self.serverID = serverID
-        self.taskID = taskID
-        self.key = key
+/// An Issue push: an assignment to the person, or a comment on an Issue they
+/// subscribe to. The iPhone has no Issue screen, so a tap opens the Server.
+public struct PushIssue: Sendable, Equatable {
+    public enum Kind: String, Sendable, Equatable {
+        case assignment = "issue_assignment"
+        case comment = "issue_comment"
     }
-}
 
-public struct PushTaskAssignmentBurst: Sendable, Equatable {
     public let serverID: String
-    public let count: Int
+    public let issueID: String
+    public let code: String
+    public let kind: Kind
 
     public init?(userInfo: [AnyHashable: Any]) {
-        guard userInfo["kind"] as? String == "task_assignment_burst",
+        guard let kind = (userInfo["kind"] as? String).flatMap(Kind.init(rawValue:)),
               let serverID = PushUserInfo.id(userInfo["serverId"]),
-              let count = PushUserInfo.integer(userInfo["count"]),
-              count >= 2
+              let issueID = PushUserInfo.id(userInfo["issueId"]),
+              let code = PushUserInfo.id(userInfo["code"])
         else { return nil }
         self.serverID = serverID
-        self.count = count
+        self.issueID = issueID
+        self.code = code
+        self.kind = kind
     }
 }
 
 public enum HausPush: Sendable, Equatable {
     case message(PushNotificationPayload)
-    case taskAssignment(PushTaskAssignment)
-    case taskAssignmentBurst(PushTaskAssignmentBurst)
+    case issue(PushIssue)
 
     public init?(userInfo: [AnyHashable: Any]) {
         switch userInfo["kind"] as? String {
-        case "task_assignment":
-            guard let push = PushTaskAssignment(userInfo: userInfo) else { return nil }
-            self = .taskAssignment(push)
-        case "task_assignment_burst":
-            guard let push = PushTaskAssignmentBurst(userInfo: userInfo) else { return nil }
-            self = .taskAssignmentBurst(push)
+        case PushIssue.Kind.assignment.rawValue, PushIssue.Kind.comment.rawValue:
+            guard let push = PushIssue(userInfo: userInfo) else { return nil }
+            self = .issue(push)
         case nil:
             guard let push = PushNotificationPayload(userInfo: userInfo) else { return nil }
             self = .message(push)
@@ -128,8 +119,7 @@ public enum HausPush: Sendable, Equatable {
     public var serverID: String {
         switch self {
         case let .message(push): push.serverID
-        case let .taskAssignment(push): push.serverID
-        case let .taskAssignmentBurst(push): push.serverID
+        case let .issue(push): push.serverID
         }
     }
 }
@@ -140,12 +130,6 @@ enum PushUserInfo {
               !value.isEmpty
         else { return nil }
         return value
-    }
-
-    static func integer(_ value: Any?) -> Int? {
-        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
-        let integer = number.intValue
-        return Double(integer) == number.doubleValue ? integer : nil
     }
 }
 
@@ -177,12 +161,11 @@ public enum PushForegroundPresentation: Sendable, Equatable {
     public static func decide(
         _ payload: PushNotificationPayload?,
         viewingServerID: String?,
-        viewingChatID: String?
+        viewingChatIDs: Set<String>
     ) -> PushForegroundPresentation {
         guard let payload,
-              let viewingChatID,
               payload.serverID == viewingServerID,
-              payload.chatID == viewingChatID
+              viewingChatIDs.contains(payload.chatID)
         else { return .banner }
         return .suppress
     }

@@ -69,8 +69,7 @@ extension ClaimListItem {
     func stoppedClaimDetail(now: Date) -> String {
         let place = switch chatKind {
         case .channel: "#\(chatName ?? "channel")"
-        case .dm: "DM"
-        case .task: "Task"
+        case .dm, .captain: "DM"
         case .unknown: "Chat"
         }
         return "\(place) · \(HausCompactRelativeTime.label(for: claim.updatedAt, now: now))"

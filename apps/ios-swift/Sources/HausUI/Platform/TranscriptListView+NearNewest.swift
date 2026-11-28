@@ -200,6 +200,7 @@ extension TranscriptListCoordinator {
                     distance: self.distanceFromNewest(scrollView)
                 )
                 guard let published else { return }
+                if published { self.pose?.resting = nil }
                 view.isNearNewest = published
             }
         }

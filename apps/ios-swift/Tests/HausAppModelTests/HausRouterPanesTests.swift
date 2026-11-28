@@ -11,7 +11,7 @@ struct HausRouterPanesTests {
         router.selectedTab = .projects
         router.open(.channel(chatID: "chat_product"))
         router.open(.task(taskID: "task_1"))
-        router.open(.worker(workerID: "w_1"))
+        router.open(.work(.task("task_1")))
         router.open(.dm(chatID: "chat_dm"), from: .outside)
         let projects = router.path(.projects)
         let home = router.path(.home)
@@ -26,20 +26,25 @@ struct HausRouterPanesTests {
         #expect(router.panes(.home) == .stack(home))
     }
 
-    @Test("Compact width stacks every tab; regular width splits Home, Projects, and Tasks")
+    @Test("Compact width stacks every tab; regular width splits every tab")
     func panesPerLayout() {
         let router = HausRouter()
         router.open(.channel(chatID: "chat_product"), from: .outside)
         router.open(.settings(.people), from: .outside)
         #expect(router.panes(.projects) == .stack([.channel(chatID: "chat_product")]))
         #expect(router.panes(.home) == .stack([]))
-
-        router.layout = .split
-        #expect(router.panes(.projects) == .split(selection: .channel(chatID: "chat_product"), stack: [], side: nil))
-        #expect(router.panes(.home) == .split(selection: nil, stack: [], side: nil))
-        #expect(router.panes(.tasks) == .split(selection: nil, stack: [], side: nil))
         #expect(router.panes(.you) == .stack([.settings(.people)]))
         #expect(router.panes(.search) == .stack([]))
+
+        router.layout = .split
+        #expect(router.panes(.projects) == .split(selection: .channel(chatID: "chat_product"), stack: []))
+        #expect(router.panes(.home) == .split(selection: nil, stack: []))
+        #expect(router.panes(.tasks) == .split(selection: nil, stack: []))
+        #expect(router.panes(.you) == .split(selection: .settings(.people), stack: []))
+        #expect(router.panes(.search) == .split(selection: nil, stack: []))
+        #expect(HausTab.allCases.allSatisfy { tab in
+            if case .split = router.panes(tab) { true } else { false }
+        })
     }
 
     @Test("Split, a conversation opened inside replaces the selection; anything else stacks over it")
@@ -55,45 +60,22 @@ struct HausRouterPanesTests {
         router.open(.driveFile(path: "notes.md"))
         #expect(router.panes(.projects) == .split(
             selection: .channel(chatID: "chat_haus"),
-            stack: [.work(.chat("chat_haus")), .driveFile(path: "notes.md")],
-            side: nil
+            stack: [.work(.chat("chat_haus")), .driveFile(path: "notes.md")]
         ))
 
         router.open(.task(taskID: "task_1"))
         #expect(router.path(.projects) == [.task(taskID: "task_1")])
     }
 
-    @Test("A Worker opened from its Task sits beside it; from anywhere else it stacks")
-    func workerSidePane() {
-        let router = HausRouter()
-        router.layout = .split
-        router.open(.task(taskID: "task_1"), from: .outside)
-        router.open(.worker(workerID: "w_1"))
-        #expect(router.panes(.tasks) == .split(selection: .task(taskID: "task_1"), stack: [], side: .worker(workerID: "w_1")))
-
-        router.selectedTab = .projects
-        router.open(.channel(chatID: "chat_product"))
-        router.open(.worker(workerID: "w_2"))
-        #expect(router.panes(.projects) == .split(
-            selection: .channel(chatID: "chat_product"),
-            stack: [.worker(workerID: "w_2")],
-            side: nil
-        ))
-    }
-
-    @Test("The content pane's stack writes back over the selection, closing the side pane")
+    @Test("The content pane's stack writes back over the selection")
     func splitStackWrites() {
         let router = HausRouter()
         router.layout = .split
         router.selectedTab = .projects
-        router.setPath([.channel(chatID: "c"), .task(taskID: "task_1"), .worker(workerID: "w_1")], for: .projects)
-        #expect(router.panes(.projects) == .split(
-            selection: .channel(chatID: "c"),
-            stack: [.task(taskID: "task_1")],
-            side: .worker(workerID: "w_1")
-        ))
+        router.setPath([.channel(chatID: "c"), .work(.chat("c"))], for: .projects)
+        #expect(router.panes(.projects) == .split(selection: .channel(chatID: "c"), stack: [.work(.chat("c"))]))
 
-        router.setSplitStack([.task(taskID: "task_1")], for: .projects)
+        router.setSplitStack([.work(.chat("c")), .driveFile(path: "notes.md")], for: .projects)
         #expect(router.path(.projects).count == 3)
 
         router.setSplitStack([], for: .projects)
@@ -104,15 +86,15 @@ struct HausRouterPanesTests {
         #expect(router.path(.projects).isEmpty)
     }
 
-    @Test("Beside a Worker, the Task chat is the visible conversation")
-    func visibleBesideSide() {
+    @Test("Split, the top of the selected tab's stack is the visible conversation")
+    func visibleInSplit() {
         let router = HausRouter()
         router.open(.task(taskID: "task_1"), from: .outside)
-        router.open(.worker(workerID: "w_1"))
-        #expect(router.visibleConversation == nil)
         router.layout = .split
-        #expect(router.visibleConversation == .task("task_1"))
+        #expect(router.visibleConversations == [.task("task_1")])
+        router.open(.work(.task("task_1")))
+        #expect(router.visibleConversations.isEmpty)
         router.pop()
-        #expect(router.visibleConversation == .task("task_1"))
+        #expect(router.visibleConversations == [.task("task_1")])
     }
 }

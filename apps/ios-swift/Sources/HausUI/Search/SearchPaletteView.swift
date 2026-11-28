@@ -9,6 +9,7 @@ struct SearchPaletteView: View {
     let searchMessages: MessageSearch
     let searchRecoveryRevision: Int
     let actions: SearchPaletteActions
+    var selection: SearchSelection?
     let onSelectChat: (ChatPresentation) -> Void
     /// Returns `false` when the result's Chat is no longer in the directory.
     let onSelectMessage: (MessageSearchResultPresentation) -> Bool
@@ -52,6 +53,8 @@ struct SearchPaletteView: View {
             await search.run(SearchPalette.searchesMessages(scope) ? query : "", chatID: nil, search: searchMessages)
         }
         .task { await actions.onAppear() }
+        .carriesAcrossPoses($query, as: "searchQuery")
+        .carriesAcrossPoses($scope, as: "searchScope")
         .alert("Couldn’t open that chat", isPresented: hasSelectionError) {
             Button("OK") { selectionError = nil }
         } message: {

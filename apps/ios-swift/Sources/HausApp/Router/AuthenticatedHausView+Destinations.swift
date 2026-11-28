@@ -3,57 +3,69 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// What each route draws. The system tab bar stays hidden on every screen,
-/// and stacked, the shell's own bottom chrome stays at the tab's root; a
+/// What each route draws. The tab's content sets the system tab bar's
+/// visibility for every screen in it (`AuthenticatedHausView+Tabs.swift`). A
 /// route whose record has not arrived yet stays blank until it does.
 extension AuthenticatedHausView {
-    func routeDestination(_ route: HausRoute) -> some View {
-        routeScreen(route).toolbar(.hidden, for: .tabBar)
+    /// `besideTaskID`: the Task beside this conversation, which its composer
+    /// sends to until the chip is let go.
+    func routeDestination(_ route: HausRoute, besideTaskID: String? = nil) -> some View {
+        routeScreen(route, besideTaskID: besideTaskID).poseScope(String(describing: route))
     }
 
     @ViewBuilder
-    private func routeScreen(_ route: HausRoute) -> some View {
+    private func routeScreen(_ route: HausRoute, besideTaskID: String?) -> some View {
         switch RouteScreen(route) {
         case .conversation:
-            chatRoute(route.conversation.flatMap(destination(for:)))
+            chatRoute(route.conversation, besideTaskID: besideTaskID)
         case .task(let taskID):
             taskDestination(taskID)
         case .projectSettings(let projectID):
             projectSettingsDestination(projectID)
         case .work(let place):
             workDestination(place)
-        case .worker(let workerID):
-            workerDestination(workerID)
         case .pullRequest(let reading):
             pullRequestDestination(reading)
         case .driveFolder(let prefix):
             driveFolderDestination(prefix)
         case .driveFile(let path):
             driveFileDestination(path)
-        case .none:
-            Color.clear
+        case .settings(let settings):
+            settingsDestination(settings)
         }
     }
 
     @ViewBuilder
-    private func chatRoute(_ destination: ChatDestination?) -> some View {
+    private func chatRoute(_ routeConversation: HausConversation?, besideTaskID: String?) -> some View {
         Group {
-            if let destination {
+            if let routeConversation, let destination = destination(for: routeConversation) {
                 GeometryReader { proxy in
-                    chatScreen(destination, contentInsets: proxy.safeAreaInsets)
-                        .ignoresSafeArea()
+                    chatScreen(
+                        destination,
+                        revealing: routeConversation,
+                        besideTaskID: besideTaskID,
+                        contentInsets: proxy.safeAreaInsets
+                    )
+                        .ignoresSafeArea(edges: shellChrome.transcriptIgnoredEdges)
                 }
                 .ignoresSafeArea(.keyboard)
             } else {
                 Color.clear
             }
         }
-        .hausHiddenNavigationBar()
+        .hausHiddenNavigationBar(shellChrome == .custom)
+        .keepsToolbarItemsWhileTyping()
         .background(InteractivePopRestorer())
     }
 
-    private func chatScreen(_ destination: ChatDestination, contentInsets: EdgeInsets) -> some View {
-        let composer = ComposerDestination.chat(destination.pendingKey)
+    private func chatScreen(
+        _ destination: ChatDestination,
+        revealing routeConversation: HausConversation,
+        besideTaskID: String?,
+        contentInsets: EdgeInsets
+    ) -> some View {
+        let conversationComposer = ComposerDestination.chat(destination.pendingKey)
+        let composer = store.composerTarget(conversationComposer, beside: besideTaskID)
         return ChatScreenView(
             chat: destination,
             messages: store.messagePresentations(chatID: destination.pendingKey),
@@ -64,7 +76,13 @@ extension AuthenticatedHausView {
             onOpenSidebar: { router.pop() },
             onOpenChatDetails: { router.present(.chatDetails(conversation(for: destination))) },
             onOpenSearch: { router.present(.chatSearch(chatID: destination.durableChat?.id)) },
-            onSend: { content, attachments in await send(content, attachments: attachments, to: destination) },
+            onSend: { content, attachments in
+                guard case .task(let taskID) = composer else {
+                    return await send(content, attachments: attachments, to: destination)
+                }
+                guard let chatID = store.taskChatID(taskID: taskID) else { return false }
+                return await store.send(content, to: chatID, attachments: attachments)
+            },
             onSendInlineReply: { content, attachments, reference in
                 guard case .durableChat(let chat) = destination else { return false }
                 return await store.send(
@@ -76,9 +94,14 @@ extension AuthenticatedHausView {
                 )
             },
             onOpenAttachment: { try await store.downloadAttachment($0) },
-            onOpenAgent: { router.open(.captainDM(agentID: $0)) },
+            onOpenAgent: { router.open(.captain(agentID: $0)) },
             onCall: callAction(for: destination),
-            workPill: destination.durableChat.flatMap { store.workPill(.chat($0.id), now: .now) },
+            composerTask: composerTaskChip(composer),
+            onClearComposerTask: {
+                guard let besideTaskID else { return }
+                store.releaseComposerTarget(conversationComposer, from: besideTaskID)
+            },
+            workPill: destination.durableChat.flatMap { store.workPill(.chat($0.id)) },
             onOpenWork: {
                 guard let chat = destination.durableChat else { return }
                 router.open(.work(.chat(chat.id)))
@@ -87,10 +110,11 @@ extension AuthenticatedHausView {
             mentionOptions: store.mentionOptions(for: destination),
             onLoadMentionOptions: { await store.loadMentionOptions(for: destination) },
             contentInsets: contentInsets,
-            scrollTargetMessageID: revealBinding(conversation(for: destination)),
+            scrollTargetMessageID: revealBinding(routeConversation),
             onVisibleMessagesChange: { reportVisibleMessages(destination, $0) }
         )
         .id(destination.id)
+        .environment(\.composerPoseKey, String(describing: composer))
         .task(id: destination.durableChat?.id) {
             guard let chat = destination.durableChat else { return }
             await store.loadWork(.chat(chat.id), includingFiles: false)
@@ -101,14 +125,19 @@ extension AuthenticatedHausView {
         switch destination {
         case .durableChat(let chat):
             return await store.send(content, to: chat.id, attachments: attachments)
-        case .implicitAgentDM(let agent):
+        case .implicitCaptainChat(let agent):
             guard attachments.isEmpty else { return false }
-            return await store.sendAgentDM(content, to: agent.id) != .rejected
+            return await store.sendCaptainChat(content, to: agent.id) != .rejected
         }
     }
 
+    private func composerTaskChip(_ composer: ComposerDestination) -> ComposerTaskChip? {
+        guard case .task(let taskID) = composer, let header = store.taskChatHeader(taskID: taskID) else { return nil }
+        return ComposerTaskChip(title: header.title, disc: header.disc)
+    }
+
     private func callAction(for destination: ChatDestination) -> (() -> Void)? {
-        guard destination.durableChat != nil, case .agentDirectMessage = destination.kind else { return nil }
+        guard destination.durableChat != nil, case .captainChat = destination.kind else { return nil }
         return { openAgentCall(destination) }
     }
 

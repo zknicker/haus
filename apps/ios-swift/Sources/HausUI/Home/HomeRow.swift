@@ -38,7 +38,7 @@ struct HomeRow: View {
         case .project(let appearance):
             ChannelGlyph(appearance: appearance, size: ListLead.glyphSize)
         case .task(let state):
-            TaskStateDisc(state: state, size: discSide, surface: HausPlatformColor.canvas)
+            TaskActivityDisc(state: state, size: discSide, surface: HausPlatformColor.canvas)
         }
     }
 

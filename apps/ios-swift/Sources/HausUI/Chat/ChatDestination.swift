@@ -14,49 +14,49 @@ public struct HumanPresentation: Identifiable, Hashable, Sendable {
     }
 }
 
-/// Navigation is broader than persistence: an Agent can be opened before its
-/// pairwise Chat exists. Only `durableChat` carries a Server Chat id.
+/// Navigation is broader than persistence: a Captain can be opened before
+/// the Chat list holds its chat. Only `durableChat` carries a Server Chat id.
 public enum ChatDestination: Identifiable, Hashable, Sendable {
     case durableChat(ChatPresentation)
-    case implicitAgentDM(AgentPresentation)
+    case implicitCaptainChat(AgentPresentation)
 
     public enum ID: Hashable, Sendable {
         case chat(String)
-        case agentDM(String)
+        case captain(String)
     }
 
     public var id: ID {
         switch self {
         case .durableChat(let chat): .chat(chat.id)
-        case .implicitAgentDM(let agent): .agentDM(agent.id)
+        case .implicitCaptainChat(let agent): .captain(agent.id)
         }
     }
 
     public var title: String {
         switch self {
         case .durableChat(let chat): chat.title
-        case .implicitAgentDM(let agent): agent.name
+        case .implicitCaptainChat(let agent): agent.name
         }
     }
 
     public var kind: ChatKind {
         switch self {
         case .durableChat(let chat): chat.kind
-        case .implicitAgentDM(let agent): .agentDirectMessage(agent)
+        case .implicitCaptainChat(let agent): .captainChat(agent)
         }
     }
 
     public var unreadCount: Int {
         switch self {
         case .durableChat(let chat): chat.unreadCount
-        case .implicitAgentDM: 0
+        case .implicitCaptainChat: 0
         }
     }
 
     public var appearance: ChannelAppearance {
         switch self {
         case .durableChat(let chat): chat.appearance
-        case .implicitAgentDM: .default
+        case .implicitCaptainChat: .default
         }
     }
 
@@ -68,20 +68,20 @@ public enum ChatDestination: Identifiable, Hashable, Sendable {
     public var pendingKey: String {
         switch id {
         case .chat(let id): id
-        case .agentDM(let id): "agent-dm:\(id)"
+        case .captain(let id): "captain:\(id)"
         }
     }
 }
 
 public extension Collection<ChatDestination> {
-    /// The Chat with one Agent, which is where the phone shows an Agent
-    /// profile: a Chat's details sheet pushes the profile of the Agent it is a
-    /// Chat with. Every Agent the Server reports carries a destination —
-    /// durable, receipt-backed, or implicit — so a miss means the Agent is gone
-    /// and the caller has nowhere to go.
+    /// A Captain's chat, which is where the phone shows a Captain's profile:
+    /// a Chat's details sheet pushes the profile of the Captain it belongs to.
+    /// Every Captain the Server reports carries a destination — durable,
+    /// receipt-backed, or implicit — so a miss means the Captain is gone and
+    /// the caller has nowhere to go.
     func agentDestination(agentID: String) -> ChatDestination? {
         first { destination in
-            guard case .agentDirectMessage(let agent) = destination.kind else { return false }
+            guard case .captainChat(let agent) = destination.kind else { return false }
             return agent.id == agentID
         }
     }
@@ -97,15 +97,15 @@ extension ChatDestination.ID {
     public var storageValue: String {
         switch self {
         case .chat(let id): "chat:\(id)"
-        case .agentDM(let id): "agentDM:\(id)"
+        case .captain(let id): "captain:\(id)"
         }
     }
 
     public init?(storageValue: String) {
         if storageValue.hasPrefix("chat:") {
             self = .chat(String(storageValue.dropFirst("chat:".count)))
-        } else if storageValue.hasPrefix("agentDM:") {
-            self = .agentDM(String(storageValue.dropFirst("agentDM:".count)))
+        } else if storageValue.hasPrefix("captain:") {
+            self = .captain(String(storageValue.dropFirst("captain:".count)))
         } else {
             return nil
         }

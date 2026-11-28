@@ -4,14 +4,14 @@ import HausModels
 import HausUI
 
 /// Home's and Projects' rows, from the Chat list, the Captains and their live
-/// work, the open Tasks, and the Projects.
+/// work, the active Tasks, and the Projects.
 extension HausStore {
     func captainIdentity(_ agent: AgentSummary) -> CaptainIdentity {
         CaptainIdentity(id: agent.id, name: agent.displayName, avatarURL: resolvedAvatarURL(agent.avatarURL))
     }
 
     var captainTiles: [CaptainTilePresentation] {
-        let unreadAgentIDs = Set((unreadChats ?? []).compactMap(\.peerAgentID))
+        let unreadAgentIDs = Set((unreadChats ?? []).compactMap(\.captainID))
         return agents.map { agent in
             let presence = presence(availability(for: agent))
             return CaptainTilePresentation(
@@ -26,28 +26,30 @@ extension HausStore {
     /// Nil until the Chat list has landed.
     var homeRecentRows: [HomeRowPresentation]? {
         guard let unreadChats else { return nil }
-        let openChatIDs = Set((tasks.openTasks ?? []).compactMap(\.chatID))
+        let activeChatIDs = Set((tasks.activeTasks ?? []).compactMap(\.chatID))
         return HomeRecent.items(
             chats: chats,
             unreadChatIDs: Set(unreadChats.map(\.id)),
             unreadTasks: tasks.unreadTasks ?? [],
-            openTaskChatIDs: openChatIDs
+            activeTaskChatIDs: activeChatIDs
         )
         .map(homeRow)
     }
 
-    /// Nil until `task.listOpen` has landed.
-    var homeOpenTaskRows: [HomeRowPresentation]? {
-        tasks.openTasks?.map { task in
-            let captain = task.assignee?.agentID.flatMap { agentsByID[$0] }.map(captainIdentity)
-            let assignee = captain?.name ?? task.assignee?.userID.map(personName)
+    /// Nil until `task.listActive` has landed. A crew Task names its Captain;
+    /// one a person started names them.
+    var homeActiveTaskRows: [HomeRowPresentation]? {
+        tasks.activeTasks?.map { task in
+            let captain = task.captainID.flatMap { agentsByID[$0] }.map(captainIdentity)
+            let starter = captain?.name ?? task.createdBy.userID.map(personName)
+            let disc = TaskDiscState(task)
             return HomeRowPresentation(
                 id: task.id,
-                lead: .task(task.state),
+                lead: .task(disc),
                 title: task.title,
-                subtitle: [assignee, task.key].compactMap(\.self).joined(separator: " · "),
+                subtitle: [starter, disc.label].compactMap(\.self).joined(separator: " · "),
                 metaCaptain: captain,
-                time: task.updatedAt,
+                time: task.createdAt,
                 timePlacement: .meta,
                 isUnread: task.chatID.map(isUnreadTaskChat) ?? false,
                 target: .task(task.id),
@@ -57,7 +59,7 @@ extension HausStore {
     }
 
     var projectRows: [ProjectRowPresentation] {
-        let counts = tasks.openTasks.map(ProjectTaskCounts.open)
+        let counts = tasks.activeTasks.map(ProjectTaskCounts.active)
         let unreadIDs = Set((unreadChats ?? []).map(\.id))
         return chats
             .filter { $0.kind == .channel }
@@ -102,13 +104,13 @@ extension HausStore {
                 } ?? "",
                 time: item.activityAt,
                 isUnread: isUnread,
-                target: chat.peerAgentID.map(HomeRowTarget.captain) ?? .chat(chat.id),
+                target: chat.captainID.map(HomeRowTarget.captain) ?? .chat(chat.id),
                 markReadChatID: chat.id
             )
         case let .task(preview):
             HomeRowPresentation(
                 id: preview.chatID,
-                lead: .task(preview.task?.state ?? .unknown),
+                lead: .task(taskDisc(preview.task)),
                 title: preview.task?.title ?? "Task",
                 subtitle: preview.messages.last.map { HomeRowPresentation.preview($0.content, author: nil) } ?? "",
                 time: item.activityAt,
@@ -119,8 +121,16 @@ extension HausStore {
         }
     }
 
+    /// An unread Task row's disc: its activity when this client holds the
+    /// Task, else only whether it is archived.
+    private func taskDisc(_ task: ChatUnreadPreviewTask?) -> TaskDiscState {
+        guard let task else { return .active(nil) }
+        if let record = tasks.record(taskID: task.taskID) { return TaskDiscState(record) }
+        return TaskDiscState(isArchived: task.archivedAt != nil, status: nil)
+    }
+
     private func lead(for chat: ChatSummary) -> HomeRowLead {
-        if let agentID = chat.peerAgentID {
+        if let agentID = chat.captainID {
             return .captain(agentsByID[agentID].map(captainIdentity)
                 ?? CaptainIdentity(id: agentID, name: title(for: chat), avatarURL: nil))
         }
@@ -131,7 +141,7 @@ extension HausStore {
     }
 
     private func title(for chat: ChatSummary) -> String {
-        if let agentID = chat.peerAgentID {
+        if let agentID = chat.captainID {
             return agentsByID[agentID]?.displayName ?? chat.peerAgentDisplayName ?? "Former Captain"
         }
         if let userID = chat.peerUserID { return personName(userID) }

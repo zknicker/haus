@@ -92,7 +92,7 @@ extension HausStore {
 
         // Every mounted surface (a disk paint may still show its old page),
         // plus a cold launch's landing Chat.
-        var pages = OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID)
+        var pages = openChatIDs.sorted()
         let landingChatID = preferredInitialChatID
             .flatMap { preferred in chats.first { $0.id == preferred }?.id }
             ?? chats.first?.id
@@ -195,7 +195,6 @@ extension HausStore {
         resetTranscripts()
         pendingMessagesByChatID = [:]
         tasks.reset()
-        workers.reset()
         projects.reset()
         drive.reset()
         settingsModel.reset()

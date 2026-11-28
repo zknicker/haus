@@ -1,9 +1,8 @@
 import SwiftUI
 
 /// The leading column every plain list row shares, so titles start on one edge
-/// whether a row leads with a Task disc, a Channel glyph, a Captain, a person,
-/// or a Worker. It matches `WorkerRow` and `WorkListRow`, whose glyph and gap
-/// come to the same 28pt.
+/// whether a row leads with a Task disc, a Channel glyph, a Captain, or a
+/// person. It matches `WorkListRow`, whose glyph and gap come to the same 28pt.
 enum ListLead {
     static let width: CGFloat = 28
     /// A Captain's or a person's mark in the column.

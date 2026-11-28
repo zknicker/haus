@@ -112,7 +112,7 @@ public final class CaptainsModel {
             return .working
         case .settled:
             let settled: AgentAvailability = switch event.outcome {
-            case .completed: .idle
+            case .completed, .interrupted: .idle
             case .failed: .error
             case .stopped: .stopped
             case nil: .idle

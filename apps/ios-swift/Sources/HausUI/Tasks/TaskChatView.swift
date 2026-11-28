@@ -22,7 +22,6 @@ public struct TaskChatView: View {
     /// The Task's Work pill over the composer; nil or hidden while it has no work.
     private let workPill: WorkPillState?
     private let onOpenWork: () -> Void
-    let onOpenWorker: (String) -> Void
 
     /// Owned above this screen, keyed by Server and Task, so leaving the Task
     /// keeps the draft and its staged files.
@@ -38,16 +37,18 @@ public struct TaskChatView: View {
     @State var attachmentTiles = AttachmentImageTileRegistry()
     @State var visualHeights = VisualHeightRegistry()
     @Environment(\.reactionStickers) var reactionBoard
+    @Environment(\.shellChrome) var shellChrome
     @State var actionMessage: MessagePresentation?
     @State var heldMessageID: String?
     @State var unreadJump = TranscriptUnreadJump(messageID: nil)
-    @State var isStatusPresented = false
-    @State var isDuePresented = false
+    @State var isRenamePresented = false
+    @State var renameDraft = ""
     @State var editFailure: String?
     @AppStorage(ScrollNewMessagesToTop.storageKey)
     var scrollsNewMessagesToTop = ScrollNewMessagesToTop.defaultValue
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
+    @Environment(\.composerPoseKey) private var composerPoseKey
 
     public init(
         header: TaskChatHeaderPresentation?,
@@ -71,7 +72,6 @@ public struct TaskChatView: View {
         editing: TaskChatEditing? = nil,
         workPill: WorkPillState? = nil,
         onOpenWork: @escaping () -> Void = {},
-        onOpenWorker: @escaping (String) -> Void = { _ in },
         mentionOptions: [MentionOptionPresentation] = [],
         onLoadMentionOptions: @escaping () async -> Void = {},
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
@@ -93,7 +93,6 @@ public struct TaskChatView: View {
         self.editing = editing
         self.workPill = workPill
         self.onOpenWork = onOpenWork
-        self.onOpenWorker = onOpenWorker
         self.mentionOptions = mentionOptions
         self.onLoadMentionOptions = onLoadMentionOptions
         self.onVisibleMessagesChange = onVisibleMessagesChange
@@ -111,7 +110,6 @@ public struct TaskChatView: View {
         chrome(screen)
             .connectionOutage(isConnected: isConnected, showsOutage: $showsOutage)
             .task { await onLoadMentionOptions() }
-            .task { await editing?.loadLabels() }
             .task(id: highlightedMessageID) { await fadeHighlight() }
             .task {
                 guard !isLoaded else { return }
@@ -119,6 +117,10 @@ public struct TaskChatView: View {
                 holdExpired = true
             }
             .messageActionDrawer(for: $actionMessage, board: reactionBoard)
+            .carriesAcrossPoses($actionMessage, as: "actionMessage")
+            .carriesAcrossPoses(isComposerFocused, as: "composerFocus", key: .composerFocus(composerPoseKey)) {
+                isComposerFocused = $0
+            }
     }
 
     private var screen: some View {
@@ -211,7 +213,7 @@ public struct TaskChatView: View {
                     }
                 }
             )
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: shellChrome.transcriptIgnoredEdges)
             .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
             .overlay(alignment: .top) {
                 ChromeTopScrim(fade: ChromeTopScrim.rowFade + Self.scrimOverhang)

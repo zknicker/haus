@@ -1,24 +1,10 @@
 import Foundation
 import SwiftUI
 
-public struct NewChannelAgentPresentation: Identifiable, Hashable, Sendable {
-    public let id: String
-    public let displayName: String
-    public let avatarURL: URL?
-
-    public init(id: String, displayName: String, avatarURL: URL? = nil) {
-        self.id = id
-        self.displayName = displayName
-        self.avatarURL = avatarURL
-    }
-}
-
 public struct NewChannelDraft: Equatable, Sendable {
-    public let agentIDs: [String]
     public let name: String
 
-    public init(agentIDs: [String], name: String) {
-        self.agentIDs = agentIDs
+    public init(name: String) {
         self.name = name
     }
 }
@@ -72,22 +58,18 @@ public enum NewChannelNameValidation: Equatable, Sendable {
 public struct NewChannelFormView: View {
     @Environment(\.dismiss) private var dismiss
 
-    private let agents: [NewChannelAgentPresentation]
     private let create: @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation
     private let onCreated: (CreatedChannelPresentation) -> Void
 
     @State private var name = ""
-    @State private var selectedAgentIDs: Set<String> = []
     @State private var isSubmitting = false
     @State private var submitError: String?
     @FocusState private var isNameFocused: Bool
 
     public init(
-        agents: [NewChannelAgentPresentation],
         create: @escaping @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation,
         onCreated: @escaping (CreatedChannelPresentation) -> Void = { _ in }
     ) {
-        self.agents = agents
         self.create = create
         self.onCreated = onCreated
     }
@@ -118,35 +100,6 @@ public struct NewChannelFormView: View {
                     Text("Project")
                 } footer: {
                     Text("Use up to 32 characters: letters, numbers, hyphens, and underscores.")
-                }
-
-                Section {
-                    ForEach(agents) { agent in
-                        Button {
-                            toggle(agent.id)
-                        } label: {
-                            HStack(spacing: 12) {
-                                CaptainMark(name: agent.displayName, side: 32) {
-                                    AvatarView(name: agent.displayName, url: agent.avatarURL, size: 32 * 2.squareRoot())
-                                }
-                                Text(agent.displayName)
-                                    .foregroundStyle(.primary)
-                                Spacer(minLength: 8)
-                                Image(systemName: selectedAgentIDs.contains(agent.id) ? "checkmark.circle.fill" : "circle")
-                                    .font(.title3)
-                                    .foregroundStyle(
-                                        selectedAgentIDs.contains(agent.id) ? HausPlatformColor.accentInk : Color.secondary
-                                    )
-                                    .accessibilityHidden(true)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    Text("Captains")
-                } footer: {
-                    Text("Choose at least one Captain for this project.")
                 }
             }
             .navigationTitle("New project")
@@ -189,7 +142,7 @@ public struct NewChannelFormView: View {
     }
 
     private var canSubmit: Bool {
-        nameValidation.isValid && !selectedAgentIDs.isEmpty && !isSubmitting
+        nameValidation.isValid && !isSubmitting
     }
 
     private var hasSubmitError: Binding<Bool> {
@@ -199,24 +152,13 @@ public struct NewChannelFormView: View {
         )
     }
 
-    private func toggle(_ agentID: String) {
-        if selectedAgentIDs.contains(agentID) {
-            selectedAgentIDs.remove(agentID)
-        } else {
-            selectedAgentIDs.insert(agentID)
-        }
-    }
-
     private func submit() async {
         guard canSubmit else { return }
         isSubmitting = true
         submitError = nil
         defer { isSubmitting = false }
 
-        let draft = NewChannelDraft(
-            agentIDs: agents.map(\.id).filter { selectedAgentIDs.contains($0) },
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines)
-        )
+        let draft = NewChannelDraft(name: name.trimmingCharacters(in: .whitespacesAndNewlines))
 
         do {
             let channel = try await create(draft)
@@ -232,16 +174,8 @@ public struct NewChannelFormView: View {
     }
 }
 
-private enum NewChannelPreviewFixtures {
-    static let agents = [
-        NewChannelAgentPresentation(id: "cove", displayName: "Cove"),
-        NewChannelAgentPresentation(id: "tiny", displayName: "Tiny"),
-    ]
-}
-
 #Preview("New project") {
     NewChannelFormView(
-        agents: NewChannelPreviewFixtures.agents,
         create: { draft in
             CreatedChannelPresentation(id: "new-channel", name: draft.name)
         }

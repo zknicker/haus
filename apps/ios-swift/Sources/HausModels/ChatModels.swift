@@ -3,7 +3,8 @@ import Foundation
 public enum ChatKind: String, Codable, Sendable {
     case channel
     case dm
-    case task
+    /// A Captain's one shared chat (ADR 0062); `peerAgentID` names its Captain.
+    case captain
     case unknown
 
     public init(from decoder: Decoder) throws {
@@ -11,7 +12,19 @@ public enum ChatKind: String, Codable, Sendable {
         self = ChatKind(rawValue: raw) ?? .unknown
     }
 
-    public var isListedConversation: Bool { self == .channel || self == .dm }
+    public var isListedConversation: Bool { self != .unknown }
+}
+
+/// The reader's flags on a Captain chat: whether they joined it and whether
+/// its messages notify them.
+public struct CaptainChatMembership: Codable, Sendable, Equatable {
+    public let member: Bool
+    public let subscribed: Bool
+
+    public init(member: Bool, subscribed: Bool) {
+        self.member = member
+        self.subscribed = subscribed
+    }
 }
 
 /// The newest top-level message of a Chat, as the line a list row quotes
@@ -33,6 +46,8 @@ public struct ChatLastMessage: Codable, Sendable, Equatable {
 public struct ChatSummary: Codable, Identifiable, Sendable, Equatable {
     public let archivedAt: Date?
     public let archivedByUserID: String?
+    /// The reader's flags on a Captain chat; nil for every other kind.
+    public var captainChat: CaptainChatMembership? = nil
     /// Channel appearance preset id, for example `violet`. Null on DMs and on
     /// channels that never picked one.
     public let color: String?
@@ -62,17 +77,21 @@ public struct ChatSummary: Codable, Identifiable, Sendable, Equatable {
 
     /// Whether this conversation still takes new Messages.
     ///
-    /// Two lifecycles end a conversation without deleting it: a DM whose peer
-    /// Agent was retired, and a Chat that was archived. Either leaves the
-    /// transcript readable and takes the composer away. Haus App
+    /// Two lifecycles end a conversation without deleting it: a Captain chat
+    /// whose Captain was retired, and a Chat that was archived. Either leaves
+    /// the transcript readable and takes the composer away. Haus App
     /// reads exactly this predicate as `readOnly`.
     public var isReadOnly: Bool {
-        (kind == .dm && peerAgentRetired) || archivedAt != nil
+        (kind == .captain && peerAgentRetired) || archivedAt != nil
     }
+
+    /// The Captain whose chat this is; nil for every other kind.
+    public var captainID: String? { kind == .captain ? peerAgentID : nil }
 
     enum CodingKeys: String, CodingKey {
         case archivedAt
         case archivedByUserID = "archivedByUserId"
+        case captainChat
         case color
         case createdAt
         case description
@@ -106,10 +125,6 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     /// reported one. Decoded tolerantly in `ChatMessageCause.swift`.
     public let cause: ChatMessageCause?
     public let chatID: String
-    /// The Cloud Agent work this Message links, in link order, each visible to
-    /// the viewer (ADR 0044). Servers that predate links omit it, so it
-    /// decodes as empty. Each one draws a card below the Message.
-    public var cloudAgentWork: [Worker] = []
     public let content: String
     public let createdAt: Date
     public let id: String
@@ -138,7 +153,6 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case body
         case cause
         case chatID = "chatId"
-        case cloudAgentWork = "workers"
         case content
         case createdAt
         case id

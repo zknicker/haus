@@ -11,16 +11,16 @@ extension AuthenticatedHausView {
         HomeTabView(
             firstRun: firstRun,
             tiles: store.captainTiles,
-            workers: store.activeWorkers,
             recent: store.homeRecentRows,
-            openTasks: store.homeOpenTaskRows,
+            activeTasks: store.homeActiveTaskRows,
+            selected: selectedHomeTarget,
             tileActions: captainTileActions,
             onOpen: openHomeRow,
-            onOpenWorker: { openActiveWorker(workID: $0.id) },
             onMarkRead: { chatID in Task { await store.markInboxRowRead(id: chatID) } },
             onRefresh: refreshHome,
             onNewCaptain: store.canManageServer ? { router.present(.newCaptain) } : nil
         )
+        .toolbar { askAnythingCompose }
     }
 
     var projectsRoot: some View {
@@ -30,46 +30,60 @@ extension AuthenticatedHausView {
             captains: store.agents.map(store.captainIdentity),
             archivedCount: store.projects.archivedCount,
             isLoaded: store.hasLoadedChats,
+            selectedChatID: selectedProjectsChatID,
             actions: projectsTabActions
         )
+        .toolbar { askAnythingCompose }
     }
 
     var tasksRoot: some View {
-        TaskBoardScreen(
+        TasksTabScreen(
             store: store,
-            filter: Binding(
-                get: {
-                    var filter = taskBoardFilter
-                    if router.tasksFilter == .assignedToMe { filter.scope = .assignedToMe }
-                    return filter
-                },
-                set: { filter in
-                    taskBoardFilter = filter
-                    router.tasksFilter = filter.scope == .assignedToMe ? .assignedToMe : .following
-                }
-            ),
-            onOpenTask: { router.open(.task(taskID: $0, messageID: nil)) }
+            view: $router.tasksView,
+            selectedTaskID: selectedTaskID,
+            onOpenTask: { router.open(.task(taskID: $0, messageID: nil)) },
+            onNewTask: { router.present(.askAnything) }
         )
     }
 
     /// Settings and the Drive it browses, on one stack: the hub pushes its
     /// own screens, and Drive opens through the router.
     var youStack: some View {
-        NavigationStack(path: youPath) {
-            youRoot(settingsPath)
+        let _ = router.stackRevision
+        return NavigationStack(path: navigationPath({ router.path(.you) }) { router.setStackPath($0, for: .you) }) {
+            youRoot
                 .foldsBottomChrome(.you, router: router)
-                .navigationDestination(for: HausRoute.self) { routeDestination($0) }
+                .navigationDestination(for: HausRoute.self) { route in
+                    routeDestination(route).onAppear { stackRouteAppeared(route, tab: .you) }
+                }
         }
     }
 
+    /// You's root: the hub, which beside the content pane selects a row
+    /// instead of pushing it.
+    var youRoot: some View {
+        settings(root: nil, selection: youListSelection)
+    }
+
+    /// A settings screen as the selection beside You's list.
+    func settingsDestination(_ route: SettingsRoute) -> some View {
+        settings(root: route, selection: nil)
+    }
+
+    private var youListSelection: SettingsListSelection? {
+        guard case let .split(selection, _, _) = router.panes(.you) else { return nil }
+        return SettingsListSelection(route: YouStack.row(selection: selection)) { router.open(YouStack.route($0)) }
+    }
+
     @ViewBuilder
-    private func youRoot(_ path: Binding<[SettingsRoute]>) -> some View {
+    private func settings(root: SettingsRoute?, selection: SettingsListSelection?) -> some View {
         if let data = store.settingsData {
             SettingsSheet(
-                tabPath: path,
+                root: root,
+                selection: selection,
+                tabPath: settingsPath,
                 data: data,
                 persistence: store.settingsPersistence,
-                cloudAgentActions: store.cloudAgentSettings,
                 automations: store.agentAutomations { router.open(route(forChatID: $0), from: .outside) },
                 stoppedClaims: store.agentStoppedClaims { openClaim($0) },
                 notifications: push.setting,
@@ -80,23 +94,27 @@ extension AuthenticatedHausView {
                     activeServerID: store.activeServer?.id,
                     onSwitch: { serverID in Task { await switchServer(serverID) } }
                 ),
-                onSignOut: { try await store.signOut() }
+                onSignOut: { try await store.signOut() },
+                onScreenAppear: { stackRouteAppeared(.settings($0), tab: .you) }
             )
         } else {
             Color.clear.navigationTitle("You")
         }
     }
 
+    /// Stacked, a hit opens in its own tab. Split, it replaces the
+    /// selection beside Search's list and opens scrolled to the match.
     var searchRoot: some View {
-        SearchTabView(
+        let origin: RouteOrigin = router.layout == .split ? .inside : .outside
+        return SearchTabView(
             chats: store.chatDestinations.compactMap(\.durableChat),
             searchMessages: { query, chatID in try await store.searchMessagePresentations(query: query, chatID: chatID) },
             searchRecoveryRevision: store.messageSearchRevision,
             isTabRoot: true,
             palette: store.searchPaletteContent,
             actions: SearchPaletteActions(
-                onSelectCaptain: { router.open(.captainDM(agentID: $0), from: .outside) },
-                onSelectTask: { router.open(.task(taskID: $0), from: .outside) },
+                onSelectCaptain: { router.open(.captain(agentID: $0), from: origin) },
+                onSelectTask: { router.open(.task(taskID: $0), from: origin) },
                 onOpenPeople: { router.open(.settings(.people), from: .outside) },
                 onNewTask: { router.present(.askAnything) },
                 onNewProject: { router.present(.newProject) },
@@ -105,9 +123,35 @@ extension AuthenticatedHausView {
                 onClose: { router.closeSearch() },
                 onAppear: { await store.loadSearchPalette() }
             ),
-            onSelectChat: { router.open(route(forChatID: $0.id), from: .outside) },
-            onSelectMessage: { router.open(route(forChatID: $0.chatID, messageID: $0.id), from: .outside) }
+            selection: searchSelection,
+            onSelectChat: { router.open(route(forChatID: $0.id), from: origin) },
+            onSelectMessage: { router.open(route(forChatID: $0.chatID, messageID: $0.id), from: origin) }
         )
+    }
+
+    /// The conversation selected beside a split tab's list.
+    private func selectedConversation(_ tab: HausTab) -> HausConversation? {
+        guard case let .split(selection?, _, _) = router.panes(tab) else { return nil }
+        return selection.conversation
+    }
+
+    private var selectedProjectsChatID: String? {
+        if case .chat(let chatID)? = selectedConversation(.projects) { chatID } else { nil }
+    }
+
+    private var selectedTaskID: String? {
+        if case .task(let taskID)? = selectedConversation(.tasks) { taskID } else { nil }
+    }
+
+    private var searchSelection: SearchSelection? {
+        guard case let .split(selection?, _, _) = router.panes(.search) else { return nil }
+        if let reveal = selection.revealedMessage { return .message(reveal.messageID) }
+        switch selection.conversation {
+        case .chat(let chatID)?: return .chat(chatID)
+        case .captain(let agentID)?: return .captain(agentID)
+        case .task(let taskID)?: return .task(taskID)
+        case nil: return nil
+        }
     }
 
     /// A fresh Server's next steps. Blank until the Chat list and, for
@@ -141,20 +185,6 @@ extension AuthenticatedHausView {
         Binding(
             get: { YouStack.settings(in: router.path(.you)) },
             set: { router.setPath(YouStack.path(router.path(.you), writing: $0), for: .you) }
-        )
-    }
-
-    /// You's stack as its `NavigationStack` holds it: settings screens as
-    /// themselves, so the hub's destinations draw them, and Drive as routes.
-    /// Only back and interactive pop write it, so a write keeps a prefix.
-    private var youPath: Binding<NavigationPath> {
-        Binding(
-            get: {
-                router.path(.you).reduce(into: NavigationPath()) { navigation, route in
-                    if case .settings(let settings) = route { navigation.append(settings) } else { navigation.append(route) }
-                }
-            },
-            set: { router.setPath(Array(router.path(.you).prefix($0.count)), for: .you) }
         )
     }
 }

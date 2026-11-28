@@ -1,39 +1,45 @@
 import HausAppModel
 import HausModels
 import HausUI
+import os
 import SwiftUI
 
 /// The root: five tabs, each with its own `NavigationStack` bound to the
-/// router, and the router's one sheet. The system tab bar stays hidden; the
-/// Capy-sized bottom chrome floats over the tabs instead, and each tab's
-/// content clears it through the bottom safe area.
+/// router, and the router's one sheet. With stock chrome the system draws the
+/// tab bar, in the trailing rail wherever bars are vertical. With custom
+/// chrome the system tab bar stays hidden; the Capy-sized bottom chrome floats
+/// over the tabs instead, and each tab's content clears it through the bottom
+/// safe area.
 extension AuthenticatedHausView {
     var tabShell: some View {
         TabView(selection: $router.selectedTab) {
-            Tab(value: HausTab.home) {
-                adaptiveStack(.home) { homeRoot }.toolbar(.hidden, for: .tabBar)
+            Tab("Home", systemImage: "house", value: HausTab.home) {
+                adaptiveStack(.home) { homeRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
-            Tab(value: HausTab.projects) {
-                adaptiveStack(.projects) { projectsRoot }.toolbar(.hidden, for: .tabBar)
+            Tab("Projects", systemImage: "number", value: HausTab.projects) {
+                adaptiveStack(.projects) { projectsRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
-            Tab(value: HausTab.tasks) {
-                adaptiveStack(.tasks) { tasksRoot }.toolbar(.hidden, for: .tabBar)
+            Tab("Tasks", systemImage: "list.bullet", value: HausTab.tasks) {
+                adaptiveStack(.tasks) { tasksRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
             Tab(value: HausTab.you) {
-                youStack.toolbar(.hidden, for: .tabBar)
+                adaptiveStack(.you, root: { youRoot }, stacked: { youStack })
+                    .toolbarVisibility(tabBarVisibility, for: .tabBar)
+            } label: {
+                Label { Text("You") } icon: { youTabIcon ?? Image(systemName: "person.crop.circle") }
             }
-            Tab(value: HausTab.search) {
-                searchRoot.toolbar(.hidden, for: .tabBar)
+            Tab("Search", systemImage: "magnifyingglass", value: HausTab.search, role: .search) {
+                adaptiveStack(.search) { searchRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if router.showsTabBar {
+            if showsBottomChrome {
                 Color.clear.frame(height: max(bottomChromeClearance - deviceBottomInset, 0))
             }
         }
         .overlay(alignment: .bottom) {
             ZStack(alignment: .bottom) {
-                if router.showsTabBar {
+                if showsBottomChrome {
                     HausBottomChrome(
                         selection: $router.selectedTab,
                         items: tabBarItems,
@@ -45,7 +51,7 @@ extension AuthenticatedHausView {
                     .transition(.offset(y: 24).combined(with: .opacity))
                 }
             }
-            .animation(.smooth(duration: 0.3), value: router.showsTabBar)
+            .animation(.smooth(duration: 0.3), value: showsBottomChrome)
             .ignoresSafeArea(.keyboard)
         }
         .background {
@@ -54,7 +60,10 @@ extension AuthenticatedHausView {
             }
             .ignoresSafeArea(.keyboard)
         }
-        .onRegularWidthChange { router.layout = $0 ? .split : .stack }
+        .environment(\.poseCarry, poseCarry)
+        .onRegularWidthChange { changeLayout(to: $0 ? .split : .stack) }
+        .onChange(of: router.paths) { poseCarry.settle() }
+        .onChange(of: router.selectedTab) { poseCarry.settle() }
         .sheet(item: sheetBinding) { routerSheet($0) }
         .task(id: store.settingsData?.viewer.avatarURL) {
             youTabIcon = await TabAvatarImage.image(url: store.settingsData?.viewer.avatarURL)
@@ -62,6 +71,23 @@ extension AuthenticatedHausView {
     }
 
     private static let bottomChromeInset: CGFloat = 22
+    private static let foldLogger = Logger(subsystem: "chat.haus.ios", category: "pose")
+
+    /// Folding or unfolding moves every tab between its stack and its split,
+    /// which mounts its screens afresh, so what they hold is carried first.
+    private func changeLayout(to layout: TabLayout) {
+        guard router.layout != layout else { return }
+        poseCarry.carry()
+        router.layout = layout
+    }
+
+    private var showsBottomChrome: Bool {
+        shellChrome == .custom && router.showsTabBar
+    }
+
+    private var tabBarVisibility: Visibility {
+        shellChrome.tabBar(showsTabBar: router.showsTabBar)
+    }
 
     /// Height from the screen's bottom edge to the top of the chrome.
     private var bottomChromeClearance: CGFloat {
@@ -81,58 +107,49 @@ extension AuthenticatedHausView {
         ]
     }
 
+    /// The stack redraws from the router's path whenever the router refuses
+    /// one of its writes (`stackRevision`).
     func stack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
-        NavigationStack(path: pathBinding(tab)) {
+        let _ = router.stackRevision
+        return NavigationStack(path: pathBinding(tab)) {
             root()
                 .foldsBottomChrome(tab, router: router)
-                .navigationDestination(for: HausRoute.self) { routeDestination($0) }
+                .navigationDestination(for: HausRoute.self) { route in
+                    routeDestination(route).onAppear { stackRouteAppeared(route, tab: tab) }
+                }
         }
     }
 
-    /// Compact width keeps the tab's stack. Regular width shows its list
-    /// beside the selection, with a Worker opened from its Task beside the
-    /// Task (specs/ios-app.md, iPhone Duo).
-    @ViewBuilder
-    private func adaptiveStack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
-        switch router.panes(tab) {
-        case .stack:
-            stack(tab, root: root)
-        case let .split(selection, _, side):
-            AdaptiveSplitView(showsSide: side != nil) {
-                root().foldsBottomChrome(tab, router: router)
-            } content: {
-                NavigationStack(path: splitStackBinding(tab)) {
-                    Group {
-                        if let selection {
-                            routeDestination(selection).environment(\.chatHeaderShowsBack, false)
-                        } else {
-                            Color.clear
-                        }
-                    }
-                    .navigationDestination(for: HausRoute.self) { routeDestination($0) }
-                }
-                .id(selection)
-            } side: {
-                if let side {
-                    NavigationStack { routeDestination(side) }
-                        .id(side)
-                }
-            }
-        }
+    func stackRouteAppeared(_ route: HausRoute, tab: HausTab) {
+        if router.path(tab).last == route { router.stackAppeared(tab) }
     }
 
-    private func splitStackBinding(_ tab: HausTab) -> Binding<[HausRoute]> {
+    /// `routes` as a `NavigationStack` holds them: settings screens as
+    /// themselves, everything else as routes. Only back and interactive pop
+    /// write it, so a write keeps a prefix.
+    func navigationPath(
+        _ routes: @escaping () -> [HausRoute],
+        write: @escaping ([HausRoute]) -> Void
+    ) -> Binding<NavigationPath> {
         Binding(
             get: {
-                guard case let .split(_, stack, _) = router.panes(tab) else { return [] }
-                return stack
+                routes().reduce(into: NavigationPath()) { navigation, route in
+                    if case .settings(let settings) = route { navigation.append(settings) } else { navigation.append(route) }
+                }
             },
-            set: { router.setSplitStack($0, for: tab) }
+            set: { write(Array(routes().prefix($0.count))) }
         )
     }
 
     private func pathBinding(_ tab: HausTab) -> Binding<[HausRoute]> {
-        Binding(get: { router.path(tab) }, set: { router.setPath($0, for: tab) })
+        Binding(
+            get: { router.path(tab) },
+            set: { path in
+                if !router.setStackPath(path, for: tab), router.layout == .stack {
+                    Self.foldLogger.fault("\(tab.rawValue, privacy: .public) stack tried to drop several routes before its top appeared; kept")
+                }
+            }
+        )
     }
 
     private var sheetBinding: Binding<HausSheet?> {

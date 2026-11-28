@@ -3,27 +3,28 @@ import HausUI
 import SwiftUI
 
 /// Read acknowledgement and push suppression follow the router: only the
-/// selected tab's top route is on screen, so only its Chat may mark read or
-/// hold back a banner (specs/ios-app.md, Server lifecycle). A Chat mounted
-/// lower in a stack, or in another tab, reports its viewport but never
-/// acknowledges, because the Store gates reads on `openChatID`.
+/// Chats on screen (the selected tab's top route, and beside a Task the
+/// conversation under it) may mark read or hold back a banner
+/// (specs/ios-app.md, Server lifecycle). A Chat mounted lower in a stack, or
+/// in another tab, reports its viewport but never acknowledges, because the
+/// Store gates reads on `openChatIDs`.
 extension AuthenticatedHausView {
-    var visibleChatID: String? {
-        router.visibleConversation?.chatID(
-            captainChat: { store.chatDestinations.agentDestination(agentID: $0)?.durableChat?.id },
-            taskChat: viewingTaskChatID
-        )
+    var visibleChatIDs: Set<String> {
+        Set(router.visibleConversations.compactMap { conversation in
+            conversation.chatID(
+                captainChat: { store.chatDestinations.agentDestination(agentID: $0)?.durableChat?.id },
+                taskChat: viewingTaskChatID
+            )
+        })
     }
 
-    func showVisibleChat(_ chatID: String?) async {
-        push.viewingChatID = chatID
-        store.canvasChatID = chatID
-        guard let chatID else {
-            store.openChatID = nil
-            return
+    func showVisibleChats(_ chatIDs: Set<String>) async {
+        push.viewingChatIDs = chatIDs
+        store.openChatIDs = chatIDs
+        await push.clearDelivered(openedChatIDs: chatIDs)
+        for chatID in chatIDs.sorted() {
+            await store.openChat(chatID: chatID)
         }
-        await push.clearDelivered(openedChatID: chatID)
-        await store.openChat(chatID: chatID)
     }
 
     func reportVisibleMessages(_ destination: ChatDestination, _ messageIDs: [String]) {

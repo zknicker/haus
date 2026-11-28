@@ -2,12 +2,14 @@ import HausModels
 import SwiftUI
 
 /// You's root: the profile, Automations and Drive, this device's settings,
-/// the Server's, then About and Sign out. Every row pushes a screen.
+/// the Server's, then About and Sign out. Every row pushes a screen, or
+/// beside a content pane selects it and shows as `selection`.
 struct SettingsHubView: View {
     let data: SettingsData
     @Binding var appearance: AppearancePreference
     var notifications = PushNotificationsSetting()
     var projectCount: Int?
+    var selection: SettingsRoute?
     let onNavigate: (SettingsRoute) -> Void
     var onSignOut: SettingsSignOut?
     var serverSwitcher: ServerSwitcher?
@@ -20,6 +22,7 @@ struct SettingsHubView: View {
                         SettingsProfileRow(viewer: data.viewer, serverName: data.server.name) {
                             onNavigate(.profile)
                         }
+                        .listSelection(selection == .profile)
                     }
                     if let serverSwitcher, serverSwitcher.servers.count > 1 {
                         ServerSwitcherSection(switcher: serverSwitcher)
@@ -28,19 +31,22 @@ struct SettingsHubView: View {
 
                 SettingsListGroup {
                     if data.canManageServer {
-                        DisclosureRow("Automations", icon: .reminder) { onNavigate(.automations) }
+                        row(.automations) { DisclosureRow("Automations", icon: .reminder, action: $0) }
                     }
-                    DisclosureRow("Drive", icon: .folder, showsDivider: false) { onNavigate(.drive(prefix: "")) }
+                    row(.drive(prefix: "")) { DisclosureRow("Drive", icon: .folder, showsDivider: false, action: $0) }
                 }
 
                 SettingsSection("Settings") {
                     SettingsListGroup {
-                        DisclosureRow("General", icon: .settings) { onNavigate(.general) }
-                        DisclosureRow(
-                            "Notifications",
-                            value: notifications.isOn ? "On" : "Off",
-                            icon: .notification
-                        ) { onNavigate(.notifications) }
+                        row(.general) { DisclosureRow("General", icon: .settings, action: $0) }
+                        row(.notifications) {
+                            DisclosureRow(
+                                "Notifications",
+                                value: notifications.isOn ? "On" : "Off",
+                                icon: .notification,
+                                action: $0
+                            )
+                        }
                         PickerRow(
                             "Appearance",
                             value: appearance,
@@ -54,25 +60,31 @@ struct SettingsHubView: View {
 
                 SettingsSection("Server") {
                     SettingsListGroup {
-                        DisclosureRow("Captains", value: String(data.agents.count), icon: .agents) {
-                            onNavigate(.captains)
+                        row(.captains) {
+                            DisclosureRow("Captains", value: String(data.agents.count), icon: .agents, action: $0)
                         }
-                        DisclosureRow("Models & connections", icon: .skill) { onNavigate(.models) }
-                        DisclosureRow("Projects", value: projectCount.map(String.init), icon: .channel) {
-                            onNavigate(.projects)
+                        row(.models) { DisclosureRow("Models & connections", icon: .skill, action: $0) }
+                        row(.projects) {
+                            DisclosureRow("Projects", value: projectCount.map(String.init), icon: .channel, action: $0)
                         }
-                        DisclosureRow("Devices", value: data.devicesValue, icon: .computer) {
-                            onNavigate(.computers)
+                        row(.computers) {
+                            DisclosureRow("Devices", value: data.devicesValue, icon: .computer, action: $0)
                         }
-                        DisclosureRow("People", value: String(data.members.count), icon: .members, showsDivider: false) {
-                            onNavigate(.people)
+                        row(.people) {
+                            DisclosureRow(
+                                "People",
+                                value: String(data.members.count),
+                                icon: .members,
+                                showsDivider: false,
+                                action: $0
+                            )
                         }
                     }
                 }
 
                 SettingsListGroup {
-                    DisclosureRow("Server", value: data.server.name, icon: .server) { onNavigate(.server) }
-                    DisclosureRow("About", icon: .info, showsDivider: false) { onNavigate(.appInfo) }
+                    row(.server) { DisclosureRow("Server", value: data.server.name, icon: .server, action: $0) }
+                    row(.appInfo) { DisclosureRow("About", icon: .info, showsDivider: false, action: $0) }
                 }
 
                 if let onSignOut {
@@ -86,6 +98,10 @@ struct SettingsHubView: View {
         .reportsChromeScroll()
         .scrollIndicators(.hidden)
         .background(HausPlatformColor.canvas)
+    }
+
+    private func row(_ route: SettingsRoute, _ content: (@escaping () -> Void) -> DisclosureRow) -> some View {
+        content { onNavigate(route) }.listSelection(selection == route)
     }
 }
 

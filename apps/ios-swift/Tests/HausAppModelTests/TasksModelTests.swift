@@ -17,9 +17,9 @@ struct TasksModelTests {
         let older = try tasks.beginDetailRead(taskID: "task_1")
         let newer = try tasks.beginDetailRead(taskID: "task_1")
 
-        #expect(tasks.landDetail(AppModelFixtures.detail("task_1", key: "SEC-2"), for: newer))
-        #expect(!tasks.landDetail(AppModelFixtures.detail("task_1", key: "SEC-1"), for: older))
-        #expect(tasks.detailsByID["task_1"]?.task.key == "SEC-2")
+        #expect(tasks.landDetail(AppModelFixtures.detail("task_1", title: "Second"), for: newer))
+        #expect(!tasks.landDetail(AppModelFixtures.detail("task_1", title: "First"), for: older))
+        #expect(tasks.detailsByID["task_1"]?.task.title == "Second")
     }
 
     @Test("A detail read that began before a Server switch writes nothing")
@@ -32,58 +32,53 @@ struct TasksModelTests {
         #expect(tasks.detailsByID.isEmpty)
     }
 
-    @Test("Open tasks stay unknown until read, then hold what landed")
-    func openTasksLand() throws {
+    @Test("Active Tasks stay unknown until read, then hold what landed")
+    func activeTasksLand() throws {
         let tasks = model()
-        #expect(tasks.openTasks == nil)
+        #expect(tasks.activeTasks == nil)
 
-        let read = try tasks.beginOpenTasksRead()
-        tasks.landOpenTasks([AppModelFixtures.task("task_1")], for: read)
+        let read = try tasks.beginActiveTasksRead()
+        tasks.landActiveTasks([AppModelFixtures.task("task_1")], for: read)
 
-        #expect(tasks.openTasks?.map(\.id) == ["task_1"])
+        #expect(tasks.activeTasks?.map(\.id) == ["task_1"])
     }
 
-    @Test("A filtered list remembers its filter, and an older filter's answer is dropped")
-    func listKeepsNewestFilter() throws {
+    @Test("The list remembers whether it is archived, and an older list's answer is dropped")
+    func listKeepsNewestView() throws {
         let tasks = model()
-        let todo = TaskListFilter(states: [.todo])
-        let done = TaskListFilter(states: [.done])
-        let first = try tasks.beginListRead(todo)
-        let second = try tasks.beginListRead(done)
+        let active = try tasks.beginListRead(archived: false)
+        let archived = try tasks.beginListRead(archived: true)
 
-        #expect(tasks.landList([AppModelFixtures.task("task_2", state: "done")], for: second, filter: done))
-        #expect(!tasks.landList([AppModelFixtures.task("task_1")], for: first, filter: todo))
-        #expect(tasks.list?.filter == done)
-        #expect(tasks.listFilter == done)
+        #expect(tasks.landList([AppModelFixtures.task("task_2", archived: true)], for: archived, archived: true))
+        #expect(!tasks.landList([AppModelFixtures.task("task_1")], for: active, archived: false))
+        #expect(tasks.list?.archived == true)
+        #expect(tasks.listArchived == true)
     }
 
-    @Test("A filter with no states has no Server input")
-    func emptyStatesHaveNoInput() {
-        #expect(TaskListFilter(states: []).input(serverID: "srv_a") == nil)
-        #expect(TaskListFilter(assignee: .unassigned).input(serverID: "srv_a")?.serverID == "srv_a")
-    }
-
-    @Test("Unread Task chats answer lookups by Task and by Chat")
-    func unreadLookups() throws {
+    @Test("Held Tasks answer lookups by Task and by Chat, the newest version first")
+    func lookups() throws {
         let tasks = model()
-        let read = try tasks.beginDetailRead(taskID: "task_1")
-        tasks.landDetail(AppModelFixtures.detail("task_1"), for: read)
+        let read = try tasks.beginActiveTasksRead()
+        tasks.landActiveTasks([AppModelFixtures.task("task_1", title: "Old", version: 1)], for: read)
+        let detail = try tasks.beginDetailRead(taskID: "task_1")
+        tasks.landDetail(TaskDetail(task: AppModelFixtures.task("task_1", title: "New", version: 2)), for: detail)
 
         #expect(tasks.chatID(taskID: "task_1") == "chat_task_1")
         #expect(tasks.taskID(chatID: "chat_task_1") == "task_1")
+        #expect(tasks.heldRecords.map(\.title) == ["New"])
         #expect(!tasks.isUnreadTaskChat("chat_task_1"))
     }
 
     @Test("Reset forgets every snapshot, so nothing reads as empty")
     func resetForgets() throws {
         let tasks = model()
-        let read = try tasks.beginOpenTasksRead()
-        tasks.landOpenTasks([], for: read)
+        let read = try tasks.beginActiveTasksRead()
+        tasks.landActiveTasks([], for: read)
         tasks.reset()
 
-        #expect(tasks.openTasks == nil)
+        #expect(tasks.activeTasks == nil)
         #expect(tasks.list == nil)
-        #expect(tasks.labels == nil)
-        #expect(!tasks.landOpenTasks([], for: read))
+        #expect(tasks.listArchived == nil)
+        #expect(!tasks.landActiveTasks([], for: read))
     }
 }

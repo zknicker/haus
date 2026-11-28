@@ -96,7 +96,14 @@ final class HausModelsTests: XCTestCase {
         let chatless = try HausJSON.decoder().decode(AgentLifecycleEvent.self, from: Data(chatlessJSON.utf8))
         XCTAssertNil(chatless.chatID)
         XCTAssertEqual(chatless.phase, .settled)
+
+        let interruptedJSON = """
+        {"agentId":"agent_1","chatId":"chat_1","emittedAt":"2026-08-15T14:00:00.000Z","runId":"run_3","serverId":"server_1","phase":"settled","outcome":"interrupted"}
+        """
+        let interrupted = try HausJSON.decoder().decode(AgentLifecycleEvent.self, from: Data(interruptedJSON.utf8))
+        XCTAssertEqual(interrupted.outcome, .interrupted)
     }
+
     func testDecodesServerComputerSnapshot() throws {
         let json = """
         {
@@ -231,7 +238,9 @@ final class HausModelsTests: XCTestCase {
         XCTAssertEqual(HausPreviewFixtures.server.slug, "haus")
         XCTAssertEqual(HausPreviewFixtures.agents.first?.displayName, "Blippy")
         XCTAssertEqual(HausPreviewFixtures.memberDirectory.viewerUserID, "user_preview")
-        XCTAssertEqual(HausPreviewFixtures.chats.last?.kind, .dm)
+        XCTAssertEqual(HausPreviewFixtures.chats.last?.kind, .captain)
+        XCTAssertEqual(HausPreviewFixtures.chats.last?.captainID, "agent_blippy")
+        XCTAssertEqual(HausPreviewFixtures.agents.first?.captainChatID, "chat_blippy")
         XCTAssertEqual(HausPreviewFixtures.chats.first?.name, "all")
         XCTAssertEqual(HausPreviewFixtures.messages.first?.content, "Welcome to Haus.")
     }

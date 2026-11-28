@@ -25,6 +25,7 @@ extension TranscriptListCoordinator {
             guard change.oldValue?.size.height != change.newValue?.size.height else { return }
             MainActor.assumeIsolated {
                 self?.holdRestingInset(table)
+                self?.resumePose(in: table)
             }
         }
     }

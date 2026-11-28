@@ -9,8 +9,8 @@ extension HausStore {
     }
 
     /// Projects Server-wide message search into the native result row. Search
-    /// results are limited to the active chat directory because the shell can
-    /// only select chats currently mounted in its active-chat projection.
+    /// results are limited to the active chat directory and the Tasks the app
+    /// holds, the places a result can open.
     func searchMessagePresentations(
         query: String,
         chatID: String? = nil
@@ -25,31 +25,19 @@ extension HausStore {
         )
 
         return results.compactMap { result in
-            guard let chat = chatsByID[result.message.chatID],
-                  chat.archivedAt == nil,
+            guard let (chatName, chatKind) = searchPlace(result, chat: chatsByID[result.message.chatID]),
                   let author = authorPresentation(result.message.author)
             else { return nil }
 
-            let (chatName, chatKind) = searchChatPresentation(chat)
             return MessageSearchResultPresentation(
                 id: result.id,
                 authorName: author.name,
                 authorAvatarURL: author.avatarURL,
-                chatID: chat.id,
+                chatID: result.message.chatID,
                 chatKind: chatKind,
                 chatName: chatName,
                 content: result.message.content,
                 createdAt: result.message.createdAt
-            )
-        }
-    }
-
-    var newChannelAgentPresentations: [NewChannelAgentPresentation] {
-        agents.map { agent in
-            NewChannelAgentPresentation(
-                id: agent.id,
-                displayName: agent.displayName,
-                avatarURL: resolvedAvatarURL(agent.avatarURL)
             )
         }
     }
@@ -80,16 +68,30 @@ extension HausStore {
         )
     }
 
+    private func searchPlace(_ result: ChatSearchResult, chat: ChatSummary?) -> (String, MessageSearchChatKind)? {
+        if let chat {
+            return chat.archivedAt == nil ? searchChatPresentation(chat) : nil
+        }
+        guard result.chatArchivedAt == nil,
+              let shortID = result.taskShortID,
+              taskID(forChatID: result.message.chatID) != nil
+        else { return nil }
+        return (shortID, .task)
+    }
+
     private func searchChatPresentation(_ chat: ChatSummary) -> (String, MessageSearchChatKind) {
         switch chat.kind {
         case .channel:
             return (chat.name ?? (chat.isAll ? "all" : "Project"), .channel)
-        case .dm:
-            let name = chat.peerAgentID.flatMap { agentsByID[$0]?.displayName }
-                ?? chat.peerAgentDisplayName ?? "DM"
+        case .captain:
+            let name = chat.captainID.flatMap { agentsByID[$0]?.displayName }
+                ?? chat.peerAgentDisplayName ?? "Captain"
             return (name, .directMessage)
-        case .task, .unknown:
-            return (chat.name ?? "Task", .channel)
+        case .dm:
+            let name = chat.peerUserID.flatMap { membersByID[$0] }.flatMap { $0.displayName ?? $0.handle } ?? "DM"
+            return (name, .directMessage)
+        case .unknown:
+            return (chat.name ?? "Chat", .channel)
         }
     }
 }

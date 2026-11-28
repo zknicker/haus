@@ -73,6 +73,11 @@ enum HausPlatformColor {
         #endif
     }
 
+    /// The row a split's content pane shows, in every list beside it.
+    static var selectedRow: Color {
+        deepRecessedSurface
+    }
+
     static var separator: Color {
         #if canImport(UIKit)
         Color(uiColor: .separator)
@@ -137,9 +142,9 @@ extension View {
 public extension View {
     /// Hides the system navigation bar on a screen that supplies its own ``ChromeHeader``.
     @ViewBuilder
-    func hausHiddenNavigationBar() -> some View {
+    func hausHiddenNavigationBar(_ isHidden: Bool = true) -> some View {
         #if os(iOS)
-        toolbar(.hidden, for: .navigationBar)
+        toolbarVisibility(isHidden ? .hidden : .automatic, for: .navigationBar)
         #else
         self
         #endif

@@ -54,27 +54,3 @@ struct MessageTimelineTailScrollTests {
         )
     }
 }
-
-struct OpenChatPagesTests {
-    @Test func refreshesTheCanvasOnceWhenItIsTheSurfaceOnScreen() {
-        #expect(
-            OpenChatPages.toRefresh(focusedChatID: "c1", canvasChatID: "c1") == ["c1"]
-        )
-    }
-
-    @Test func refreshesTheCoveredCanvasBehindAnOpenTask() {
-        // covered but is what the pop reveals, so it refreshes too.
-        #expect(
-            OpenChatPages.toRefresh(focusedChatID: "task-c1", canvasChatID: "c1")
-                == ["task-c1", "c1"]
-        )
-    }
-
-    @Test func refreshesTheCanvasWhileANonChatRouteCoversIt() {
-        #expect(OpenChatPages.toRefresh(focusedChatID: nil, canvasChatID: "c1") == ["c1"])
-    }
-
-    @Test func refreshesNothingWithoutAnOpenSurface() {
-        #expect(OpenChatPages.toRefresh(focusedChatID: nil, canvasChatID: nil).isEmpty)
-    }
-}

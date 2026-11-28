@@ -58,13 +58,6 @@ struct SettingsYouTests {
         #expect(SettingsDriveView.title(prefix: "agents/blippy") == "blippy")
     }
 
-    @Test func theWorkersFooterSaysWhoCanChangeIt() {
-        let steward = ServerComputersView.workersFooter(SettingsComputerWorkers(isEnabled: true, canChange: true))
-        let member = ServerComputersView.workersFooter(SettingsComputerWorkers(isEnabled: true, canChange: false))
-        #expect(!steward.contains("Owner"))
-        #expect(member.contains("an Owner, or an Admin"))
-    }
-
     private func data(role: String = "Owner", computers: [SettingsComputer]? = nil) -> SettingsData {
         SettingsData(
             server: SettingsServer(id: "s", name: "Haus", slug: "haus", role: role, memberCount: 1, agentCount: 0),

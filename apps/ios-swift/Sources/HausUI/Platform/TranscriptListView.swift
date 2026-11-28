@@ -96,6 +96,7 @@ where Item.ID == String {
             context.coordinator.installRowPress(on: table)
         }
         context.coordinator.install(view: self, table: table)
+        context.coordinator.joinPoseCarry(context.environment.poseCarry, scope: context.environment.poseScope)
         if animatesEntrance, !UIAccessibility.isReduceMotionEnabled {
             let flip = table.transform
             table.alpha = 0
@@ -115,6 +116,10 @@ where Item.ID == String {
 
     func updateUIView(_ table: UITableView, context: Context) {
         context.coordinator.update(view: self, table: table)
+    }
+
+    static func dismantleUIView(_ table: UITableView, coordinator: TranscriptListCoordinator<Item, Row, Accessory>) {
+        coordinator.leavePoseCarry()
     }
 
     func makeCoordinator() -> TranscriptListCoordinator<Item, Row, Accessory> {
@@ -156,6 +161,8 @@ where Item.ID == String {
     /// A viewport that changes height moves where short content rests.
     var boundsObservation: NSKeyValueObservation?
     var handledRevealToken: UUID?
+    /// Where this transcript rests across a pose change; `TranscriptListView+Pose`.
+    var pose: TranscriptPose?
     /// The near-newest answer the view currently holds. It is cached here and
     /// not read back from the binding: the binding write is asynchronous, so a
     /// second reading inside the same turn would compare against a value the
@@ -245,16 +252,23 @@ where Item.ID == String {
         endSettling()
         followedTopItemID = nil
         heldAnchor = nil
+        pose?.pendingResume = nil
         rowPress?.cancelHold()
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         // A reveal's `scrollToRow` travel is over; settles close themselves.
         scheduleNearNewestSync(scrollView)
+        if let table = scrollView as? UITableView { noteRestingAnchor(table) }
     }
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         scheduleNearNewestSync(scrollView)
+        if let table = scrollView as? UITableView { noteRestingAnchor(table) }
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate, let table = scrollView as? UITableView { noteRestingAnchor(table) }
     }
 }
 

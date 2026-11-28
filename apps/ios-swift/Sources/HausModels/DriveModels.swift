@@ -23,14 +23,12 @@ extension SharedArtifactCreator: Encodable {
 public enum ArtifactAuthor: Decodable, Hashable, Sendable {
     case agent(id: String)
     case user(id: String)
-    case worker(id: String, agentID: String)
     case haus
 
     enum CodingKeys: String, CodingKey {
         case type
         case agentID = "agent_id"
         case userID = "user_id"
-        case workerID = "worker_id"
     }
 
     public init(from decoder: Decoder) throws {
@@ -38,11 +36,6 @@ public enum ArtifactAuthor: Decodable, Hashable, Sendable {
         switch try container.decode(String.self, forKey: .type) {
         case "agent": self = .agent(id: try container.decode(String.self, forKey: .agentID))
         case "user": self = .user(id: try container.decode(String.self, forKey: .userID))
-        case "worker":
-            self = .worker(
-                id: try container.decode(String.self, forKey: .workerID),
-                agentID: try container.decode(String.self, forKey: .agentID)
-            )
         case "haus": self = .haus
         case let other:
             throw DecodingError.dataCorruptedError(

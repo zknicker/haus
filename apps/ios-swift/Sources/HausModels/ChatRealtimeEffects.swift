@@ -25,10 +25,6 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     /// Chats whose read moved; the Chat list read is skipped when it already
     /// shows each of them with nothing unread.
     public private(set) var readChatIDs: Set<String> = []
-    public private(set) var reloadsActiveWorkers = false
-    public private(set) var cloudAgentWorkChatIDs: Set<String> = []
-    public private(set) var cloudAgentWorkIDs: Set<String> = []
-    public private(set) var changedLabelIDs: Set<String> = []
     public private(set) var changedTaskIDs: Set<String> = []
     public private(set) var taskIDsToRefreshPreview: Set<String> = []
     public private(set) var reloadsUnreadTasks = false
@@ -53,8 +49,6 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         case let .read(event): absorb(read: event)
         case let .lifecycle(event): absorb(lifecycle: event)
         case let .claimChanged(event): absorb(claimChanged: event)
-        case let .taskLabelUpdated(event): absorb(taskLabel: event)
-        case let .cloudAgentWorkUpdated(event): absorb(cloudAgentWork: event)
         case let .taskChanged(event): absorb(taskChanged: event)
         case let .taskFollowUpdated(event): absorb(taskFollow: event)
         }
@@ -85,22 +79,15 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         readChatIDs.insert(event.chatID)
     }
 
-    /// A deleted Chat takes its links with it: work it linked may leave
-    /// "Happening now" or open somewhere else, so that list reads again.
     mutating func absorb(lifecycle event: ChatLifecycleEvent) {
         if event.action == .deleted {
             deletedChatIDs.insert(event.chatID)
-            reloadsActiveWorkers = true
         }
         reloadsChatList = true
     }
 
     mutating func absorb(claimChanged event: ClaimChangedEvent) {
         entityRefreshes.insert(EntityRefresh(chatID: event.chatID, messageID: event.messageID))
-    }
-
-    mutating func absorb(taskLabel event: TaskLabelUpdatedEvent) {
-        changedLabelIDs.insert(event.labelID)
     }
 
     mutating func absorb(taskChanged event: TaskChangedEvent) {
@@ -113,13 +100,6 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         changedTaskIDs.insert(event.taskID)
         taskIDsToRefreshPreview.insert(event.taskID)
         reloadsUnreadTasks = true
-    }
-
-    mutating func absorb(cloudAgentWork event: WorkerUpdatedEvent) {
-        changedTaskIDs.insert(event.taskID)
-        cloudAgentWorkIDs.insert(event.workID)
-        cloudAgentWorkChatIDs.insert(event.chatID)
-        reloadsActiveWorkers = true
     }
 
     /// Whether the batch needs a Chat list read, given what the settled list

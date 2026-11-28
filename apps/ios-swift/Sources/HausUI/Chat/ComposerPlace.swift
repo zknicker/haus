@@ -6,12 +6,15 @@ public enum ComposerPlace: Equatable, Sendable {
     case project(name: String)
     /// A DM with a person.
     case person(name: String)
+    /// A conversation's composer sending to the Task beside it.
+    case steeringTask
 
     public var placeholder: String {
         switch self {
         case .captain, .task: "Reply"
         case .project(let name): "Message #\(name)"
         case .person(let name): "Message \(name)"
+        case .steeringTask: "Steer the Task"
         }
     }
 }

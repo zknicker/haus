@@ -3,11 +3,12 @@ import XCTest
 @testable import HausModels
 
 final class PushNotificationCommunicationTests: XCTestCase {
-    func testAgentDMParsesSenderAndConversation() throws {
+    func testADMParsesSenderAndConversation() throws {
         let communication = try XCTUnwrap(PushNotificationCommunication(userInfo: userInfo()))
         XCTAssertEqual(communication.conversationIdentifier, "chat_dm")
         XCTAssertEqual(communication.conversation, .dm)
         XCTAssertNil(communication.conversation.groupName)
+        XCTAssertFalse(communication.conversation.isGroup)
         XCTAssertEqual(
             communication.sender,
             .init(id: "agent_1", kind: .agent, name: "Blippy", avatarURL: URL(string: "https://haus.chat/api/avatars/a1"))
@@ -19,6 +20,17 @@ final class PushNotificationCommunicationTests: XCTestCase {
         let communication = try XCTUnwrap(PushNotificationCommunication(userInfo: info))
         XCTAssertEqual(communication.conversation, .channel(name: "product"))
         XCTAssertEqual(communication.conversation.groupName, "#product")
+    }
+
+    func testACaptainChatIsAGroupNamedByItsCaptain() throws {
+        var info = userInfo(conversation: ["kind": "captain", "name": "Forge"])
+        info["reason"] = "subscribed"
+        let communication = try XCTUnwrap(PushNotificationCommunication(userInfo: info))
+        XCTAssertEqual(communication.conversation, .captain(name: "Forge"))
+        XCTAssertEqual(communication.conversation.groupName, "Forge")
+        XCTAssertTrue(communication.conversation.isGroup)
+        XCTAssertEqual(communication.reason, .subscribed)
+        XCTAssertNil(communication.focusSignals)
     }
 
     func testChannelWithoutNameHasNoGroupName() throws {

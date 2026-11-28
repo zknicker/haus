@@ -62,7 +62,7 @@ public struct ChatDetailsView: View {
                     }
                 }
 
-                if case .agentDirectMessage(let agent) = chat.kind {
+                if case .captainChat(let agent) = chat.kind {
                     activitySections(agent: agent)
                 }
             }
@@ -160,7 +160,7 @@ public struct ChatDetailsView: View {
     }
 
     private var agentID: String? {
-        guard case .agentDirectMessage(let agent) = chat.kind else { return nil }
+        guard case .captainChat(let agent) = chat.kind else { return nil }
         return agent.id
     }
 
@@ -199,7 +199,7 @@ public struct ChatDetailsView: View {
             Text("Project · \(server.name)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-        case .agentDirectMessage(let agent):
+        case .captainChat(let agent):
             AgentStatusLine(presence: agent.presence, currentActivity: currentActivity)
         case .humanDirectMessage(let human):
             Text(human.handle.map { "Human · @\($0)" } ?? "Human")
@@ -215,7 +215,7 @@ public struct ChatDetailsView: View {
             // The hero sits where a DM's circular Agent avatar sits, so it keeps
             // the circle and only takes the channel's glyph and tint.
             ChannelIconBox(appearance: chat.appearance, size: 72, glyphSize: 32, shape: .circle)
-        case .agentDirectMessage(let agent):
+        case .captainChat(let agent):
             AvatarView(
                 name: agent.name,
                 url: agent.avatarURL,

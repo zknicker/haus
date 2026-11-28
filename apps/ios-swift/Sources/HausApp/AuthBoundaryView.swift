@@ -11,8 +11,10 @@ struct AuthBoundaryView: View {
     var body: some View {
         Group {
             if let session = mountedSession {
-                AuthenticatedHausView(session: session, authClient: model.authClient)
-                    .id(session.user.id)
+                ShellChromeScope { chrome in
+                    AuthenticatedHausView(session: session, authClient: model.authClient, shellChrome: chrome)
+                }
+                .id(session.user.id)
             } else {
                 signedOutContent
             }

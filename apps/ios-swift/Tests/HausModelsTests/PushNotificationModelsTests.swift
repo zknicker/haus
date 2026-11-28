@@ -93,7 +93,7 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertEqual(payload.route, .chat(chatID: "chat_channel"))
         XCTAssertEqual(payload.chatID, "chat_channel")
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_channel"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_channel"]),
             .suppress
         )
     }
@@ -118,13 +118,13 @@ final class PushNotificationModelsTests: XCTestCase {
         info["chatId"] = "chat_task_12"
         info["conversationChatId"] = "chat_task_12"
         info["taskId"] = "task_12"
-        info["taskKey"] = "SEC-12"
-        info["reason"] = "follow"
-        info["conversation"] = ["kind": "task", "name": "SEC-12"]
+        info["taskShortId"] = "k3mq7xta"
+        info["reason"] = "subscribed"
+        info["conversation"] = ["kind": "channel", "name": "security"]
         info["futureField"] = ["nested": true]
         let payload = try XCTUnwrap(PushNotificationPayload(userInfo: info))
         XCTAssertEqual(payload.taskID, "task_12")
-        XCTAssertEqual(payload.taskKey, "SEC-12")
+        XCTAssertEqual(payload.taskShortID, "k3mq7xta")
         XCTAssertEqual(payload.route, .task(taskID: "task_12", chatID: "chat_task_12"))
     }
 
@@ -134,7 +134,7 @@ final class PushNotificationModelsTests: XCTestCase {
         info["conversationChatId"] = nil
         info["taskId"] = "task_12"
         let payload = try XCTUnwrap(PushNotificationPayload(userInfo: info))
-        XCTAssertNil(payload.taskKey)
+        XCTAssertNil(payload.taskShortID)
         XCTAssertEqual(payload.route, .task(taskID: "task_12", chatID: "chat_task_12"))
     }
 
@@ -151,10 +151,16 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertEqual(PushNotificationPayload(userInfo: info)?.route, .chat(chatID: "chat_dm"))
     }
 
-    func testARetiredAssignmentPushOpensNothing() {
+    func testAnIssuePushIsNoMessage() {
         XCTAssertNil(PushNotificationPayload(userInfo: [
-            "kind": "task_assignment", "serverId": "server_1", "taskId": "task_1", "key": "SEC-1",
+            "kind": "issue_assignment", "serverId": "server_1", "issueId": "iss_1", "code": "GEN-12",
         ]))
+    }
+
+    func testACaptainChatPayloadSaysItsKind() throws {
+        var info = userInfo()
+        info["conversation"] = ["kind": "captain", "name": "Forge"]
+        XCTAssertEqual(try XCTUnwrap(PushNotificationPayload(userInfo: info)).conversationKind, .captain)
     }
 
     func testATaskPushSuppressesOnlyWhileItsTaskChatIsOnScreen() {
@@ -164,11 +170,11 @@ final class PushNotificationModelsTests: XCTestCase {
         info["taskId"] = "task_12"
         let payload = PushNotificationPayload(userInfo: info)
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_task_12"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_security", "chat_task_12"]),
             .suppress
         )
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_security"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_security"]),
             .banner
         )
     }
@@ -178,7 +184,7 @@ final class PushNotificationModelsTests: XCTestCase {
     func testSuppressesWhileViewingThatChat() {
         let payload = PushNotificationPayload(userInfo: userInfo())
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_dm"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_dm"]),
             .suppress
         )
     }
@@ -186,19 +192,19 @@ final class PushNotificationModelsTests: XCTestCase {
     func testBannersForAnotherChatServerOrNoChat() {
         let payload = PushNotificationPayload(userInfo: userInfo())
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_other"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_other"]),
             .banner
         )
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_2", viewingChatID: "chat_dm"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_2", viewingChatIDs: ["chat_dm"]),
             .banner
         )
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: nil),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: []),
             .banner
         )
         XCTAssertEqual(
-            PushForegroundPresentation.decide(nil, viewingServerID: "server_1", viewingChatID: "chat_dm"),
+            PushForegroundPresentation.decide(nil, viewingServerID: "server_1", viewingChatIDs: ["chat_dm"]),
             .banner
         )
     }

@@ -1,54 +1,18 @@
 import Foundation
 
-public enum TaskListAssigneeFilter: Encodable, Equatable, Sendable {
-    case user(id: String)
-    case agent(id: String)
-    case unassigned
-
-    enum CodingKeys: String, CodingKey {
-        case userID = "userId"
-        case agentID = "agentId"
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        switch self {
-        case let .user(id):
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(id, forKey: .userID)
-        case let .agent(id):
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(id, forKey: .agentID)
-        case .unassigned:
-            var container = encoder.singleValueContainer()
-            try container.encode("none")
-        }
-    }
-}
-
+/// `task.list`: the active Tasks, or the archived ones.
 public struct TaskListInput: Encodable, Equatable, Sendable {
-    public let assignee: TaskListAssigneeFilter?
-    public let keyID: String?
+    public let archived: Bool
     public let serverID: String
-    public let states: [TaskTargetState]?
 
-    public init?(
-        serverID: String,
-        assignee: TaskListAssigneeFilter? = nil,
-        keyID: String? = nil,
-        states: [TaskTargetState]? = nil
-    ) {
-        if states?.isEmpty == true { return nil }
-        self.assignee = assignee
-        self.keyID = keyID
+    public init(serverID: String, archived: Bool = false) {
+        self.archived = archived
         self.serverID = serverID
-        self.states = states
     }
 
     enum CodingKeys: String, CodingKey {
-        case assignee
-        case keyID = "keyId"
+        case archived
         case serverID = "serverId"
-        case states
     }
 }
 
@@ -69,13 +33,12 @@ public struct TaskFollowReceipt: Decodable, Equatable, Sendable {
 }
 
 public enum TaskProcedures {
-    public static let create = HausProcedure<TaskCreateInput, TaskMutationResult>.mutation("task.create")
-    public static let setState = HausProcedure<TaskSetStateInput, TaskMutationResult>.mutation("task.setState")
-    public static let assign = HausProcedure<TaskAssignInput, TaskMutationResult>.mutation("task.assign")
+    public static let start = HausProcedure<TaskStartInput, TaskMutationResult>.mutation("task.start")
+    public static let archive = HausProcedure<TaskArchiveInput, TaskMutationResult>.mutation("task.archive")
+    public static let unarchive = HausProcedure<TaskArchiveInput, TaskMutationResult>.mutation("task.unarchive")
     public static let setFollow = HausProcedure<TaskSetFollowInput, TaskFollowReceipt>.mutation("task.setFollow")
     public static let update = HausProcedure<TaskUpdateInput, TaskMutationResult>.mutation("task.update")
     public static let get = HausProcedure<TaskGetInput, TaskDetail>.query("task.get")
     public static let list = HausProcedure<TaskListInput, [TaskRecord]>.query("task.list")
-    public static let listOpen = HausProcedure<ServerScopeInput, [TaskRecord]>.query("task.listOpen")
-    public static let labels = HausProcedure<ServerScopeInput, [TaskLabel]>.query("taskLabel.list")
+    public static let listActive = HausProcedure<ServerScopeInput, [TaskRecord]>.query("task.listActive")
 }

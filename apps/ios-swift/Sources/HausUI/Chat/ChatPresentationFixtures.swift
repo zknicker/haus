@@ -26,7 +26,7 @@ public enum ChatFixtures {
             kind: .channel,
             appearance: ChannelAppearance(icon: "CompassIcon", color: "amber")
         ),
-        ChatPresentation(id: "cove", title: "Cove", kind: .agentDirectMessage(cove)),
+        ChatPresentation(id: "cove", title: "Cove", kind: .captainChat(cove)),
     ]
 
     public static let messages = [

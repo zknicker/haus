@@ -27,7 +27,7 @@ public struct TaskDetailView: View {
 
     public var body: some View {
         content
-            .navigationTitle(detail?.task.key ?? "")
+            .navigationTitle(detail?.task.shortID ?? "")
             .hausInlineNavigationTitle()
             .toolbar { toolbar }
             .task { await load() }
@@ -102,26 +102,14 @@ public struct TaskDetailView: View {
 
     private func facts(_ task: TaskRecord) -> some View {
         Section {
-            LabeledContent("State") {
+            LabeledContent("Status") {
                 HStack(spacing: 6) {
-                    TaskStateDisc(state: task.state, size: 15)
-                    Text(TaskStateLabel.text(task.state))
+                    TaskActivityDisc(state: TaskDiscState(task), size: 15)
+                    Text(TaskDiscState(task).label)
                 }
             }
-            if let assignee = task.assignee.flatMap(source.actor)?.name {
-                LabeledContent("Assignee", value: assignee)
-            }
-            if task.priority != .none {
-                LabeledContent("Priority", value: task.priority.displayName)
-            }
-            if let due = task.dueOn.flatMap({ TaskDueDate.label($0) }) {
-                LabeledContent("Due", value: due)
-            }
-            if let labels = labelSummary(task) {
-                LabeledContent("Labels", value: labels)
-            }
-            if let creator = task.createdBy.flatMap(source.actor)?.name {
-                LabeledContent("Created by", value: creator)
+            if let creator = source.actor(task.createdBy)?.name {
+                LabeledContent("Started by", value: creator)
             }
             LabeledContent("Created") {
                 Text(task.createdAt, format: .dateTime.month(.abbreviated).day().year())
@@ -129,16 +117,6 @@ public struct TaskDetailView: View {
             LabeledContent("Updated") {
                 Text(task.updatedAt, format: .relative(presentation: .named))
             }
-        }
-    }
-
-    private func labelSummary(_ task: TaskRecord) -> String? {
-        let names = source.labels().filter { task.labelIDs.contains($0.id) }.map(\.name)
-        switch names.count {
-        case 0: return nil
-        case 1 where names[0].count <= 20: return names[0]
-        case 1: return "1 label"
-        default: return "\(names.count) labels"
         }
     }
 
@@ -155,19 +133,17 @@ public struct TaskDetailView: View {
         }
     }
 
-    /// The key is the reference: pasted into any message, it becomes a chip.
     private func copyReference() {
         #if canImport(UIKit)
-        UIPasteboard.general.string = detail?.task.key
+        UIPasteboard.general.string = detail.map { TaskReference.markdown($0.task) }
         #endif
     }
 
     /// The Task opens with what the rest of the screen stands on. A failure
+    /// keeps a held detail on screen.
     private func load() async {
         do {
-            async let detail: Void = source.loadDetail(taskID)
-            async let labels: Void = source.loadLabels()
-            _ = try await (detail, labels)
+            try await source.loadDetail(taskID)
             failure = nil
         } catch is CancellationError {
             return

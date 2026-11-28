@@ -89,7 +89,7 @@ struct TurnDivider: View {
                 .monospacedDigit()
                 .foregroundStyle(HausPlatformColor.mutedInk)
                 .lineLimit(1)
-                .workerShimmer(isLive)
+                .liveShimmer(isLive)
                 .layoutPriority(1)
             rule
         }
@@ -124,7 +124,7 @@ struct TurnStepRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .foregroundStyle(color)
-                .workerShimmer(isCurrent && step.isRunning)
+                .liveShimmer(isCurrent && step.isRunning)
             if opens {
                 Image(systemName: "chevron.right")
                     .font(.caption2.weight(.semibold))

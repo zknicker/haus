@@ -1,40 +1,5 @@
 import Foundation
 
-public enum WorkerPlaceTarget: Codable, Hashable, Sendable {
-    case computer(id: String)
-    case cursor
-    case claude
-
-    enum CodingKeys: String, CodingKey {
-        case computerID = "computerId"
-        case kind
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        switch try container.decode(String.self, forKey: .kind) {
-        case "computer": self = .computer(id: try container.decode(String.self, forKey: .computerID))
-        case "cursor": self = .cursor
-        case "claude": self = .claude
-        case let kind:
-            throw DecodingError.dataCorruptedError(
-                forKey: .kind, in: container, debugDescription: "Unknown Worker place \(kind)."
-            )
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case let .computer(id):
-            try container.encode("computer", forKey: .kind)
-            try container.encode(id, forKey: .computerID)
-        case .cursor: try container.encode("cursor", forKey: .kind)
-        case .claude: try container.encode("claude", forKey: .kind)
-        }
-    }
-}
-
 public enum ProjectText {
     public static let descriptionMaxCharacters = 500
 
@@ -136,110 +101,27 @@ public struct ProjectUpdateInput: Encodable, Equatable, Sendable {
     }
 }
 
-public struct ProjectRepoInput: Encodable, Equatable, Sendable {
+/// `project.setDefaultMachine`: the Machine a Task started here runs on, or none.
+public struct ProjectSetDefaultMachineInput: Encodable, Equatable, Sendable {
+    public let computerID: String?
     public let projectID: String
-    public let repository: String
     public let serverID: String
 
-    public init?(projectID: String, repository: String, serverID: String) {
-        let trimmed = repository.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard (3...200).contains(trimmed.utf16.count),
-              trimmed.wholeMatch(of: /[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+/) != nil
-        else { return nil }
-        self.projectID = projectID
-        self.repository = trimmed
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case projectID = "projectId"
-        case repository
-        case serverID = "serverId"
-    }
-}
-
-public struct ProjectRepoTarget: Encodable, Equatable, Sendable {
-    public let projectRepoID: String
-    public let serverID: String
-
-    public init(projectRepoID: String, serverID: String) {
-        self.projectRepoID = projectRepoID
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case projectRepoID = "projectRepoId"
-        case serverID = "serverId"
-    }
-}
-
-public struct ProjectRepoLinkInput: Encodable, Equatable, Sendable {
-    public let checkoutPath: String?
-    public let computerID: String
-    public let projectRepoID: String
-    public let serverID: String
-
-    public init(checkoutPath: String?, computerID: String, projectRepoID: String, serverID: String) {
-        self.checkoutPath = checkoutPath
+    public init(computerID: String?, projectID: String, serverID: String) {
         self.computerID = computerID
-        self.projectRepoID = projectRepoID
+        self.projectID = projectID
         self.serverID = serverID
     }
 
     enum CodingKeys: String, CodingKey {
-        case checkoutPath
         case computerID = "computerId"
-        case projectRepoID = "projectRepoId"
+        case projectID = "projectId"
         case serverID = "serverId"
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(checkoutPath, forKey: .checkoutPath)
         try container.encode(computerID, forKey: .computerID)
-        try container.encode(projectRepoID, forKey: .projectRepoID)
-        try container.encode(serverID, forKey: .serverID)
-    }
-}
-
-public struct ProjectRepoUnlinkInput: Encodable, Equatable, Sendable {
-    public let computerID: String
-    public let projectRepoID: String
-    public let serverID: String
-
-    public init(computerID: String, projectRepoID: String, serverID: String) {
-        self.computerID = computerID
-        self.projectRepoID = projectRepoID
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case computerID = "computerId"
-        case projectRepoID = "projectRepoId"
-        case serverID = "serverId"
-    }
-}
-
-public struct ProjectDefaultWorkerPlaceInput: Encodable, Equatable, Sendable {
-    public let place: WorkerPlaceTarget?
-    public let projectID: String
-    public let serverID: String
-
-    public init(place: WorkerPlaceTarget?, projectID: String, serverID: String) {
-        self.place = place
-        self.projectID = projectID
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case place
-        case projectID = "projectId"
-        case serverID = "serverId"
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(place, forKey: .place)
         try container.encode(projectID, forKey: .projectID)
         try container.encode(serverID, forKey: .serverID)
     }

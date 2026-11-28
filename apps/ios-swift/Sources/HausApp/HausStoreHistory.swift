@@ -126,7 +126,7 @@ extension HausStore {
     }
 
     func trimMessageHistoryCache() {
-        let protected = Set([openChatID, canvasChatID].compactMap { $0 })
+        let protected = openChatIDs
             .union(pendingMessagesByChatID.keys).union(historyLoadsInFlight)
         let evictions = historyNavigation.retention.evictions(
             cachedIDs: Set(messagesByChatID.keys), protectedIDs: protected
@@ -151,7 +151,7 @@ extension HausStore {
         historyNavigation.followingLatest[chatID] = page.nextAfterSequence == nil && last == page.messages.count - 1
         let sequence = page.messages[first].sequence
         let previous = historyNavigation.visibleSequences.updateValue(sequence, forKey: chatID)
-        guard openChatID == chatID, let previous, previous != sequence else { return }
+        guard openChatIDs.contains(chatID), let previous, previous != sequence else { return }
         if sequence < previous, first < 5, page.nextBeforeSequence != nil {
             Task { await self.loadHistory(chatID: chatID, direction: .older) }
         } else if sequence > previous, last >= page.messages.count - 5, page.nextAfterSequence != nil {

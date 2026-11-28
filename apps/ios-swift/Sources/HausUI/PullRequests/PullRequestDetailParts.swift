@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The author's mark and Worker, then when Haus last read the pull request.
+/// The author's mark and crew, then when Haus last read the pull request.
 struct PullRequestAuthorLine: View {
     let pullRequest: PullRequestPresentation
     let now: Date
@@ -9,7 +9,7 @@ struct PullRequestAuthorLine: View {
         HStack(spacing: 8) {
             if let author = pullRequest.context.author {
                 CaptainMark(name: author.captainName, tint: author.tint, side: 20)
-                Text(author.workerLabel)
+                Text(author.crewLabel)
                     .foregroundStyle(HausPlatformColor.ink)
             }
             if let readAt = pullRequest.readAt {
@@ -22,11 +22,9 @@ struct PullRequestAuthorLine: View {
     }
 }
 
-/// The facts box: state and review, the branch (tap to copy), then the
-/// diffstat and changed files.
+/// The facts box: state and review, then the diffstat and changed files.
 struct PullRequestFactsBox: View {
     let pullRequest: PullRequestPresentation
-    let onCopyBranch: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -45,20 +43,6 @@ struct PullRequestFactsBox: View {
                         Text(review)
                     }
                 }
-            }
-            if let branch = pullRequest.branchText, let head = pullRequest.context.headBranch {
-                Button {
-                    onCopyBranch(head)
-                } label: {
-                    PullRequestTag {
-                        Image(systemName: "arrow.triangle.branch")
-                            .foregroundStyle(HausPlatformColor.mutedInk)
-                        Text(branch)
-                            .truncationMode(.middle)
-                    }
-                }
-                .buttonStyle(.pressable)
-                .accessibilityHint("Copies the branch name")
             }
             HStack(spacing: 8) {
                 if let diffstat = pullRequest.diffstat {
@@ -119,40 +103,24 @@ struct PullRequestChecksRow: View {
     }
 }
 
-/// The Task and the Worker report the pull request came from.
+/// The Task the pull request came from.
 struct PullRequestFromSection: View {
     let pullRequest: PullRequestPresentation
     let actions: PullRequestDetailActions
 
     var body: some View {
-        let context = pullRequest.context
-        if context.task != nil || context.worker != nil {
+        if let task = pullRequest.context.task {
             WorkListSection("From", count: nil) {
-                if let task = context.task {
-                    Button {
-                        actions.openTask(task)
-                    } label: {
-                        WorkListRow(title: task.title) {
-                            TaskStateDisc(state: task.state, size: 18, surface: HausPlatformColor.canvas)
-                        } meta: {
-                            WorkMetaLine(pieces: [task.key, pullRequest.repositoryName])
-                        }
+                Button {
+                    actions.openTask(task)
+                } label: {
+                    WorkListRow(title: task.title) {
+                        TaskActivityDisc(state: task.disc, size: 18, surface: HausPlatformColor.canvas)
+                    } meta: {
+                        WorkMetaLine(pieces: [task.disc.label, pullRequest.repositoryName])
                     }
-                    .buttonStyle(.pressableRow)
                 }
-                if let worker = context.worker {
-                    Button {
-                        actions.openWorker(worker)
-                    } label: {
-                        WorkListRow(title: "Worker report") {
-                            DotGrid(dot: 2.5, gap: 2)
-                                .foregroundStyle(HausPlatformColor.mutedInk)
-                        } meta: {
-                            Text(worker.summary)
-                        }
-                    }
-                    .buttonStyle(.pressableRow)
-                }
+                .buttonStyle(.pressableRow)
             }
         }
     }

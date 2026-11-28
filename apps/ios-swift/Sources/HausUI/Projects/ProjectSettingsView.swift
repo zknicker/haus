@@ -1,7 +1,7 @@
 import HausModels
 import SwiftUI
 
-/// A Device a Project's repos can be checked out on, or its Workers run on.
+/// A Device a Project's Tasks can run on by default.
 public struct ProjectSettingsDevice: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
@@ -16,31 +16,19 @@ public struct ProjectSettingsDevice: Identifiable, Hashable, Sendable {
 /// the screen shows under the section that asked.
 public struct ProjectSettingsActions {
     let save: (_ name: String?, _ key: String?) async throws -> Void
-    let addRepo: (String) async throws -> Void
-    let removeRepo: (String) async throws -> Void
-    let linkRepo: (_ repoID: String, _ computerID: String) async throws -> Void
-    let unlinkRepo: (_ repoID: String, _ computerID: String) async throws -> Void
-    let setDefaultPlace: (WorkerPlaceTarget?) async throws -> Void
+    let setDefaultMachine: (_ computerID: String?) async throws -> Void
 
     public init(
         save: @escaping (_ name: String?, _ key: String?) async throws -> Void,
-        addRepo: @escaping (String) async throws -> Void,
-        removeRepo: @escaping (String) async throws -> Void,
-        linkRepo: @escaping (_ repoID: String, _ computerID: String) async throws -> Void,
-        unlinkRepo: @escaping (_ repoID: String, _ computerID: String) async throws -> Void,
-        setDefaultPlace: @escaping (WorkerPlaceTarget?) async throws -> Void
+        setDefaultMachine: @escaping (_ computerID: String?) async throws -> Void
     ) {
         self.save = save
-        self.addRepo = addRepo
-        self.removeRepo = removeRepo
-        self.linkRepo = linkRepo
-        self.unlinkRepo = unlinkRepo
-        self.setDefaultPlace = setDefaultPlace
+        self.setDefaultMachine = setDefaultMachine
     }
 }
 
-/// A Project's settings, pushed from its row: name and key, repositories with
-/// the Devices they are checked out on, and where its Workers run by default.
+/// A Project's settings, pushed from its row: name and key, and the Machine
+/// its Tasks run on by default.
 public struct ProjectSettingsView: View {
     private let project: Project?
     private let devices: [ProjectSettingsDevice]
@@ -49,7 +37,7 @@ public struct ProjectSettingsView: View {
     @State private var nameDraft = ""
     @State private var keyDraft = ""
     @State private var identityError: String?
-    @State private var placeError: String?
+    @State private var machineError: String?
     @State private var isSaving = false
 
     public init(project: Project?, devices: [ProjectSettingsDevice], actions: ProjectSettingsActions) {
@@ -85,22 +73,17 @@ public struct ProjectSettingsView: View {
             } header: {
                 Text("Project")
             } footer: {
-                footer(error: identityError, note: project.keyEditable ? "The key prefixes every Task, like \(keyDraft.isEmpty ? project.key.rawValue : keyDraft)-1." : "The key is fixed once the project has a Task.")
+                footer(error: identityError, note: keyNote(project))
             }
-            ProjectReposSection(project: project, devices: devices, actions: actions)
             Section {
-                Picker("Default Worker place", selection: placeBinding(project)) {
-                    Text("Ask each time").tag(WorkerPlaceTarget?.none)
-                    ForEach(devices) { device in
-                        Text(device.name).tag(WorkerPlaceTarget?.some(.computer(id: device.id)))
+                Picker("Default Machine", selection: machineBinding(project)) {
+                    Text("No default").tag(String?.none)
+                    ForEach(machineChoices(project)) { device in
+                        Text(device.name).tag(String?.some(device.id))
                     }
-                    Text("Cursor").tag(WorkerPlaceTarget?.some(.cursor))
-                    Text("Claude").tag(WorkerPlaceTarget?.some(.claude))
                 }
-            } header: {
-                Text("Workers")
             } footer: {
-                footer(error: placeError, note: "Where this project's Workers run unless someone picks a place.")
+                footer(error: machineError, note: "Where a Task started here runs unless someone picks a Machine.")
             }
         }
         .scrollContentBackground(.hidden)
@@ -114,6 +97,19 @@ public struct ProjectSettingsView: View {
             nameDraft = project.name
             keyDraft = project.key.rawValue
         }
+    }
+
+    private func keyNote(_ project: Project) -> String {
+        guard project.keyEditable else { return "The key is fixed once the project has an Issue." }
+        return "The key prefixes every Issue, like \(keyDraft.isEmpty ? project.key.rawValue : keyDraft)-1."
+    }
+
+    /// The Devices, plus the current default when it is no longer listed.
+    private func machineChoices(_ project: Project) -> [ProjectSettingsDevice] {
+        guard let current = project.defaultMachine, !devices.contains(where: { $0.id == current.computerID }) else {
+            return devices
+        }
+        return devices + [ProjectSettingsDevice(id: current.computerID, name: current.computerName ?? "Device")]
     }
 
     private func footer(error: String?, note: String) -> some View {
@@ -143,16 +139,16 @@ public struct ProjectSettingsView: View {
         }
     }
 
-    private func placeBinding(_ project: Project) -> Binding<WorkerPlaceTarget?> {
+    private func machineBinding(_ project: Project) -> Binding<String?> {
         Binding(
-            get: { project.defaultWorkerPlace?.target },
-            set: { place in
+            get: { project.defaultMachine?.computerID },
+            set: { computerID in
                 Task {
                     do {
-                        try await actions.setDefaultPlace(place)
-                        placeError = nil
+                        try await actions.setDefaultMachine(computerID)
+                        machineError = nil
                     } catch {
-                        placeError = error.localizedDescription
+                        machineError = error.localizedDescription
                     }
                 }
             }
@@ -161,18 +157,5 @@ public struct ProjectSettingsView: View {
 
     private func trimmed(_ text: String) -> String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
-extension WorkerPlace {
-    /// The place as the target a write names. Nil for a kind this build does
-    /// not know.
-    var target: WorkerPlaceTarget? {
-        switch kind {
-        case "computer": computerId.map { .computer(id: $0) }
-        case "cursor": .cursor
-        case "claude": .claude
-        default: nil
-        }
     }
 }

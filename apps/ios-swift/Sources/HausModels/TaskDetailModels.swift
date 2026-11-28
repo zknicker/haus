@@ -21,7 +21,7 @@ public struct TaskMention: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
-/// A Reminder whose description references the Task: its **Reminders**.
+/// A Reminder set on the Task or whose description references it: its **Reminders**.
 public struct TaskReminderRef: Codable, Identifiable, Hashable, Sendable {
     public enum Kind: String, Codable, Sendable {
         case once
@@ -48,18 +48,31 @@ public struct TaskReminderRef: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+public struct TaskReminderSetter: Codable, Hashable, Sendable {
+    public let agentID: String
+    public let displayName: String
+
+    public init(agentID: String, displayName: String) {
+        self.agentID = agentID
+        self.displayName = displayName
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case agentID = "agentId"
+        case displayName
+    }
+}
+
+/// `task.get`: the Task plus what its page shows around it, and the reader's
+/// follow and unread.
 public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
     public let task: TaskRecord
-    /// The description as it renders, resolved by the Server when read: the
-    /// bare `@handle`, `#channel`, and `#channel:shortid` tokens an Agent's
-    /// Message has rewritten into references, rewritten the same way. A Server
-    /// that predates it reads as the description itself.
+    /// The description as it renders, resolved by the Server when read.
     public let descriptionContent: String
     /// The Task references in `descriptionContent`, like a Message's `taskLinks`.
     public let descriptionTaskLinks: [TaskLink]
     public let mentions: [TaskMention]
     public let reminders: [TaskReminderRef]
-    public let attachedWork: [Worker]
     public let pullRequests: [PullRequestReading]
     public let followed: Bool
     public let unreadCount: Int
@@ -70,9 +83,8 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
         task: TaskRecord,
         descriptionContent: String? = nil,
         descriptionTaskLinks: [TaskLink] = [],
-        mentions: [TaskMention],
-        reminders: [TaskReminderRef],
-        attachedWork: [Worker] = [],
+        mentions: [TaskMention] = [],
+        reminders: [TaskReminderRef] = [],
         pullRequests: [PullRequestReading] = [],
         followed: Bool = false,
         unreadCount: Int = 0
@@ -82,7 +94,6 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
         self.descriptionTaskLinks = descriptionTaskLinks
         self.mentions = mentions
         self.reminders = reminders
-        self.attachedWork = attachedWork
         self.pullRequests = pullRequests
         self.followed = followed
         self.unreadCount = unreadCount
@@ -93,7 +104,6 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
         case descriptionTaskLinks
         case mentions
         case reminders
-        case attachedWork
         case pullRequests
         case followed
         case unreadCount
@@ -102,14 +112,27 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
     public init(from decoder: Decoder) throws {
         task = try TaskRecord(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        descriptionContent = try container.decodeIfPresent(String.self, forKey: .descriptionContent)
-            ?? task.description
+        descriptionContent = try container.decode(String.self, forKey: .descriptionContent)
         descriptionTaskLinks = try container.decodeLossyArray(TaskLink.self, forKey: .descriptionTaskLinks)
         mentions = try container.decodeLossyArray(TaskMention.self, forKey: .mentions)
         reminders = try container.decodeLossyArray(TaskReminderRef.self, forKey: .reminders)
-        attachedWork = try container.decodeLossyArray(Worker.self, forKey: .attachedWork)
         pullRequests = try container.decodeLossyArray(PullRequestReading.self, forKey: .pullRequests)
-        followed = try container.decodeIfPresent(Bool.self, forKey: .followed) ?? false
-        unreadCount = try container.decodeIfPresent(Int.self, forKey: .unreadCount) ?? 0
+        followed = try container.decode(Bool.self, forKey: .followed)
+        unreadCount = try container.decode(Int.self, forKey: .unreadCount)
+    }
+
+    public func replacing(task: TaskRecord? = nil, followed: Bool? = nil) -> TaskDetail {
+        let task = task ?? self.task
+        let sameDescription = task.description == self.task.description
+        return TaskDetail(
+            task: task,
+            descriptionContent: sameDescription ? descriptionContent : nil,
+            descriptionTaskLinks: sameDescription ? descriptionTaskLinks : [],
+            mentions: mentions,
+            reminders: reminders,
+            pullRequests: pullRequests,
+            followed: followed ?? self.followed,
+            unreadCount: unreadCount
+        )
     }
 }

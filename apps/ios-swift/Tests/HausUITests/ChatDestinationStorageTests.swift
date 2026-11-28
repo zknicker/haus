@@ -3,7 +3,7 @@ import Testing
 
 @Suite struct ChatDestinationStorageTests {
     @Test func roundTripsBothDestinationKinds() {
-        let ids: [ChatDestination.ID] = [.chat("cht_123"), .agentDM("agt_456")]
+        let ids: [ChatDestination.ID] = [.chat("cht_123"), .captain("agt_456")]
         for id in ids {
             #expect(ChatDestination.ID(storageValue: id.storageValue) == id)
         }

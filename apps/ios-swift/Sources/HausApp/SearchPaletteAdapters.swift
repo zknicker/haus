@@ -23,13 +23,9 @@ extension HausStore {
         )
     }
 
-    /// `task.listOpen`, which the palette's Recent and Tasks scope read.
+    /// `task.listActive`, which the palette's Recent and Tasks scope read.
     func loadSearchPalette() async {
-        do {
-            try await tasks.reloadOpenTasks()
-        } catch {
-            Self.logger.debug("Search Tasks unavailable: \(error.localizedDescription, privacy: .public)")
-        }
+        await tasks.refreshActiveTasks()
     }
 
     private var searchPeople: [SearchPerson] {
@@ -40,23 +36,21 @@ extension HausStore {
     }
 
     private func searchTasks(captainsByID: [String: SearchCaptain]) -> [SearchTask]? {
-        guard tasks.openTasks != nil || tasks.list != nil else { return nil }
-        var seen = Set<String>()
+        guard tasks.activeTasks != nil || tasks.list != nil else { return nil }
         let peopleByID = Dictionary(
             (members?.members ?? []).map { member in
                 (member.userID, searchPerson(member))
             },
             uniquingKeysWith: { first, _ in first }
         )
-        let records = ((tasks.openTasks ?? []) + (tasks.list?.tasks ?? [])).filter { seen.insert($0.id).inserted }
-        return records.map { record in
+        return tasks.heldRecords.map { record in
             SearchTask(
                 id: record.id,
-                key: record.key,
+                shortID: record.shortID,
                 title: record.title,
-                state: record.state,
-                captain: record.assignee?.agentID.flatMap { captainsByID[$0] },
-                person: record.assignee?.userID.flatMap { peopleByID[$0] },
+                disc: TaskDiscState(record),
+                captain: record.captainID.flatMap { captainsByID[$0] },
+                person: record.createdBy.userID.flatMap { peopleByID[$0] },
                 updatedAt: record.updatedAt
             )
         }

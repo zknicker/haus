@@ -60,7 +60,7 @@ through it. In a channel the row is the working Agents' 18-point avatars, overla
 (three at most, then "+N"), followed by the hopping dots — no visible "is typing" words. Each new
 thought drops as one glass bubble (`EngagementThoughtBubble`, "**Blippy** Found a timing race…",
 one line, cut at 300 points) from under the row over the oldest visible messages, and the speaking
-Agent's avatar lifts slightly while it shows. In an Agent DM the title already names the Agent, so
+Agent's avatar lifts slightly while it shows. In a Captain chat the title already names the Captain, so
 the row is that Agent's latest thought as a one-line secondary subtitle, crossfading as thoughts
 change, with the dots trailing (only the dots before a first thought). A Task puts the same row
 just under its header band, roster style. The band's
@@ -95,7 +95,7 @@ lift. Like the header, the row stops growing past the largest standard text size
 stops at the first accessibility size. There are no haptics: this is ambient information. The
 App's emoji faces are not ported.
 
-A stopped Agent's DM says so above the composer (`StoppedAgentNotice`): one glass card on the
+A stopped Captain's chat says so above the composer (`StoppedAgentNotice`): one glass card on the
 composer's own material with a stop glyph, "<Agent> is stopped", what that means, and a prominent Start
 for Owners and Admins (`agent.start`, then an Agent directory refresh; a spinner stands in for the
 label while it runs, a success haptic, and a native alert on failure). It is a deliberate product
@@ -171,12 +171,6 @@ not configurable, rather than an extra automatic-effort choice. A model change k
 effort or selects the model's concrete default. The editor explains next-turn application and the
 session reset required by runtime/model changes or a Grok Build reasoning change.
 
-Cloud Agent settings use `cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect`.
-Computer owns the Cursor sign-in attempt and credentials. The phone presents the Server-reported
-sign-in link, checks progress while the screen is active, and supports cancellation and retry after
-failure or expiry. Returning from the browser refreshes the attempt; leaving the screen does not
-cancel it. A later visit can resume the pending attempt on the same Computer.
-The screen's Model row reads `cloudAgentSettings.get` and pushes a searchable list: Auto (Cursor picks a model for each run) first, then the reported Cursor catalog in family sections (Claude, GPT, Gemini, Grok, Composer, Other) in Cursor's order. Below it, an Effort picker (a menu for five or fewer options, a pushed list for more) and a Fast toggle appear only when the chosen model offers them, starting at the saved param or the model's default. Picking a model saves `params: {}`; picking a param's default value leaves it unset; every edit saves immediately through `cloudAgentSettings.setModel` (Owners and Admins) and shows in place until the Server answers. Members read the values. An unavailable saved model, a saved param the model no longer offers, a missing catalog, and save failures are explained in the section footer. The Model row is a custom navigation row, not a stock `Picker`, so a long value stacks and wraps instead of truncating. `WorkerModelChoice` owns the list, control, and footer logic.
 
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
@@ -593,7 +587,7 @@ label; they do not restyle the control or set their own geometry. The sidebar an
 both open with that same row, so a chrome button in either pane lands on one centerline. A
 fixed-size chrome circle must not be placed in a system navigation bar, which compresses it into an
 ellipse: a screen that wants the chrome circle supplies its own `ChromeHeader` and hides the
-navigation bar, as the Chat shell root does. Pushed screens keep the standard navigation bar with
+navigation bar, as the Chat shell root does with custom chrome (`ShellChrome`). Pushed screens keep the standard navigation bar with
 its system back button and text actions.
 
 One navigation stack answers to one bar decision, and inside a sheet that is not a preference. A
@@ -707,7 +701,7 @@ when nothing left it at all (no Server).
 A page of history or replies the reader asked for that fails to load says so in place: the
 transcript's load-older accessory turns into a quiet "Couldn't load earlier messages · Try Again" line
 (`TranscriptLoadOlderButton`). Background work (tail reads, foreground refresh, stream reconciliation,
-history refresh, Worker refresh) logs instead: the header already speaks for connectivity.
+history refresh, Task refresh) logs instead: the header already speaks for connectivity.
 Lost connectivity is header state, never a banner over the transcript (`ConnectionOutage`): once the
 Server connection has been down for two seconds the Chat header's title, or a Task's navigation
 subtitle, reads "Connecting…" until it returns, so a stream that drops and reconnects says nothing.
@@ -732,6 +726,190 @@ in-flight preparation, a pending message reveal — is owned by the Store per Se
 and reaches the screen as a binding or by reference. A page arriving for a Chat that was showing
 nothing is that Chat's first paint and settles at the bottom without animation; only genuine
 appends animate.
+
+Which bars the shell draws is one decision, `ShellChrome` (`HausUI/Adaptive/ShellChrome.swift`):
+stock wherever the system lays bars out vertically (`toolbarVerticalEdge` non-nil, iOS 27.1) or
+the width is regular, custom otherwise. `ShellChromeScope` reads it from the environment while it
+builds `AuthenticatedHausView`, so the first frame already draws the right bars, and it hands the
+value down as `\.shellChrome`. Below iOS 27.1 bars are never vertical, so the size class alone
+decides: an iPhone Plus or Pro Max on iOS 26 in landscape is regular width, splits, and gets stock
+bars. An `onChange` reader set it a
+frame late, and the Duo flashed `HausBottomChrome` at launch. Custom is the regular
+iPhone: the system tab bar stays hidden, `HausBottomChrome` (icon tabs and the Ask anything field)
+floats over the tabs, and a Chat hides the navigation bar under its floating `ChatScreenHeader`.
+Stock is the iPhone Duo and regular width: every `Tab` carries a title and symbol (You shows the
+viewer's photo, Search is `role: .search`), the `TabView` draws its own bar — in the trailing rail
+where bars are vertical — and there is no bottom chrome. The bar follows `HausRouter.showsTabBar`
+(`ShellChrome.tabBar(showsTabBar:)`): it shows at a tab's root and beside a split selection, and
+hides over a stacked push. The visibility is set on each tab's content, never on a pushed screen,
+because on vertical bars a pushed screen's own `toolbarVisibility` never reaches the rail. Home and
+Projects get a compose button that presents the same Ask anything sheet (the Tasks `+` already
+does). A Chat keeps the system navigation bar, with the system's Back; `ChatScreenHeader` keeps
+the identity and live work leading in the column, and `ChatHeaderToolbar` puts Files (a Project),
+Call (a Captain chat) and More in one system toolbar group, with Search in Chat inside More. The
+system's bars stand in the leading or trailing safe area, so the Chat route and both transcripts
+(Chat and Task) ignore only the vertical safe area there (`ShellChrome.transcriptIgnoredEdges`) and
+end at the rail. Padding cannot do this: a descendant's `ignoresSafeArea()` still runs past an
+ancestor's padding to the container's safe-area edge, which pushed the flipped table under the
+rail and, in the split's detail column, past its leading edge.
+
+At regular width every tab is list | detail (`AdaptiveSplitView`, `HausRouter.panes`). The bottom of
+a tab's stack is the selection in the detail column and the rest stacks over it, so folding and
+unfolding never rewrite a stack: compact draws the same path as a push stack over the tab's root.
+`HausRouter.selects` decides what replaces the selection instead of stacking: a conversation in Home,
+Projects, Tasks and Search, and on You a row of the settings list (a `.settings` route, or Drive's
+root `.driveFile(path: "")`). You with nothing selected shows General (`HausTab.emptySelection`).
+You's list is the same `SettingsSheet` hub, given a `SettingsListSelection` so a row selects
+instead of pushing; the detail column draws the selected row through `RouteScreen.settings` as a
+second `SettingsSheet` whose `root` is that row, and that instance draws the settings screens it
+pushes, so they share its saved-profile overlay and avatar sessions. Search holds every route but
+settings: at regular width its hits open `.inside` and replace the selection, scrolled to the match
+and banded through the router's `reveal` (the same jump-and-flash path as a reference), while
+compact Search still opens hits `.outside` in their own tab, and an outside open never lands in
+Search. Each list, Home's included, marks the row the detail shows with `listSelection` (`HausUI/Adaptive`): a
+`systemFill`-tinted row with medium (12 pt) corners, never an accent fill.
+
+The list column has three states (`ListColumn`, HausModels): full, a 76 pt rail, or hidden.
+`AdaptiveSplitView` takes the state as a binding. The system never draws its column narrower than
+about 280 pt on the Duo's inner display, whatever `navigationSplitViewColumnWidth` asks, so the
+system column holds only the full list (`.all`); for the rail and hidden it is `.detailOnly`, and
+the rail is Haus content leading the whole split in an `HStack`. It stays outside the split
+because the detail column's bar spans the column, and a pushed screen's Back would land over a
+rail inside it. A 12 pt `ListColumnHandle` on
+the full list's or the rail's trailing edge drags between the states: its grabber follows the
+finger, and letting go snaps by where the edge lands (`ListColumnLayout.released`: under 40 pt
+hidden, under 160 pt the rail, else full), with VoiceOver actions for each state. The system's own
+drag still resizes the full list. The system sidebar button stands only over a hidden column, where
+it brings back the full list. The full list's header leaves it out, because in the 280 pt column it
+truncated the title beside compose and `+`, and the handle already collapses the list. On the rail
+it is removed too, because the rail's bottom button brings back the full list. Search has no rail: its column is full where another tab would draw the rail. Each tab's rail is `ListRail` over items
+built from the rows its list already draws (`ListRails`): Home's recent conversations (Captain
+marks, Project tiles, people and Task discs, with the accent unread dot or the green dot for a
+Captain or Task at work), the Projects' tiles, the Tasks view's discs, and You's settings symbols.
+Compose sits at the top (none on You) and the full-list button at the bottom; that button makes the
+same choice as the handle (`\.revealListColumn`, set on the rail by the split), so beside a Task it
+moves only that Task's column. With the full list beside a Task, the split tells its detail
+(`\.listColumnIsFull`) and `TaskModePanes` splits the rest evenly instead of meeting at a book fold
+the column no longer spans; half open like a book the list stays aside beside a Task
+(`ListColumnLayout.pinsTaskModeAside`), so the panes keep the fold's clearance. The selected mark
+gets `listSelection`'s tint and a 4 pt indicator on the rail's leading edge. The state is
+remembered per Server by `ListColumnPreference` (HausAppModel), owned by `ServerLifecycle` beside
+the launch snapshots: app-local presentation state in `UserDefaults` per signed-in user, cleared
+on membership loss and sign-out. Compact layouts never read it, so folding leaves it alone and
+unfolding restores it.
+
+In the list column under stock bars, `hausScreenTitle` asks for the system's large title
+(`\.isListColumn`, set by `AdaptiveSplitView`), which the Duo draws bold and leading in the
+column's toolbar row beside the actions; everywhere else it stays the centered 17 pt title. A
+custom 26 pt title item does not fit: in the system's 280 pt column it pushes compose and `+`
+into an overflow menu. A Task chat's identity leads the column under stock bars, as a Chat's does,
+and stays centered with custom chrome.
+
+Task mode: a Task's preview card opens through `InAppReferenceRoutes.openTaskCard`, which calls
+`HausRouter.open(_:from: .taskCard)`. That pushes the `.task` route over the conversation on top
+instead of replacing the selection, and in a split a Task already beside that conversation gives
+way to the new one. A Task from the Tasks list, a `task://` reference or a push still opens the old
+way. `TabPanes.split` carries a `side` route: a `.task` directly over a `.captain`, `.dm` or
+`.channel` (`HausRouter.sidePane(in:)`). It is still the top of the stack, so compact draws it
+pushed full screen and folding changes nothing. `closeSidePane`, any write of the conversation's
+own stack (`setSplitStack`), and an inside open of a route that stacks (Work, a file or pull
+request link) drop it; the route then stacks over the conversation. The Task pane's Files open a
+file in a router sheet (`HausSheet.driveFile`) instead, so both panes stay. The pane is blank
+until the Task's record loads (`TaskPaneAgent`), and a closing pane leaves from the frame it had
+open (`TaskModePanes.placements`). With a side route, `AdaptiveSplitView(besideTask:)` shows the
+rail, or hides the column on Search, which has no rail, through `TaskModeColumn`. It never writes
+the stored `ListColumn`, so closing the Task brings back the column the tab had. A drag while the
+Task is open moves only that Task's column. `TaskModeSplit` places the detail column's panes with
+one `Layout`, the conversation's `NavigationStack` always the first subview, so opening the Task,
+turning the Duo or half opening it never remounts it. `TaskModePanes` decides the frames from
+`Fold` (`HausUI/Adaptive/Fold.swift`): the division region in the column's own coordinates, read by
+`FoldReader` through `reservedRegions(kind: .division, options: .includeInactive)`, so a layout
+knows where the fold is fully open too. A fold running top to bottom puts the Task beside the
+conversation, one running across (inner portrait) puts it below; fully open they meet at the
+fold's midline, half open (the region active) each keeps 28 pt off it, and with no region they
+split evenly side by side. A horizontal fold keeps the split when the keyboard shortens the column
+past it, leaving the Task pane under the keyboard. The Task pane's hairline follows the edge it
+shares (`\.taskPaneEdge`). A conversation alone keeps to the larger side of an active book fold
+(`Fold.clearSide`). `ArrangementView` is not used. The conversation directly under the Task
+(`HausRouter.besideTask(of:in:)`) gets two things:
+- `besideTaskID`: its composer sends through `ComposerDraftStore.target`, which is the Task's own
+  draft (`.task(id)`, `chat.send` to the Task's chat, steer by default) until the chip's × calls
+  `release`. Opening the card again calls `aim` and brings the chip back. The chip and an inline
+  reply never share the composer: Reply calls `release`, and the chip coming back drops the reply
+  (`ChatScreenView+Reply.swift`). The chip sits inside the
+  pill after the plus (`ComposerLeadingControls`), and the field's width is measured from that
+  leading group.
+- `taskModeChrome`: its bar shows only the Task's More menu (`TaskChatMenu`), and
+  `\.chatHeaderYieldsToolbar` drops the conversation's own items. There is no Stop, as on the web
+  App; interrupting is a later delivery choice in the composer.
+
+Half open like a book with no Task, `AdaptiveSplitView` reads the fold over the whole split and
+gives the full list the width up to it (`ListColumnLayout.foldedWidth`: the column's min, ideal and
+max all set to the fold's leading edge), pads the list's rows 28 pt off it, hides the edge handle,
+and shows the full list whatever the stored `ListColumn` says, without writing it. The system keeps a
+column's width when its range changes, so opening again fixes the column at its pre-fold width until
+it is drawn there (`ListColumnWidth`). The system's own visibility writes never move a column Haus
+holds at the fold or beside a Task, except to bring back a hidden one
+(`ListColumnLayout.acceptsSystemVisibility`). Custom chrome
+keeps clear of a fold running across it: the rail's marks scroll above it with Show list below
+(`ListRailFold`), and the handle's grip and touch area keep to the larger side
+(`ListColumnLayout.handleSpan`). The composer, chip, jump pills and Task pane controls sit inside
+panes that already keep clear. Bars are the system's.
+
+A fold or unfold flips `router.layout`, and every tab moves between its stack and its split, which
+mounts its screens afresh. `PoseCarry` (HausUI) carries what they held: the shell calls `carry()`
+just before the layout changes, while the old screens are still mounted, and each new screen takes
+its value back under a `PoseKey`. Keys are scoped by tab and route (`poseScope`, set by
+`adaptiveStack`, `routeDestination` and the Task pane), the same in a stack and a split; views
+outside a tab, such as a router sheet's, carry nothing because they never remount.
+`carriesAcrossPoses` carries a value through `onAppear`/`onDisappear`: the turn details sheet
+(`HeaderEngagement` and the Task pane's Activity share the name, so a Task pane's sheet reopens over
+the Task chat on the outer display), the message drawer, the model sheet, the reply being composed,
+the Task pane's segment, the Projects filter, and the Search query and scope. Composer focus is
+keyed by draft (`\.composerPoseKey`), not by screen, so a chip composer's keyboard lands on the Task
+chat, which writes the same `.task(id)` draft. A screen whose key changes while mounted (a composer
+gaining a Task's chip) moves its registration, and whatever no screen took is dropped as soon as the
+reader navigates (`settle`), so a later open never inherits a fold's focus or sheet. Each
+transcript's coordinator notes its resting anchor when a scroll settles (`TranscriptListView+Pose`,
+nil at the newest edge), so `carry()` touches no UIKit layout, and resumes a carried one once the
+table has a height and the item, unless the reader touches it first or a reveal wins. Only the
+stack on screen writes a tab's path: a compact stack torn down after the Duo opened writes nothing
+(`setStackPath`), as a split's already did (`setSplitStack`). SwiftUI pops the compact stack during
+the scene's move to the outer display when a Task sat beside its conversation
+(`NavigationColumnState.pop`, run in the window's rotation), before the stack's top screen has
+appeared. Pinning the split to the regular size class did not stop it. The router's refusal is the
+bounded workaround: until a rebuilt stack's top screen appears (`stackAppeared`, from the
+destination's `onAppear`, and for You's Settings screens from `SettingsSheet`'s `onScreenAppear`)
+or the router replaces the tab's path itself (`open`, `showRoot`, `setPath`), it refuses a write
+that drops more than one route, once per fold, and bumps
+`stackRevision`, which the stack reads so it redraws from the router's path. Back pops one screen
+and is always taken. Each refusal logs one fault under `chat.haus.ios` / `pose`; remove the
+workaround once that fault stops firing on a newer iOS.
+
+Haus alone moves the list column. The system writes the split's column visibility on its own (turning
+the Duo to portrait hid the list, and that write used to be stored as the reader's choice), so the
+visibility binding refuses every system write and redraws. The system sidebar button is removed
+everywhere: its place in the detail column's bar is covered by the conversation's own stack, so with
+bars horizontal a hidden list could not come back. A hidden column's detail shows Haus's own Show
+list instead (`\.revealListColumn`, `showListButton`). The Chat composer clears whichever reaches
+higher, the keyboard or the screen's bottom inset (`ChatComposerInset`), because with bars horizontal
+at regular width the system tab bar floats inside that inset and the keyboard reader does not know it.
+
+Conversations ask for `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)`
+(`keepsToolbarItemsWhileTyping`): with the keyboard up the rail runs short, and Call, Files and the
+Task's More act on what is being typed while the tab bar can wait. `KeyboardInsetSample` measures
+from the reading view's own bottom and only the part of the home-indicator inset it reaches, so a
+conversation ending at a fold above the keyboard keeps its composer where it is. At regular width
+the mention card stays list-column wide (330 pt) at the composer's leading edge.
+
+`TaskPaneView` has no composer. Its header shows the starter (the crew Captain, else the person),
+the activity pill and Close (`closeSidePane`), then the title and an Activity | Files segment.
+Activity is `TurnDetailsCaptainSection` for the Task's agent, read through the turn details source
+(`agent.turns`, live runs from `agent.onActivity`); a turn or step opens the turn details sheet.
+Files is `artifact.list` with `creator: {agent: task.agentId}` and `recursive`, the files the
+Task's agent created, drawn as `DriveFileRows`. A row opens `.driveFile` on top of the stack. The
+Task is then no longer directly over its conversation, so it draws as a pushed screen under the file,
+and Back returns to Task mode.
 
 Both transcripts — the Chat timeline and a Task's messages — sit on `TranscriptListView`, the
 flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each
@@ -828,19 +1006,8 @@ block, and a plain message never joins a reply's block. The composer states the 
 "Replying to **Name**" with a cancel control, and lets go of it the moment the reply is sent —
 the reply is already in the transcript — taking it back only when nothing left the composer.
 
-Workers use the same Server records as the web App. Settings → Cloud agents lets an Owner or
-Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
-sign-in browser on that Computer, not on the phone; iOS never receives the credential.
-
-Each Message's `workers` annotation (decoded as `cloudAgentWork`) supplies one inline card per linked Worker in
-a Chat or Task (`ChatMessageWorkers.swift`); the card names the Agent from the work's
-`agentId`, and `RichMessageParser` reads `worker://` links as reference chips. Cards follow the
-[card contract](../../specs/cloud-agents.md): the Server's `job` headlines in Cursor's vocabulary
-(never "Queued"), an optional PR row, exactly one single-line status line
-(`WorkerStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
-Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
-`worker.updated`, sent once per linking Message, refreshes that Message through the normal durable event/reconnect path; a deleted Chat reloads the active work
-list, since linked work outlives it. Cards scroll with their Messages and follow-ups update the same card.
+There are no Workers or cloud agent hand-off ([ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md)):
+parallel work is a Task, and the phone shows it as one.
 
 There are no Threads ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)): a side
 conversation is inline replies in its Channel or DM, and work lives in Tasks. A message row offers no
@@ -855,43 +1022,58 @@ composed or converted always states itself. The preference is per device, like a
 claims in chat** is the switch. A stopped claim opened from an Agent profile opens its message in the
 Channel or DM that numbers it (`claim.chatID`, revealing `claim.messageID`).
 
-A Task is a place ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)): a Channel
-for one piece of work, started by an Agent from a Message in a Channel, with a state (todo, open,
-done, canceled) and its own `task` Chat. There are no boards or columns, and the phone has no Tasks
-page, no create, and no state or assignee controls (decision 15). The phone holds Tasks apart from
-Chat state: `TaskSnapshots` is its own observable on the Store, holding each opened Task's
-`task.get` (`TaskDetail`, whose `TaskRecord` is the Task), the label catalog, and the followed
-unread Tasks. Every list stays nil until its first read, so "nothing here" is never "not yet known",
-and a durable event refreshes only what is held. `TaskRecord` requires only the Task's identity and
-state and decodes everything else leniently, so a Server that drops or adds a field never costs a
-Task its screen. `HausUI/Tasks` owns the screens; `TaskChatAdapters.swift` and
-`TaskPresentationAdapters.swift` are the seams.
+A Task is an agent session with its own chat ([ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md)):
+a title, an 8-character short id, active or archived (`archivedAt`), and an activity (`working`,
+`waiting`, `idle`, `failed`, plus `needsYou`). `TaskRecord` decodes `taskSchema` strictly, and
+`TaskActivityStatus` names the activity with the web App's words (Needs you, Working, Waiting,
+Failed, Idle); `TaskDiscState` adds Archived, and `TaskActivityDisc` draws it. A Task has no state,
+priority, labels, assignee, due day, or key; those are an Issue's, and the phone has no Issue screen.
+The phone holds Tasks apart from Chat state: `TasksModel` is its own observable on the Store,
+holding each opened Task's `task.get` (`TaskDetail`), the active Tasks (`task.listActive`), the Tasks
+tab's `task.list` (active or archived), the Projects, and the followed unread Tasks. Every snapshot
+stays nil until its first read, so "nothing here" is never "not yet known", and a durable event
+refreshes only what is held. `HausUI/Tasks` and `HausUI/TasksTab` own the screens;
+`TaskChatAdapters.swift`, `TaskListAdapters.swift`, and `TaskPresentationAdapters.swift` are the
+seams.
 
-A Task opens as one push on the root navigation stack, from its origin preview, a chip, its Unread
-row, a Happening now row for work attached to it, or a push, so Back returns to whichever canvas is
-showing; it never selects the canvas Chat. Until the Store holds a record that says whether the Task
-has a Chat, the screen is blank rather than guessing. A Task with a Chat opens as `TaskChatView`:
-the Chat timeline's own rows and the iPhone composer, under `TaskChatHeader`, a band in the layout
-above the transcript (never over it) with the Task's title, which wraps at every size, its state
-disc and words; its Workers, pull requests, and files open from the Work pill. At large text sizes the band stops growing at a fraction of the screen and scrolls
-inside itself. A quiet **Started from #channel** row heads the transcript once its oldest page is
-loaded and opens the origin Message in its Channel. The Task's Chat is the open Chat while the
-screen shows, so what the reader sees there is what reads it, and opening it clears the
-notifications its messages sent. The composer mentions from the origin Channel's roster, and an
-archived origin Channel leaves the Task readable without a composer. The message drawer offers
-reactions and copying only.
+The Tasks tab (`TaskListScreen`) shows the web Tasks page's chips: My tasks (active Tasks the reader
+started), All tasks, and Archived. `TaskListSections` groups an active list by activity, Needs you
+first, and lists Archived flat; rows run newest first with the Project, `Machine · model`, and age,
+and an unread Task chat wears a dot. Its `+` and Home's "Ask anything" accessory (a compose button
+with stock chrome) start a Task with
+`task.start` (`AskAnythingPlan`): a Project, a Machine (the Project's default first), a model from the
+runner catalog, and the text as the first message. The Project picker, like the web Home composer's
+and New Captain's home picker, offers only joined Channels other than `#all` that have a live
+`project.list` record (`AskAnythingPlan.projectChatIDs`), because `task.start` refuses any other
+Channel; the field reads "Start a Task". A refusal shows the Server's own message, never the raw
+tRPC code. The draft keeps its request id, so a retried send answers the same Task.
+
+A Task opens as one push on the tab's navigation stack, from the Tasks tab, Home, its origin preview,
+a chip, its Unread row, or a push. Until the Store holds a record that says whether the Task has a
+Chat, the screen is blank rather than guessing. A Task with a Chat opens as `TaskChatView`: the Chat
+timeline's own rows and the iPhone composer, under a centered header with the activity disc, the
+title, and the activity (or the connection state while the link is down). Its `…` menu (`TaskChatMenu`)
+renames, copies the `[title](task://id)` reference, follows or stops following, archives or restores,
+and opens the origin. Its pull requests and files open from the Work pill. A message sent there reaches
+the Task's agent as steer, `chat.send`'s default delivery; the phone sends no delivery mode. A quiet
+**Started from #channel** row heads the transcript once its oldest page is loaded and opens the origin
+Message. The Task's Chat is the open Chat while the screen shows, so what the reader sees there is
+what reads it, and opening it clears the notifications its messages sent. The composer mentions from
+the origin Channel's roster, and an archived origin Channel leaves the Task readable without a
+composer. The message drawer offers reactions and copying only.
 
 A Task from before Tasks were places has no Chat (`chatId: null`) and is read-only history. It
 opens `TaskDetailView`, a read-only details screen with no composer and no control that writes: the
 title and description (drawn like a message body, so its references are chips), native fact rows
-(state, assignee, priority, due day, labels, creator, created, updated), **Mentioned in**, and
-**Reminders**, with **Copy reference** the one menu action. A **Mentioned in** row opens its Channel
+(status, who started it, created, updated), **Mentioned in**, and **Reminders**, with **Copy
+reference** the one menu action. A **Mentioned in** row opens its Channel
 or DM at the message; `TaskMention.place` names that Channel or DM, so a row reads `#security` or
 `DM`. A Reminder anchored on a Task's own Chat opens that Task.
 
 A Channel Message an Agent started Tasks from shows each one under it (`TaskPreviewStack`, one
-`TaskPreviewCard` per Task) at inline density: the state disc, key, and title, which
-wraps rather than truncating, then `Open · 9 messages · 2 new`, then up to three newest messages.
+`TaskPreviewCard` per Task) at inline density: the disc (active or archived) and the title, which
+wraps rather than truncating, then `9 messages · 2 new` (led by `Archived` once archived), then up to
+three newest messages.
 The whole card opens the Task through `InAppReferenceRoutes.openTask`, because hosted rows have no
 environment. Previews ride `chat.messages` pages as `tasks`; a preview this build cannot read drops
 itself, never the page. When an event says a previewed Task changed (a new message, a read, a state
@@ -899,47 +1081,44 @@ or title change, a follow), the held origin Message re-reads through `chat.messa
 carries that Message's `tasks`; an answer without the key, from an older Server, falls back to one
 `chat.messages` read around the Message (`HausStoreTaskPlaces.swift`).
 
-A pushed Task owns the open Chat while it is on screen, and the shell's Chat selection resumes
-ownership when it pops; the covered canvas Chat stays named so its page keeps refreshing underneath,
-but read acknowledgements belong to the deepest surface alone.
+The Chats on screen are `HausRouter.visibleConversations`, resolved to `HausStore.openChatIDs`:
+the selected tab's top route, and in Task mode the conversation under the Task as well. A pushed
+Task owns the open Chat while it covers its conversation; beside it, both are open. Only open Chats
+acknowledge reads, keep their pages refreshing, and hold back a foreground push.
 
-A message's Task references read as chips. A written `[SEC-12](task://id)` is already a reference
-by the time `RichMessageParser` runs; a bare `SEC-12` is not, because the Server records it without
-rewriting the content. `TaskLinkChips` turns the bare keys a message's `taskLinks` resolved into
-chips, working on the parsed runs rather than the Markdown, so code spans, code blocks, Markdown
-links, and autolinked URLs never reach it and a key the Server did not resolve stays text. The chip
-reads the Task's current key, since a Task can be re-keyed while the message keeps the words it was
-written with. A tapped chip pushes the Task. There is no Convert to Task: only Agents start Tasks
-(decision 4), so the message drawer offers none.
+A message's Task references read as chips. A written `[title](task://id)` is a reference by the
+time `RichMessageParser` runs and chips with the Tasks glyph and the link's own words, like the web
+App's tertiary chip; a chip reads nothing to render. A bare `GEN-12` names an Issue and stays text. A
+tapped chip pushes the Task. There is no Convert to Task in the message drawer.
 
-A Task chip wears its Task's state disc in place of the Tasks glyph — no fill, the mark plus the
-dotted rule every reference draws — whenever the app already holds a read of that Task: a page's
-Task previews, the open Tasks, the Tasks list, or a detail, freshest last
-(`HausStore.taskReferenceStateIndex`). A chip reads nothing to render, so a Task the app has no read
-of keeps the glyph rather than fanning out one read per chip. `TaskReferenceStates` stamps the
-states after the parse, so a state change retires the drawn rows and never a parsed body. A
-library link to a Drive file opens that file's Drive route once its metadata is loaded
+A library link to a Drive file opens that file's Drive route once its metadata is loaded
 (`InAppReferenceRoutes.openDriveArtifact`); a link pinned to a revision keeps the artifact viewer,
 because Drive shows the newest revision.
 
 Home is the cold-start tab and stands on Server-wide, Store-owned reads (`HausStoreInbox`): the
 Chat list's unread Chats, the followed unread Tasks (`chat.unreadPreviews`' rows that name a Task),
-and the Workers running now (`worker.listActive`). Each stays nil until its first load, so "nothing
-unread" is never confused with "not yet known". Happening now, Recent (with Mark Read on a row's
-long press), and Open tasks render from them; unread shows as row dots, never counts, and archived
+and the active Tasks (`task.listActive`). Each stays nil until its first load, so "nothing
+unread" is never confused with "not yet known". Captain tiles open each Captain's shared chat
+(`kind: captain`, read from `chat.list`; the tile's unread dot is that chat's). Recent (with Mark Read
+on a row's long press) and Tasks render from them; Recent fills with DMs and the Captain chats the
+person joined (`captainChat.member`); unread shows as row dots, never counts, and archived
 Projects restore from Projects. The Inbox page, its sidebar row, and the **Active this week** card
 (with its `stats.live` read) are retired. The app icon badge is the Server's cross-Server
 `chat.unreadChatCount`, the number push puts on `aps.badge`.
 
 A tapped notification is a `PushNotificationPayload` decoded from `userInfo`; keys this build does
 not know are ignored, and its `route` is the whole decision. A push for a Message in a Task's Chat
-carries `taskId` and `taskKey`, routes to `.task`, and pushes the Task over whatever is showing,
-whatever its conversation ids say; one without opens its conversation, the Channel or DM, on the canvas.
+carries `taskId` and `taskShortId`, routes to `.task`, and pushes the Task over whatever is showing,
+whatever its conversation ids say; one without opens its conversation: the Channel, the DM, or, for
+`conversation.kind: captain`, the Captain's chat by the Captain the Chat list names
+(`PushRouteTable.request(for:captainOf:)`, opening the Chat by id while the list does not hold it yet).
+An Issue push (`issue_assignment`, `issue_comment`) decodes to `HausPush.issue` and opens Home on its
+Server, since the phone has no Issue screen.
 The rule is one pure function, `PushNotificationRoute.opening(chatID:conversationChatID:taskID:)`:
 a push sent before ADR 0053 that names a side conversation's own Chat as `chatId` beside its parent
 `conversationChatId` opens the parent Channel, where those messages now live as inline replies, and
-the payload reads its `chatId` as that parent so a reader already on it is not bannered. A push for another Server opens nothing, and a malformed one (or a retired
-`task_assignment` push, which names no message) decodes to nil. A Task push arriving while its Task
+the payload reads its `chatId` as that parent so a reader already on it is not bannered. A push for another Server opens nothing, and a malformed one (or any
+other `kind`) decodes to nil. A Task push arriving while its Task
 screen is up is suppressed like any push for the Chat on screen.
 
 An "Active this week" card keeps its figure and sparkline
@@ -1030,7 +1209,7 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 
 `HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
 `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`,
-`chat.onLifecycle`, `worker.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
+`chat.onLifecycle`, `claim.onChanged`,
 `task.onCreated`, `task.onUpdated`, `task.onFollowUpdated`, `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`,
 `server.onUpdated` (the membership sentinel), `project.onUpdated`, and `artifact.onUpdated`. These are
 `RealtimeStream.liveSession`. The other cases (`agent.onUpdated`, `agent.onExecutionJournal`,
@@ -1038,7 +1217,7 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 invalidate. `project.onUpdated` re-reads `project.list` once loaded (the Projects tab's and the Task picker's)
 through the coalesced pass. `artifact.onUpdated` re-reads the named file's open previews at once (every open
 preview for a null id) and the browsed Drive folder and each place's recent files through the coalesced pass.
-`worker.onUpdated` names the Worker's Task, and refreshes that Task's held detail. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
+`computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an
 offline Agent list, and only the attach's `computer.updated` says presence came back. Its events
 run the same coalesced owned-projection pass a start does (Agent list and activity, and
@@ -1047,8 +1226,9 @@ stream ends and restarts alone with capped backoff (1 s doubling to 30 s, reset 
 connected); a sibling never notices. The connection indicator follows only the message and Agent
 lifecycle streams. Chat events coalesce into targeted reads (`ChatRealtimeEffects`): a tail read per
 loaded list for a new message, a `chat.message` read per changed annotation, one shared Chat list
-read. Task events coalesce the same way against `TaskSnapshots` (`applyTaskEffects`,
-`applyTaskPlaceEffects`): only a held Task or label list reads, a changed Task's held origin preview
+read. Task events coalesce the same way against `TasksModel` (`TasksModel.apply`,
+`applyTaskPlaceEffects`): only a held Task detail or Task list reads (a Task agent's run starting or
+settling is a `task.updated`, so a held activity stays current), a changed Task's held origin preview
 re-reads through `chat.message`, and the followed unread Tasks read again once held.
 
 Recovery is anchored to the subscription start (`RealtimeReconciliation`). A read that finished
@@ -1063,8 +1243,7 @@ reloads the open lists' loaded pages and marks off-screen lists to reload when s
 clock makes the newest-started `chat.list` and `server.list` read win, so a slow foreground
 snapshot never overwrites a reconciliation that already landed.
 
-No message carries a label, so `taskLabel.onUpdated` owns only the label catalog. The Task streams
-own `taskDetails` and `unreadTasks` (`RealtimeProjection`); the message and read streams own
+The Task streams own `taskDetails` and `unreadTasks` (`RealtimeProjection`); the message and read streams own
 `unreadTasks` too, because a Task message or read moves a followed Task's Unread row.
 
 Refusals follow the coded `hausRefusal` only, never a bare tRPC code. `membership_lost` is final
@@ -1294,7 +1473,7 @@ already present in that cache.
 Shared wire contracts and model projections belong in `HausModels`; authenticated operations,
 realtime delivery, and recovery belong in `HausTransport`. Each Server procedure the phone calls
 through the typed path is a `HausProcedure<Input, Output>` in a per-area namespace
-(`TaskProcedures`, `WorkerProcedures`, `ProjectProcedures`, `AgentProcedures`, `DriveProcedures`,
+(`TaskProcedures`, `ProjectProcedures`, `AgentProcedures`, `DriveProcedures`,
 `ModelConnectionProcedures`), and `TRPCClient.call` runs it. `HausUI` receives narrow models and
 closures from `HausApp` rather than owning Server transport or inventing mobile-only records.
 
@@ -1306,15 +1485,17 @@ retry.
 Optimistic rows never patch durable history.
 
 The native Chat shell navigates over a typed destination rather than assuming every sidebar row is a
-persisted Chat. A durable destination carries a Server Chat id; an implicit Agent-DM destination carries
-only the Agent id. Every active Agent therefore appears in the sidebar before a DM exists. Its first
-text send uses `chat.send` with `targetKind: agent-dm`, then adopts the Chat id from the receipt and never
-creates a placeholder record. Materialized Agent and human DMs remain durable destinations; human peers
-resolve their current name, handle, and avatar from the member directory, with a former-member fallback
-when the directory no longer carries them.
+persisted Chat. A durable destination carries a Server Chat id; an implicit Captain chat destination
+(`implicitCaptainChat`) carries only the Captain id, for a Captain whose one shared chat
+(`kind: captain`, ADR 0062) the Chat list does not hold yet. Its first text send uses `chat.send` with
+`targetKind: captain`, then adopts the Chat id from the receipt and never creates a placeholder record.
+Listed Captain chats and person-to-person DMs are durable destinations; human peers resolve their current
+name, handle, and avatar from the member directory, with a former-member fallback when the directory no
+longer carries them. There are no DMs with Captains.
 
-Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Agent-DM
-target. `@` offers Agents and humans, `#` offers channels, and `$` offers the Skills the chat's Agents
+Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Captain
+chat target (`targetKind: captain`). A Task's composer queries the Task's own Chat, whose Skills come
+from its Project's Captains, so a Task started from "Ask anything" has a roster too. `@` offers Agents and humans, `#` offers channels, and `$` offers the Skills the chat's Agents
 carry; selecting one writes the shared `agent://`, `user://`, `chat://`, or `skill://` markdown
 reference into the draft. The Server sends a Skill's `insertText` bare where every other kind arrives
 with its sigil, so the composer adds the `$` and a Skill selection serializes as
@@ -1521,10 +1702,10 @@ back into history never sends a lower sequence; one `(chat, sequence)` is **atte
 it is in flight; a **failed** acknowledgement releases its claim without advancing the mark, so the
 next visibility change or foreground retries it; and nothing acknowledges at all unless the app is
 **frontmost**, the phone's reading of the web App's document-visible-and-window-focused gate.
-Returning to active re-evaluates the open Chat's current mark. Reads still belong to the deepest
-surface alone: every mounted transcript reports what it is showing, including a canvas Chat a pushed
-Task covers, but only `openChatID` acknowledges — and while the Inbox is the canvas there is no
-Chat screen mounted to report at all. The durable `chat.read` event — which Server writes only when
+Returning to active re-evaluates each open Chat's current mark. Reads still belong to the Chats on
+screen alone: every mounted transcript reports what it is showing, including a Chat a pushed Task
+covers, but only `openChatIDs` acknowledge. The Task pane shows no transcript, so a Task's chat
+beside its conversation reports nothing and its mark stays put, while its pushes are held back. The durable `chat.read` event — which Server writes only when
 the read moved and addresses to the reader alone — owns the `chat.list` refresh, exactly as the web
 App's `useChatRead` does, so one acknowledgement produces one list refresh and unread counts remain
 Server projections rather than local durable state.

@@ -12,7 +12,6 @@ extension AuthenticatedHausView {
             askAnythingCard
         case .newProject:
             NewChannelFormView(
-                agents: store.newChannelAgentPresentations,
                 create: { [store] draft in try await store.createNativeChannel(draft) },
                 onCreated: { router.open(.channel(chatID: $0.id), from: .outside) }
             )
@@ -23,6 +22,7 @@ extension AuthenticatedHausView {
                 runtimes: (store.modelConnections?.runtimeCatalog ?? []).map(SettingsRuntime.init),
                 create: { draft in try await createCaptain(draft) }
             )
+            .task { await loadAskChoices() }
         case .archivedProjects:
             ArchivedChannelsView(
                 load: { [store] in
@@ -57,11 +57,20 @@ extension AuthenticatedHausView {
                 onSelectChat: { router.open(route(forChatID: $0.id)) },
                 onSelectMessage: { router.open(route(forChatID: $0.chatID, messageID: $0.id)) }
             )
+        case .driveFile(let path):
+            NavigationStack {
+                driveFileDestination(path)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { router.dismissSheet() }
+                        }
+                    }
+            }
         }
     }
 
     private func currentActivity(for destination: ChatDestination) -> AgentActivityPresentation? {
-        guard case .agentDirectMessage(let agent) = destination.kind else { return nil }
+        guard case .captainChat(let agent) = destination.kind else { return nil }
         return store.currentActivityPresentation(agentID: agent.id)
     }
 

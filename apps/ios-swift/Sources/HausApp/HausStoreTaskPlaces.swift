@@ -40,16 +40,8 @@ extension HausStore {
 
     func applyTaskPlaceEffects(_ effects: ChatRealtimeEffects) async {
         refreshTaskPreviews(effects.taskIDsToRefreshPreview, unknownTaskIDs: effects.changedTaskIDs)
-        let workTaskIDs = tasks.detailsByID.values
-            .filter { $0.task.chatID.map(effects.cloudAgentWorkChatIDs.contains) == true }
-            .map(\.task.id)
-        await withTaskGroup(of: Void.self) { group in
-            for taskID in workTaskIDs where !effects.changedTaskIDs.contains(taskID) {
-                group.addTask { try? await self.reloadTaskDetail(taskID: taskID) }
-            }
-            if effects.reloadsUnreadTasks, tasks.unreadTasks != nil {
-                group.addTask { await self.loadUnreadTasks() }
-            }
+        if effects.reloadsUnreadTasks, tasks.unreadTasks != nil {
+            await loadUnreadTasks()
         }
     }
 

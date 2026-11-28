@@ -155,8 +155,8 @@ extension HausStore {
         // them in one shared pass (`recoverOpenTranscripts`), and reading
         // them now as well would load each page twice. Reads belong to the
         // deepest surface alone.
-        if let openChatID {
-            await markChatReadIfNeeded(chatID: openChatID)
+        for chatID in openChatIDs {
+            await markChatReadIfNeeded(chatID: chatID)
         }
     }
 

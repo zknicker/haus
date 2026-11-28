@@ -21,15 +21,13 @@ extension AuthenticatedHausView {
                 Color.clear
             }
         }
+        .keepsToolbarItemsWhileTyping()
         .task { try? await store.reloadTaskDetail(taskID: taskID) }
     }
 
     private func taskChatDestination(_ taskID: String) -> some View {
         let chatID = store.taskChatID(taskID: taskID)
         let origin = store.taskOrigin(taskID: taskID)
-        let originDestination = origin.flatMap { origin in
-            store.chatDestinations.first { $0.durableChat?.id == origin.chatID }
-        }
         return TaskChatView(
             header: store.taskChatHeader(taskID: taskID),
             startedFrom: store.taskStartedFrom(taskID: taskID),
@@ -54,19 +52,19 @@ extension AuthenticatedHausView {
             engagementChatID: chatID,
             landingMessageID: router.revealedMessageID(in: .task(taskID)),
             editing: store.taskChatEditing(taskID: taskID),
-            workPill: store.workPill(.task(taskID), now: .now),
+            workPill: store.workPill(.task(taskID)),
             onOpenWork: { router.open(.work(.task(taskID))) },
-            onOpenWorker: { router.open(.worker(workerID: $0)) },
-            mentionOptions: originDestination.map { store.mentionOptions(for: $0) } ?? [],
+            mentionOptions: chatID.map { store.mentionOptions(chatID: $0) } ?? [],
             onLoadMentionOptions: {
-                guard let originDestination else { return }
-                await store.loadMentionOptions(for: originDestination)
+                guard let chatID else { return }
+                await store.loadMentionOptions(chatID: chatID)
             },
             onVisibleMessagesChange: { messageIDs in
                 guard let chatID else { return }
                 store.reportVisibleMessages(chatID: chatID, messageIDs: messageIDs)
             }
         )
+        .environment(\.composerPoseKey, String(describing: ComposerDestination.task(taskID)))
         .task(id: chatID) { await store.loadWork(.task(taskID), includingFiles: false) }
     }
 

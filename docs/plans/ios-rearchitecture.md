@@ -1,5 +1,5 @@
 ---
-summary: Implementation plan for rebuilding the Haus iPhone app in Capy's shape, iPhone Duo included. It covers the iOS 26 tab-bar shell, Home, Projects, Tasks, the Work view, Workers, turn details, and the visual system, with phases, slices in order, invariants, shared-file owners, Server contracts, and verification.
+summary: Implementation plan for rebuilding the Haus iPhone app in Capy's shape, iPhone Duo included. It covers the iOS 26 tab-bar shell, Home, Projects, Tasks, the Work view, turn details, and the visual system, with phases, slices in order, invariants, shared-file owners, Server contracts, and verification. ADR 0062 later replaced its Workers, Task states and Captain DMs; the catch-up note says what changed.
 read_when:
   - starting or running any phase of the iPhone rearchitecture
   - writing a slice brief, a PR description, or a review for apps/ios-swift work in this program
@@ -9,7 +9,21 @@ read_when:
 # iPhone rearchitecture plan
 
 The program rebuilds `apps/ios-swift` in the shape Zach chose from Capy's iPhone app. Haus's own product model
-holds throughout: Projects, Tasks, Workers, and one session per Captain.
+holds throughout: Projects, Tasks, and one session per Captain.
+
+**ADR 0062 catch-up (2026-11-27).** [ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md)
+landed after the slices below shipped, and the iPhone followed it in one pass. Read the slices as history where
+they say otherwise; [the iPhone spec](../../specs/ios-app.md) is the contract.
+- Workers, the Worker view, Happening now, "Workers can run here", cloud agent settings, worker places, and
+  Project repos are deleted. The Work view lists pull requests and Files, and its pill counts open pull requests.
+- A Task is an agent session: a title, a short id, active or archived, and an activity (Needs you, Working,
+  Waiting, Failed, Idle). Task states, the Status sheet, priority, labels, assignee, due dates and keys are gone.
+  The Tasks tab is My tasks, All tasks, and Archived, grouped by activity. "Ask anything" starts a Task with
+  `task.start` (Project, Machine, model). The Task chat renames, follows, archives and restores, and sends as
+  steer.
+- Captain DMs are the one shared Captain chat (`kind: captain`): the `captain(agentId)` route, Home tiles, push
+  routing, and mark read all use it.
+- Issues have no iPhone screen. Issue pushes open Home, and Issue turn triggers decode.
 
 - **Decisions, teardown, and gaps:** the [Capy parity audit](ios-capy-parity-audit.md). When the two disagree, the
   audit's Decisions section wins.
@@ -29,21 +43,20 @@ holds throughout: Projects, Tasks, Workers, and one session per Captain.
 - **Gone.** The drawer, the Inbox page, and the Settings sheet. Each one goes only after its workflows have a new
   home (S1c).
 - **Tabs.**
-  - **Home:** Captain tiles, Happening now, recent DMs, and Open tasks.
-  - **Projects:** Projects with their Captains, unread dots, open Task counts, archived Projects, and People.
-  - **Tasks:** filtered and grouped by state. You can create and edit Tasks here.
+  - **Home:** Captain tiles, Recent, and the active Tasks.
+  - **Projects:** Projects with their Captains, unread dots, active Task counts, archived Projects, and People.
+  - **Tasks:** My tasks, All tasks, and Archived, grouped by activity. You can start a Task here.
   - **You:** the settings as pushed rows, plus Automations, Models & connections, Projects setup, Devices, People,
     Integrations, and the Server switcher.
   - **Search:** a palette with scopes, recents, and actions.
 - **Chats.**
-  - Captain DMs and Task chats use the assistant layout. Projects keep roster rows.
+  - Captain chats and Task chats use the assistant layout. Projects keep roster rows.
   - Live work stays as the header dots and thought pill. Tapping them, or a message's "View turn details", opens
     the turn details sheet.
   - Stop is in the Captain's menu. The voice call stays in the header menu.
-- **Work view.** A floating Work pill with a count, above each place's composer, opens its Workers, Tasks, PRs
-  (read-only), and Files.
-  The Worker view has steps, the report, a follow-up composer, and Stop Worker.
-- **Composer.** It gains a model chip that opens the Model sheet (later moved to the Captain DM's `…` menu,
+- **Work view.** A floating Work pill with a count, above each place's composer, opens its PRs (read-only) and
+  Files.
+- **Composer.** It gains a model chip that opens the Model sheet (later moved to the Captain chat's `…` menu,
   when the composer became a one-line pill that grows as you type). The sheet writes the Captain's model. Members
   see it read-only. (A full-height grabber shipped in 13.0.0 and was removed: swipes meant for the keyboard caught
   it.)
@@ -352,30 +365,8 @@ Follow Apple's [Designing for iPhone Duo](https://developer.apple.com/design/hum
 HIG. Use the stock `TabView` and toolbars, which move to the side on their own. Displays: outer is about 466×678 pt
 (compact width); inner is about 951×669 pt in landscape and 669×951 in portrait (regular in both dimensions).
 
-- [ ] **D1. Outer display.**
-  - In every pose, the tab bar, toolbar, and navigation controls sit in a column on the trailing edge under the
-    camera, with Back or Close at the top. Content gets the full height.
-  - The accessory and composer stay at the bottom of the content area.
-  - Insets are asymmetric; never assume the sides match.
-- [ ] **D2. Inner display, fully open.**
-  - Landscape: controls stay on the trailing edge.
-  - Mail's pattern: a narrower list pane leading, with its controls at the top of that pane, and a wider content
-    pane trailing. Projects list | Project chat, Tasks | Task chat.
-  - Portrait: horizontal bars return. The tab bar is at the bottom of the leading pane, and the composer is at the
-    bottom of the content pane.
-  - Layout follows size classes, never orientation (the inner display ignores supported orientations).
-- [ ] **D3. Half-open.**
-  - Like a book (landscape): two equal panes either side of the reserved folding region. Task chat sits leading;
-    its Worker view sits trailing with its own composer and Stop Worker.
-  - On a surface (portrait): the conversation sits above the fold, and turn details plus the composer sit below it.
-  - No control crosses the folding region. Custom chrome uses `ReservedRegion`. Alerts, menus, and sheets clear the
-    fold on their own.
-  - Avoid big layout jumps while folding. Drafts, scroll anchors, and the open sheet carry across every pose
-    change.
-  - Use the `app-resizability` Xcode skill if it is installed.
-
-**Gate.** Device Hub's iPhone Duo Simulator: closed, open, rotated, and half-open, with drafts and the open chat
-surviving every change.
+[The iPhone Duo layout plan](ios-duo-layout.md) holds this phase: decisions from the accepted design, slices D0 to
+D5, and the Device Hub pass. It replaces the old D1 to D3, and its Task mode replaces the Worker side pane.
 
 ## Later
 
@@ -398,5 +389,5 @@ I0 ─┬─ I1 ── V1
     └────────────────────┴─ S1a ── S1b ─┬─ H1, P1, T1→T2, Y1, Q1 ── S1c
                                        ├─ C1, C2, C4, C5 ── C3 (after H1, C2, Y1)
                                        ├─ W1 (after C2, T2) → W2, W3, W4 → W5
-                                       └─ D1, D2 → D3
+                                       └─ D0 → D1 → D2, D3 → D4 → D5 (ios-duo-layout.md)
 ```

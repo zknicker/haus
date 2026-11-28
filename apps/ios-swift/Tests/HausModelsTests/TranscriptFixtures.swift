@@ -26,9 +26,8 @@ enum TranscriptFixture {
         TaskPreview(
             taskID: "task_\(origin)",
             chatID: "chat_task_\(origin)",
-            key: "SEC-1",
+            shortID: "k3mq7xta",
             title: "Task",
-            state: .open,
             originMessageID: origin,
             messageCount: messageCount,
             unreadCount: unreadCount

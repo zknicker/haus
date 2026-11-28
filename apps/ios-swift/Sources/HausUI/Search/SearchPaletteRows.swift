@@ -91,24 +91,24 @@ struct SearchActionRow: View {
     }
 }
 
-/// A Task as Recent lists it: the state disc, the title, then the Captain's
-/// mark with `HAUS-41 · now`.
+/// A Task as Recent lists it: the activity disc, the title, then the Captain's
+/// mark with `Working · now`.
 struct SearchTaskRow: View {
     let task: SearchTask
     let now: Date
 
     var body: some View {
         WorkListRow(title: task.title) {
-            TaskStateDisc(state: task.state, size: 16, surface: HausPlatformColor.canvas)
+            TaskActivityDisc(state: task.disc, size: 16, surface: HausPlatformColor.canvas)
         } meta: {
             if let captain = task.captain {
                 SearchCaptainMark(captain: captain, side: 16)
             } else if let person = task.person {
                 AvatarView(name: person.name, url: person.avatarURL, size: 16)
             }
-            WorkMetaLine(pieces: [task.key, HausCompactRelativeTime.label(for: task.updatedAt, now: now)])
+            WorkMetaLine(pieces: [task.disc.label, HausCompactRelativeTime.label(for: task.updatedAt, now: now)])
         }
-        .accessibilityValue(TaskStateLabel.text(task.state))
+        .accessibilityValue(task.disc.label)
     }
 }
 

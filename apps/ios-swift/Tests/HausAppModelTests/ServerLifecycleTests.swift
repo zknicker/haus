@@ -18,6 +18,7 @@ struct ServerLifecycleTests {
             scope: ServerScope(),
             preference: ActiveServerPreference(userID: userID, defaults: defaults),
             launchSnapshots: LaunchSnapshotStore(directoryURL: directory, appProtocolVersion: HausAppProtocol.version),
+            listColumns: ListColumnPreference(userID: userID, defaults: defaults),
             drafts: ComposerDraftStore(makeStaged: StagedFiles.init, discardStaged: { $0.discarded = true })
         )
     }
@@ -58,17 +59,16 @@ struct ServerLifecycleTests {
     func switchDuringRefresh() throws {
         let launch = lifecycle()
         #expect(launch.adopt([a, b]) == .activated("srv_a", previous: nil))
-        let workers = WorkersModel(client: AppModelFixtures.client, scope: launch.scope)
         let tasks = TasksModel(client: AppModelFixtures.client, scope: launch.scope)
-        let activeRead = try workers.beginActiveRead()
-        let openRead = try tasks.beginOpenTasksRead()
+        let activeRead = try tasks.beginActiveTasksRead()
+        let listRead = try tasks.beginListRead(archived: false)
 
         launch.activate("srv_b")
 
-        #expect(!workers.landActive([], for: activeRead))
-        #expect(!tasks.landOpenTasks([AppModelFixtures.task("task_1")], for: openRead))
-        #expect(workers.active == nil)
-        #expect(tasks.openTasks == nil)
+        #expect(!tasks.landActiveTasks([AppModelFixtures.task("task_1")], for: activeRead))
+        #expect(!tasks.landList([AppModelFixtures.task("task_1")], for: listRead, archived: false))
+        #expect(tasks.activeTasks == nil)
+        #expect(tasks.list == nil)
         #expect(launch.preference.serverID == "srv_b")
     }
 
@@ -81,10 +81,13 @@ struct ServerLifecycleTests {
         let keptDraft = ComposerDraftKey(serverID: "srv_a", destination: .task("task_1"))
         launch.drafts.setText("lost", for: lostDraft)
         launch.drafts.setText("kept", for: keptDraft)
+        launch.listColumns.save(.rail, serverID: "srv_a")
+        launch.listColumns.save(.hidden, serverID: "srv_b")
         launch.activate("srv_b")
 
         await launch.membershipLost("srv_b")
 
+        #expect(launch.listColumns.columns == ["srv_a": .rail])
         #expect(launch.scope.serverID == nil)
         #expect(launch.preference.serverID == nil)
         #expect(launch.drafts.text(for: lostDraft).isEmpty)
@@ -99,12 +102,14 @@ struct ServerLifecycleTests {
         let first = lifecycle(userID: "user_1")
         try await first.launchSnapshots.save(AppModelFixtures.snapshot(userID: "user_1", serverID: "srv_a", servers: [a]))
         first.activate("srv_a")
-        let key = ComposerDraftKey(serverID: "srv_a", destination: .worker("wrk_1"))
+        let key = ComposerDraftKey(serverID: "srv_a", destination: .task("tsk_1"))
         first.drafts.setText("secret", for: key)
         let staged = first.drafts.staged(for: key)
+        first.listColumns.save(.rail, serverID: "srv_a")
 
         await first.signOut()
 
+        #expect(lifecycle(userID: "user_1").listColumns.column(serverID: "srv_a") == .full)
         #expect(staged.discarded)
         #expect(first.drafts.texts.isEmpty)
         #expect(first.preference.serverID == nil)

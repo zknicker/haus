@@ -4,33 +4,32 @@ import XCTest
 
 final class TaskProcedureTests: XCTestCase {
     func testEveryTaskProcedureNamesItsServerPath() {
-        XCTAssertEqual(TaskProcedures.create.path, "task.create")
-        XCTAssertEqual(TaskProcedures.create.kind, .mutation)
-        XCTAssertEqual(TaskProcedures.setState.path, "task.setState")
-        XCTAssertEqual(TaskProcedures.assign.path, "task.assign")
+        XCTAssertEqual(TaskProcedures.start.path, "task.start")
+        XCTAssertEqual(TaskProcedures.start.kind, .mutation)
+        XCTAssertEqual(TaskProcedures.archive.path, "task.archive")
+        XCTAssertEqual(TaskProcedures.unarchive.path, "task.unarchive")
         XCTAssertEqual(TaskProcedures.setFollow.path, "task.setFollow")
         XCTAssertEqual(TaskProcedures.update.path, "task.update")
+        XCTAssertEqual(TaskProcedures.get.path, "task.get")
         XCTAssertEqual(TaskProcedures.list.path, "task.list")
         XCTAssertEqual(TaskProcedures.list.kind, .query)
-        XCTAssertEqual(TaskProcedures.listOpen.path, "task.listOpen")
-        XCTAssertEqual(TaskProcedures.labels.path, "taskLabel.list")
+        XCTAssertEqual(TaskProcedures.listActive.path, "task.listActive")
     }
 
     func testAMutationResultDecodesTheWholeTaskRecord() throws {
         let result = try ContractFixtures.decode(TaskMutationResult.self, #"{"task":\#(ContractFixtures.task)}"#)
-        XCTAssertEqual(result.task.key, "SEC-12")
+        XCTAssertEqual(result.task.shortID, "k3mq7xta")
         XCTAssertEqual(result.task.projectID, "project_sec")
-        XCTAssertEqual(result.task.keyID, "key_sec")
-        XCTAssertEqual(result.task.number, 12)
-        XCTAssertEqual(result.task.assignee, .agent(agentID: "agent_1"))
-        XCTAssertEqual(result.task.dueOn, "2026-11-30")
+        XCTAssertEqual(result.task.captainID, "agent_1")
+        XCTAssertEqual(result.task.computerID, "cmp_1")
+        XCTAssertEqual(result.task.model, "gpt-5.5")
+        XCTAssertEqual(result.task.status, .working)
+        XCTAssertFalse(result.task.isArchived)
     }
 
-    func testListsDecodeTaskRecordsAndLabels() throws {
+    func testListsDecodeTaskRecords() throws {
         let tasks = try ContractFixtures.decode([TaskRecord].self, "[\(ContractFixtures.task)]")
         XCTAssertEqual(tasks.map(\.id), ["task_12"])
-        let labels = try ContractFixtures.decode([TaskLabel].self, #"[{"color":"teal","id":"label_1","name":"Server"}]"#)
-        XCTAssertEqual(labels, [TaskLabel(color: "teal", id: "label_1", name: "Server")])
     }
 
     func testTheFollowReceiptDecodes() throws {
@@ -41,21 +40,24 @@ final class TaskProcedureTests: XCTestCase {
         XCTAssertEqual(receipt.taskID, "task_12")
     }
 
-    func testCreateSendsTheFiledTaskAndRefusesABlankTitle() throws {
-        let input = try XCTUnwrap(TaskCreateInput(
-            assigneeAgentID: "agent_1", projectID: "project_sec", serverID: "server_1", title: "Rate-limit"
+    func testStartSendsThePromptAndRefusesABlankOne() throws {
+        let input = try XCTUnwrap(TaskStartInput(
+            computerID: "cmp_1", model: "gpt-5.5", projectID: "project_sec", prompt: " Rate-limit\n",
+            requestID: "req_1", serverID: "server_1"
         ))
         XCTAssertEqual(try ContractFixtures.encoded(input), try ContractFixtures.object(
-            #"{"assigneeAgentId":"agent_1","projectId":"project_sec","serverId":"server_1","title":"Rate-limit"}"#
+            #"{"computerId":"cmp_1","model":"gpt-5.5","projectId":"project_sec","prompt":"Rate-limit","requestId":"req_1","serverId":"server_1"}"#
         ))
-        XCTAssertNil(TaskCreateInput(assigneeAgentID: "a", projectID: "p", serverID: "s", title: "   "))
-        XCTAssertNil(TaskCreateInput(assigneeAgentID: "a", projectID: "p", serverID: "s", title: String(repeating: "x", count: 201)))
+        XCTAssertNil(TaskStartInput(model: "m", projectID: "p", prompt: "   ", requestID: "r", serverID: "s"))
+        XCTAssertNil(TaskStartInput(
+            model: "m", projectID: "p", prompt: String(repeating: "x", count: 20_001), requestID: "r", serverID: "s"
+        ))
     }
 
-    func testSetStateAndFollowSendTheirExactShapes() throws {
-        let state = TaskSetStateInput(expectedVersion: 3, serverID: "server_1", state: .done, taskID: "task_12")
-        XCTAssertEqual(try ContractFixtures.encoded(state), try ContractFixtures.object(
-            #"{"expectedVersion":3,"serverId":"server_1","state":"done","taskId":"task_12"}"#
+    func testArchiveAndFollowSendTheirExactShapes() throws {
+        let archive = TaskArchiveInput(expectedVersion: 3, serverID: "server_1", taskID: "task_12")
+        XCTAssertEqual(try ContractFixtures.encoded(archive), try ContractFixtures.object(
+            #"{"expectedVersion":3,"serverId":"server_1","taskId":"task_12"}"#
         ))
         let follow = TaskSetFollowInput(followed: false, serverID: "server_1", taskID: "task_12")
         XCTAssertEqual(try ContractFixtures.encoded(follow), try ContractFixtures.object(
@@ -63,38 +65,22 @@ final class TaskProcedureTests: XCTestCase {
         ))
     }
 
-    func testUnassigningSendsANullAssignee() throws {
-        let unassign = TaskAssignInput(assignee: nil, expectedVersion: 3, serverID: "server_1", taskID: "task_12")
-        XCTAssertEqual(try ContractFixtures.encoded(unassign), try ContractFixtures.object(
-            #"{"assignee":null,"expectedVersion":3,"serverId":"server_1","taskId":"task_12"}"#
-        ))
-        let assign = TaskAssignInput(assignee: .user(userID: "user_1"), expectedVersion: 3, serverID: "s", taskID: "t")
-        XCTAssertEqual(try ContractFixtures.encoded(assign)["assignee"] as? NSDictionary, try ContractFixtures.object(
-            #"{"kind":"user","userId":"user_1"}"#
-        ))
-    }
-
-    func testAnUpdatePatchNamesOnlyWhatChangesAndClearsTheDueDateWithNull() throws {
-        let patch = try XCTUnwrap(TaskUpdatePatch(dueOn: .clear, priority: .urgent))
-        let input = TaskUpdateInput(expectedVersion: 3, patch: patch, serverID: "server_1", taskID: "task_12")
+    func testRenameSendsATrimmedTitleAndRefusesABlankOne() throws {
+        let input = try XCTUnwrap(TaskUpdateInput(title: " Throttle ", expectedVersion: 3, serverID: "server_1", taskID: "task_12"))
         XCTAssertEqual(try ContractFixtures.encoded(input), try ContractFixtures.object(
-            #"{"expectedVersion":3,"patch":{"dueOn":null,"priority":"urgent"},"serverId":"server_1","taskId":"task_12"}"#
+            #"{"expectedVersion":3,"patch":{"title":"Throttle"},"serverId":"server_1","taskId":"task_12"}"#
         ))
-        XCTAssertNil(TaskUpdatePatch())
-        XCTAssertNil(TaskUpdatePatch(labelIDs: ["label_1", "label_1"]))
-        XCTAssertNil(TaskUpdatePatch(dueOn: .set("next week")))
-        XCTAssertNotNil(TaskUpdatePatch(dueOn: .set("2026-12-01")))
+        XCTAssertNil(TaskUpdateInput(title: "  ", expectedVersion: 3, serverID: "s", taskID: "t"))
+        XCTAssertNil(TaskUpdateInput(title: String(repeating: "x", count: 201), expectedVersion: 3, serverID: "s", taskID: "t"))
     }
 
-    func testListFiltersByAssigneeAndRefusesAnEmptyStateFilter() throws {
-        let unassigned = try XCTUnwrap(TaskListInput(serverID: "server_1", assignee: .unassigned, states: [.todo, .open]))
-        XCTAssertEqual(try ContractFixtures.encoded(unassigned), try ContractFixtures.object(
-            #"{"assignee":"none","serverId":"server_1","states":["todo","open"]}"#
+    func testTheListAsksForActiveOrArchivedTasks() throws {
+        XCTAssertEqual(try ContractFixtures.encoded(TaskListInput(serverID: "server_1")), try ContractFixtures.object(
+            #"{"archived":false,"serverId":"server_1"}"#
         ))
-        let byAgent = try XCTUnwrap(TaskListInput(serverID: "server_1", assignee: .agent(id: "agent_1"), keyID: "key_sec"))
-        XCTAssertEqual(try ContractFixtures.encoded(byAgent), try ContractFixtures.object(
-            #"{"assignee":{"agentId":"agent_1"},"keyId":"key_sec","serverId":"server_1"}"#
-        ))
-        XCTAssertNil(TaskListInput(serverID: "server_1", states: []))
+        XCTAssertEqual(
+            try ContractFixtures.encoded(TaskListInput(serverID: "server_1", archived: true)),
+            try ContractFixtures.object(#"{"archived":true,"serverId":"server_1"}"#)
+        )
     }
 }

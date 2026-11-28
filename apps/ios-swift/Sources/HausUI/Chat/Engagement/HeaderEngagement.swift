@@ -46,6 +46,7 @@ private struct HeaderEngagementContent: View {
     @State private var announcer = EngagementAnnouncer()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.shellChrome) private var shellChrome
 
     var body: some View {
         let typists = ChatTypingLabel.typists(model.shownEngagements, resolve: source.typist)
@@ -64,7 +65,7 @@ private struct HeaderEngagementContent: View {
                 .transition(rowTransition)
             }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: shellChrome == .stock ? .leading : .center)
         .animation(reduceMotion ? .easeOut(duration: 0.2) : .smooth(duration: 0.32), value: label)
         .sheet(item: turnDetailsPresented) { focus in
             if let turnSource = source.turnDetails {
@@ -76,6 +77,7 @@ private struct HeaderEngagementContent: View {
                 )
             }
         }
+        .carriesAcrossPoses(turnDetailsPresented.wrappedValue, as: "turnDetails") { tapped = $0 }
         .onChange(of: thought?.id) { _, _ in
             if let thought {
                 let name = typists.first { $0.id == thought.agentID }?.name

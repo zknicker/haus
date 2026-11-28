@@ -7,23 +7,18 @@ extension HausTextRole {
     static let pullRequestTitle = HausTextRole(size: 24, weight: .regular, textStyle: .title2)
 }
 
-/// Where the detail's From rows go. The App routes each one.
+/// Where the detail's From row goes. The App routes it.
 public struct PullRequestDetailActions {
     public let openTask: (PullRequestTaskLink) -> Void
-    public let openWorker: (PullRequestWorkerLink) -> Void
 
-    public init(
-        openTask: @escaping (PullRequestTaskLink) -> Void,
-        openWorker: @escaping (PullRequestWorkerLink) -> Void
-    ) {
+    public init(openTask: @escaping (PullRequestTaskLink) -> Void) {
         self.openTask = openTask
-        self.openWorker = openWorker
     }
 }
 
 /// A pull request, read-only: its title and author, a box of facts (state,
-/// review, branch, diffstat, files), its checks, the Task and Worker report it
-/// came from, and Copy link and Open in GitHub. Haus never acts on a pull
+/// review, diffstat, files), its checks, the Task it came from, and Copy link
+/// and Open in GitHub. Haus never acts on a pull
 /// request; review, comment, and merge happen on GitHub.
 public struct PullRequestDetailView: View {
     private let pullRequest: PullRequestPresentation
@@ -47,7 +42,7 @@ public struct PullRequestDetailView: View {
                         .padding(.top, 8)
                     PullRequestAuthorLine(pullRequest: pullRequest, now: context.date)
                         .padding(.top, 10)
-                    PullRequestFactsBox(pullRequest: pullRequest, onCopyBranch: copyBranch)
+                    PullRequestFactsBox(pullRequest: pullRequest)
                         .padding(.top, 18)
                     PullRequestChecksRow(pullRequest: pullRequest)
                         .padding(.top, 20)
@@ -98,13 +93,6 @@ public struct PullRequestDetailView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
-    }
-
-    private func copyBranch(_ branch: String) {
-        #if os(iOS)
-        UIPasteboard.general.string = branch
-        #endif
-        toast = HausToast("Branch copied", systemImage: "checkmark")
     }
 
     private func copy(_ url: URL) {

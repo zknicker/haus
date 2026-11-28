@@ -10,7 +10,10 @@ struct AuthenticatedHausView: View {
     @State var agentCall: AgentCallRequest?
     @State var ask = AskAnythingDraft()
     @State var youTabIcon: Image?
-    @State var taskBoardFilter = TaskBoardFilter()
+    /// What screens hold across a fold or unfold, which remounts every tab.
+    @State var poseCarry = PoseCarry()
+    /// Which bars the shell draws, resolved before the first frame (`ShellChromeScope`).
+    let shellChrome: ShellChrome
     /// The bottom safe area without the keyboard, for the chrome's clearance.
     @State var deviceBottomInset: CGFloat = 0
     /// Whether scrolling the selected tab's root has folded the chrome.
@@ -24,8 +27,9 @@ struct AuthenticatedHausView: View {
     @AppStorage("appearancePreference") var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
-    init(session: AppSession, authClient: NativeAuthClient) {
+    init(session: AppSession, authClient: NativeAuthClient, shellChrome: ShellChrome) {
         _store = State(initialValue: HausStore(session: session, authClient: authClient))
+        self.shellChrome = shellChrome
     }
 
     var body: some View {
@@ -66,7 +70,7 @@ struct AuthenticatedHausView: View {
             case .background:
                 hasBackgrounded = true
             case .active:
-                Task { await push.clearDelivered(openedChatID: push.viewingChatID) }
+                Task { await push.clearDelivered(openedChatIDs: push.viewingChatIDs) }
                 guard hasBackgrounded else {
                     Task { await store.refreshIconBadge() }
                     return
@@ -87,8 +91,7 @@ struct AuthenticatedHausView: View {
             .onChange(of: store.activeServer?.id, initial: true) { _, serverID in
                 router.adopt(serverID: serverID)
             }
-            .task(id: visibleChatID) { await showVisibleChat(visibleChatID) }
-            .onChange(of: store.iconBadgeCount, initial: true) { _, count in
+            .task(id: visibleChatIDs) { await showVisibleChats(visibleChatIDs) }            .onChange(of: store.iconBadgeCount, initial: true) { _, count in
                 push.updateBadge(unreadChatCount: count)
             }
             .task { await push.attach(store) }

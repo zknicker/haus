@@ -3,14 +3,12 @@ import Foundation
 /// The filter chips above the Work view.
 public enum WorkFilter: CaseIterable, Hashable, Sendable {
     case all
-    case workers
     case pullRequests
     case files
 
     public var title: String {
         switch self {
         case .all: "All"
-        case .workers: "Workers"
         case .pullRequests: "Pull requests"
         case .files: "Files"
         }
@@ -19,20 +17,16 @@ public enum WorkFilter: CaseIterable, Hashable, Sendable {
 
 /// One list section the Work view can show.
 public enum WorkSection: Hashable, Sendable {
-    case running
     /// Every listed pull request in one section, under All.
     case pullRequests
     /// One group of pull requests, under the Pull requests filter.
     case pullRequestGroup(PullRequestGroup)
-    case finished
     case files
 
     public var title: String {
         switch self {
-        case .running: "Running"
         case .pullRequests: "Pull requests"
         case .pullRequestGroup(let group): group.title
-        case .finished: "Finished"
         case .files: "Files"
         }
     }
@@ -40,22 +34,13 @@ public enum WorkSection: Hashable, Sendable {
 
 /// Everything a place's Work view lists, read from the Server's records.
 public struct WorkViewContent: Hashable, Sendable {
-    public let workers: [WorkWorkerItem]
     public let pullRequests: [PullRequestPresentation]
     public let files: [DriveFilePresentation]
 
-    public init(
-        workers: [WorkWorkerItem],
-        pullRequests: [PullRequestPresentation],
-        files: [DriveFilePresentation]
-    ) {
-        self.workers = workers
+    public init(pullRequests: [PullRequestPresentation], files: [DriveFilePresentation]) {
         self.pullRequests = PullRequestPresentation.listed(pullRequests)
         self.files = files
     }
-
-    public var running: [WorkWorkerItem] { workers.filter(\.isRunning) }
-    public var finished: [WorkWorkerItem] { workers.filter { !$0.isRunning } }
 
     public func pullRequests(in group: PullRequestGroup) -> [PullRequestPresentation] {
         pullRequests.filter { $0.group == group }
@@ -64,8 +49,7 @@ public struct WorkViewContent: Hashable, Sendable {
     /// The sections a filter shows, leaving out any that would be empty.
     public func sections(for filter: WorkFilter) -> [WorkSection] {
         let candidates: [WorkSection] = switch filter {
-        case .all: [.running, .pullRequests, .finished, .files]
-        case .workers: [.running, .finished]
+        case .all: [.pullRequests, .files]
         case .pullRequests: PullRequestGroup.allCases.map(WorkSection.pullRequestGroup)
         case .files: [.files]
         }
@@ -74,10 +58,8 @@ public struct WorkViewContent: Hashable, Sendable {
 
     public func count(of section: WorkSection) -> Int {
         switch section {
-        case .running: running.count
         case .pullRequests: pullRequests.count
         case .pullRequestGroup(let group): pullRequests(in: group).count
-        case .finished: finished.count
         case .files: files.count
         }
     }

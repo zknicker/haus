@@ -11,14 +11,17 @@ public struct ChatScreenView: View {
     private let onBack: (() -> Void)?
     private let onOpenChatDetails: () -> Void
     private let onOpenSearch: () -> Void
-    private let onSend: (String, [ComposerAttachment]) async -> Bool
-    private let onSendInlineReply:
+    let onSend: (String, [ComposerAttachment]) async -> Bool
+    let onSendInlineReply:
         ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
     private let onCall: (() -> Void)?
     /// Place-specific actions for the header's `…` menu, such as Stop on a Captain DM.
     private let menuActions: [ChatHeaderMenuAction]
+    /// The Task beside this conversation that the composer sends to, until its × lets go.
+    let composerTask: ComposerTaskChip?
+    let onClearComposerTask: () -> Void
     /// The place's Work pill over the composer; nil or hidden while it has no work.
     let workPill: WorkPillState?
     let onOpenWork: () -> Void
@@ -51,6 +54,7 @@ public struct ChatScreenView: View {
     @State var modelRefusal: String??
     @State var modelChangeError: String?
     @Environment(\.chatEngagementSource) var engagementSource
+    @Environment(\.composerPoseKey) private var composerPoseKey
 
     public init(
         chat: ChatDestination,
@@ -72,6 +76,8 @@ public struct ChatScreenView: View {
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCall: (() -> Void)? = nil,
         menuActions: [ChatHeaderMenuAction] = [],
+        composerTask: ComposerTaskChip? = nil,
+        onClearComposerTask: @escaping () -> Void = {},
         workPill: WorkPillState? = nil,
         onOpenWork: @escaping () -> Void = {},
         history: MessageHistoryNavigation = .init(),
@@ -99,6 +105,8 @@ public struct ChatScreenView: View {
         self.onOpenAgent = onOpenAgent
         self.onCall = onCall
         self.menuActions = menuActions
+        self.composerTask = composerTask
+        self.onClearComposerTask = onClearComposerTask
         self.workPill = workPill
         self.onOpenWork = onOpenWork
         self.history = history
@@ -122,6 +130,7 @@ public struct ChatScreenView: View {
                     onBack: onBack ?? onOpenSidebar,
                     onOpenChatDetails: onOpenChatDetails,
                     onOpenSearch: onOpenSearch,
+                    onOpenFiles: chat.kind.isChannel && chat.durableChat != nil ? onOpenWork : nil,
                     onCall: onCall,
                     menuActions: modelMenuActions + menuActions,
                     turnDetails: $turnDetailsFocus
@@ -156,6 +165,8 @@ public struct ChatScreenView: View {
             .modelChangeFailure($modelChangeError)
             .background(HausPlatformColor.canvas)
             .task(id: chat.id) { await onLoadMentionOptions() }
+            .onChange(of: composerTask != nil) { dropsReplyWhenAimed($1) }
+            .carriesPose(of: self, composerKey: composerPoseKey)
     }
 
     /// A caller's safe-area attachment lands on the timeline's transcript root, so the
@@ -196,35 +207,4 @@ public struct ChatScreenView: View {
         }
     }
 
-    private func selectInlineReply(_ message: MessagePresentation) {
-        guard chat.durableChat != nil, !message.isPending else { return }
-        inlineReply = MessageReplyReferencePresentation(
-            id: message.id,
-            author: message.author,
-            content: message.content,
-            createdAt: message.createdAt,
-            sequence: message.sequence
-        )
-        isComposerFocused = true
-    }
-
-    func sendMessage(
-        _ content: String,
-        _ attachments: [ComposerAttachment]
-    ) async -> Bool {
-        guard let inlineReply else {
-            return await onSend(content, attachments)
-        }
-
-        guard let onSendInlineReply else { return false }
-        // The reply lands in the transcript the moment it is sent, so the
-        // composer lets go of its target with the draft rather than holding it
-        // until Server answers. Only a send that never left brings it back.
-        self.inlineReply = nil
-        let sent = await onSendInlineReply(content, attachments, inlineReply)
-        if !sent, self.inlineReply == nil {
-            self.inlineReply = inlineReply
-        }
-        return sent
-    }
 }

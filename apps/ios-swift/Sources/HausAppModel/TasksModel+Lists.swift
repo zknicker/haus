@@ -2,101 +2,60 @@ import Foundation
 import HausModels
 import HausTransport
 
-/// A `task.list` filter, without the Server it runs against.
-public struct TaskListFilter: Hashable, Sendable {
-    public enum Assignee: Hashable, Sendable {
-        case user(String)
-        case agent(String)
-        case unassigned
-    }
-
-    public let assignee: Assignee?
-    public let keyID: String?
-    public let states: [TaskTargetState]?
-
-    public init(assignee: Assignee? = nil, keyID: String? = nil, states: [TaskTargetState]? = nil) {
-        self.assignee = assignee
-        self.keyID = keyID
-        self.states = states
-    }
-
-    public func input(serverID: String) -> TaskListInput? {
-        let assigneeFilter: TaskListAssigneeFilter? = switch assignee {
-        case let .user(id): .user(id: id)
-        case let .agent(id): .agent(id: id)
-        case .unassigned: .unassigned
-        case nil: nil
-        }
-        return TaskListInput(serverID: serverID, assignee: assigneeFilter, keyID: keyID, states: states)
-    }
-}
-
-/// One filtered list and the filter it answers.
+/// One `task.list` answer: the active Tasks or the archived ones.
 public struct TaskListSnapshot: Equatable, Sendable {
-    public let filter: TaskListFilter
+    public let archived: Bool
     public let tasks: [TaskRecord]
-}
-
-public enum TaskListError: LocalizedError, Equatable {
-    case emptyStateFilter
-
-    public var errorDescription: String? {
-        "Choose at least one Task state."
-    }
 }
 
 extension TasksModel {
     // MARK: - Lists
 
-    public func reloadOpenTasks() async throws {
-        let read = try beginOpenTasksRead()
-        let loaded = try await client.call(TaskProcedures.listOpen, ServerScopeInput(serverID: read.serverID))
-        landOpenTasks(loaded, for: read)
+    public func reloadActiveTasks() async throws {
+        let read = try beginActiveTasksRead()
+        let loaded = try await client.call(TaskProcedures.listActive, ServerScopeInput(serverID: read.serverID))
+        landActiveTasks(loaded, for: read)
     }
 
-    public func beginOpenTasksRead() throws -> ScopedRead<WholeList> {
-        try openReads.begin(.all, in: scope)
+    public func beginActiveTasksRead() throws -> ScopedRead<WholeList> {
+        try activeReads.begin(.all, in: scope)
     }
 
     @discardableResult
-    public func landOpenTasks(_ tasks: [TaskRecord], for read: ScopedRead<WholeList>) -> Bool {
-        guard scope.accepts(read, in: openReads) else { return false }
-        if openTasks != tasks { openTasks = tasks }
+    public func landActiveTasks(_ tasks: [TaskRecord], for read: ScopedRead<WholeList>) -> Bool {
+        guard scope.accepts(read, in: activeReads) else { return false }
+        if activeTasks != tasks { activeTasks = tasks }
         return true
     }
 
-    /// Shows `filter`, and keeps it fresh: task events refresh the filter
-    /// shown last.
-    public func showList(_ filter: TaskListFilter) async throws {
-        let read = try beginListRead(filter)
-        guard let input = filter.input(serverID: read.serverID) else { throw TaskListError.emptyStateFilter }
-        let loaded = try await client.call(TaskProcedures.list, input)
-        landList(loaded, for: read, filter: filter)
+    /// Shows the active or archived Tasks, and keeps that list fresh: task
+    /// events refresh the list shown last.
+    public func showList(archived: Bool) async throws {
+        let read = try beginListRead(archived: archived)
+        let loaded = try await client.call(TaskProcedures.list, TaskListInput(serverID: read.serverID, archived: archived))
+        landList(loaded, for: read, archived: archived)
     }
 
-    public func beginListRead(_ filter: TaskListFilter) throws -> ScopedRead<WholeList> {
-        listFilter = filter
+    public func beginListRead(archived: Bool) throws -> ScopedRead<WholeList> {
+        listArchived = archived
         return try listReads.begin(.all, in: scope)
     }
 
     @discardableResult
-    public func landList(_ tasks: [TaskRecord], for read: ScopedRead<WholeList>, filter: TaskListFilter) -> Bool {
+    public func landList(_ tasks: [TaskRecord], for read: ScopedRead<WholeList>, archived: Bool) -> Bool {
         guard scope.accepts(read, in: listReads) else { return false }
-        let snapshot = TaskListSnapshot(filter: filter, tasks: tasks)
+        let snapshot = TaskListSnapshot(archived: archived, tasks: tasks)
         if list != snapshot { list = snapshot }
         return true
     }
 
-    /// The Task board's reads: `filter`'s list, plus the Projects, labels,
-    /// and unread Task chats its rows and filters draw from, each read once.
-    public func loadBoard(_ filter: TaskListFilter) async {
+    /// The Tasks tab's reads: the list, plus the Projects and unread Task
+    /// chats its rows draw from, each read once.
+    public func loadList(archived: Bool) async {
         await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.logged { try await self.showList(filter) } }
+            group.addTask { await self.logged { try await self.showList(archived: archived) } }
             if projects == nil {
                 group.addTask { await self.logged { try await self.reloadProjects() } }
-            }
-            if labels == nil {
-                group.addTask { await self.logged { try await self.reloadLabels() } }
             }
             if unreadTasks == nil {
                 group.addTask { await self.refreshUnreadTasks() }
@@ -104,20 +63,13 @@ extension TasksModel {
         }
     }
 
-    public func loadLabelsIfUnknown() async {
-        guard labels == nil else { return }
-        await logged { try await reloadLabels() }
-    }
-
     // MARK: - Realtime
 
     /// The reads one batch of live events asks for, against what is held.
     public func apply(_ effects: ChatRealtimeEffects) async {
         let detailIDs = effects.changedTaskIDs.filter { detailsByID[$0] != nil }
-        let readsLabels = !effects.changedLabelIDs.isEmpty && labels != nil
         let readsLists = !effects.changedTaskIDs.isEmpty
         await withTaskGroup(of: Void.self) { group in
-            if readsLabels { group.addTask { await self.logged { try await self.reloadLabels() } } }
             for taskID in detailIDs {
                 group.addTask { await self.logged { try await self.reloadDetail(taskID: taskID) } }
             }
@@ -128,9 +80,6 @@ extension TasksModel {
     /// A stream start reconciles what it owns, against what is held.
     public func recover(_ projections: Set<RealtimeProjection>) async {
         await withTaskGroup(of: Void.self) { group in
-            if projections.contains(.taskLabels), labels != nil {
-                group.addTask { await self.logged { try await self.reloadLabels() } }
-            }
             if projections.contains(.taskDetails) {
                 group.addTask { await self.recoverDetails() }
                 group.addTask { await self.refreshHeldLists() }
@@ -151,14 +100,21 @@ extension TasksModel {
         await logged { try await reloadUnreadTasks() }
     }
 
+    /// Refreshes the active Tasks, keeping the previous snapshot when the read
+    /// fails.
+    public func refreshActiveTasks() async {
+        guard scope.ticket != nil else { return }
+        await logged { try await reloadActiveTasks() }
+    }
+
     private func refreshHeldLists() async {
-        let filter = list == nil ? nil : listFilter
+        let archived = list == nil ? nil : listArchived
         await withTaskGroup(of: Void.self) { group in
-            if openTasks != nil {
-                group.addTask { await self.logged { try await self.reloadOpenTasks() } }
+            if activeTasks != nil {
+                group.addTask { await self.logged { try await self.reloadActiveTasks() } }
             }
-            if let filter {
-                group.addTask { await self.logged { try await self.showList(filter) } }
+            if let archived {
+                group.addTask { await self.logged { try await self.showList(archived: archived) } }
             }
         }
     }

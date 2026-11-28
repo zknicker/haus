@@ -11,11 +11,12 @@ extension AuthenticatedHausView {
         InAppReferenceRoutes.openTask = { reference in
             router.open(.task(taskID: reference.taskID))
         }
-        InAppReferenceRoutes.openWorker = { workerID in
-            router.open(.worker(workerID: workerID))
+        InAppReferenceRoutes.openTaskCard = { reference in
+            if let serverID = store.activeServer?.id { store.drafts.aim(at: reference.taskID, serverID: serverID) }
+            router.open(.task(taskID: reference.taskID), from: .taskCard)
         }
         InAppReferenceRoutes.openPullRequest = { url in
-            guard let pullRequest = PullRequestLookup.find(url: url, in: store.knownPullRequests(now: .now)) else {
+            guard let pullRequest = PullRequestLookup.find(url: url, in: store.knownPullRequests) else {
                 return nil
             }
             return { router.open(.pullRequest(pullRequest.reading)) }

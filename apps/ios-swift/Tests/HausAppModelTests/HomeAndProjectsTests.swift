@@ -21,11 +21,23 @@ struct HomeAndProjectsTests {
             chats: chats,
             unreadChatIDs: ["project"],
             unreadTasks: [],
-            openTaskChatIDs: [],
+            activeTaskChatIDs: [],
             limit: 2
         )
 
         #expect(items.map(\.id) == ["dm_new", "project"])
+    }
+
+    @Test("A Captain chat the reader joined fills Recent like a DM; one they never joined does not")
+    func captainChatsJoinRecentByMembership() {
+        let chats = [
+            chat("joined", kind: "captain", minutesAgo: 3, captainChat: #"{"member":true,"subscribed":true}"#),
+            chat("other", kind: "captain", minutesAgo: 1, captainChat: #"{"member":false,"subscribed":false}"#),
+        ]
+
+        let items = HomeRecent.items(chats: chats, unreadChatIDs: [], unreadTasks: [], activeTaskChatIDs: [])
+
+        #expect(items.map(\.id) == ["joined"])
     }
 
     @Test("Unread is never cut by the limit")
@@ -36,26 +48,26 @@ struct HomeAndProjectsTests {
             chats: chats,
             unreadChatIDs: Set(chats.map(\.id)),
             unreadTasks: [],
-            openTaskChatIDs: [],
+            activeTaskChatIDs: [],
             limit: 2
         )
 
         #expect(items.count == 4)
     }
 
-    @Test("An unread followed Task shows in Recent unless Open tasks already lists it")
+    @Test("An unread followed Task shows in Recent unless the active Tasks already list it")
     func unreadTaskChats() {
         let listed = taskPreview(chatID: "chat_listed", minutesAgo: 1)
-        let closed = taskPreview(chatID: "chat_closed", minutesAgo: 5)
+        let archived = taskPreview(chatID: "chat_archived", minutesAgo: 5)
 
         let items = HomeRecent.items(
             chats: [],
             unreadChatIDs: [],
-            unreadTasks: [listed, closed],
-            openTaskChatIDs: ["chat_listed"]
+            unreadTasks: [listed, archived],
+            activeTaskChatIDs: ["chat_listed"]
         )
 
-        #expect(items.map(\.id) == ["chat_closed"])
+        #expect(items.map(\.id) == ["chat_archived"])
     }
 
     @Test("A DM with no message yet stays out of Recent")
@@ -64,22 +76,22 @@ struct HomeAndProjectsTests {
             chats: [chat("dm_empty", kind: "dm", minutesAgo: nil)],
             unreadChatIDs: [],
             unreadTasks: [],
-            openTaskChatIDs: []
+            activeTaskChatIDs: []
         )
 
         #expect(items.isEmpty)
     }
 
-    @Test("Open Task counts group by Project and skip todo Tasks")
-    func openTaskCounts() {
+    @Test("Active Task counts group by Project and skip archived Tasks")
+    func activeTaskCounts() {
         let tasks = [
-            task("t1", state: "open", projectID: "chat_a"),
-            task("t2", state: "open", projectID: "chat_a"),
-            task("t3", state: "todo", projectID: "chat_a"),
-            task("t4", state: "open", projectID: "chat_b"),
+            task("t1", archived: false, projectID: "chat_a"),
+            task("t2", archived: false, projectID: "chat_a"),
+            task("t3", archived: true, projectID: "chat_a"),
+            task("t4", archived: false, projectID: "chat_b"),
         ]
 
-        #expect(ProjectTaskCounts.open(tasks) == ["chat_a": 2, "chat_b": 1])
+        #expect(ProjectTaskCounts.active(tasks) == ["chat_a": 2, "chat_b": 1])
     }
 
     @Test("Projects stay unknown until read, an older read never replaces a newer one, and a switch drops both")
@@ -102,17 +114,39 @@ struct HomeAndProjectsTests {
         #expect(projects.projects == nil)
     }
 
-    private func chat(_ id: String, kind: String, minutesAgo: Int?) -> ChatSummary {
+    @Test("A Task starts only in a joined Channel with a live Project record, never #all")
+    func taskProjectChoices() {
+        let chats = [
+            chat("product", kind: "channel", minutesAgo: 1),
+            chat("ui_gallery", kind: "channel", minutesAgo: 1),
+            chat("all", kind: "channel", minutesAgo: 1, isAll: true),
+            chat("retired", kind: "channel", minutesAgo: 1),
+            chat("dm", kind: "dm", minutesAgo: 1),
+        ]
+        let projects = [
+            project("product"),
+            project("all", isHaus: true),
+            project("retired", archived: true),
+            project("dm"),
+            project("unjoined"),
+        ]
+
+        #expect(AskAnythingPlan.projectChatIDs(chats: chats, projects: projects) == ["product"])
+        #expect(AskAnythingPlan.projectChatIDs(chats: chats, projects: nil).isEmpty)
+    }
+
+    private func chat(_ id: String, kind: String, minutesAgo: Int?, captainChat: String = "null", isAll: Bool = false) -> ChatSummary {
         let lastMessage = minutesAgo.map { minutes in
             #"{"authorDisplayName":"Mia","content":"hi","createdAt":"\#(timestamp(minutesAgo: minutes))"}"#
         } ?? "null"
+        let peerAgent = kind == "captain" ? #""agent_\#(id)""# : "null"
         return decode(
             """
-            {"archivedAt":null,"archivedByUserId":null,"color":null,"createdAt":"2026-01-01T00:00:00Z",
-             "description":null,"icon":null,"id":"\(id)","isAll":false,"kind":"\(kind)","lastActivityAt":null,
-             "lastMessage":\(lastMessage),"lastMessageSequence":1,"name":"\(id)","participantAgentIds":[],
-             "participantUserIds":[],"peerAgentDisplayName":null,"peerAgentId":null,"peerAgentRetired":false,
-             "peerUserId":null,"serverId":"srv_a","unreadCount":0}
+            {"archivedAt":null,"archivedByUserId":null,"captainChat":\(captainChat),"color":null,
+             "createdAt":"2026-01-01T00:00:00Z","description":null,"icon":null,"id":"\(id)","isAll":\(isAll),
+             "kind":"\(kind)","lastActivityAt":null,"lastMessage":\(lastMessage),"lastMessageSequence":1,
+             "name":"\(id)","participantAgentIds":[],"participantUserIds":[],"peerAgentDisplayName":null,
+             "peerAgentId":\(peerAgent),"peerAgentRetired":false,"peerUserId":null,"serverId":"srv_a","unreadCount":0}
             """
         )
     }
@@ -121,27 +155,29 @@ struct HomeAndProjectsTests {
         decode(
             """
             {"chatId":"\(chatID)","earlierUnreadCount":1,"messages":[],
-             "task":{"taskId":"task_\(chatID)","key":"SEC-1","title":"Rotate","state":"done","projectId":"chat_a"}}
+             "task":{"archivedAt":null,"projectId":"chat_a","shortId":"k3mq7xta","taskId":"task_\(chatID)","title":"Rotate"}}
             """
         )
     }
 
-    private func task(_ id: String, state: String, projectID: String) -> TaskRecord {
-        decode(
+    private func task(_ id: String, archived: Bool, projectID: String) -> TaskRecord {
+        let archivedAt = archived ? #""2026-11-04T00:00:00Z""# : "null"
+        return decode(
             """
-            {"assignee":null,"chatId":"chat_\(id)","completedAt":null,"createdAt":"2026-11-03T00:00:00Z",
-             "createdBy":null,"description":"","dueOn":null,"id":"\(id)","key":"SEC-1","labelIds":[],"number":1,
-             "origin":null,"priority":"none","projectId":"\(projectID)","serverId":"srv_a","state":"\(state)",
-             "title":"Rotate tokens","updatedAt":"2026-11-03T00:00:00Z","version":1}
+            {"activity":"idle","agentId":null,"archivedAt":\(archivedAt),"captainId":null,"chatId":"chat_\(id)",
+             "computerId":null,"createdAt":"2026-11-03T00:00:00Z","createdBy":{"kind":"user","userId":"user_1"},
+             "description":"","id":"\(id)","model":null,"needsYou":false,"origin":null,"projectId":"\(projectID)",
+             "serverId":"srv_a","shortId":"k3mq7xta","title":"Rotate tokens","titleCustom":false,
+             "updatedAt":"2026-11-03T00:00:00Z","version":1}
             """
         )
     }
 
-    private func project(_ chatID: String, archived: Bool = false) -> Project {
+    private func project(_ chatID: String, archived: Bool = false, isHaus: Bool = false) -> Project {
         decode(
             """
-            {"archived":\(archived),"chatId":"\(chatID)","defaultWorkerPlace":null,"homeAgentIds":[],"isHaus":false,
-             "key":"SEC","keyEditable":true,"name":"sec","repos":[],"serverId":"srv_a","taskKeyId":"key_\(chatID)"}
+            {"archived":\(archived),"chatId":"\(chatID)","defaultMachine":null,"homeAgentIds":[],"isHaus":\(isHaus),
+             "key":"SEC","keyEditable":true,"name":"sec","serverId":"srv_a","taskKeyId":"key_\(chatID)"}
             """
         )
     }

@@ -17,7 +17,6 @@ public enum SettingsRoute: Hashable, Sendable {
     case server
     case people
     case computers
-    case cloudAgents
     case appInfo
     case description(ownerID: String, title: String)
 }

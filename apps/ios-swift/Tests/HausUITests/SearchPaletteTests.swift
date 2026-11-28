@@ -29,7 +29,7 @@ struct SearchPaletteTests {
         let agent = AgentPresentation(id: "agent-p", name: "Product Bot", avatarURL: nil, presence: .idle)
         let chats = [
             ChatPresentation(id: "c", title: "product", kind: .channel),
-            ChatPresentation(id: "d", title: "Product Bot", kind: .agentDirectMessage(agent)),
+            ChatPresentation(id: "d", title: "Product Bot", kind: .captainChat(agent)),
         ]
         #expect(SearchPalette.projects(chats, query: "prod").map(\.id) == ["c"])
     }
@@ -40,11 +40,11 @@ struct SearchPaletteTests {
         #expect(SearchPalette.people(people, query: "ola").map(\.id) == ["v"])
     }
 
-    @Test func tasksMatchTitleOrKeyAndListNewestFirst() {
-        let older = task("t1", key: "HAUS-41", title: "Tab bar shell", age: 7_200)
-        let newer = task("t2", key: "HAUS-44", title: "Duo layout", age: 60)
+    @Test func tasksMatchTitleOrShortIDAndListNewestFirst() {
+        let older = task("t1", shortID: "k3mq7xta", title: "Tab bar shell", age: 7_200)
+        let newer = task("t2", shortID: "p8vd2nrw", title: "Duo layout", age: 60)
         #expect(SearchPalette.tasks([older, newer], query: "").map(\.id) == ["t2", "t1"])
-        #expect(SearchPalette.tasks([older, newer], query: "haus-41").map(\.id) == ["t1"])
+        #expect(SearchPalette.tasks([older, newer], query: "k3mq").map(\.id) == ["t1"])
         #expect(SearchPalette.tasks([older, newer], query: "layout").map(\.id) == ["t2"])
     }
 
@@ -61,7 +61,10 @@ struct SearchPaletteTests {
         #expect(SearchPaletteAction.allCases.map(\.title) == ["New task", "New project", "Go to tasks", "Go to settings"])
     }
 
-    private func task(_ id: String, key: String, title: String, age: TimeInterval) -> SearchTask {
-        SearchTask(id: id, key: key, title: title, state: .open, captain: nil, updatedAt: now.addingTimeInterval(-age))
+    private func task(_ id: String, shortID: String, title: String, age: TimeInterval) -> SearchTask {
+        SearchTask(
+            id: id, shortID: shortID, title: title, disc: .active(.working), captain: nil,
+            updatedAt: now.addingTimeInterval(-age)
+        )
     }
 }

@@ -42,7 +42,7 @@ extension SearchPaletteView {
         if SearchPalette.searchesMessages(scope), !search.results.isEmpty {
             WorkListSection("Messages", count: nil) {
                 ForEach(search.results) { result in
-                    rowButton {
+                    rowButton(.message(result.id)) {
                         if !onSelectMessage(result) {
                             selectionError = "That message’s chat is no longer in this Server."
                         }
@@ -70,7 +70,7 @@ extension SearchPaletteView {
             if !projects.isEmpty {
                 WorkListSection("Projects", count: nil) {
                     ForEach(projects) { project in
-                        rowButton { onSelectChat(project) } label: { SearchProjectRow(project: project) }
+                        rowButton(.chat(project.id)) { onSelectChat(project) } label: { SearchProjectRow(project: project) }
                     }
                 }
             }
@@ -94,7 +94,11 @@ extension SearchPaletteView {
     private func captainSection(_ captains: [SearchCaptain]) -> some View {
         WorkListSection("Captains", count: nil) {
             ForEach(captains) { captain in
-                rowButton { actions.onSelectCaptain(captain.id) } label: { SearchCaptainRow(captain: captain) }
+                rowButton(.captain(captain.id)) {
+                    actions.onSelectCaptain(captain.id)
+                } label: {
+                    SearchCaptainRow(captain: captain)
+                }
             }
         }
     }
@@ -102,14 +106,19 @@ extension SearchPaletteView {
     private func taskSection(_ title: String, _ tasks: [SearchTask], now: Date) -> some View {
         WorkListSection(title, count: nil) {
             ForEach(tasks) { task in
-                rowButton { actions.onSelectTask(task.id) } label: { SearchTaskRow(task: task, now: now) }
+                rowButton(.task(task.id)) { actions.onSelectTask(task.id) } label: { SearchTaskRow(task: task, now: now) }
             }
         }
     }
 
-    private func rowButton(action: @escaping () -> Void, @ViewBuilder label: () -> some View) -> some View {
+    private func rowButton(
+        _ result: SearchSelection? = nil,
+        action: @escaping () -> Void,
+        @ViewBuilder label: () -> some View
+    ) -> some View {
         Button(action: action, label: label)
             .buttonStyle(.pressableRow)
+            .listSelection(result != nil && result == selection)
     }
 
     private func quietLine(_ text: String) -> some View {
@@ -165,11 +174,11 @@ enum SearchPaletteFixtures {
         people: [SearchPerson(id: "user-mia", name: "Mia Chen", handle: "mia")],
         tasks: [
             SearchTask(
-                id: "task-41", key: "HAUS-41", title: "iPhone tab bar shell", state: .open,
+                id: "task-41", shortID: "k3mq7xta", title: "iPhone tab bar shell", disc: .active(.working),
                 captain: blippy, updatedAt: .now
             ),
             SearchTask(
-                id: "task-44", key: "HAUS-44", title: "Pick the Duo inner layout", state: .todo,
+                id: "task-44", shortID: "p8vd2nrw", title: "Pick the Duo inner layout", disc: .active(.idle),
                 captain: tiny, updatedAt: .now.addingTimeInterval(-7_200)
             ),
         ]

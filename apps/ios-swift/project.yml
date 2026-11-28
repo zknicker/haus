@@ -5,7 +5,7 @@ options:
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
-  xcodeVersion: "26.0"
+  xcodeVersion: "27.1"
 
 settings:
   base:

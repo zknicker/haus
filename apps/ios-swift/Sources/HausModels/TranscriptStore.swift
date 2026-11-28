@@ -97,15 +97,6 @@ public struct TranscriptStore: Equatable, Sendable {
         lists.keys.filter { $0.chatID == chatID }
     }
 
-    /// Cached entities that link any of the work, in whichever Chat (ADR 0044).
-    public func refreshes(carryingWorkers workIDs: Set<String>) -> [EntityRefresh] {
-        guard !workIDs.isEmpty else { return [] }
-        return entities.values.compactMap { entity in
-            guard entity.message.cloudAgentWork.contains(where: { workIDs.contains($0.id) }) else { return nil }
-            return EntityRefresh(chatID: entity.message.chatID, messageID: entity.message.id)
-        }
-    }
-
     public func refreshes(previewingTasks taskIDs: Set<String>) -> [EntityRefresh] {
         guard !taskIDs.isEmpty else { return [] }
         return entities.values.compactMap { entity in

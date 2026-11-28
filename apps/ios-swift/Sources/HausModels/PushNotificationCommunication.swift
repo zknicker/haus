@@ -20,6 +20,8 @@ public struct PushNotificationCommunication: Sendable, Equatable {
         case dm
         case mention
         case reply
+        /// A message in a Captain chat the person subscribes to.
+        case subscribed
     }
 
     /// What the donated intent tells Focus about the message. iOS lets a
@@ -37,7 +39,7 @@ public struct PushNotificationCommunication: Sendable, Equatable {
             FocusSignals(mentionsCurrentUser: true, isReplyToCurrentUser: false)
         case .reply:
             FocusSignals(mentionsCurrentUser: false, isReplyToCurrentUser: true)
-        case .dm, nil:
+        case .dm, .subscribed, nil:
             nil
         }
     }
@@ -72,12 +74,21 @@ public struct PushNotificationCommunication: Sendable, Equatable {
         case dm
         /// The Channel's name without `#`; nil when the Server did not know it.
         case channel(name: String?)
+        /// A Captain's shared chat, named by its Captain.
+        case captain(name: String?)
 
-        /// The group title iOS shows above the sender, `#name` for a Channel.
+        /// The group title iOS shows above the sender: `#name` for a Channel,
+        /// the Captain's name for a Captain chat.
         public var groupName: String? {
-            guard case let .channel(name?) = self else { return nil }
-            return "#\(name)"
+            switch self {
+            case .dm: nil
+            case let .channel(name): name.map { "#\($0)" }
+            case let .captain(name): name
+            }
         }
+
+        /// Whether more than one person reads it, so iOS draws a group title.
+        public var isGroup: Bool { self != .dm }
     }
 
     public init(
@@ -148,6 +159,8 @@ public struct PushNotificationCommunication: Sendable, Equatable {
             return .dm
         case "channel":
             return .channel(name: string(info["name"]))
+        case "captain":
+            return .captain(name: string(info["name"]))
         default:
             return nil
         }

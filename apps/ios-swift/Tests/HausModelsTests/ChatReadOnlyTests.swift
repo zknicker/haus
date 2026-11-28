@@ -13,12 +13,12 @@ final class ChatReadOnlyTests: XCTestCase {
         XCTAssertTrue(try chat(archivedAt: "\"2026-09-01T00:00:00Z\"").isReadOnly)
     }
 
-    func testADmWithARetiredPeerAgentIsReadOnly() throws {
-        XCTAssertTrue(try chat(kind: "dm", peerAgentRetired: true).isReadOnly)
+    func testARetiredCaptainsChatIsReadOnly() throws {
+        XCTAssertTrue(try chat(kind: "captain", peerAgentRetired: true).isReadOnly)
     }
 
-    /// Retirement is the peer Agent's, so it only ends a DM. A channel keeps
-    /// every other participant and stays writable.
+    /// Retirement is the Captain's, so it only ends its Captain chat. A
+    /// channel keeps every other participant and stays writable.
     func testAChannelIgnoresTheRetiredPeerFlag() throws {
         XCTAssertFalse(try chat(peerAgentRetired: true).isReadOnly)
     }

@@ -98,29 +98,6 @@ public struct ChatLifecycleEvent: Decodable, Sendable, Equatable {
     }
 }
 
-/// `worker.onUpdated`: one Worker record changed, scoped to the readers of its
-/// Task's Chat (`chatID`).
-public struct WorkerUpdatedEvent: Decodable, Sendable, Equatable {
-    public let serverID: String
-    public let chatID: String
-    public let taskID: String
-    public let workID: String
-
-    public init(serverID: String, chatID: String, taskID: String, workID: String) {
-        self.serverID = serverID
-        self.chatID = chatID
-        self.taskID = taskID
-        self.workID = workID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case serverID = "serverId"
-        case chatID = "chatId"
-        case taskID = "taskId"
-        case workID = "workerId"
-    }
-}
-
 /// One live Chat-family notification, as the Store buffers it.
 public enum ChatRealtimeEvent: Sendable, Equatable {
     case messageCreated(MessageCreatedEvent)
@@ -128,8 +105,6 @@ public enum ChatRealtimeEvent: Sendable, Equatable {
     case read(ChatReadEvent)
     case lifecycle(ChatLifecycleEvent)
     case claimChanged(ClaimChangedEvent)
-    case taskLabelUpdated(TaskLabelUpdatedEvent)
-    case cloudAgentWorkUpdated(WorkerUpdatedEvent)
     case taskChanged(TaskChangedEvent)
     case taskFollowUpdated(TaskFollowUpdatedEvent)
 
@@ -140,8 +115,6 @@ public enum ChatRealtimeEvent: Sendable, Equatable {
         case let .read(event): event.serverID
         case let .lifecycle(event): event.serverID
         case let .claimChanged(event): event.serverID
-        case let .taskLabelUpdated(event): event.serverID
-        case let .cloudAgentWorkUpdated(event): event.serverID
         case let .taskChanged(event): event.serverID
         case let .taskFollowUpdated(event): event.serverID
         }

@@ -19,15 +19,15 @@ struct HausRouterTests {
     @Test("Opening the route already on top pushes nothing")
     func insideDeduplicates() {
         let router = HausRouter()
-        router.open(.captainDM(agentID: "agent_1"))
-        router.open(.captainDM(agentID: "agent_1"))
-        #expect(router.path(.home) == [.captainDM(agentID: "agent_1")])
+        router.open(.captain(agentID: "agent_1"))
+        router.open(.captain(agentID: "agent_1"))
+        #expect(router.path(.home) == [.captain(agentID: "agent_1")])
     }
 
     @Test(
         "A route opened from outside selects its tab and replaces that stack",
         arguments: [
-            (HausRoute.captainDM(agentID: "agent_1"), HausTab.home),
+            (HausRoute.captain(agentID: "agent_1"), HausTab.home),
             (.dm(chatID: "chat_dm"), .home),
             (.channel(chatID: "chat_product"), .projects),
             (.task(taskID: "task_1"), .tasks),
@@ -38,7 +38,7 @@ struct HausRouterTests {
     func outsideResets(route: HausRoute, tab: HausTab) {
         let router = HausRouter()
         router.selectedTab = tab == .home ? .projects : .home
-        router.setPath([.worker(workerID: "w_1"), .work(.chat("c"))], for: tab == .you ? .home : tab)
+        router.setPath([.task(taskID: "task_9"), .work(.chat("c"))], for: tab == .you ? .home : tab)
         router.open(route, from: .outside)
         #expect(router.selectedTab == tab)
         #expect(router.path(tab) == [route])
@@ -48,12 +48,21 @@ struct HausRouterTests {
     func outsideTablessStaysInTab() {
         let router = HausRouter()
         router.selectedTab = .tasks
-        router.open(.worker(workerID: "w_1"), from: .outside)
+        router.open(.work(.task("task_1")), from: .outside)
         #expect(router.selectedTab == .tasks)
-        #expect(router.path(.tasks) == [.worker(workerID: "w_1")])
+        #expect(router.path(.tasks) == [.work(.task("task_1"))])
     }
 
-    @Test("You holds only settings, and Search opens results in their own tabs")
+    @Test("A Captain route reveals its message in the Captain's conversation")
+    func captainReveal() {
+        let router = HausRouter()
+        router.open(.captain(agentID: "agent_1", messageID: "m_3"), from: .outside)
+        #expect(router.selectedTab == .home)
+        #expect(router.revealedMessageID(in: .captain("agent_1")) == "m_3")
+        #expect(router.visibleConversations == [.captain("agent_1")])
+    }
+
+    @Test("You holds only settings, and Search's hits open from outside in their own tabs")
     func tabsThatCannotHoldARoute() {
         let router = HausRouter()
         router.selectedTab = .you
@@ -63,9 +72,10 @@ struct HausRouterTests {
         #expect(router.selectedTab == .projects)
 
         router.selectedTab = .search
-        router.open(.dm(chatID: "chat_dm", messageID: "m_1"))
+        router.open(.dm(chatID: "chat_dm", messageID: "m_1"), from: .outside)
         #expect(router.selectedTab == .home)
         #expect(router.path(.home) == [.dm(chatID: "chat_dm", messageID: "m_1")])
+        #expect(router.path(.search).isEmpty)
 
         router.selectedTab = .tasks
         router.open(.settings(.appInfo))
@@ -103,21 +113,21 @@ struct HausRouterTests {
         router.selectedTab = .projects
         router.open(.channel(chatID: "chat_product"))
         router.open(.task(taskID: "task_1"))
-        #expect(router.visibleConversation == .task("task_1"))
+        #expect(router.visibleConversations == [.task("task_1")])
         router.open(.work(.task("task_1")))
-        #expect(router.visibleConversation == nil)
+        #expect(router.visibleConversations.isEmpty)
         router.pop()
         router.selectedTab = .home
-        #expect(router.visibleConversation == nil)
+        #expect(router.visibleConversations.isEmpty)
         router.selectedTab = .projects
-        #expect(router.visibleConversation == .task("task_1"))
+        #expect(router.visibleConversations == [.task("task_1")])
     }
 
     @Test("Stacked, only a tab's root shows the tab bar; every pushed screen hides it")
     func tabBarOnlyAtRoot() {
         let router = HausRouter()
         #expect(router.showsTabBar)
-        router.open(.captainDM(agentID: "agent_1"))
+        router.open(.captain(agentID: "agent_1"))
         #expect(!router.showsTabBar)
         router.open(.work(.chat("chat_dm")))
         #expect(!router.showsTabBar)
@@ -134,7 +144,7 @@ struct HausRouterTests {
         #expect(router.showsAskAnything)
     }
 
-    @Test("Split keeps the tab bar beside a chat until a side pane opens; Search drops Ask anything")
+    @Test("Split keeps the tab bar beside the selection; Search drops Ask anything")
     func splitAndSearchChrome() {
         let router = HausRouter()
         router.layout = .split
@@ -143,9 +153,6 @@ struct HausRouterTests {
         #expect(router.showsAskAnything)
         router.open(.work(.task("task_1")))
         #expect(router.showsTabBar)
-        router.pop()
-        router.open(.worker(workerID: "w_1"))
-        #expect(!router.showsTabBar)
         router.selectedTab = .search
         #expect(router.showsTabBar)
         #expect(!router.showsAskAnything)
@@ -158,13 +165,13 @@ struct HausRouterTests {
         router.adopt(serverID: "srv_a")
         #expect(router.path(.tasks) == [.task(taskID: "task_1")])
         router.present(.newProject)
-        router.tasksFilter = .assignedToMe
+        router.tasksView = .archived
         router.adopt(serverID: "srv_a")
         #expect(router.sheet == .newProject)
         router.adopt(serverID: "srv_b")
         #expect(router.paths.isEmpty)
         #expect(router.sheet == nil)
-        #expect(router.tasksFilter == .following)
+        #expect(router.tasksView == .mine)
         #expect(router.selectedTab == .tasks)
     }
 
@@ -179,10 +186,10 @@ struct HausRouterTests {
 
     @Test("A conversation resolves to the Chat behind it")
     func conversationChatID() {
-        let captain = { (agentID: String) in agentID == "agent_1" ? "chat_dm_1" : nil }
+        let captain = { (agentID: String) in agentID == "agent_1" ? "chat_captain_1" : nil }
         let task = { (taskID: String) in taskID == "task_1" ? "chat_task_1" : nil }
         #expect(HausConversation.chat("c").chatID(captainChat: captain, taskChat: task) == "c")
-        #expect(HausConversation.captain("agent_1").chatID(captainChat: captain, taskChat: task) == "chat_dm_1")
+        #expect(HausConversation.captain("agent_1").chatID(captainChat: captain, taskChat: task) == "chat_captain_1")
         #expect(HausConversation.captain("agent_2").chatID(captainChat: captain, taskChat: task) == nil)
         #expect(HausConversation.task("task_1").chatID(captainChat: captain, taskChat: task) == "chat_task_1")
     }

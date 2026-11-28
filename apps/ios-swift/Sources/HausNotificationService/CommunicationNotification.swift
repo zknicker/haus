@@ -68,15 +68,11 @@ enum CommunicationNotification {
     }
 
     /// A DM is one-to-one. iOS renders a group title only for a conversation
-    /// with more than one recipient, so a Channel adds a stand-in member.
+    /// with more than one recipient, so a Channel or Captain chat adds a
+    /// stand-in member.
     private static func recipients(for conversation: PushNotificationCommunication.Conversation) -> [INPerson] {
         let me = person(handle: "me", isMe: true)
-        switch conversation {
-        case .dm:
-            return [me]
-        case .channel:
-            return [me, person(handle: "channel-members", isMe: false)]
-        }
+        return conversation.isGroup ? [me, person(handle: "channel-members", isMe: false)] : [me]
     }
 
     private static func person(handle: String, isMe: Bool) -> INPerson {

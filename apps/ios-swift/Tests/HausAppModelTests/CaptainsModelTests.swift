@@ -56,6 +56,16 @@ struct CaptainsModelTests {
         #expect(captains.lifecycleRevision == 2)
     }
 
+    @Test("An interrupted run settles idle, as the App shows it")
+    func interruptedSettlesIdle() {
+        let captains = model()
+        captains.apply(lifecycle(.working))
+
+        #expect(captains.apply(lifecycle(.settled, outcome: .interrupted)) == .settled)
+
+        #expect(captains.lifecycleAvailability[agentID] == .idle)
+    }
+
     @Test("Events for a Server the app switched away from are dropped")
     func foreignServerIgnored() {
         let captains = model()

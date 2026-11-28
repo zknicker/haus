@@ -3,8 +3,8 @@ import XCTest
 @testable import HausTransport
 
 final class ChatTransportModelsTests: XCTestCase {
-    func testAgentDMSendUsesImplicitTargetWithoutAChatID() throws {
-        let input = SendAgentDMInput(
+    func testCaptainSendNamesTheCaptainWithoutAChatID() throws {
+        let input = SendCaptainChatInput(
             agentID: "agt_cove",
             content: "Hello",
             nonce: "nonce-1",
@@ -18,17 +18,17 @@ final class ChatTransportModelsTests: XCTestCase {
         )
         XCTAssertNil(object["chatId"])
         XCTAssertEqual(object["agentId"] as? String, "agt_cove")
-        XCTAssertEqual(object["targetKind"] as? String, "agent-dm")
+        XCTAssertEqual(object["targetKind"] as? String, "captain")
     }
 
-    func testMentionInputsDistinguishDurableChatAndImplicitDM() throws {
+    func testMentionInputsDistinguishDurableChatAndCaptain() throws {
         let chat = try jsonObject(ChatMentionOptionsInput(chatID: "chat_1", serverID: "srv_1"))
-        let dm = try jsonObject(AgentDMMentionOptionsInput(agentID: "agt_1", serverID: "srv_1"))
+        let captain = try jsonObject(CaptainMentionOptionsInput(agentID: "agt_1", serverID: "srv_1"))
 
         XCTAssertEqual(chat["chatId"] as? String, "chat_1")
         XCTAssertNil(chat["targetKind"])
-        XCTAssertEqual(dm["agentId"] as? String, "agt_1")
-        XCTAssertEqual(dm["targetKind"] as? String, "agent-dm")
+        XCTAssertEqual(captain["agentId"] as? String, "agt_1")
+        XCTAssertEqual(captain["targetKind"] as? String, "captain")
     }
 
     private func jsonObject<Value: Encodable>(_ value: Value) throws -> [String: Any] {

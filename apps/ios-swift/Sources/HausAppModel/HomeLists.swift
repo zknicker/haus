@@ -1,11 +1,13 @@
 import Foundation
 import HausModels
 
-/// What Home's Recent lists: every unread conversation, then the newest DMs.
+/// What Home's Recent lists: every unread conversation, then the newest DMs
+/// and Captain chats the reader joined.
 ///
 /// Unread Chats and followed Task chats with unread messages always show, so
-/// nothing the retired Inbox surfaced goes missing. Read DMs fill the list up
-/// to `limit`. A Task chat that already sits in Open tasks stays there.
+/// nothing the retired Inbox surfaced goes missing. Read conversations fill
+/// the list up to `limit`. A Task chat that already sits in Active tasks
+/// stays there.
 public enum HomeRecent {
     public enum Item: Equatable, Sendable, Identifiable {
         case chat(ChatSummary, isUnread: Bool)
@@ -39,16 +41,16 @@ public enum HomeRecent {
         chats: [ChatSummary],
         unreadChatIDs: Set<String>,
         unreadTasks: [ChatUnreadPreview],
-        openTaskChatIDs: Set<String>,
+        activeTaskChatIDs: Set<String>,
         limit: Int = defaultLimit
     ) -> [Item] {
         let chatItems: [Item] = chats.compactMap { chat in
             let isUnread = unreadChatIDs.contains(chat.id)
-            guard isUnread || (chat.kind == .dm && chat.lastMessage != nil) else { return nil }
+            guard isUnread || (isPersonal(chat) && chat.lastMessage != nil) else { return nil }
             return .chat(chat, isUnread: isUnread)
         }
         let taskItems: [Item] = unreadTasks
-            .filter { !openTaskChatIDs.contains($0.chatID) }
+            .filter { !activeTaskChatIDs.contains($0.chatID) }
             .map(Item.task)
         let ordered = (chatItems + taskItems).sorted { left, right in
             (left.activityAt, left.id) > (right.activityAt, right.id)
@@ -61,14 +63,18 @@ public enum HomeRecent {
             return true
         }
     }
+
+    private static func isPersonal(_ chat: ChatSummary) -> Bool {
+        chat.kind == .dm || (chat.kind == .captain && chat.captainChat?.member == true)
+    }
 }
 
-/// How many open Tasks each Project holds, by Project id, from `task.listOpen`.
+/// How many active Tasks each Project holds, by Project id, from `task.listActive`.
 public enum ProjectTaskCounts {
-    public static func open(_ tasks: [TaskRecord]) -> [String: Int] {
+    public static func active(_ tasks: [TaskRecord]) -> [String: Int] {
         tasks.reduce(into: [:]) { counts, task in
-            guard task.state == .open, let projectID = task.projectID else { return }
-            counts[projectID, default: 0] += 1
+            guard !task.isArchived else { return }
+            counts[task.projectID, default: 0] += 1
         }
     }
 }

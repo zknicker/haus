@@ -8,7 +8,7 @@ import SwiftUI
 extension AuthenticatedHausView {
     var captainTileActions: CaptainTileActions {
         CaptainTileActions(
-            open: { router.open(.captainDM(agentID: $0.id)) },
+            open: { router.open(.captain(agentID: $0.id)) },
             openProfile: { router.open(.settings(.agent(id: $0.id)), from: .outside) },
             openAutomations: { router.open(.settings(.agentAutomations(id: $0.id)), from: .outside) }
         )
@@ -16,26 +16,15 @@ extension AuthenticatedHausView {
 
     func openHomeRow(_ target: HomeRowTarget) {
         switch target {
-        case .captain(let agentID): router.open(.captainDM(agentID: agentID))
+        case .captain(let agentID): router.open(.captain(agentID: agentID))
         case .chat(let chatID): router.open(route(forChatID: chatID))
         case .task(let taskID): router.open(.task(taskID: taskID))
         }
     }
 
-    /// The Inbox's reads (Chats, unread Task chats, active Workers) plus the
-    /// open Tasks.
+    /// The Inbox's reads: Chats, unread Task chats, and the active Tasks.
     func refreshHome() async {
-        async let inbox: Void = store.loadInbox()
-        async let open: Void = loadOpenTasks()
-        _ = await (inbox, open)
-    }
-
-    private func loadOpenTasks() async {
-        do {
-            try await store.tasks.reloadOpenTasks()
-        } catch {
-            HausStore.logger.error("Loading open Tasks failed: \(error.localizedDescription, privacy: .public)")
-        }
+        await store.loadInbox()
     }
 
     var projectsTabActions: ProjectsTabActions {
@@ -53,8 +42,7 @@ extension AuthenticatedHausView {
     func refreshProjects() async {
         async let inbox: Void = store.loadInbox()
         async let projects: Void = store.projects.load()
-        async let open: Void = loadOpenTasks()
-        _ = await (inbox, projects, open)
+        _ = await (inbox, projects)
     }
 
     func projectSettingsDestination(_ projectID: String) -> some View {
@@ -67,11 +55,7 @@ extension AuthenticatedHausView {
                     try await projects.update(chatID: projectID, name: name, key: key)
                     await store.loadInbox()
                 },
-                addRepo: { try await projects.addRepo(projectID: projectID, repository: $0) },
-                removeRepo: { try await projects.removeRepo(projectRepoID: $0) },
-                linkRepo: { try await projects.linkRepo(projectRepoID: $0, computerID: $1, checkoutPath: nil) },
-                unlinkRepo: { try await projects.unlinkRepo(projectRepoID: $0, computerID: $1) },
-                setDefaultPlace: { try await projects.setDefaultWorkerPlace(projectID: projectID, place: $0) }
+                setDefaultMachine: { try await projects.setDefaultMachine(projectID: projectID, computerID: $0) }
             )
         )
         .task {

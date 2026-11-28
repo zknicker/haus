@@ -64,7 +64,7 @@ extension ChatScreenView {
     /// The Captain's model, read-only for Members or once the Server refused a change. A pick
     /// asks before it rotates the session.
     func captainModel(for kind: ChatKind) -> CaptainModelControl? {
-        guard case .agentDirectMessage(let agent) = kind,
+        guard case .captainChat(let agent) = kind,
               let source = engagementSource?.captainModel,
               let presentation = source.presentation(agent.id)
         else { return nil }
