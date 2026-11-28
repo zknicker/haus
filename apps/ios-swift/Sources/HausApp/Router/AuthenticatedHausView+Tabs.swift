@@ -22,12 +22,13 @@ extension AuthenticatedHausView {
                 adaptiveStack(.tasks) { tasksRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
             Tab(value: HausTab.you) {
-                youStack.toolbarVisibility(tabBarVisibility, for: .tabBar)
+                adaptiveStack(.you, root: { youRoot }, stacked: { youStack })
+                    .toolbarVisibility(tabBarVisibility, for: .tabBar)
             } label: {
                 Label { Text("You") } icon: { youTabIcon ?? Image(systemName: "person.crop.circle") }
             }
             Tab("Search", systemImage: "magnifyingglass", value: HausTab.search, role: .search) {
-                searchRoot.toolbarVisibility(tabBarVisibility, for: .tabBar)
+                adaptiveStack(.search) { searchRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -103,18 +104,28 @@ extension AuthenticatedHausView {
         }
     }
 
-    /// Compact width keeps the tab's stack. Regular width shows its list
-    /// beside the selection (specs/ios-app.md, iPhone Duo).
-    @ViewBuilder
     private func adaptiveStack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
+        adaptiveStack(tab, root: root, stacked: { stack(tab, root: root) })
+    }
+
+    /// Compact width keeps the tab's stack. Regular width shows its list
+    /// beside the selection (specs/ios-app.md, iPhone Duo). The pane's stack
+    /// holds settings screens as themselves, so the settings screen it starts
+    /// from draws the ones it pushes.
+    @ViewBuilder
+    private func adaptiveStack<Root: View, Stacked: View>(
+        _ tab: HausTab,
+        @ViewBuilder root: () -> Root,
+        @ViewBuilder stacked: () -> Stacked
+    ) -> some View {
         switch router.panes(tab) {
         case .stack:
-            stack(tab, root: root)
+            stacked()
         case let .split(selection, _):
             AdaptiveSplitView {
                 root().foldsBottomChrome(tab, router: router)
             } content: {
-                NavigationStack(path: splitStackBinding(tab)) {
+                NavigationStack(path: navigationPath({ splitStack(tab) }) { router.setSplitStack($0, for: tab) }) {
                     Group {
                         if let selection {
                             routeDestination(selection).environment(\.chatHeaderShowsBack, false)
@@ -129,14 +140,26 @@ extension AuthenticatedHausView {
         }
     }
 
-    private func splitStackBinding(_ tab: HausTab) -> Binding<[HausRoute]> {
+    /// `routes` as a `NavigationStack` holds them: settings screens as
+    /// themselves, everything else as routes. Only back and interactive pop
+    /// write it, so a write keeps a prefix.
+    func navigationPath(
+        _ routes: @escaping () -> [HausRoute],
+        write: @escaping ([HausRoute]) -> Void
+    ) -> Binding<NavigationPath> {
         Binding(
             get: {
-                guard case let .split(_, stack) = router.panes(tab) else { return [] }
-                return stack
+                routes().reduce(into: NavigationPath()) { navigation, route in
+                    if case .settings(let settings) = route { navigation.append(settings) } else { navigation.append(route) }
+                }
             },
-            set: { router.setSplitStack($0, for: tab) }
+            set: { write(Array(routes().prefix($0.count))) }
         )
+    }
+
+    private func splitStack(_ tab: HausTab) -> [HausRoute] {
+        guard case let .split(_, stack) = router.panes(tab) else { return [] }
+        return stack
     }
 
     private func pathBinding(_ tab: HausTab) -> Binding<[HausRoute]> {

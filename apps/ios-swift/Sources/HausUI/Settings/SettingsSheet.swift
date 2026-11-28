@@ -1,9 +1,13 @@
 import SwiftUI
 import HausModels
 
-/// Settings as the You tab's root: the hub under a "You" title, with its
-/// screens pushed onto the tab's own stack.
+/// Settings in the You tab. Stacked, the hub under a "You" title is the
+/// root and its screens push onto the tab's own stack. Split, the hub is the
+/// list and selects a row, and the content pane draws that row's screen as
+/// `root` with the screens it pushes over it.
 public struct SettingsSheet: View {
+    private let root: SettingsRoute?
+    private let selection: SettingsListSelection?
     let persistence: SettingsPersistence
     let automations: AgentAutomationsActions
     let stoppedClaims: AgentStoppedClaimsActions
@@ -26,6 +30,8 @@ public struct SettingsSheet: View {
     }
 
     public init(
+        root: SettingsRoute? = nil,
+        selection: SettingsListSelection? = nil,
         tabPath: Binding<[SettingsRoute]>,
         data: SettingsData,
         persistence: SettingsPersistence,
@@ -37,6 +43,8 @@ public struct SettingsSheet: View {
         serverSwitcher: ServerSwitcher?,
         onSignOut: SettingsSignOut?
     ) {
+        self.root = root
+        self.selection = selection
         self.onSignOut = onSignOut
         self.persistence = persistence
         self.automations = automations
@@ -51,21 +59,40 @@ public struct SettingsSheet: View {
     }
 
     public var body: some View {
+        content.onChange(of: sourceData) { _, latest in data = latest }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let selection {
+            hub(selected: selection.route, onNavigate: selection.select)
+        } else {
+            Group {
+                if let root {
+                    destination(for: root)
+                } else {
+                    hub(selected: nil) { path.append($0) }
+                }
+            }
+            .navigationDestination(for: SettingsRoute.self) { route in
+                destination(for: route)
+            }
+            .sheet(item: $avatarGenerator) { generator in avatarGeneration(generator) }
+        }
+    }
+
+    private func hub(selected: SettingsRoute?, onNavigate: @escaping (SettingsRoute) -> Void) -> some View {
         SettingsHubView(
             data: data,
             appearance: $appearance,
             notifications: notifications,
             projectCount: server.projects?.count,
-            onNavigate: { path.append($0) },
+            selection: selected,
+            onNavigate: onNavigate,
             onSignOut: onSignOut,
             serverSwitcher: serverSwitcher
         )
         .hausScreenTitle("You")
-        .navigationDestination(for: SettingsRoute.self) { route in
-            destination(for: route)
-        }
-        .onChange(of: sourceData) { _, latest in data = latest }
-        .sheet(item: $avatarGenerator) { generator in avatarGeneration(generator) }
     }
 
     private func avatarGeneration(_ generator: AvatarGeneratorSheet) -> some View {
@@ -84,6 +111,18 @@ public struct SettingsSheet: View {
                 }
             }
         )
+    }
+}
+
+/// The hub as a list beside the content pane: the row it shows as selected,
+/// and what a row's tap selects.
+public struct SettingsListSelection {
+    let route: SettingsRoute?
+    let select: (SettingsRoute) -> Void
+
+    public init(route: SettingsRoute?, select: @escaping (SettingsRoute) -> Void) {
+        self.route = route
+        self.select = select
     }
 }
 

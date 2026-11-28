@@ -69,22 +69,24 @@ public final class HausRouter {
     }
 
     /// Inside a tab, a route pushes onto that tab's stack; in a split tab a
-    /// conversation replaces the selection instead. From outside, it selects
-    /// its tab and replaces that stack with the route over the root. A tab
-    /// that cannot hold the route opens it as from outside.
+    /// route that `selects` replaces the selection instead. From outside, it
+    /// selects its tab and replaces that stack with the route over the root;
+    /// a route with no tab of its own stays in the current tab, unless that
+    /// is Search. A tab that cannot hold the route opens it as from outside.
     public func open(_ route: HausRoute, from origin: RouteOrigin = .inside) {
         sheet = nil
         reveal = route.revealedMessage
         if origin == .inside, Self.canStack(route, on: selectedTab) {
             guard topRoute != route else { return }
-            if isSplit(selectedTab), route.conversation != nil {
+            if layout == .split, Self.selects(route, on: selectedTab) {
                 paths[selectedTab] = [route]
                 return
             }
             paths[selectedTab, default: []].append(route)
             return
         }
-        let tab = route.homeTab ?? (Self.canStack(route, on: selectedTab) ? selectedTab : .home)
+        let staysHere = selectedTab != .search && Self.canStack(route, on: selectedTab)
+        let tab = route.homeTab ?? (staysHere ? selectedTab : .home)
         selectedTab = tab
         paths[tab] = [route]
     }
@@ -160,15 +162,15 @@ public final class HausRouter {
         tasksView = .mine
     }
 
-    /// You holds settings and the Drive it browses; Search hosts its own
-    /// palette and opens results in their own tabs; every other tab holds any
-    /// route but settings.
+    /// You holds settings and the Drive it browses; every other tab holds any
+    /// route but settings, so Search keeps the conversations its hits open
+    /// beside its list.
     nonisolated static func canStack(_ route: HausRoute, on tab: HausTab) -> Bool {
         switch (tab, route) {
         case (.you, .settings), (.you, .driveFile): true
-        case (.you, _), (.search, _): false
-        case (.home, .settings), (.projects, .settings), (.tasks, .settings): false
-        case (.home, _), (.projects, _), (.tasks, _): true
+        case (.you, _): false
+        case (.home, .settings), (.projects, .settings), (.tasks, .settings), (.search, .settings): false
+        case (.home, _), (.projects, _), (.tasks, _), (.search, _): true
         }
     }
 }

@@ -28,8 +28,8 @@ extension AuthenticatedHausView {
             driveFolderDestination(prefix)
         case .driveFile(let path):
             driveFileDestination(path)
-        case .none:
-            Color.clear
+        case .settings(let settings):
+            settingsDestination(settings)
         }
     }
 

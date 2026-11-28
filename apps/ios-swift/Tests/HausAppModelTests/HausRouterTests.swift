@@ -62,7 +62,7 @@ struct HausRouterTests {
         #expect(router.visibleConversation == .captain("agent_1"))
     }
 
-    @Test("You holds only settings, and Search opens results in their own tabs")
+    @Test("You holds only settings, and Search's hits open from outside in their own tabs")
     func tabsThatCannotHoldARoute() {
         let router = HausRouter()
         router.selectedTab = .you
@@ -72,9 +72,10 @@ struct HausRouterTests {
         #expect(router.selectedTab == .projects)
 
         router.selectedTab = .search
-        router.open(.dm(chatID: "chat_dm", messageID: "m_1"))
+        router.open(.dm(chatID: "chat_dm", messageID: "m_1"), from: .outside)
         #expect(router.selectedTab == .home)
         #expect(router.path(.home) == [.dm(chatID: "chat_dm", messageID: "m_1")])
+        #expect(router.path(.search).isEmpty)
 
         router.selectedTab = .tasks
         router.open(.settings(.appInfo))

@@ -73,6 +73,11 @@ enum HausPlatformColor {
         #endif
     }
 
+    /// The row a split's content pane shows, in every list beside it.
+    static var selectedRow: Color {
+        deepRecessedSurface
+    }
+
     static var separator: Color {
         #if canImport(UIKit)
         Color(uiColor: .separator)

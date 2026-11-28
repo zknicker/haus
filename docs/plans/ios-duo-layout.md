@@ -178,6 +178,22 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
   - The hit's conversation opens scrolled to the match, and the match is banded.
 - Proof: each tab matches its "Every tab" board, and folding never rewrites a stack. Router tests cover both
   splits.
+- **Built (2026-11-27).**
+  - Every tab splitting made `splitsWhenWide` always true, so it is gone: the split follows `TabLayout` alone.
+    `HausRouter.selects` holds the replace-the-selection rule per tab, and `HausTab.emptySelection` gives You
+    General before anything is selected.
+  - On You the hub's Drive row selects too: Drive's root `.driveFile(path: "")` replaces the selection like a
+    settings row, and folders opened inside it stack.
+  - `RouteScreen.none` is gone: `.settings` was its only route.
+  - The list column and the detail column are two `SettingsSheet` instances. The hub highlights its selected
+    row and selects instead of pushing; the detail's `root` screen draws everything it pushes, so the screens
+    over a selection share one saved-profile overlay and one set of avatar sessions, as on a compact stack.
+  - Search holds every route but settings, so a hit's Work or file stacks over it beside the list. An outside
+    open with no tab of its own never lands in Search, and compact Search still opens hits from outside.
+  - Projects, Tasks, You and Search lists mark the selection with `listSelection`. Home's list does not yet.
+  - Proof: router tests in `HausRouterSplitTabsTests` and `HausRouterPanesTests`; Duo inner-display screenshots
+    of You (General and Captains), Search with a hit banded, Projects and Tasks; iPhone 17 Pro You and Search
+    unchanged.
 
 ### D3. The icon rail
 

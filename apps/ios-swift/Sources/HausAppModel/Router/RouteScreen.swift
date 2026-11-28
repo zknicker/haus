@@ -1,7 +1,6 @@
 import HausModels
 
-/// The screen a route draws. Tab roots and the You tab draw `settings`
-/// themselves, so a stacked route never reaches `none` in practice.
+/// The screen a route draws.
 public enum RouteScreen: Hashable, Sendable {
     case conversation
     case task(taskID: String)
@@ -12,7 +11,8 @@ public enum RouteScreen: Hashable, Sendable {
     /// One Drive file's preview, by its path.
     case driveFile(path: String)
     case projectSettings(projectID: String)
-    case none
+    /// A settings screen as You's content pane shows it beside the list.
+    case settings(SettingsRoute)
 
     public init(_ route: HausRoute) {
         switch route {
@@ -22,7 +22,7 @@ public enum RouteScreen: Hashable, Sendable {
         case .pullRequest(let reading): self = .pullRequest(reading)
         case .driveFile(let path): self = DrivePath.isFolder(path) ? .driveFolder(prefix: path) : .driveFile(path: path)
         case .projectSettings(let projectID): self = .projectSettings(projectID: projectID)
-        case .settings: self = .none
+        case .settings(let settings): self = .settings(settings)
         }
     }
 }

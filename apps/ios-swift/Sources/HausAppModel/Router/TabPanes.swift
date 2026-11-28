@@ -1,6 +1,6 @@
 /// How tabs lay out their stacks (specs/ios-app.md, iPhone Duo). Compact
-/// width stacks every screen in one column; regular width splits Home,
-/// Projects, and Tasks into a list pane and a content pane.
+/// width stacks every screen in one column; regular width splits every tab
+/// into a list pane and a content pane.
 public enum TabLayout: Hashable, Sendable {
     case stack
     case split
@@ -16,11 +16,12 @@ public enum TabPanes: Hashable, Sendable {
 }
 
 extension HausTab {
-    /// Tabs whose root is a list of places worth opening beside it.
-    public var splitsWhenWide: Bool {
+    /// What the content pane shows beside the list before anything is
+    /// selected. You's settings list opens on General.
+    public var emptySelection: HausRoute? {
         switch self {
-        case .home, .projects, .tasks: true
-        case .you, .search: false
+        case .you: .settings(.general)
+        case .home, .projects, .tasks, .search: nil
         }
     }
 }
@@ -28,8 +29,8 @@ extension HausTab {
 extension HausRouter {
     public func panes(_ tab: HausTab) -> TabPanes {
         let path = path(tab)
-        guard isSplit(tab) else { return .stack(path) }
-        return .split(selection: path.first, stack: Array(path.dropFirst()))
+        guard layout == .split else { return .stack(path) }
+        return .split(selection: path.first ?? tab.emptySelection, stack: Array(path.dropFirst()))
     }
 
     /// Writes from a split tab's content-pane `NavigationStack`.
@@ -38,7 +39,14 @@ extension HausRouter {
         setPath([selection] + stack, for: tab)
     }
 
-    func isSplit(_ tab: HausTab) -> Bool {
-        layout == .split && tab.splitsWhenWide
+    /// What replaces a split tab's selection instead of stacking over it: a
+    /// conversation, or on You a row of its list (a settings screen or
+    /// Drive's root).
+    nonisolated static func selects(_ route: HausRoute, on tab: HausTab) -> Bool {
+        switch (tab, route) {
+        case (.you, .settings), (.you, .driveFile(path: "")): true
+        case (.you, _): false
+        case (.home, _), (.projects, _), (.tasks, _), (.search, _): route.conversation != nil
+        }
     }
 }

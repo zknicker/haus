@@ -16,6 +16,14 @@ public struct SearchCaptain: Identifiable, Hashable, Sendable {
     }
 }
 
+/// The result whose conversation the content pane shows beside Search.
+public enum SearchSelection: Hashable, Sendable {
+    case message(String)
+    case chat(String)
+    case captain(String)
+    case task(String)
+}
+
 /// A Server member the palette can open a DM with.
 public struct SearchPerson: Identifiable, Hashable, Sendable {
     public let id: String

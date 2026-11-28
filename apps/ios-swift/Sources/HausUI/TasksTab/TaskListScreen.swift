@@ -49,15 +49,19 @@ public struct TaskListScreen: View {
     @Binding private var view: TaskListView
     private let onOpenTask: (String) -> Void
     private let onNewTask: (() -> Void)?
+    private let selectedTaskID: String?
 
+    /// - Parameter selectedTaskID: the Task the content pane shows beside the list.
     public init(
         content: TaskListContent,
         view: Binding<TaskListView>,
+        selectedTaskID: String? = nil,
         onOpenTask: @escaping (String) -> Void,
         onNewTask: (() -> Void)?
     ) {
         self.content = content
         _view = view
+        self.selectedTaskID = selectedTaskID
         self.onOpenTask = onOpenTask
         self.onNewTask = onNewTask
     }
@@ -137,6 +141,7 @@ public struct TaskListScreen: View {
             .accessibilityValue(disc.label)
         }
         .buttonStyle(.pressableRow)
+        .listSelection(task.id == selectedTaskID)
         .accessibilityIdentifier("tasks-row-\(task.shortID)")
     }
 }

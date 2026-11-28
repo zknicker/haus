@@ -749,6 +749,22 @@ end at the rail. Padding cannot do this: a descendant's `ignoresSafeArea()` stil
 ancestor's padding to the container's safe-area edge, which pushed the flipped table under the
 rail and, in the split's detail column, past its leading edge.
 
+At regular width every tab is list | detail (`AdaptiveSplitView`, `HausRouter.panes`). The bottom of
+a tab's stack is the selection in the detail column and the rest stacks over it, so folding and
+unfolding never rewrite a stack: compact draws the same path as a push stack over the tab's root.
+`HausRouter.selects` decides what replaces the selection instead of stacking: a conversation in Home,
+Projects, Tasks and Search, and on You a row of the settings list (a `.settings` route, or Drive's
+root `.driveFile(path: "")`). You with nothing selected shows General (`HausTab.emptySelection`).
+You's list is the same `SettingsSheet` hub, given a `SettingsListSelection` so a row selects
+instead of pushing; the detail column draws the selected row through `RouteScreen.settings` as a
+second `SettingsSheet` whose `root` is that row, and that instance draws the settings screens it
+pushes, so they share its saved-profile overlay and avatar sessions. Search holds every route but
+settings: at regular width its hits open `.inside` and replace the selection, scrolled to the match
+and banded through the router's `reveal` (the same jump-and-flash path as a reference), while
+compact Search still opens hits `.outside` in their own tab, and an outside open never lands in
+Search. Each list marks the row the detail shows with `listSelection` (`HausUI/Adaptive`): a
+`systemFill`-tinted row with medium (12 pt) corners, never an accent fill.
+
 Both transcripts — the Chat timeline and a Task's messages — sit on `TranscriptListView`, the
 flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each
 cell's `contentView` scaled back, data reversed so the newest item is row zero. This is the

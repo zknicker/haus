@@ -41,15 +41,18 @@ public struct ProjectsTabView: View {
     private let archivedCount: Int?
     private let isLoaded: Bool
     private let actions: ProjectsTabActions
+    private let selectedChatID: String?
 
     @State private var filter = ProjectsFilter()
 
+    /// - Parameter selectedChatID: the Chat the content pane shows beside the list.
     public init(
         projects: [ProjectRowPresentation],
         people: [PersonRowPresentation],
         captains: [CaptainIdentity],
         archivedCount: Int?,
         isLoaded: Bool,
+        selectedChatID: String? = nil,
         actions: ProjectsTabActions
     ) {
         self.projects = projects
@@ -57,6 +60,7 @@ public struct ProjectsTabView: View {
         self.captains = captains
         self.archivedCount = archivedCount
         self.isLoaded = isLoaded
+        self.selectedChatID = selectedChatID
         self.actions = actions
     }
 
@@ -89,6 +93,7 @@ public struct ProjectsTabView: View {
             ForEach(shown) { project in
                 Button { actions.open(project.chatID) } label: { ProjectRow(row: project, now: now) }
                     .buttonStyle(.plain)
+                    .listSelection(project.chatID == selectedChatID)
                     .hausPlainRow()
                     .contextMenu { menu(for: project) }
                     .swipeActions(edge: .trailing) { markReadButton(project.isUnread ? project.chatID : nil) }
@@ -98,6 +103,7 @@ public struct ProjectsTabView: View {
                 ForEach(people) { person in
                     Button { actions.open(person.chatID) } label: { PersonRow(row: person) }
                         .buttonStyle(.plain)
+                        .listSelection(person.chatID == selectedChatID)
                         .hausPlainRow()
                         .contextMenu { markReadButton(person.isUnread ? person.chatID : nil) }
                         .swipeActions(edge: .trailing) { markReadButton(person.isUnread ? person.chatID : nil) }

@@ -26,6 +26,15 @@ public enum YouStack {
         return .settings(settings)
     }
 
+    /// The settings list row a split You selection shows as selected.
+    public static func row(selection: HausRoute?) -> SettingsRoute? {
+        switch selection {
+        case .settings(let settings)?: settings
+        case .driveFile(path: "")?: .drive(prefix: "")
+        default: nil
+        }
+    }
+
     private static func settingsIndices(in path: [HausRoute]) -> [Int] {
         path.indices.filter { if case .settings = path[$0] { true } else { false } }
     }

@@ -9,6 +9,7 @@ struct SearchPaletteView: View {
     let searchMessages: MessageSearch
     let searchRecoveryRevision: Int
     let actions: SearchPaletteActions
+    var selection: SearchSelection?
     let onSelectChat: (ChatPresentation) -> Void
     /// Returns `false` when the result's Chat is no longer in the directory.
     let onSelectMessage: (MessageSearchResultPresentation) -> Bool

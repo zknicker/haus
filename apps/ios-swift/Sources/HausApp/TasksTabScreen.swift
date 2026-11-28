@@ -7,6 +7,7 @@ import SwiftUI
 struct TasksTabScreen: View {
     let store: HausStore
     @Binding var view: TaskListView
+    let selectedTaskID: String?
     let onOpenTask: (String) -> Void
     let onNewTask: (() -> Void)?
 
@@ -14,6 +15,7 @@ struct TasksTabScreen: View {
         TaskListScreen(
             content: store.taskListContent(for: view),
             view: $view,
+            selectedTaskID: selectedTaskID,
             onOpenTask: onOpenTask,
             onNewTask: onNewTask
         )

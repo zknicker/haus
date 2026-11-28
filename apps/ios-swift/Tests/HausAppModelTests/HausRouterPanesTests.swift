@@ -26,20 +26,25 @@ struct HausRouterPanesTests {
         #expect(router.panes(.home) == .stack(home))
     }
 
-    @Test("Compact width stacks every tab; regular width splits Home, Projects, and Tasks")
+    @Test("Compact width stacks every tab; regular width splits every tab")
     func panesPerLayout() {
         let router = HausRouter()
         router.open(.channel(chatID: "chat_product"), from: .outside)
         router.open(.settings(.people), from: .outside)
         #expect(router.panes(.projects) == .stack([.channel(chatID: "chat_product")]))
         #expect(router.panes(.home) == .stack([]))
+        #expect(router.panes(.you) == .stack([.settings(.people)]))
+        #expect(router.panes(.search) == .stack([]))
 
         router.layout = .split
         #expect(router.panes(.projects) == .split(selection: .channel(chatID: "chat_product"), stack: []))
         #expect(router.panes(.home) == .split(selection: nil, stack: []))
         #expect(router.panes(.tasks) == .split(selection: nil, stack: []))
-        #expect(router.panes(.you) == .stack([.settings(.people)]))
-        #expect(router.panes(.search) == .stack([]))
+        #expect(router.panes(.you) == .split(selection: .settings(.people), stack: []))
+        #expect(router.panes(.search) == .split(selection: nil, stack: []))
+        #expect(HausTab.allCases.allSatisfy { tab in
+            if case .split = router.panes(tab) { true } else { false }
+        })
     }
 
     @Test("Split, a conversation opened inside replaces the selection; anything else stacks over it")

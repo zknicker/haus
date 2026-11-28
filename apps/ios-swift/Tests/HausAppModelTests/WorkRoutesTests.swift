@@ -13,7 +13,7 @@ struct WorkRoutesTests {
         #expect(RouteScreen(.pullRequest(reading)) == .pullRequest(reading))
         #expect(RouteScreen(.task(taskID: "tsk_1", messageID: "msg_1")) == .task(taskID: "tsk_1"))
         #expect(RouteScreen(.captain(agentID: "agt_1")) == .conversation)
-        #expect(RouteScreen(.settings(.computers)) == .none)
+        #expect(RouteScreen(.settings(.computers)) == .settings(.computers))
     }
 
     @Test("A Drive route names a folder by its trailing slash, and a file otherwise")
