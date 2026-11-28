@@ -87,6 +87,9 @@ public struct NewCaptainFormView: View {
                 }
             }
             .onAppear(perform: chooseDefaults)
+            .onChange(of: projects) { chooseDefaults() }
+            .onChange(of: devices) { chooseDefaults() }
+            .onChange(of: runtimes) { chooseDefaults() }
             .onChange(of: runtimeID) { modelID = models.first?.id }
         }
         .presentationDetents([.large])

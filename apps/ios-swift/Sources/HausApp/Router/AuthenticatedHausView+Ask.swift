@@ -60,7 +60,7 @@ extension AuthenticatedHausView {
     }
 
     /// The Devices, model catalog, and Projects the pickers read, each once.
-    private func loadAskChoices() async {
+    func loadAskChoices() async {
         guard let serverID = store.activeServer?.id else { return }
         if store.computers == nil || store.modelConnections == nil { await store.loadComputers(serverID: serverID) }
         if store.projects.projects == nil { await store.projects.load() }
