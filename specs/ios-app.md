@@ -229,13 +229,12 @@ Layout follows size classes and the system's bar placement, never orientation or
 - **Task mode:**
   - A Task opened from its card in a conversation opens beside that conversation. The two get equal panes meeting
     at the fold, and the list steps aside to the rail.
-  - The conversation's composer gets a target chip for that Task and sends to it as steer. The chip's × sends to
-    the conversation again.
-  - Stop is in the toolbar, and Close is at the top of the Task pane.
+  - The conversation's composer gets a target chip for that Task, inside the pill after the plus, and sends to it
+    as steer. The chip's × sends to the conversation again.
+  - The toolbar holds the Task's More menu, and Close is at the top of the Task pane. There is no Stop, as on the
+    web App. Interrupting a Task is a later delivery choice in the composer (Steer, Queue, Interrupt).
   - The Task pane shows who started it, its activity, its title, then Activity (its turn details) and Files (the
     files its agent created). It has no composer.
-  - Stop confirms first, then stops the Task's agent (`agent.stop`), which keeps it stopped until an Owner or
-    Admin starts it. Only Owners and Admins see it, and only a working Task can be stopped.
   - Closing the Task returns to the conversation and the list column it had. A Task from the Tasks list or a link
     replaces the selection instead.
 - **Half-open:**

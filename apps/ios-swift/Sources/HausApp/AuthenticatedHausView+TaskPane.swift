@@ -4,7 +4,7 @@ import HausUI
 import SwiftUI
 
 /// The Task beside its conversation (specs/ios-app.md, Task mode): its pane,
-/// and the Stop and More its conversation's bar shows for it.
+/// and the More menu its conversation's bar shows for it.
 extension AuthenticatedHausView {
     func taskPane(_ taskID: String, tab: HausTab) -> some View {
         Group {
@@ -26,18 +26,14 @@ extension AuthenticatedHausView {
     }
 
     func taskModeChrome(_ taskID: String) -> TaskModeChromePresentation {
-        let task = store.tasks.record(taskID: taskID)
         let origin = store.taskOrigin(taskID: taskID)
         return TaskModeChromePresentation(
-            title: store.taskChatHeader(taskID: taskID)?.title ?? "this Task",
             editing: store.taskChatEditing(taskID: taskID),
             originLabel: store.taskStartedFrom(taskID: taskID)?.placeLabel,
             onOpenOrigin: {
                 guard let origin else { return }
                 router.open(route(forChatID: origin.chatID, messageID: origin.messageID))
-            },
-            stopAgentID: store.canManageServer ? task?.agentID : nil,
-            isWorking: task?.activity == .working
+            }
         )
     }
 }

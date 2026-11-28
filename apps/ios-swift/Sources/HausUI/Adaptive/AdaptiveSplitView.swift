@@ -61,7 +61,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
             list
                 .frame(maxWidth: .infinity)
                 .environment(\.isListColumn, true)
-                .toolbar(removing: sidebarToggleRemoved)
+                .toolbar(removing: .sidebarToggle)
                 .onGeometryChange(for: CGFloat.self, of: \.size.width) { listWidth = $0 }
                 .overlay(alignment: .trailing) {
                     ListColumnHandle(width: listWidth, hasRail: hasRail) { choose($0) }
@@ -91,8 +91,9 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
         withAnimation(.smooth(duration: 0.3)) { taskMode = mode }
     }
 
-    /// The rail has its own button for the full list, so the system's sidebar
-    /// button stands only beside the full list and over a hidden column.
+    /// The system's sidebar button stands only over a hidden column. The full
+    /// list's header leaves it out so its title has the room (the handle
+    /// collapses the list), and the rail has its own button for the full list.
     private var sidebarToggleRemoved: ToolbarDefaultItemKind? {
         shown == .rail ? .sidebarToggle : nil
     }

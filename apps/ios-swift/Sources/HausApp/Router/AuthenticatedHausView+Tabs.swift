@@ -59,8 +59,6 @@ extension AuthenticatedHausView {
             }
             .ignoresSafeArea(.keyboard)
         }
-        .environment(\.shellChrome, shellChrome)
-        .onShellChromeChange { shellChrome = $0 }
         .onRegularWidthChange { router.layout = $0 ? .split : .stack }
         .sheet(item: sheetBinding) { routerSheet($0) }        .task(id: store.settingsData?.viewer.avatarURL) {
             youTabIcon = await TabAvatarImage.image(url: store.settingsData?.viewer.avatarURL)

@@ -729,8 +729,10 @@ appends animate.
 
 Which bars the shell draws is one decision, `ShellChrome` (`HausUI/Adaptive/ShellChrome.swift`):
 stock wherever the system lays bars out vertically (`toolbarVerticalEdge` non-nil, iOS 27.1) or
-the width is regular, custom otherwise. The shell reads it once with `onShellChromeChange` and
-hands it down as `\.shellChrome`; below iOS 27.1 it is always custom. Custom is the regular
+the width is regular, custom otherwise. `ShellChromeScope` reads it from the environment while it
+builds `AuthenticatedHausView`, so the first frame already draws the right bars, and it hands the
+value down as `\.shellChrome`. Below iOS 27.1 it is always custom. An `onChange` reader set it a
+frame late, and the Duo flashed `HausBottomChrome` at launch. Custom is the regular
 iPhone: the system tab bar stays hidden, `HausBottomChrome` (icon tabs and the Ask anything field)
 floats over the tabs, and a Chat hides the navigation bar under its floating `ChatScreenHeader`.
 Stock is the iPhone Duo and regular width: every `Tab` carries a title and symbol (You shows the
@@ -775,9 +777,10 @@ rail inside it. A 12 pt `ListColumnHandle` on
 the full list's or the rail's trailing edge drags between the states: its grabber follows the
 finger, and letting go snaps by where the edge lands (`ListColumnLayout.released`: under 40 pt
 hidden, under 160 pt the rail, else full), with VoiceOver actions for each state. The system's own
-drag still resizes the full list. The system sidebar button hides the full list and brings it back
-over a hidden column; on the rail it is removed, because the rail's bottom button brings back the
-full list. Search has no rail: its column is full where another tab would draw the rail. Each tab's rail is `ListRail` over items
+drag still resizes the full list. The system sidebar button stands only over a hidden column, where
+it brings back the full list. The full list's header leaves it out, because in the 280 pt column it
+truncated the title beside compose and `+`, and the handle already collapses the list. On the rail
+it is removed too, because the rail's bottom button brings back the full list. Search has no rail: its column is full where another tab would draw the rail. Each tab's rail is `ListRail` over items
 built from the rows its list already draws (`ListRails`): Home's recent conversations (Captain
 marks, Project tiles, people and Task discs, with the accent unread dot or the green dot for a
 Captain or Task at work), the Projects' tiles, the Tasks view's discs, and You's settings symbols.
@@ -814,10 +817,12 @@ and each pads 28 pt on its fold edge, so the composer, chip and pane controls ke
 `ArrangementView` is not used. The conversation directly under the Task gets two things:
 - `besideTaskID`: its composer sends through `ComposerDraftStore.target`, which is the Task's own
   draft (`.task(id)`, `chat.send` to the Task's chat, steer by default) until the chip's × calls
-  `release`. Opening the card again calls `aim` and brings the chip back.
-- `taskModeChrome`: its bar shows Stop, which confirms before `agent.stop` on the Task's agent,
-  for Owners and Admins only and only while the Task is working, and the Task's More menu
-  (`TaskChatMenu`). `\.chatHeaderYieldsToolbar` drops the conversation's own items.
+  `release`. Opening the card again calls `aim` and brings the chip back. The chip sits inside the
+  pill after the plus (`ComposerLeadingControls`), and the field's width is measured from that
+  leading group.
+- `taskModeChrome`: its bar shows only the Task's More menu (`TaskChatMenu`), and
+  `\.chatHeaderYieldsToolbar` drops the conversation's own items. There is no Stop, as on the web
+  App; interrupting is a later delivery choice in the composer.
 
 `TaskPaneView` has no composer. Its header shows the starter (the crew Captain, else the person),
 the activity pill and Close (`closeSidePane`), then the title and an Activity | Files segment.

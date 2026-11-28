@@ -5,29 +5,33 @@ import UIKit
 #endif
 
 public struct MessageComposerView: View {
-    @Binding private var text: String
-    @Bindable private var interaction: ComposerInteraction
+    @Binding var text: String
+    @Bindable var interaction: ComposerInteraction
     private let placeholder: String
     private let allowsAttachments: Bool
     private let mentionOptions: [MentionOptionPresentation]
     private let inlineReply: MessageReplyReferencePresentation?
     private let onCancelInlineReply: () -> Void
+    /// The Task this composer sends to, drawn as a chip after the plus.
+    private let taskChip: ComposerTaskChip?
+    private let onClearTaskChip: () -> Void
     private let transitionNamespace: Namespace.ID?
-    private let onSend: (String, [ComposerAttachment]) async -> Bool
+    let onSend: (String, [ComposerAttachment]) async -> Bool
 
     @FocusState.Binding private var isTextFocused: Bool
     @AccessibilityFocusState private var isAttachmentButtonFocused: Bool
     @State private var attachmentReadyFeedback = 0
-    @State private var sendFeedback = 0
-    @State private var sendFailureFeedback = 0
+    @State var sendFeedback = 0
+    @State var sendFailureFeedback = 0
     /// The pill's one-line field and its circles, scaled with Dynamic Type.
     @ScaledMetric(relativeTo: .body) private var compactFieldHeightLimit: CGFloat = 24
     @ScaledMetric(relativeTo: .body) private var controlDiameter: CGFloat = 36
     /// True while a surface tap re-issues a focus summons, so the focus drop never reaches layout.
     @State private var isReissuingFocus = false
     /// Whether the draft fits the pill's one line, always measured at the pill's field width.
-    @State private var draftFitsOneLine = true
-    @State private var compactFieldWidth: CGFloat = 0
+    @State var draftFitsOneLine = true
+    @State private var surfaceWidth: CGFloat = 0
+    @State private var leadingWidth: CGFloat = 36
 
     public init(
         text: Binding<String>,
@@ -38,6 +42,8 @@ public struct MessageComposerView: View {
         mentionOptions: [MentionOptionPresentation] = [],
         inlineReply: MessageReplyReferencePresentation? = nil,
         onCancelInlineReply: @escaping () -> Void = {},
+        taskChip: ComposerTaskChip? = nil,
+        onClearTaskChip: @escaping () -> Void = {},
         transitionNamespace: Namespace.ID? = nil,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool
     ) {
@@ -49,6 +55,8 @@ public struct MessageComposerView: View {
         self.mentionOptions = mentionOptions
         self.inlineReply = inlineReply
         self.onCancelInlineReply = onCancelInlineReply
+        self.taskChip = taskChip
+        self.onClearTaskChip = onClearTaskChip
         self.transitionNamespace = transitionNamespace
         self.onSend = onSend
     }
@@ -69,6 +77,7 @@ public struct MessageComposerView: View {
             .animation(ComposerSurfaceMetrics.morph, value: isExpanded)
             .animation(ComposerSurfaceMetrics.morph, value: text) // a new line grows the card smoothly
             .animation(.easeOut(duration: 0.24), value: interaction.attachments.count)
+            .animation(ComposerSurfaceMetrics.morph, value: taskChip)
             .sensoryFeedback(.success, trigger: attachmentReadyFeedback)
             .sensoryFeedback(.impact(weight: .light), trigger: sendFeedback)
             .sensoryFeedback(.error, trigger: sendFailureFeedback)
@@ -153,13 +162,7 @@ public struct MessageComposerView: View {
                 : ComposerSurfaceMetrics.controlInset)
             .padding(.bottom, ComposerSurfaceMetrics.controlInset)
             .clipShape(.rect(cornerRadius: surfaceCornerRadius))
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
-                compactFieldWidth = ComposerControlLayout.compactFieldWidth(
-                    inWidth: width - ComposerSurfaceMetrics.controlInset * 2,
-                    attachmentWidth: controlDiameter,
-                    sendWidth: controlDiameter
-                )
-            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { surfaceWidth = $0 }
             .composerGlassSurface(cornerRadius: surfaceCornerRadius)
     }
 
@@ -192,14 +195,14 @@ public struct MessageComposerView: View {
                 compactFieldHeightLimit: compactFieldHeightLimit,
                 compactMinimumHeight: controlDiameter
             ) {
-                ComposerCircleButton(
-                    icon: .plus,
-                    style: .plus(isEnabled: canAttach),
-                    label: "Add attachment",
-                    action: toggleSourceMenu
+                ComposerLeadingControls(
+                    canAttach: canAttach,
+                    chip: taskChip,
+                    attachmentFocus: $isAttachmentButtonFocused,
+                    onAttach: toggleSourceMenu,
+                    onClearChip: onClearTaskChip
                 )
-                .disabled(!canAttach)
-                .accessibilityFocused($isAttachmentButtonFocused)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { leadingWidth = $0 }
                 messageField
                 ComposerCircleButton(
                     icon: .send,
@@ -218,6 +221,7 @@ public struct MessageComposerView: View {
                 Text(placeholder)
                     .foregroundStyle(HausTone.mutedInk.color)
                     .lineLimit(1)
+                    .frame(maxWidth: isExpanded ? nil : compactFieldWidth, alignment: .leading)
                     .allowsHitTesting(false)
             }
 
@@ -250,6 +254,15 @@ public struct MessageComposerView: View {
         allowsAttachments && interaction.remainingCapacity > 0
     }
 
+    /// The pill's field width: the card less its inset, the leading controls, and send.
+    private var compactFieldWidth: CGFloat {
+        ComposerControlLayout.compactFieldWidth(
+            inWidth: surfaceWidth - ComposerSurfaceMetrics.controlInset * 2,
+            attachmentWidth: leadingWidth,
+            sendWidth: controlDiameter
+        )
+    }
+
     private var canSend: Bool {
         !interaction.isPreparingAttachment
             && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -269,32 +282,5 @@ public struct MessageComposerView: View {
         isExpanded
             ? ComposerSurfaceMetrics.expandedCornerRadius
             : ComposerSurfaceMetrics.restingCornerRadius
-    }
-
-    private func submit() {
-        let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let submittedAttachments = interaction.attachments
-        guard !content.isEmpty || !submittedAttachments.isEmpty else { return }
-
-        text = ""
-        // Folds the card in this update rather than a frame later, when the field reports it.
-        draftFitsOneLine = true
-        interaction.attachments = []
-        interaction.errorMessage = nil
-        sendFeedback += 1
-        Task {
-            // True means the message is the viewer's row in the transcript — sent, or kept there
-            // marked failed with Try Again. False means it never left, so the draft comes back.
-            if await onSend(content, submittedAttachments) { return }
-            text = text.isEmpty ? content : [content, text].filter { !$0.isEmpty }.joined(separator: "\n")
-            interaction.attachments = submittedAttachments + interaction.attachments
-            sendFailureFeedback += 1
-        }
-    }
-
-    private func announceAccessibility(_ message: String) {
-        #if os(iOS)
-        UIAccessibility.post(notification: .announcement, argument: message)
-        #endif
     }
 }

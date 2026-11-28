@@ -2,32 +2,17 @@ import HausModels
 import SwiftUI
 
 /// The detail column's bar while a Task sits beside its conversation
-/// (specs/ios-app.md, Task mode): Stop and the Task's More menu take the place
-/// of the conversation's own items. Stop asks before it ends the Task's turn.
+/// (specs/ios-app.md, Task mode): the Task's More menu takes the place of the
+/// conversation's own items. There is no Stop, as on the web App.
 public struct TaskModeChromePresentation {
-    public let title: String
     public let editing: TaskChatEditing?
     public let originLabel: String?
     public let onOpenOrigin: () -> Void
-    /// The Task's agent, when the viewer may stop it. Nil leaves Stop out.
-    public let stopAgentID: String?
-    /// Only a turn that runs can be stopped.
-    public let isWorking: Bool
 
-    public init(
-        title: String,
-        editing: TaskChatEditing?,
-        originLabel: String?,
-        onOpenOrigin: @escaping () -> Void,
-        stopAgentID: String?,
-        isWorking: Bool
-    ) {
-        self.title = title
+    public init(editing: TaskChatEditing?, originLabel: String?, onOpenOrigin: @escaping () -> Void) {
         self.editing = editing
         self.originLabel = originLabel
         self.onOpenOrigin = onOpenOrigin
-        self.stopAgentID = stopAgentID
-        self.isWorking = isWorking
     }
 }
 
@@ -41,7 +26,6 @@ extension View {
 private struct TaskModeChrome: ViewModifier {
     let chrome: TaskModeChromePresentation?
 
-    @State private var stopTarget: CaptainStopTarget?
     @State private var isRenamePresented = false
     @State private var renameDraft = ""
     @State private var editFailure: String?
@@ -51,13 +35,7 @@ private struct TaskModeChrome: ViewModifier {
             .environment(\.chatHeaderYieldsToolbar, chrome != nil)
             .toolbar {
                 if let chrome {
-                    ToolbarItemGroup(placement: .primaryAction) {
-                        if let agentID = chrome.stopAgentID {
-                            Button("Stop", systemImage: "stop.fill", role: .destructive) {
-                                stopTarget = CaptainStopTarget(id: agentID, name: chrome.title)
-                            }
-                            .disabled(!chrome.isWorking)
-                        }
+                    ToolbarItem(placement: .primaryAction) {
                         TaskChatMenu(
                             editing: chrome.editing,
                             originLabel: chrome.originLabel,
@@ -71,7 +49,6 @@ private struct TaskModeChrome: ViewModifier {
                     }
                 }
             }
-            .captainStopConfirmation($stopTarget)
             .alert("Rename task", isPresented: $isRenamePresented) {
                 TextField("Title", text: $renameDraft)
                 Button("Cancel", role: .cancel) {}

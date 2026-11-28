@@ -34,42 +34,39 @@ extension EnvironmentValues {
     @Entry public var shellChrome = ShellChrome.custom
 }
 
-extension View {
-    public func onShellChromeChange(_ action: @escaping (ShellChrome) -> Void) -> some View {
-        modifier(ShellChromeReader(action: action))
+/// Builds the shell with `ShellChrome` read straight from the environment, so
+/// the first frame already draws the right bars. Below iOS 27.1 it is always
+/// custom.
+public struct ShellChromeScope<Content: View>: View {
+    private let content: (ShellChrome) -> Content
+
+    public init(@ViewBuilder content: @escaping (ShellChrome) -> Content) {
+        self.content = content
     }
-}
 
-private struct ShellChromeReader: ViewModifier {
-    @Environment(\.horizontalSizeClass) private var sizeClass
-    let action: (ShellChrome) -> Void
-
-    func body(content: Content) -> some View {
+    public var body: some View {
         #if os(iOS)
         if #available(iOS 27.1, *) {
-            content.modifier(VerticalBarsReader(isRegularWidth: sizeClass == .regular, action: action))
+            VerticalBarsScope(content: content)
         } else {
-            content.onAppear { action(.custom) }
+            content(.custom).environment(\.shellChrome, .custom)
         }
         #else
-        content.onAppear { action(.custom) }
+        content(.custom).environment(\.shellChrome, .custom)
         #endif
     }
 }
 
 #if os(iOS)
 @available(iOS 27.1, *)
-private struct VerticalBarsReader: ViewModifier {
+private struct VerticalBarsScope<Content: View>: View {
     @Environment(\.toolbarVerticalEdge) private var verticalEdge
-    let isRegularWidth: Bool
-    let action: (ShellChrome) -> Void
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    let content: (ShellChrome) -> Content
 
-    func body(content: Content) -> some View {
-        content.onChange(of: chrome, initial: true) { _, chrome in action(chrome) }
-    }
-
-    private var chrome: ShellChrome {
-        ShellChrome(barsAreVertical: verticalEdge != nil, isRegularWidth: isRegularWidth)
+    var body: some View {
+        let chrome = ShellChrome(barsAreVertical: verticalEdge != nil, isRegularWidth: sizeClass == .regular)
+        content(chrome).environment(\.shellChrome, chrome)
     }
 }
 #endif

@@ -49,7 +49,8 @@ own composer, and their toolbar buttons in the trailing rail.
   - Per screen:
     - Captain chat: Call, More.
     - Project: Files, More.
-    - A Task beside its conversation: Stop (destructive), More.
+    - A Task beside its conversation: the Task's More. There is no Stop, as on the web App. Interrupting is a
+      later delivery choice (Steer, Queue, Interrupt) in the composer.
     - Search hit: Jump to latest, More.
   - Scoped chat search moves into More.
 - **Every tab splits at regular width.**
@@ -66,8 +67,8 @@ own composer, and their toolbar buttons in the trailing rail.
   - The two take equal panes meeting at the fold: the conversation leads and the Task trails.
   - The list column steps aside to the rail.
   - The Worker side pane it replaces is already deleted, with its `TabPanes` and `AdaptiveSplitView` plumbing.
-- **One composer.** In Task mode, the conversation's composer shows a target chip for the open Task: its activity
-  glyph, its title (truncated) and ×.
+- **One composer.** In Task mode, the conversation's composer shows a target chip for the open Task inside the pill,
+  after the plus: its activity glyph, its title (truncated) and ×.
   - Words sent with the chip go to the Task's chat as steer (ADR 0062).
   - × points the composer back at the conversation.
   - The Task pane has no composer of its own.
@@ -267,7 +268,7 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
   - Files reads the files the Task wrote.
   - If either read doesn't exist on the Server when D4 starts, add it under `apps/server/src/haus-api/task/` in the
     same slice.
-- Toolbar: Stop asks for confirmation before it interrupts.
+- Toolbar: the Task's More only. Stop was dropped after review (see the D4 notes).
 - Proof: the canvas's Task-open, rail-with-Task and half-open boards reproduce. Closing the Task returns to the
   conversation and the column state it had.
 - **Built (2026-11-27).**
@@ -288,13 +289,23 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
   - One composer: `ComposerDraftStore.target` sends the conversation's composer to the Task's own draft
     (`.task(id)`). Sends go to the Task's chat through `chat.send`, whose `delivery` defaults to `steer`, and
     the Server passes it only to the Task chat's recipient (`enqueue-recipients.ts`). The chip's × calls
-    `release`, and the card calls `aim` to bring the chip back. The placeholder reads "Steer the Task". The chip
-    sits above the composer, not inside the pill as the mock draws it, which keeps `MessageComposerView` at its
-    size cap.
-  - Toolbar: `taskModeChrome` swaps the conversation's items (`\.chatHeaderYieldsToolbar`) for Stop and the
-    Task's More menu. Stop confirms first, then calls `agent.stop` on the Task's agent, for Owners and Admins,
-    and only while the Task is working. There is no lighter "end this turn" read: `interrupt` delivery needs a
-    message.
+    `release`, and the card calls `aim` to bring the chip back. The placeholder reads "Steer the Task".
+  - The chip sits inside the pill, as the mock draws it. The plus and the chip are one leading control
+    (`ComposerLeadingControls`), the field's width is measured from them, and in the card they lead the controls
+    row. The chip's title stops at 110 pt. `submit` moved to `MessageComposerView+Send.swift` to make room. The
+    first build floated the chip over the transcript, which let message text show around it.
+  - Toolbar: `taskModeChrome` swaps the conversation's items (`\.chatHeaderYieldsToolbar`) for the Task's More
+    menu.
+    - The first build also had Stop, through `agent.stop`. Review dropped it: the web App has no Stop for a
+      Task, and `agent.stop` leaves the Task's agent stopped until an admin restarts it.
+    - Interrupting stays a later feature, the web App's delivery choice (Steer, Queue, Interrupt).
+  - Launch: the shell's chrome resolves before the first frame. `ShellChromeScope` builds `AuthenticatedHausView`
+    with `ShellChrome` read from `toolbarVerticalEdge` and the size class. Before, an `onChange` set it after the
+    first frame, so `HausBottomChrome` faded in on the Duo before the stock bars took over. Regular iPhones still
+    get custom chrome from the first frame.
+  - List header: the full list column always removes the system sidebar toggle. At 280 pt the toggle, compose
+    and `+` truncated "Projects". The handle and the rail collapse the list, and the system button still shows
+    over a hidden column.
   - Pane: `TaskPaneView` shows the starter, an activity pill, Close, the title, and Activity | Files.
     - Activity is `TurnDetailsCaptainSection` over the turn details source (`agent.turns` plus live runs).
     - Files is `artifact.list` filtered to the Task's agent as `creator`, recursively. No Server read was added.
@@ -302,9 +313,12 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
   - Proof:
     - Tests: `HausRouterTaskModeTests`, `ComposerTargetTests`, `TaskModeLayoutTests`, and the updated
       push-cleanup and foreground tests.
-    - Screenshots: Duo inner display in landscape with `#all` beside its Task (the rail, the chip, and Stop and
-      More in the rail), and iPhone 17 Pro with the card pushing the Task full screen and Home unchanged. Each
-      state was forced by a temporary launch argument.
+    - Screenshots of the Duo inner display in landscape, each forced by a temporary launch argument:
+      - `#all` beside its Task: the rail, the chip in the pill, and More in the rail.
+      - Projects with its full title.
+      - A cold launch recorded and cut into frames: the opening ghost, then stock bars, with no bottom chrome
+        between them.
+    - Screenshots of the iPhone 17 Pro: the card pushing the Task full screen, and Home unchanged.
 
 ### D5. Poses and continuity
 
