@@ -25,7 +25,13 @@ test('a Task is the Captain’s crew, a session people can talk to (ADR 0062)', 
 // Capy prompt v2 item 3: the Captain thinks and the crew builds, for the reason that its own turn
 // blocks everyone waiting on it; what its message says it will do, it does in that turn.
 test('the Captain thinks and the crew builds, because its own turn blocks everyone', () => {
-    expect(tasks.trimStart().startsWith('You think, and your crew builds.')).toBe(true);
+    expect(
+        tasks
+            .trimStart()
+            .startsWith(
+                'You think, and your crew builds: talking, planning, and answering from what you know are yours, and writing code, running builds and tests, and making files people asked for are crew work.'
+            )
+    ).toBe(true);
     expect(tasks).toContain(
         "Your own turn blocks everyone waiting on you until it ends, and a Task's turn blocks no one. What you say, you do: a next step your message names is one you take in that turn."
     );

@@ -1,4 +1,4 @@
-import { startPendingChecksCrew } from '../crew-pending-checks.mjs';
+import { reportsChecksRunning, startPendingChecksCrew } from '../crew-pending-checks.mjs';
 import { openCrewLedger, postsOutside, turnsSince } from '../crew.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
@@ -18,7 +18,9 @@ export default defineScenario({
             const status = (await ledger.postsBy(task.agentId)).findLast(
                 (post) => post.chatId === task.chatId
             );
-            expect(status !== undefined, 'the Task posts where the work stands').toBe(true);
+            expect(reportsChecksRunning(status), 'the Task reports its checks still running').toBe(
+                true
+            );
 
             log('waiting for the Captain to hear the Task end its turn');
             const turns = await turnsSince(kit, captain.id, status.createdAt, { within: 300_000 });

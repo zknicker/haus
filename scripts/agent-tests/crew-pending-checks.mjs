@@ -38,6 +38,10 @@ export async function startPendingChecksCrew(kit, { captain, log }) {
     return { issue, project, task };
 }
 
+export function reportsChecksRunning(post) {
+    return /\b(?:running|pending|in progress)\b/iu.test(post?.content ?? '');
+}
+
 async function startCrewAsCaptain(kit, captain, fields) {
     const author = createAgentAuthor({
         serverId: kit.serverId,

@@ -20,7 +20,7 @@ test('an explicitly requested unavailable MCP does not trigger local configurati
     expect(efficiencyPrompt).not.toContain('integration list');
     expect(efficiencyPrompt).not.toContain('#### Haus Agent Login integrations');
     expect(efficiencyPrompt).toContain(
-        "The human's explicit choice of surface is part of the fit, so a surface they name is the one to use."
+        "Choose a surface by fit, your current authority, and the action's side effects and risk; the human's explicit choice of surface is part of that fit."
     );
 });
 
@@ -97,7 +97,7 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
     expect(prompt).not.toContain('Next action:');
     expect(prompt).toContain('### Capability and execution-surface selection');
     expect(prompt).toContain(
-        "The human's explicit choice of surface is part of the fit, so a surface they name is the one to use."
+        "Choose a surface by fit, your current authority, and the action's side effects and risk; the human's explicit choice of surface is part of that fit."
     );
     expect(prompt).not.toContain('URLs in non-English text');
     expect(prompt).not.toContain('## Capabilities');
@@ -188,8 +188,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Lowered by exactly 1,234 (37,785 → 36,551) by prompt v2 (Capy's proposal, items 1–9): the
     // Captain runs a lane, thinks while crew builds, writes complete briefs and checks crew work;
     // family flag lists, reminder anchor rules and claim status detail moved to the Manual, and
-    // capability selection shrank to three sentences.
-    expect(prompt.length).toBeLessThanOrEqual(36_551);
+    // capability selection shrank to three sentences. Raised by exactly 249 (→ 36,800) after
+    // review and the first eval runs: what crew work is (code, builds and tests, files people asked
+    // for), surface choice by authority and risk, and repo checkout as reading while crew builds.
+    expect(prompt.length).toBeLessThanOrEqual(36_800);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');

@@ -133,7 +133,7 @@ function communicationSection() {
         '14. **Tasks**: `haus task` (`start`, `send`, `list`, `show`, `archive`, `unarchive`, `attach-pr`).',
         '15. **Issues**: `haus issue` (`list`, `show`, `create`, `update`, `comment`, `link`).',
         '16. **Computers**: `haus computer list`.',
-        "17. **Repos**: `haus repo` (`list`, and `checkout`, your own worktree of a repo already on the call's Computer).",
+        "17. **Repos**: `haus repo` (`list`, and `checkout`, your own worktree of a repo already on the call's Computer, for reading code while your crew changes it).",
         '18. **Manual**: `haus manual` (`get`, `search`).',
     ].join('\n');
 

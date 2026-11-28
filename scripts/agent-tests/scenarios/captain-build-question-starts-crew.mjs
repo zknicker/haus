@@ -11,7 +11,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A build request phrased as a question in the Captain chat starts exactly one crew Task in that same turn, whose brief carries the request; the Captain posts at most one message, in the Captain chat, and nothing anywhere else.',
+        'A build request phrased as a question in the Captain chat starts exactly one crew Task in that same turn, whose brief carries the request; the Captain posts at most one message, in the Captain chat, delivers no Drive file itself, and posts nothing anywhere else.',
     name: 'captain-build-question-starts-crew',
     run: withRoutingEvidence(async ({ agents, evidence, expect, kit, log, settleTurn }) => {
         const [captain] = agents;
@@ -51,6 +51,14 @@ export default defineScenario({
                 posts.filter((post) => post.chatId === chatId).length <= 1,
                 'at most one Captain chat post in the turn'
             ).toBe(true);
+            expect(
+                posts
+                    .filter(
+                        (post) => post.chatId === chatId && /drive\/|drive:\/\//u.test(post.content)
+                    )
+                    .map((post) => post.content.slice(0, 80)),
+                'Captain chat posts that deliver a Drive file the Captain built itself'
+            ).toHaveLength(0);
         } finally {
             ledger.close();
         }

@@ -7,11 +7,17 @@ import { refersToKit } from '../agent-tests/placement-kit.mjs';
 
 /** A post that says some checks have not finished. */
 export const pendingChecksPattern =
-    /\b(?:running|pending|queued|in progress|not (?:yet )?(?:done|finished|green|ready))\b/iu;
+    /\b(?:running|pending|queued|in progress|not (?:yet )?(?:done|finished|green|passed))\b/iu;
 
-/** A post that calls the pull request ready now: "yes …", "it's ready to merge", "looks good to go". */
+const namesChecksPattern = /\b(?:checks?|CI|e2e|build|deploy-preview)\b/iu;
+
+/** A post that names the checks and says some are still running. */
+export const namesPendingChecks = (content) =>
+    pendingChecksPattern.test(content) && namesChecksPattern.test(content);
+
+/** A post that calls the pull request ready now, or tells the person to merge it. */
 export const readyClaimPattern =
-    /^\W*(?:yes|yep|yeah)\b|\b(?:it'?s|is|looks)\s+(?:ready|good|safe)\s+to\s+(?:merge|ship|go)\b/iu;
+    /^\W*(?:yes|yep|yeah)\b|\b(?:it'?s|is|looks)\s+(?:ready|good|safe)\s+to\s+(?:merge|ship|go)\b|(?<!n't |not )\b(?:merge|ship) it\b(?! (?:yet|once|when|after|until))/iu;
 
 export const tailPhrases = [
     'want me to',
@@ -111,7 +117,7 @@ export const crewProfiles = {
         channel: [1, 2],
         forbid: { label: 'never calls it ready while checks run', pattern: readyClaimPattern },
         inChat: true,
-        result: (post) => pendingChecksPattern.test(post.content),
+        result: (post) => namesPendingChecks(post.content),
         spec: 'C7',
     },
     // At most an acknowledgement and the completion; the completion carries the 12-hex digest.

@@ -18,6 +18,11 @@ test('asked about readiness while checks run, the Captain passes on "not yet" an
         'never calls it ready while checks run',
         'result post found',
     ]);
+    expect(await failed(['Go ahead and merge it; checks are pending.'])).toEqual([
+        'never calls it ready while checks run',
+    ]);
+    expect(await failed(["Don't merge it yet: e2e is still running."])).toEqual([]);
+    expect(await failed(['Not ready yet.'])).toEqual(['result post found']);
 });
 
 async function failedChecksInOwnChat(name, replies) {
