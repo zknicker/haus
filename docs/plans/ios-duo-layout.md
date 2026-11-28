@@ -123,12 +123,13 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 - **Tab bar hiding: answered for the outer display.** Each tab root sets `.toolbar(.hidden, for: .tabBar)`. With
   the Duo closed, the outer display's rail shows the status bar, the camera and Home's `+`, and no tab bar. The
   system had already moved the navigation bar's trailing `+` into the rail without any code change.
-  `HausBottomChrome` stays in the content column and ends at the rail. The inner display in landscape is still
-  unchecked. `.toolbar(_:for:)` is soft-deprecated in favor of `toolbarVisibility(_:for:)` (iOS 18) and doesn't
-  warn.
-- **Still unverified: column resizing.** Neither SwiftUI nor `UISplitViewController` gains a column-resize API in
-  27.x. The only width controls are `navigationSplitViewColumnWidth(min:ideal:max:)` (iOS 16) and UIKit's
-  min, max and preferred widths. Whether a drag resizes the columns is runtime behavior on the open inner display.
+  `HausBottomChrome` stays in the content column and ends at the rail. On the open inner display in landscape the
+  rail likewise shows only the status items, and `HausBottomChrome` spans both panes. `.toolbar(_:for:)` is
+  soft-deprecated in favor of `toolbarVisibility(_:for:)` (iOS 18) and doesn't warn.
+- **Column resizing: the system does it.** Neither SwiftUI nor `UISplitViewController` gains a column-resize API in
+  27.x, but on the open inner display a drag on the list column's edge resizes it. Dragging left from 320 pt
+  stopped at the column's `min` (about 280 pt with today's widths), and dragging on toward the edge neither went
+  past `min` nor hid the column. So the system drag can't reach the rail or hidden states by itself.
 - **Proof.** The app runs edge to edge on the iPhone Duo Simulator's outer display (closed, 1398 × 2034 px),
   signed in against the local dev Server, with no letterbox bars. `simctl io screenshot` on the Duo needs
   `--display=1` for the outer display or `--display=3` for the inner one (2007 × 2853 px).
@@ -168,9 +169,10 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 
 - `AdaptiveSplitView` gains a column state: full, rail or hidden.
   - Full uses today's widths. Rail sets the column to a fixed 76 pt. Hidden uses `.detailOnly`.
-  - A 12 pt drag handle on the column's edge sets the state. Releasing below 160 pt snaps to rail, and below 40 pt
-    hides the column. If D0 finds that 27.1 resizes columns by drag, map that drag's release width to the nearest
-    state instead.
+  - The system already resizes the column by drag, clamped to `min` (D0). First try lowering `min` to 76 pt and
+    snapping the settled width: above 160 pt stays full, below it snaps to rail. Hidden comes from the system's
+    sidebar button. If the settled width can't be observed reliably, use a 12 pt drag handle on the column's edge
+    instead: releasing below 160 pt snaps to rail, and below 40 pt hides the column.
 - Each tab's root renders as a rail in that state:
   - Home: recent conversations.
   - Projects: Project tiles.
