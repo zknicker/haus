@@ -58,5 +58,9 @@ test('persists model-supported effort and rejects unsupported configuration with
         await harness.sql`select desired_reasoning_effort, session_generation from agents where id = ${created.agent.id}`;
     expect(stored.desired_reasoning_effort).toBe('xhigh');
     expect(stored.session_generation).toBe(before.session_generation);
-    await harness.sql`delete from agents where id = ${created.agent.id}`;
+    await owner.trpc.agent.delete.mutate({
+        agentId: created.agent.id,
+        confirmation: created.agent.displayName,
+        serverId,
+    });
 });

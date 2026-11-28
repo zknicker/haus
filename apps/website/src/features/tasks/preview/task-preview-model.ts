@@ -1,5 +1,16 @@
-import type { TaskPreview } from '@haus/api';
+import type { TaskPreview, TaskReplyPreview } from '@haus/api';
 import { taskStateLabels, taskStateOf } from '../task-state.ts';
+
+export function taskPreviewAuthorName(
+    message: Pick<TaskReplyPreview, 'authorAgentId'>,
+    taskAgentNames: ReadonlyMap<string, string> | undefined,
+    profileName: string | undefined
+) {
+    const taskAgentName = message.authorAgentId
+        ? taskAgentNames?.get(message.authorAgentId)
+        : undefined;
+    return { name: taskAgentName ?? profileName ?? 'Unknown', taskAgent: Boolean(taskAgentName) };
+}
 
 export function taskPreviewCounts(preview: Pick<TaskPreview, 'messageCount' | 'unreadCount'>) {
     const { messageCount } = preview;

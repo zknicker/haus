@@ -29,7 +29,8 @@ never does. Unarchiving it makes it active again.
 ## In the Channel
 
 Under the message it started from, each Task shows a preview: its title and its newest messages,
-shaped like a reply preview. Pressing it opens the Task.
+shaped like a reply preview. The Task's own agent is on no roster, so its messages carry the
+name the Task page gives them, the Task's model. Pressing it opens the Task.
 
 ## The Task page
 

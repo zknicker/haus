@@ -70,5 +70,9 @@ test('projects a wake pause, and only a runtime or model change lifts it', async
     expect((await configure('gpt-5.6-terra')).wakePause).toBeNull();
     const listed = await owner.trpc.agent.list.query({ serverId });
     expect(listed.find((entry) => entry.id === agent.id)?.wakePause).toBeNull();
-    await harness.sql`delete from agents where id = ${agent.id}`;
+    await owner.trpc.agent.delete.mutate({
+        agentId: agent.id,
+        confirmation: agent.displayName,
+        serverId,
+    });
 });

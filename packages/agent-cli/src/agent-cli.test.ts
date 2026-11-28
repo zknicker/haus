@@ -1,4 +1,5 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
+import manifest from '../../haus-api/haus-agent.json' with { type: 'json' };
 import { runAgentCli } from './agent-cli.ts';
 
 const families = [
@@ -44,6 +45,13 @@ test('manual help shows example flows and points at the index', async () => {
     expect(output).toContain('haus manual get reminder --intent');
     expect(output).toContain('haus manual search "claim task"');
     expect(output.trimEnd().split('\n').at(-1)).toStartWith('Details: haus manual get index');
+});
+
+test('--version prints the Haus Agent version the release ledger syncs', async () => {
+    for (const flag of ['--version', '-v']) {
+        const output = await captureStdout(() => runAgentCli([flag]));
+        expect(output).toBe(`${manifest.version}\n`);
+    }
 });
 
 async function captureStdout(run: () => Promise<number>): Promise<string> {

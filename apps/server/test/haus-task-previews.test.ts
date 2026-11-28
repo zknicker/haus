@@ -27,10 +27,12 @@ afterAll(async () => {
 });
 
 const emptyPreview = () => ({
+    agentId: null,
     archivedAt: null,
     chatId: task.chatId,
     followed: false,
     messageCount: 0,
+    model: null,
     originMessageId: task.originMessageId,
     recentMessages: [],
     shortId: task.shortId,

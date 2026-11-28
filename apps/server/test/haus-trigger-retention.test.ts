@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { requeueInboxItemsForRun } from '../src/agent-delivery/store.ts';
+import { createCaptainChat } from '../src/chats/captain-chat.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { deleteExpiredTriggerHistory } from '../src/triggers/retention-sweep.ts';
 import { testSqlAgentHome } from './agent-home.ts';
@@ -40,6 +41,7 @@ beforeAll(async () => {
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, 'retention-trigger', 'Trigger Retention', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
+    await createCaptainChat(connection.db, { agentId, ownerUserId: null, serverId });
 });
 
 afterAll(async () => {

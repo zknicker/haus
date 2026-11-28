@@ -1,3 +1,4 @@
+import { hausAgentVersion } from '@haus/api';
 import { AgentCliError, renderAgentCliError } from './agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './commands/agent-agent.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './commands/agent-attachment.ts';
@@ -55,7 +56,7 @@ export async function runAgentCli(argv: string[]): Promise<number> {
         return 0;
     }
     if (group === '--version' || group === '-v') {
-        process.stdout.write('1.0.0\n');
+        process.stdout.write(`${hausAgentVersion}\n`);
         return 0;
     }
     const subcommands = commandGroups[group as keyof typeof commandGroups];
