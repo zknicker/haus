@@ -17,10 +17,19 @@ export interface PendingCounts {
     issueItems?: AgentIssueWakeNotice;
 }
 
-const deliveryTrailer = [
-    'Respond as appropriate. Complete all your work before stopping.',
-    "Each message's `target` identifies the conversation where it was asked.",
-].join('\n');
+const targetLine = "Each message's `target` identifies the conversation where it was asked.";
+
+/**
+ * A Captain hands work to crew, so its trailer says crew results come back to it; a Task, or a
+ * session whose kind the runner could not read, keeps the plain completion line.
+ */
+function deliveryTrailer(recipient: 'captain' | 'task' | null) {
+    const respond =
+        recipient === 'captain'
+            ? "Respond as appropriate. Finish your own part before stopping; your crew's work comes back to you as their turns end."
+            : 'Respond as appropriate. Complete all your work before stopping.';
+    return `${respond}\n${targetLine}`;
+}
 
 /**
  * Notice-handling guidance rides the notice, as Raft's `formatInboxUpdateRuntimeInput` carries
@@ -34,7 +43,10 @@ const noticeGuidance = [
 ].join('\n');
 
 /** Exact model-visible drain shape from specs/inbox.md. */
-export function composeInboxDrain(items: AgentInboxItem[]): string {
+export function composeInboxDrain(
+    items: AgentInboxItem[],
+    recipient: 'captain' | 'task' | null = null
+): string {
     if (items.length === 0) {
         return 'Start.';
     }
@@ -44,7 +56,7 @@ export function composeInboxDrain(items: AgentInboxItem[]): string {
         ...items.map(formatEnvelope),
         '',
         ...openClaimLines(items),
-        deliveryTrailer,
+        deliveryTrailer(recipient),
     ].join('\n');
 }
 

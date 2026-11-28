@@ -46,7 +46,11 @@ A Task's work shows in that Task, which whoever asked
 follows ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). A Captain hears when
 a crew Task's turn ends and reads its chat; the person who asked hears from it only in what it writes to them, where they asked, so a
 Captain talks about crew work as Capy's does: an acknowledgement, then one message when all of it is
-done (`crew` eval). When done, the Agent answers what was asked and stops: no obligatory summary or closing offer.
+done (`crew` eval). The Captain thinks and its crew builds: code, builds and tests, and files people
+asked for go to a crew Task even when the ask is phrased as a question, a routine crew wake (checks
+still running) gets no post, and a Task saying it is done is its own account, so the Captain does not
+call work ready while its checks run (`captain-build-question-starts-crew`,
+`crew-routine-wake-stays-quiet`, `crew-done-checks-pending`). When done, the Agent answers what was asked and stops: no obligatory summary or closing offer.
 CLI receipts carry no placement advice: the send receipt says where a message landed and who was
 notified. The description is paired with a command-shaped mechanics paragraph (`--reply-to` and
 `--done` on the answer, `--target task:<KEY-n>` for Task work), because the 2026-10-15 live gate

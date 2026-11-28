@@ -145,6 +145,7 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
         tailPhrases.filter((phrase) => message.content.toLowerCase().includes(phrase))
     );
     check('no tail phrase', grade.tails.length === 0);
+    checkForbidden({ channelPosts, check, forbid: profile.forbid });
     grade.doneSends = doneSends;
     const ownReactions = (wake.reactions ?? []).filter((reaction) =>
         reaction.actors.some((actor) => actor.kind === 'agent' && actor.id === agentId)
@@ -191,6 +192,13 @@ function gradeResult({ check, doneSends, grade, ownReactions, profile, result, w
     if (profile.options) {
         // The judge decides which option is the pick; naming both is worth seeing.
         grade.optionsNamed = profile.options.filter((option) => option.test(result.content)).length;
+    }
+}
+
+/** A profile's `forbid` fails the run when any post in the root chat matches its pattern. */
+function checkForbidden({ channelPosts, check, forbid }) {
+    if (forbid) {
+        check(forbid.label, !channelPosts.some((post) => forbid.pattern.test(post.content)));
     }
 }
 

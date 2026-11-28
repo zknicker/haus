@@ -26,9 +26,9 @@ test('memory arrives in the turn input under a cap, with no re-read ritual (ADR 
     expect(prompt).not.toContain('Re-read MEMORY.md');
 });
 
-test('describes the rule files beside MEMORY.md (ADR 0054 decisions 7 and 10)', () => {
+test('routes what people say to the file or record where it is true (ADR 0054 decisions 7 and 10)', () => {
     expect(prompt).toContain(
-        '- `AGENTS.md` beside MEMORY.md holds your standing rules, and Haus puts it in your turn input whenever it changed. `WORKER.md` there holds the rules your crew Tasks follow. The `rules` Manual topic covers both.'
+        '- What people tell you goes where it is true: a standing rule for you in `AGENTS.md` beside MEMORY.md, a rule for every Task you start in `WORKER.md` there, a procedure in a skill (`haus skill create`), a preference or a lesson in MEMORY.md, and a change to the work on its Issue. Haus puts AGENTS.md in your turn input whenever it changed; the `rules` Manual topic covers both rule files.'
     );
     expect(prompt).toContain(
         '## Standing Preferences\n<preferences people show in passing: terse imperative lines; the rules people set live in AGENTS.md and WORKER.md>'

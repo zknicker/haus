@@ -67,7 +67,7 @@ function composeOpening(start: AgentStartCommand, session: TurnSessionView) {
     );
     const body =
         drained.length > 0
-            ? [composeInboxDrain(drained), notice].filter(Boolean).join('\n\n')
+            ? [composeInboxDrain(drained, session.sessionKind), notice].filter(Boolean).join('\n\n')
             : notice;
     const input: TurnInput = {
         drained,

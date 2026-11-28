@@ -91,7 +91,7 @@ export function postsOutside(posts, chatIds) {
         .map((post) => `${post.chatKind} ${post.chatId}: ${post.content.slice(0, 80)}`);
 }
 
-export async function useAgentMachineForTasks(kit, { agent, projectId }) {
+export async function runTasksOnAgentMachine(kit, { agent, projectId }) {
     await kit.trpc('project.setDefaultMachine', {
         computerId: agent.computerId,
         projectId,
