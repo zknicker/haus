@@ -1,34 +1,58 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { createHash, randomBytes } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { openDispatchLedger } from '../dispatch/ledger.ts';
-import type { ToolOutcome } from '../run-context.ts';
-import { drainCleanups, live, runCredential, startedRun } from '../runner-test-server.ts';
+import { driveRoutes } from '../runner-drive-routes.ts';
+import {
+    drainCleanups,
+    live,
+    runCredential,
+    type StandInRoutes,
+    startedRun,
+} from '../runner-test-server.ts';
 
 afterEach(drainCleanups);
 
 describe('haus on the runner', () => {
-    test("drive view never writes over another Agent's session on the runner's disk", async () => {
-        const { run, runner, server } = await startedRun();
+    test('drive view prints a Drive file from the Server', async () => {
+        const { run } = await startedRun(briefRoutes());
+
+        expect(
+            await run.tools.bash('toolu_1', { command: 'haus drive view haus/brief.md' }, live())
+        ).toEqual({ content: [{ text: 'Ship it Friday.', type: 'text' }], isError: false });
+    });
+
+    test("drive view --output writes to the Agent's machine, never the runner's disk", async () => {
+        const { run, runner, server } = await startedRun(briefRoutes());
         const otherSession = join(runner.dataDir, 'agents', 'agt_other', 'session.json');
         await mkdir(join(runner.dataDir, 'agents', 'agt_other'), { recursive: true });
         await writeFile(otherSession, JSON.stringify({ sessionId: 'other-agent-secret' }));
-        const relativeSession = `../../${basename(runner.dataDir)}/agents/agt_other/session.json`;
 
-        const absolute = await run.tools.bash(
+        const viewed = run.tools.bash(
             'toolu_1',
             { command: `haus drive view haus/brief.md --output ${otherSession}` },
             live()
         );
-        const relative = await run.tools.bash(
-            'toolu_2',
-            { command: `haus drive view haus/brief.md --output ${relativeSession}` },
-            live()
-        );
 
-        expect([absolute, relative]).toEqual([workspaceRefusal, workspaceRefusal]);
-        expect(server.requests).toEqual([]);
+        expect(await server.frame('invocation-request')).toMatchObject({
+            operation: { kind: 'file-write', mode: 0o600, path: otherSession },
+            toolCallId: 'toolu_1',
+        });
+        server.answer({
+            outcome: 'completed',
+            output: { kind: 'text', text: `Wrote 15 bytes to ${otherSession}.` },
+            runId: 'run_1',
+            seq: 0,
+            toolCallId: 'toolu_1',
+        });
+        expect(await viewed).toEqual({
+            content: [{ text: `Saved haus/brief.md to ${otherSession}.`, type: 'text' }],
+            isError: false,
+        });
+        expect(await readFile(otherSession, 'utf8')).toBe(
+            JSON.stringify({ sessionId: 'other-agent-secret' })
+        );
     });
 
     test('a 2 MiB attachment view uploads first and the file-write carries its reference', async () => {
@@ -186,16 +210,27 @@ describe('haus on the runner', () => {
     });
 });
 
-const workspaceRefusal = {
-    content: [
-        {
-            text: [
-                'Error: `haus drive view` moves files between Drive and your workspace, which `haus` cannot reach on its own.',
-                'Code: HAUS_WORKSPACE_UNREACHABLE',
-                'Next action: Read the current version in your `drive/` folder with file commands; `haus drive versions` lists its history.',
-            ].join('\n'),
-            type: 'text',
-        },
-    ],
-    isError: true,
-} satisfies ToolOutcome;
+function briefRoutes() {
+    return {
+        ...driveRoutes('orbit', new Map([['haus/brief.md', 'Ship it Friday.']])),
+        '/api/agent/artifacts/by-path': () =>
+            Response.json({
+                artifact: {
+                    artifact_id: 'art_0',
+                    content_type: 'text/markdown',
+                    created_at: '2026-11-28T00:00:00.000Z',
+                    creator: { agent_id: 'agt_cove', type: 'agent' },
+                    filename: 'brief.md',
+                    path: 'haus/brief.md',
+                    revision_id: 'rev_brief',
+                    revision_number: 1,
+                    sha256: 'a'.repeat(64),
+                    size_bytes: 15,
+                    stable_url: 'https://haus.chat/s/demo/artifacts/art_0',
+                    title: 'brief.md',
+                    updated_at: '2026-11-28T00:00:00.000Z',
+                    version_url: 'https://haus.chat/s/demo/artifacts/art_0?revision=rev_brief',
+                },
+            }),
+    } satisfies StandInRoutes;
+}

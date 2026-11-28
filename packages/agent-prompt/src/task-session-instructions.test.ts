@@ -32,7 +32,7 @@ test('a crew Task works in its one chat and its Captain reads it when a turn end
         'Haus checks out haus/haus at main for you when your session starts; your first input says where.'
     );
     expect(prompt).toContain(
-        'Put deliverables in Drive with `haus drive write <path> --from <file>` under `agents/orbit/reports/k3mq7xta/`, `agents/orbit/renders/k3mq7xta/`, `agents/orbit/handoffs/k3mq7xta/`, and cite the link it prints.'
+        'Drive has no folder on your Machine. Read a file with `haus drive view <path>`, and put deliverables in Drive with `haus drive write <path> --from <file>` under `agents/orbit/reports/k3mq7xta/`, `agents/orbit/renders/k3mq7xta/`, `agents/orbit/handoffs/k3mq7xta/`, citing the link it prints.'
     );
     expect(prompt).toContain(
         'Your Captain hears when each of your turns ends and reads your chat for what you did, so a question for it goes there like anything else. Your last message in a turn says where the work stands, with links.'
@@ -87,5 +87,5 @@ test('a Task working an Issue carries its code, title and description, and its t
 });
 
 test('keeps the Task prompt within its reviewed size budget', () => {
-    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2603);
+    expect(renderTaskInstructions({ ...base, task }).length).toBeLessThanOrEqual(2685);
 });

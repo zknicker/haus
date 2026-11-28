@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: Drive is the existing Files drive, renamed and extended with three areas (Haus, each Project, each Agent), revisions attributed to an Agent, Worker or person and a Task, and a per-area change counter. It holds the rule layers (Haus, Project and Agent AGENTS.md, plus each Agent's WORKER.md), MEMORY.md, notes, reports and skills, and everyone can read everything. Each Agent keeps a plain drive/ folder on its machine that pulls changes at turn start and pushes changes after the reply; the Server merges clean text edits and turns real conflicts into a kept-both copy plus a drive_conflict inbox item. The runner reads rules and memory from the Server. Accepted 2026-11-19, not yet implemented; amended 2026-11-20 (a Drive citation opens its revision in the file viewer, not beside the chat); amended 2026-11-23 (the folder lives on the Agent's Machine, and a Machine change waits for the old Machine's push, or moves from the last synced revision when that Mac is offline, fenced by a placement generation).
+summary: Drive is the existing Files drive, renamed and extended with three areas (Haus, each Project, each Agent), revisions attributed to an Agent, Worker or person and a Task, and a per-area change counter. It holds the rule layers (Haus, Project and Agent AGENTS.md, plus each Agent's WORKER.md), MEMORY.md, notes, reports and skills, and everyone can read everything. Each Agent keeps a plain drive/ folder on its machine that pulls changes at turn start and pushes changes after the reply; the Server merges clean text edits and turns real conflicts into a kept-both copy plus a drive_conflict inbox item. The runner reads rules and memory from the Server. Accepted 2026-11-19, not yet implemented; amended 2026-11-20 (a Drive citation opens its revision in the file viewer, not beside the chat); amended 2026-11-23 (the folder lives on the Agent's Machine, and a Machine change waits for the old Machine's push, or moves from the last synced revision when that Mac is offline, fenced by a placement generation); amended 2026-11-28 (only a Captain keeps a drive/ folder; a Task reads and writes Drive through haus drive).
 read_when:
   - changing Files, the artifact drive, Agent workspaces, or where MEMORY.md, notes and skills live
   - changing how rules (AGENTS.md, WORKER.md, conversation style) reach an Agent or a Worker
@@ -32,6 +32,12 @@ Amended 2026-11-23 in decisions 4 and 5 by
 an Agent's `drive/` folder lives on its Machine, which can now change, and
 [the handoff](#amendment-2026-11-23-drive-on-a-machine-change) says what happens to the folder
 when it does.
+
+Amended 2026-11-28 in decisions 4 and 5 by
+[ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md): only a Captain keeps a
+`drive/` folder. A Task has no folder and no pull or push; it reads a file with `haus drive view`
+and writes a deliverable with `haus drive write`, through the Server. A Captain's pull downloads
+up to eight files at once.
 
 ## Context
 

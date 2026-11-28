@@ -33,6 +33,12 @@ test('drive guidance teaches the folder, its areas, and native file commands', (
     );
 });
 
+test('drive guidance tells a Task it has no folder and reaches Drive through haus drive', () => {
+    expect(body).toContain('A Task has no `drive/` folder');
+    expect(body).toContain('`haus drive view <path>` prints a file');
+    expect(body).toContain('`haus drive write <path> --from <file>`');
+});
+
 test('drive guidance teaches conflicts, refusals, and the drive_conflict wake', () => {
     expect(body).toContain('`<stem>.conflict-<your handle>.<ext>`');
     expect(body).toContain('`drive-refused/<path>`');
