@@ -395,9 +395,9 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
     - Inner portrait: turning the Duo had the system write the split's column visibility, which was stored as
       the reader hiding the list, and the system sidebar button sat under the conversation's own bar, so the list
       could not come back. Haus now refuses every system visibility write, removes the system button, and draws
-      its own Show list in a hidden column's detail (`showListButton`). Not fixed: in inner portrait the system
-      still draws the detail alone with the stored column full, and redrawing after the refused write does not
-      bring the list back. The Chat composer sat under the
+      its own Show list in a hidden column's detail (`showListButton`). In inner portrait the system still opens
+      on the detail alone, as iPad portrait does, and its sidebar button puts the list beside the detail
+      (checked on the Duo Simulator 2026-11-28). Haus accepts that system behavior. The Chat composer sat under the
       horizontal tab bar, because the keyboard reader's floor is the home indicator; it now clears whichever is
       higher, the keyboard or the screen's bottom inset (`ChatComposerInset`).
   - Proof: `FoldClearanceTests`, `PoseCarryTests`, `TaskModeLayoutTests`, `HausRouterFoldTests`; Duo inner display
