@@ -1,6 +1,7 @@
 import type { DriveRemote } from './drive-remote.ts';
 import type { DriveChangeEntry } from './drive-response-schema.ts';
 import type { FolderFiles } from './folder-files.ts';
+import { SymlinkedFolderError } from './folder-spelling.ts';
 import { type DriveFolderState, type FolderStateStore, foldedRecord } from './folder-state.ts';
 
 export type PutChange = Extract<DriveChangeEntry, { change: 'put' }>;
@@ -11,29 +12,30 @@ export async function prefetchBodies(input: {
     remote: DriveRemote;
     state: FolderStateStore;
 }) {
-    const slots = downloadSlots(pullDownloadConcurrency);
     const download = async (change: PutChange) => {
-        const release = await slots.acquire();
-        try {
-            const scratch = await input.files.scratchFile();
-            await input.remote.download(change, scratch);
-            return scratch;
-        } finally {
-            release();
-        }
+        const scratch = await input.files.scratchFile();
+        await input.remote.download(change, scratch);
+        return scratch;
     };
-    const bodies = new Map<DriveChangeEntry, Promise<string>>();
     const state = input.state.current();
+    const ahead: PutChange[] = [];
     for (const change of input.changes) {
         if (change.change === 'put' && (await needsDownload(input.files, state, change))) {
-            const body = download(change);
-            body.catch(() => null);
-            bodies.set(change, body);
+            ahead.push(change);
         }
     }
+    const queued: Promise<string>[] = [];
+    const bodies = new Map<DriveChangeEntry, Promise<string>>();
+    for (const change of ahead) {
+        const before = queued.at(-pullDownloadConcurrency);
+        const body = Promise.allSettled(before ? [before] : []).then(() => download(change));
+        queued.push(body);
+        bodies.set(change, body);
+    }
+    const settled = Promise.allSettled(queued);
     return {
         body: (change: PutChange) => bodies.get(change) ?? download(change),
-        settled: () => Promise.allSettled(bodies.values()),
+        settled: () => settled,
     };
 }
 
@@ -42,8 +44,8 @@ async function needsDownload(files: FolderFiles, state: DriveFolderState, change
     if (record?.revision_id === change.revision_id || record?.sha256 === change.sha256) {
         return false;
     }
-    const stamp = await files.stamp(change.path).catch(() => undefined);
-    if (stamp === undefined) {
+    const stamp = await stampOf(files, change.path);
+    if (stamp === 'symlinked') {
         return false;
     }
     if (!record) {
@@ -53,30 +55,18 @@ async function needsDownload(files: FolderFiles, state: DriveFolderState, change
             foldedRecord(state, change.path) === null
         );
     }
-    return stamp?.size === record.size_bytes && stamp.mtimeMs === record.mtime_ms;
+    return stamp !== null && stamp.size === record.size_bytes && stamp.mtimeMs === record.mtime_ms;
+}
+
+async function stampOf(files: FolderFiles, path: string) {
+    try {
+        return await files.stamp(path);
+    } catch (error) {
+        if (error instanceof SymlinkedFolderError) {
+            return 'symlinked' as const;
+        }
+        throw error;
+    }
 }
 
 const pullDownloadConcurrency = 8;
-
-function downloadSlots(limit: number) {
-    let free = limit;
-    const waiting: (() => void)[] = [];
-    const release = () => {
-        const next = waiting.shift();
-        if (next) {
-            next();
-            return;
-        }
-        free += 1;
-    };
-    return {
-        acquire: async () => {
-            if (free > 0) {
-                free -= 1;
-                return release;
-            }
-            await new Promise<void>((resolve) => waiting.push(resolve));
-            return release;
-        },
-    };
-}
