@@ -11,7 +11,7 @@ struct ChatSearchResultRow: View {
             switch chat.kind {
             case .channel:
                 ChannelIconBox(appearance: chat.appearance, size: 36, glyphSize: 22)
-            case .agentDirectMessage(let agent):
+            case .captainChat(let agent):
                 CaptainMark(name: agent.name, side: 36, isWorking: agent.presence == .working) {
                     AvatarView(name: agent.name, url: agent.avatarURL, size: 36 * 2.squareRoot())
                 }

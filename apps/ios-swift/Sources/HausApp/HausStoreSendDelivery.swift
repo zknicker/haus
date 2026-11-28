@@ -19,8 +19,9 @@ enum SendOutcome: Equatable {
 /// Where an optimistic row is addressed, so Try Again replays the same send.
 enum PendingSendTarget: Equatable, Sendable {
     case chat(chatID: String, replyToMessageID: String?)
-    /// A first message to an Agent, which Server materializes the DM for.
-    case agentDM(agentID: String)
+    /// A message to a Captain whose chat the Chat list does not hold yet; the
+    /// Server resolves the Captain's one chat.
+    case captain(agentID: String)
 }
 
 /// Delivery of an optimistic row, and the iMessage-style handling of one that
@@ -34,7 +35,7 @@ extension HausStore {
             return .failed
         }
         guard case .chat(let chatID, let replyToMessageID) = row.target else {
-            return await deliverAgentDM(row, serverID: serverID)
+            return await deliverCaptainChat(row, serverID: serverID)
         }
         do {
             let uploadedAttachments = try await uploadAttachments(

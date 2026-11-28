@@ -29,7 +29,7 @@ struct SearchPaletteTests {
         let agent = AgentPresentation(id: "agent-p", name: "Product Bot", avatarURL: nil, presence: .idle)
         let chats = [
             ChatPresentation(id: "c", title: "product", kind: .channel),
-            ChatPresentation(id: "d", title: "Product Bot", kind: .agentDirectMessage(agent)),
+            ChatPresentation(id: "d", title: "Product Bot", kind: .captainChat(agent)),
         ]
         #expect(SearchPalette.projects(chats, query: "prod").map(\.id) == ["c"])
     }

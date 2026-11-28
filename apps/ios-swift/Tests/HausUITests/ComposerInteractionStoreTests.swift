@@ -9,7 +9,7 @@ struct ComposerInteractionStoreTests {
     @Test func keepsOneInteractionPerDestination() {
         let store = ComposerInteractionStore()
         let general = ChatDestination.ID.chat("general")
-        let agent = ChatDestination.ID.agentDM("blippy")
+        let agent = ChatDestination.ID.captain("blippy")
 
         #expect(store.interaction(for: general) === store.interaction(for: general))
         #expect(store.interaction(for: general) !== store.interaction(for: agent))

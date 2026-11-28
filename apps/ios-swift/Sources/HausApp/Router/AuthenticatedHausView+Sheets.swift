@@ -61,7 +61,7 @@ extension AuthenticatedHausView {
     }
 
     private func currentActivity(for destination: ChatDestination) -> AgentActivityPresentation? {
-        guard case .agentDirectMessage(let agent) = destination.kind else { return nil }
+        guard case .captainChat(let agent) = destination.kind else { return nil }
         return store.currentActivityPresentation(agentID: agent.id)
     }
 

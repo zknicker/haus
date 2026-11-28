@@ -102,7 +102,7 @@ struct ChatScreenHeader: View {
 
     /// The caller's actions, with Stop first on a Captain DM.
     private var placeActions: [ChatHeaderMenuAction] {
-        guard case .agentDirectMessage(let agent) = chat.kind,
+        guard case .captainChat(let agent) = chat.kind,
               let phase = captainStop?.phase(agent.id)
         else { return menuActions }
         let target = CaptainStopTarget(id: agent.id, name: agent.name)
@@ -134,7 +134,7 @@ struct ChatScreenHeader: View {
         switch chat.kind {
         case .channel:
             ChannelGlyph(appearance: chat.appearance, size: Self.channelGlyphSide)
-        case .agentDirectMessage(let agent):
+        case .captainChat(let agent):
             CaptainAvatarMark(name: agent.name, url: agent.avatarURL, side: Self.identitySide)
         case .humanDirectMessage(let human):
             AvatarView(name: human.name, url: human.avatarURL, size: Self.identitySide)

@@ -44,7 +44,7 @@ extension ChatScreenView {
 extension ChatKind {
     /// An Agent DM's peer, whose stopped notice sits over the composer.
     public var peerAgentID: String? {
-        if case .agentDirectMessage(let agent) = self { agent.id } else { nil }
+        if case .captainChat(let agent) = self { agent.id } else { nil }
     }
 
     var isChannel: Bool {
@@ -54,18 +54,18 @@ extension ChatKind {
     /// A Captain DM reads as the assistant layout; Projects, `#all`, and DMs with people keep
     /// roster rows (`specs/ios-app.md`, "Places and transcripts").
     var transcriptStyle: TranscriptStyle {
-        if case .agentDirectMessage = self { .assistant } else { .roster }
+        if case .captainChat = self { .assistant } else { .roster }
     }
 
     /// An Agent DM's title already shows its Agent, so its pill is the thought.
     var engagementStyle: HeaderEngagementStyle {
-        if case .agentDirectMessage = self { .subtitle } else { .roster }
+        if case .captainChat = self { .subtitle } else { .roster }
     }
 
     func composerPlace(title: String) -> ComposerPlace {
         switch self {
         case .channel: .project(name: title)
-        case .agentDirectMessage: .captain
+        case .captainChat: .captain
         case .humanDirectMessage: .person(name: title)
         }
     }

@@ -22,7 +22,7 @@ extension AuthenticatedHausView {
 
     func route(for destination: ChatDestination) -> HausRoute {
         switch destination.kind {
-        case .agentDirectMessage(let agent): .captain(agentID: agent.id)
+        case .captainChat(let agent): .captain(agentID: agent.id)
         case .humanDirectMessage: .dm(chatID: destination.pendingKey)
         case .channel: .channel(chatID: destination.pendingKey)
         }
@@ -31,7 +31,7 @@ extension AuthenticatedHausView {
     func conversation(for destination: ChatDestination) -> HausConversation {
         switch destination.id {
         case .chat(let chatID): .chat(chatID)
-        case .agentDM(let agentID): .captain(agentID)
+        case .captain(let agentID): .captain(agentID)
         }
     }
 

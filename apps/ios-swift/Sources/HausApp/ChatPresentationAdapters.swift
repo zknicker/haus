@@ -4,23 +4,23 @@ import HausUI
 extension HausStore {
     /// Every Chat a route can open, in one memoized list.
     ///
-    /// Rebuilt only when the Chat list, its receipt-backed Agent DMs, or the
+    /// Rebuilt only when the Chat list, its receipt-backed Captain chats, or the
     /// directories are written — each of those is a `HausStore` accessor
     /// whose setter retires this cache.
     var chatDestinations: [ChatDestination] {
         trackProjectionDirectory()
         let chats = chats
-        let receiptBackedAgentDMs = receiptBackedAgentDMsByChatID
+        let receiptBackedCaptainChats = self.receiptBackedCaptainChatsByChatID
         if let cached = projections.chatDestinations { return cached }
 
-        let destinations = buildChatDestinations(chats: chats, receiptBackedAgentDMs: receiptBackedAgentDMs)
+        let destinations = buildChatDestinations(chats: chats, receiptBackedCaptainChats: receiptBackedCaptainChats)
         projections.chatDestinations = destinations
         return destinations
     }
 
     private func buildChatDestinations(
         chats: [ChatSummary],
-        receiptBackedAgentDMs: [String: String]
+        receiptBackedCaptainChats: [String: String]
     ) -> [ChatDestination] {
         let durable = chats.compactMap(durableChatDestination)
         let listedChatIDs = Set(chats.map(\.id))
@@ -32,7 +32,7 @@ extension HausStore {
             agents.enumerated().map { ($0.element.id, $0.offset) },
             uniquingKeysWith: { first, _ in first }
         )
-        let receiptBacked: [ChatDestination] = receiptBackedAgentDMs
+        let receiptBacked: [ChatDestination] = receiptBackedCaptainChats
             .sorted { left, right in
                 (agentPositions[left.value] ?? .max, left.key)
                     < (agentPositions[right.value] ?? .max, right.key)
@@ -43,15 +43,15 @@ extension HausStore {
                 return ChatDestination.durableChat(ChatPresentation(
                     id: chatID,
                     title: agent.displayName,
-                    kind: .agentDirectMessage(agentPresentation(agent))
+                    kind: .captainChat(agentPresentation(agent))
                 ))
             }
         let materializedAgentIDs = Set(
-            chats.compactMap(\.captainID) + receiptBackedAgentDMs.values
+            chats.compactMap(\.captainID) + receiptBackedCaptainChats.values
         )
         let implicit = agents
             .filter { !materializedAgentIDs.contains($0.id) }
-            .map { ChatDestination.implicitAgentDM(agentPresentation($0)) }
+            .map { ChatDestination.implicitCaptainChat(agentPresentation($0)) }
         return durable + receiptBacked + implicit
     }
 
@@ -75,7 +75,7 @@ extension HausStore {
             return .durableChat(ChatPresentation(
                 id: chat.id,
                 title: name,
-                kind: .agentDirectMessage(presentation),
+                kind: .captainChat(presentation),
                 unreadCount: chat.unreadCount
             ))
         case .dm:

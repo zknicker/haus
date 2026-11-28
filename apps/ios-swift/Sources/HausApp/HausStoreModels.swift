@@ -27,9 +27,9 @@ extension HausStore {
 
     var hasLoadedChats: Bool { chatList.hasLoadedChats }
 
-    var receiptBackedAgentDMsByChatID: [String: String] {
-        get { chatList.receiptBackedAgentDMsByChatID }
-        set { chatList.receiptBackedAgentDMsByChatID = newValue }
+    var receiptBackedCaptainChatsByChatID: [String: String] {
+        get { chatList.receiptBackedCaptainChatsByChatID }
+        set { chatList.receiptBackedCaptainChatsByChatID = newValue }
     }
 
     var markedReadThrough: [String: Int] {

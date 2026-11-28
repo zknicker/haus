@@ -18,7 +18,7 @@ extension HausStore {
                     "chat.mentionOptions",
                     input: ChatMentionOptionsInput(chatID: chat.id, serverID: serverID)
                 )
-            case .implicitAgentDM(let agent):
+            case .implicitCaptainChat(let agent):
                 response = try await client.query(
                     "chat.mentionOptions",
                     input: CaptainMentionOptionsInput(agentID: agent.id, serverID: serverID)

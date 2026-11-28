@@ -33,8 +33,8 @@ struct TranscriptStyleTests {
         #expect(MessageRowLayout(style: .assistant, message: Fixture.message("m2", by: personWithPresence, at: 5)) == .bubble)
     }
 
-    @Test func aCaptainDMIsTheAssistantLayoutAndEveryOtherPlaceKeepsRosterRows() {
-        let captain = ChatKind.agentDirectMessage(ChatFixtures.cove)
+    @Test func aCaptainChatIsTheAssistantLayoutAndEveryOtherPlaceKeepsRosterRows() {
+        let captain = ChatKind.captainChat(ChatFixtures.cove)
         let person = ChatKind.humanDirectMessage(HumanPresentation(id: "u", name: "Mia", handle: nil, avatarURL: nil))
 
         #expect(captain.transcriptStyle == .assistant)

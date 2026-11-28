@@ -5,28 +5,28 @@ import HausUI
 import OSLog
 
 extension HausStore {
-    /// Sends the first message to an Agent without creating a placeholder Chat.
-    /// The Server atomically materializes the pair DM and returns its durable id.
-    func sendAgentDM(_ content: String, to agentID: String) async -> SendOutcome {
+    /// Sends to a Captain whose chat the Chat list does not hold yet. The
+    /// Server resolves the Captain's one shared chat and returns its id.
+    func sendCaptainChat(_ content: String, to agentID: String) async -> SendOutcome {
         guard activeServer?.id != nil else { return .rejected }
         let content = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else { return .rejected }
 
         let row = PendingChatMessage(
             attachments: [],
-            chatID: "agent-dm:\(agentID)",
+            chatID: "captain:\(agentID)",
             content: content,
             createdAt: .now,
             nonce: UUID().uuidString.lowercased(),
             inlineReply: nil,
-            target: .agentDM(agentID: agentID)
+            target: .captain(agentID: agentID)
         )
         pendingMessagesByChatID[row.chatID, default: []].append(row)
         return await deliver(row)
     }
 
-    func deliverAgentDM(_ row: PendingChatMessage, serverID: String) async -> SendOutcome {
-        guard case .agentDM(let agentID) = row.target else { return .rejected }
+    func deliverCaptainChat(_ row: PendingChatMessage, serverID: String) async -> SendOutcome {
+        guard case .captain(let agentID) = row.target else { return .rejected }
         do {
             let client = self.client
             let input = SendCaptainChatInput(
@@ -40,7 +40,7 @@ extension HausStore {
                 try await client.mutation("chat.send", input: input)
             }
             let chatID = receipt.message.chatID
-            receiptBackedAgentDMsByChatID[chatID] = agentID
+            receiptBackedCaptainChatsByChatID[chatID] = agentID
             adoptPendingMessages(from: row.chatID, to: chatID)
             adoptSentMessageID(receipt.message.id, nonce: row.nonce, in: chatID)
             await loadMessages(chatID: chatID)

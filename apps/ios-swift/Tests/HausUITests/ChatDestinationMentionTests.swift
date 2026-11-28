@@ -10,19 +10,19 @@ import Testing
         presence: .idle
     )
 
-    @Test func implicitAgentDestinationHasNoDurableChat() {
-        let destination = ChatDestination.implicitAgentDM(agent)
+    @Test func implicitCaptainDestinationHasNoDurableChat() {
+        let destination = ChatDestination.implicitCaptainChat(agent)
 
-        #expect(destination.id == .agentDM("agt_cove"))
+        #expect(destination.id == .captain("agt_cove"))
         #expect(destination.durableChat == nil)
-        #expect(destination.pendingKey == "agent-dm:agt_cove")
+        #expect(destination.pendingKey == "captain:agt_cove")
     }
 
-    @Test func materializedAgentDestinationKeepsTheServerChatID() {
+    @Test func listedCaptainDestinationKeepsTheServerChatID() {
         let chat = ChatPresentation(
             id: "chat_1",
             title: "Cove",
-            kind: .agentDirectMessage(agent)
+            kind: .captainChat(agent)
         )
         let destination = ChatDestination.durableChat(chat)
 

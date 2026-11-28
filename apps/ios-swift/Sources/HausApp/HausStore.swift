@@ -198,7 +198,7 @@ final class HausStore {
             case let .chatList(chats):
                 scheduleLaunchSnapshotWrite()
                 projections.retireChatList(chats)
-            case .receiptBackedDMs:
+            case .receiptBackedCaptainChats:
                 projections.chatDestinations = nil
             }
         }

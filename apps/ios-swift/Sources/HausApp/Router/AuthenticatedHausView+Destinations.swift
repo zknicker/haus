@@ -99,14 +99,14 @@ extension AuthenticatedHausView {
         switch destination {
         case .durableChat(let chat):
             return await store.send(content, to: chat.id, attachments: attachments)
-        case .implicitAgentDM(let agent):
+        case .implicitCaptainChat(let agent):
             guard attachments.isEmpty else { return false }
-            return await store.sendAgentDM(content, to: agent.id) != .rejected
+            return await store.sendCaptainChat(content, to: agent.id) != .rejected
         }
     }
 
     private func callAction(for destination: ChatDestination) -> (() -> Void)? {
-        guard destination.durableChat != nil, case .agentDirectMessage = destination.kind else { return nil }
+        guard destination.durableChat != nil, case .captainChat = destination.kind else { return nil }
         return { openAgentCall(destination) }
     }
 

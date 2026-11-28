@@ -45,7 +45,8 @@ public struct AgentActivityPresentation: Identifiable, Hashable, Sendable {
 
 public enum ChatKind: Hashable, Sendable {
     case channel
-    case agentDirectMessage(AgentPresentation)
+    /// A Captain's one shared chat (ADR 0062).
+    case captainChat(AgentPresentation)
     case humanDirectMessage(HumanPresentation)
 }
 
