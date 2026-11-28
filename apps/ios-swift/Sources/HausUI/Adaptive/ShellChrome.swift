@@ -11,6 +11,23 @@ public enum ShellChrome: Hashable, Sendable {
     public init(barsAreVertical: Bool, isRegularWidth: Bool) {
         self = barsAreVertical || isRegularWidth ? .stock : .custom
     }
+
+    /// The safe-area edges a Chat or Task transcript runs past. Stock bars
+    /// stand in the leading or trailing safe area, so a transcript stops at
+    /// them and runs past only the header and the composer.
+    public var transcriptIgnoredEdges: Edge.Set {
+        switch self {
+        case .custom: .all
+        case .stock: .vertical
+        }
+    }
+
+    /// The system tab bar under the router's `showsTabBar` rule. It is set on
+    /// the tab's content: on vertical bars a pushed screen's own visibility
+    /// never reaches the rail.
+    public func tabBar(showsTabBar: Bool) -> Visibility {
+        self == .stock && showsTabBar ? .visible : .hidden
+    }
 }
 
 extension EnvironmentValues {

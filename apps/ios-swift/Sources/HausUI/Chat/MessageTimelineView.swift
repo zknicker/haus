@@ -54,6 +54,7 @@ public struct MessageTimelineView: View {
     /// than through the `openingEntrance` modifier.
     @Environment(\.opensWithEntrance) private var opensWithEntrance
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.shellChrome) private var shellChrome
     /// Rows are hosted in table cells, which do not inherit this environment,
     /// so the screen reads the board and hands it to each row.
     @Environment(\.reactionStickers) var reactionBoard
@@ -157,7 +158,7 @@ public struct MessageTimelineView: View {
                         loadOlderAccessory
                     }
                 )
-                .ignoresSafeArea()
+                .ignoresSafeArea(edges: shellChrome.transcriptIgnoredEdges)
                 // The bottom edge stays hard on purpose: the composer's clearance
                 // is the transcript's scroll bound, and its glass refracts the
                 // rows that reach it.

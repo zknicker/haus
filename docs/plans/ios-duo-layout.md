@@ -158,7 +158,10 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
     none until D2 gives it a list column.
   - On the open inner display in landscape the list column's toolbar stays at the top of the column (title
     leading, compose and `+` in one capsule), and the tab bar is one glass capsule at the bottom of the rail.
-  - With stock chrome the Chat pads itself by the horizontal safe area so it ends at the rail.
+  - With stock chrome the Chat route and both transcripts ignore only the vertical safe area, so they end at the
+    rail. Horizontal padding didn't work: the transcript's own `ignoresSafeArea()` ran past it.
+  - A pushed screen's `toolbarVisibility(.hidden, for: .tabBar)` doesn't hide the tab bar in the rail. Each tab's
+    content sets the visibility from `HausRouter.showsTabBar` instead.
 
 ### D2. Every tab splits
 

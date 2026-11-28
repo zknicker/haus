@@ -3,13 +3,12 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// What each route draws. With custom chrome the system tab bar stays hidden
-/// on every screen, and stacked, the shell's own bottom chrome stays at the
-/// tab's root. With stock chrome the system bar follows the router's rule. A
+/// What each route draws. The tab's content sets the system tab bar's
+/// visibility for every screen in it (`AuthenticatedHausView+Tabs.swift`). A
 /// route whose record has not arrived yet stays blank until it does.
 extension AuthenticatedHausView {
     func routeDestination(_ route: HausRoute) -> some View {
-        routeScreen(route).toolbarVisibility(routeTabBarVisibility, for: .tabBar)
+        routeScreen(route)
     }
 
     @ViewBuilder
@@ -40,9 +39,7 @@ extension AuthenticatedHausView {
             if let routeConversation, let destination = destination(for: routeConversation) {
                 GeometryReader { proxy in
                     chatScreen(destination, revealing: routeConversation, contentInsets: proxy.safeAreaInsets)
-                        .padding(.leading, shellChrome == .stock ? proxy.safeAreaInsets.leading : 0)
-                        .padding(.trailing, shellChrome == .stock ? proxy.safeAreaInsets.trailing : 0)
-                        .ignoresSafeArea()
+                        .ignoresSafeArea(edges: shellChrome.transcriptIgnoredEdges)
                 }
                 .ignoresSafeArea(.keyboard)
             } else {

@@ -37,6 +37,7 @@ public struct TaskChatView: View {
     @State var attachmentTiles = AttachmentImageTileRegistry()
     @State var visualHeights = VisualHeightRegistry()
     @Environment(\.reactionStickers) var reactionBoard
+    @Environment(\.shellChrome) private var shellChrome
     @State var actionMessage: MessagePresentation?
     @State var heldMessageID: String?
     @State var unreadJump = TranscriptUnreadJump(messageID: nil)
@@ -207,7 +208,7 @@ public struct TaskChatView: View {
                     }
                 }
             )
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: shellChrome.transcriptIgnoredEdges)
             .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
             .overlay(alignment: .top) {
                 ChromeTopScrim(fade: ChromeTopScrim.rowFade + Self.scrimOverhang)

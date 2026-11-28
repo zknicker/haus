@@ -735,13 +735,19 @@ iPhone: the system tab bar stays hidden, `HausBottomChrome` (icon tabs and the A
 floats over the tabs, and a Chat hides the navigation bar under its floating `ChatScreenHeader`.
 Stock is the iPhone Duo and regular width: every `Tab` carries a title and symbol (You shows the
 viewer's photo, Search is `role: .search`), the `TabView` draws its own bar — in the trailing rail
-where bars are vertical — and there is no bottom chrome. A tab root shows the bar; a pushed screen
-follows `HausRouter.showsTabBar`, so it hides stacked and stays beside a split selection. Home and
+where bars are vertical — and there is no bottom chrome. The bar follows `HausRouter.showsTabBar`
+(`ShellChrome.tabBar(showsTabBar:)`): it shows at a tab's root and beside a split selection, and
+hides over a stacked push. The visibility is set on each tab's content, never on a pushed screen,
+because on vertical bars a pushed screen's own `toolbarVisibility` never reaches the rail. Home and
 Projects get a compose button that presents the same Ask anything sheet (the Tasks `+` already
 does). A Chat keeps the system navigation bar, with the system's Back; `ChatScreenHeader` keeps
 the identity and live work leading in the column, and `ChatHeaderToolbar` puts Files (a Project),
 Call (a Captain chat) and More in one system toolbar group, with Search in Chat inside More. The
-Chat honors the horizontal safe area there, so it ends at the rail.
+system's bars stand in the leading or trailing safe area, so the Chat route and both transcripts
+(Chat and Task) ignore only the vertical safe area there (`ShellChrome.transcriptIgnoredEdges`) and
+end at the rail. Padding cannot do this: a descendant's `ignoresSafeArea()` still runs past an
+ancestor's padding to the container's safe-area edge, which pushed the flipped table under the
+rail and, in the split's detail column, past its leading edge.
 
 Both transcripts — the Chat timeline and a Task's messages — sit on `TranscriptListView`, the
 flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each

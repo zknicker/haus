@@ -13,21 +13,21 @@ extension AuthenticatedHausView {
     var tabShell: some View {
         TabView(selection: $router.selectedTab) {
             Tab("Home", systemImage: "house", value: HausTab.home) {
-                adaptiveStack(.home) { homeRoot }.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
+                adaptiveStack(.home) { homeRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
             Tab("Projects", systemImage: "number", value: HausTab.projects) {
-                adaptiveStack(.projects) { projectsRoot }.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
+                adaptiveStack(.projects) { projectsRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
             Tab("Tasks", systemImage: "list.bullet", value: HausTab.tasks) {
-                adaptiveStack(.tasks) { tasksRoot }.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
+                adaptiveStack(.tasks) { tasksRoot }.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
             Tab(value: HausTab.you) {
-                youStack.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
+                youStack.toolbarVisibility(tabBarVisibility, for: .tabBar)
             } label: {
                 Label { Text("You") } icon: { youTabIcon ?? Image(systemName: "person.crop.circle") }
             }
             Tab("Search", systemImage: "magnifyingglass", value: HausTab.search, role: .search) {
-                searchRoot.toolbarVisibility(rootTabBarVisibility, for: .tabBar)
+                searchRoot.toolbarVisibility(tabBarVisibility, for: .tabBar)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -73,12 +73,8 @@ extension AuthenticatedHausView {
         shellChrome == .custom && router.showsTabBar
     }
 
-    private var rootTabBarVisibility: Visibility {
-        shellChrome == .stock ? .visible : .hidden
-    }
-
-    var routeTabBarVisibility: Visibility {
-        shellChrome == .stock && router.showsTabBar ? .visible : .hidden
+    private var tabBarVisibility: Visibility {
+        shellChrome.tabBar(showsTabBar: router.showsTabBar)
     }
 
     /// Height from the screen's bottom edge to the top of the chrome.
