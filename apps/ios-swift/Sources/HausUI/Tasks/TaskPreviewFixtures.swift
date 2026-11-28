@@ -2,20 +2,16 @@ import Foundation
 import HausModels
 
 enum TaskPreviewFixtures {
-    static let labels: [TaskLabel] = [
-        TaskLabel(color: "blue", id: "label_server", name: "Server"),
-        TaskLabel(color: "purple", id: "label_app", name: "App"),
-    ]
-
     static let detail: TaskDetail = decode(
         """
-        {"assignee":{"agentId":"agent_forge","kind":"agent"},"chatId":null,"completedAt":null,
+        {"activity":"idle","agentId":null,"archivedAt":null,"captainId":null,"chatId":null,"computerId":null,
          "createdAt":"2026-10-30T16:00:00Z","createdBy":{"agentId":"agent_zero","kind":"agent"},
          "description":"A leaked Trigger URL can be hammered with valid-looking deliveries.\\n\\n- Limit deliveries per Trigger secret, not per IP.\\n- Return `429` with `Retry-After`.",
-         "dueOn":"2026-11-10","id":"task_12","key":"SEC-12","labelIds":["label_server"],"number":12,
-         "origin":null,"priority":"high","serverId":"server_preview","state":"todo",
-         "title":"Rate-limit Trigger webhook endpoints per secret",
-         "updatedAt":"2026-11-03T16:00:00Z","version":3,
+         "descriptionContent":"A leaked Trigger URL can be hammered with valid-looking deliveries.\\n\\n- Limit deliveries per Trigger secret, not per IP.\\n- Return `429` with `Retry-After`.",
+         "descriptionTaskLinks":[],"followed":false,"id":"task_12","model":null,"needsYou":false,
+         "origin":null,"projectId":"chat_security","pullRequests":[],"serverId":"server_preview",
+         "shortId":"k3mq7xta","title":"Rate-limit Trigger webhook endpoints per secret","titleCustom":false,
+         "unreadCount":0,"updatedAt":"2026-11-03T16:00:00Z","version":3,
          "mentions":[
            {"authorLabel":"Forge","chatId":"chat_security","createdAt":"2026-11-03T14:00:00Z",
             "excerpt":"Should the limit apply to GitHub Triggers too?","messageId":"message_1",
@@ -25,7 +21,7 @@ enum TaskPreviewFixtures {
             "place":{"chatId":"chat_security","chatKind":"channel","chatName":"security"}}],
          "reminders":[
            {"anchorChatId":"chat_security","kind":"once","nextFireAt":"2026-11-07T14:00:00Z",
-            "reminderId":"reminder_1","title":"Re-check SEC-12 after the Server deploy"}]}
+            "reminderId":"reminder_1","title":"Re-check the limit after the Server deploy"}]}
         """
     )
 

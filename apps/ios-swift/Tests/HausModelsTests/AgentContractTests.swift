@@ -28,15 +28,18 @@ final class AgentContractTests: XCTestCase {
 
     func testTurnsDecodeEachTriggerKind() throws {
         let message = #"{"author":"human","chatId":"chat_1","kind":"message","messageId":"msg_1","preview":{"attachmentCount":1,"content":"Ship it"}}"#
-        let task = #"{"key":"SEC-12","kind":"task","more":2,"taskId":"task_12","title":"Rate-limit"}"#
-        let turns = try ContractFixtures.decode([AgentTurn].self, "[\(turn(trigger: message)),\(turn(trigger: task)),\(turn(trigger: #"{"kind":"private"}"#)),\(turn(trigger: "null"))]")
+        let issue = #"{"code":"GEN-12","issueId":"iss_12","kind":"issue","more":2,"title":"Rate-limit"}"#
+        let pullRequest = #"{"chatId":"chat_1","kind":"pull_request"}"#
+        let triggers = [message, issue, pullRequest, #"{"kind":"private"}"#, "null"]
+        let turns = try ContractFixtures.decode([AgentTurn].self, "[\(triggers.map { turn(trigger: $0) }.joined(separator: ","))]")
         XCTAssertEqual(turns[0].trigger, .message(
             author: .human, chatID: "chat_1", messageID: "msg_1",
             preview: AgentTurnTriggerPreview(attachmentCount: 1, content: "Ship it")
         ))
-        XCTAssertEqual(turns[1].trigger, .task(key: "SEC-12", taskID: "task_12", title: "Rate-limit", more: 2))
-        XCTAssertEqual(turns[2].trigger, .hidden)
-        XCTAssertNil(turns[3].trigger)
+        XCTAssertEqual(turns[1].trigger, .issue(code: "GEN-12", issueID: "iss_12", title: "Rate-limit", more: 2))
+        XCTAssertEqual(turns[2].trigger, .pullRequest(chatID: "chat_1"))
+        XCTAssertEqual(turns[3].trigger, .hidden)
+        XCTAssertNil(turns[4].trigger)
         XCTAssertEqual(turns[0].activity.operations.first?.category, .generatingImage)
         XCTAssertEqual(turns[0].status, .completed)
     }

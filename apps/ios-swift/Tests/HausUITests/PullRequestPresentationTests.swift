@@ -91,14 +91,6 @@ struct PullRequestDiffstatTests {
         #expect(PullRequestDiffstat.filesText(1) == "1 file")
         #expect(PullRequestDiffstat.filesText(14) == "14 files")
     }
-
-    @Test func branchReadsHeadToBaseOrHeadAlone() {
-        let both = PullRequestFixture.presentation(number: 1, context: .init(headBranch: "haus/ios-26-min", baseBranch: "main"))
-        let head = PullRequestFixture.presentation(number: 1, context: .init(headBranch: "haus/ios-26-min"))
-        #expect(both.branchText == "haus/ios-26-min \u{2192} main")
-        #expect(head.branchText == "haus/ios-26-min")
-        #expect(PullRequestFixture.presentation(number: 1).branchText == nil)
-    }
 }
 
 enum PullRequestFixture {

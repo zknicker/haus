@@ -1,23 +1,16 @@
 import SwiftUI
 
-/// The Server's Devices, one card each, with the "Workers can run here"
-/// switch wherever the Server reports it.
+/// The Server's Devices, one card each.
 struct ServerComputersView: View {
     let computers: [SettingsComputer]?
-    let setWorkers: @Sendable (String, Bool) async throws -> Void
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 if let computers, !computers.isEmpty {
-                    ForEach(computers) { computer in
-                        SettingsSection(nil, footer: computer.workers.map(Self.workersFooter)) {
-                            SettingsListGroup {
-                                SettingsComputerRow(computer: computer, showsDivider: computer.workers != nil)
-                                if let workers = computer.workers {
-                                    ComputerWorkersRow(computer: computer, workers: workers, setWorkers: setWorkers)
-                                }
-                            }
+                    SettingsListGroup {
+                        ForEach(computers) { computer in
+                            SettingsComputerRow(computer: computer, showsDivider: computer.id != computers.last?.id)
                         }
                     }
                     Text("Devices are managed by the Haus Computer app.")
@@ -47,49 +40,6 @@ struct ServerComputersView: View {
         .background(HausPlatformColor.canvas)
         .navigationTitle("Devices")
         .hausInlineNavigationTitle()
-    }
-
-    nonisolated static func workersFooter(_ workers: SettingsComputerWorkers) -> String {
-        let base = "Captains can start Workers on this device while the switch is on."
-        return workers.canChange ? base : "\(base) The person who attached it, an Owner, or an Admin can change it."
-    }
-}
-
-/// The switch writes through `computer.setWorkers` and shows the asked-for
-/// value until the Server's `computer.list` reports it.
-private struct ComputerWorkersRow: View {
-    let computer: SettingsComputer
-    let workers: SettingsComputerWorkers
-    let setWorkers: @Sendable (String, Bool) async throws -> Void
-    @State private var pending: Bool?
-    @State private var failure: String?
-
-    var body: some View {
-        SettingsToggleRow(
-            "Workers can run here",
-            subtitle: failure,
-            icon: .terminal,
-            isOn: Binding(get: { pending ?? workers.isEnabled }, set: { change($0) }),
-            showsDivider: false
-        )
-        .disabled(!workers.canChange || pending != nil)
-        .onChange(of: workers.isEnabled) { _, reported in
-            if reported == pending { pending = nil }
-        }
-    }
-
-    private func change(_ enabled: Bool) {
-        pending = enabled
-        failure = nil
-        Task {
-            do {
-                try await setWorkers(computer.id, enabled)
-                if workers.isEnabled == enabled { pending = nil }
-            } catch {
-                pending = nil
-                failure = "Couldn’t change this. Try again."
-            }
-        }
     }
 }
 
@@ -149,6 +99,6 @@ private struct SettingsComputerRow: View {
 
 #Preview("Devices") {
     NavigationStack {
-        ServerComputersView(computers: SettingsFixtures.computers, setWorkers: { _, _ in })
+        ServerComputersView(computers: SettingsFixtures.computers)
     }
 }

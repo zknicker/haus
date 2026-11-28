@@ -3,7 +3,7 @@ import XCTest
 @testable import HausModels
 
 final class DriveContractTests: XCTestCase {
-    private func record(author: String = #"{"type":"worker","worker_id":"wkr_1","agent_id":"agent_1"}"#) -> String {
+    private func record(author: String = #"{"type":"agent","agent_id":"agent_1"}"#) -> String {
         """
         {"artifact_id":"art_1","author":\(author),"base_revision_id":null,"content_type":"image/png",
          "created_at":"2026-11-20T10:00:00.000Z","creator":{"type":"agent","agent_id":"agent_1"},"filename":"chart.png",
@@ -32,7 +32,7 @@ final class DriveContractTests: XCTestCase {
          "summary":{"files":1,"files_in_folders":3,"folders":1}}
         """)
         let artifact = try XCTUnwrap(page.artifacts.first)
-        XCTAssertEqual(artifact.author, .worker(id: "wkr_1", agentID: "agent_1"))
+        XCTAssertEqual(artifact.author, .agent(id: "agent_1"))
         XCTAssertEqual(artifact.metadata.revisionNumber, 2)
         XCTAssertEqual(artifact.image?.width, 800)
         XCTAssertEqual(artifact.taskID, "task_12")

@@ -1,11 +1,10 @@
 import Observation
 
-/// Where a composer sends. A Worker follow-up is keyed by the Worker, not by
-/// the Chat that shows it.
+/// Where a composer sends: a Chat by id, or a Task by its id before its Chat
+/// is known.
 public enum ComposerDestination: Hashable, Sendable {
     case chat(String)
     case task(String)
-    case worker(String)
 }
 
 public struct ComposerDraftKey: Hashable, Sendable {
@@ -19,7 +18,7 @@ public struct ComposerDraftKey: Hashable, Sendable {
 }
 
 /// Half-typed drafts and staged attachments, owned above every screen so
-/// leaving a Chat, Task, or Worker keeps them, and keyed by Server so one
+/// leaving a Chat or Task keeps them, and keyed by Server so one
 /// Server's draft never shows on another's.
 @MainActor
 @Observable

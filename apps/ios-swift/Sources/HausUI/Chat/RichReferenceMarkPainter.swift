@@ -46,8 +46,6 @@ enum RichReferenceMarkPainter {
                 tint: RichReferenceChipInk.brandTint(brand),
                 context: context
             )
-        case .taskState(let state):
-            RichReferenceTaskDisc.draw(state: state, in: rect, context: context)
         }
     }
 

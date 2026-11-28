@@ -47,20 +47,20 @@ struct ChatsAndDraftsTests {
     @Test("Staged files outlive a remount and go with their Server")
     func stagedFilesClearPerServer() {
         let drafts = ComposerDraftStore(makeStaged: StagedFiles.init, discardStaged: { $0.discarded = true })
-        let worker = ComposerDraftKey(serverID: "srv_a", destination: .worker("wrk_1"))
+        let task = ComposerDraftKey(serverID: "srv_a", destination: .task("tsk_1"))
         let other = ComposerDraftKey(serverID: "srv_b", destination: .chat("chat_1"))
-        let staged = drafts.staged(for: worker)
+        let staged = drafts.staged(for: task)
         staged.names.append("photo.jpg")
-        drafts.setText("Also check CI", for: worker)
+        drafts.setText("Also check CI", for: task)
         drafts.setText("Keep", for: other)
 
-        #expect(drafts.staged(for: worker) === staged)
+        #expect(drafts.staged(for: task) === staged)
 
         drafts.clear(serverID: "srv_a")
 
         #expect(staged.discarded)
-        #expect(!drafts.hasStaged(for: worker))
-        #expect(drafts.text(for: worker).isEmpty)
+        #expect(!drafts.hasStaged(for: task))
+        #expect(drafts.text(for: task).isEmpty)
         #expect(drafts.text(for: other) == "Keep")
     }
 

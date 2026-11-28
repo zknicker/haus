@@ -1,12 +1,11 @@
 import HausModels
 import SwiftUI
 
-/// The model connections Captains run on, with their readiness and usage,
-/// then the cloud agent Workers can be delegated to.
+/// The model connections Captains and Tasks run on, with their readiness and
+/// usage.
 struct ModelsConnectionsView: View {
     let connections: [SettingsModelConnection]?
     let onOpenUsage: () -> Void
-    let onOpenCloudAgents: () -> Void
 
     var body: some View {
         ScrollView {
@@ -29,11 +28,6 @@ struct ModelsConnectionsView: View {
                         SettingsListGroup {
                             DisclosureRow("Usage", icon: .reminder, showsDivider: false, action: onOpenUsage)
                         }
-                    }
-                }
-                SettingsSection("Workers", footer: "Captains can hand code changes to a cloud agent.") {
-                    SettingsListGroup {
-                        DisclosureRow("Cloud agents", icon: .cloud, showsDivider: false, action: onOpenCloudAgents)
                     }
                 }
             }
@@ -105,8 +99,7 @@ struct ModelConnectionsUsageView: View {
     NavigationStack {
         ModelsConnectionsView(
             connections: SettingsFixtures.modelConnections,
-            onOpenUsage: {},
-            onOpenCloudAgents: {}
+            onOpenUsage: {}
         )
     }
 }

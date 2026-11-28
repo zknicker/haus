@@ -117,9 +117,6 @@ struct MessageTimelineRow: View {
             .padding(.top, hasBodyAbove ? 3 : 0)
             .frame(maxWidth: .infinity, alignment: frameAlignment)
         }
-        ForEach(message.cloudAgents) { agent in
-            MessageWorkerLine(worker: agent).padding(.top, 4)
-        }
         if !message.isPending {
             ReactionPileView(messageID: message.id, reactions: message.reactions, board: reactionBoard)
                 .frame(maxWidth: .infinity, alignment: frameAlignment)

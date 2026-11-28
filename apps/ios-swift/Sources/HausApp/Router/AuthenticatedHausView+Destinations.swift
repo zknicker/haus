@@ -22,8 +22,6 @@ extension AuthenticatedHausView {
             projectSettingsDestination(projectID)
         case .work(let place):
             workDestination(place)
-        case .worker(let workerID):
-            workerDestination(workerID)
         case .pullRequest(let reading):
             pullRequestDestination(reading)
         case .driveFolder(let prefix):
@@ -76,9 +74,9 @@ extension AuthenticatedHausView {
                 )
             },
             onOpenAttachment: { try await store.downloadAttachment($0) },
-            onOpenAgent: { router.open(.captainDM(agentID: $0)) },
+            onOpenAgent: { router.open(.captain(agentID: $0)) },
             onCall: callAction(for: destination),
-            workPill: destination.durableChat.flatMap { store.workPill(.chat($0.id), now: .now) },
+            workPill: destination.durableChat.flatMap { store.workPill(.chat($0.id)) },
             onOpenWork: {
                 guard let chat = destination.durableChat else { return }
                 router.open(.work(.chat(chat.id)))

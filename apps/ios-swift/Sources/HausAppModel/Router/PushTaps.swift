@@ -3,25 +3,31 @@ import Observation
 
 /// The push route table (specs/ios-app.md): where each payload's tap lands.
 public enum PushRouteTable {
-    public static func request(for push: HausPush) -> RouterRequest {
+    /// - Parameter captainOf: the Captain whose chat a Chat id is, once the
+    ///   Chat list knows it.
+    public static func request(for push: HausPush, captainOf: (String) -> String? = { _ in nil }) -> RouterRequest {
         switch push {
         case let .message(message):
-            .open(route(for: message))
-        case let .taskAssignment(assignment):
-            .open(.task(taskID: assignment.taskID))
-        case .taskAssignmentBurst:
-            .tasks(.assignedToMe)
+            .open(route(for: message, captainOf: captainOf))
+        case .issue:
+            .root(.home)
         }
     }
 
-    static func route(for message: PushNotificationPayload) -> HausRoute {
+    static func route(for message: PushNotificationPayload, captainOf: (String) -> String?) -> HausRoute {
         switch message.route {
         case let .task(taskID, _):
-            .task(taskID: taskID, messageID: message.messageID)
-        case let .chat(chatID) where message.conversationKind == .dm:
-            .dm(chatID: chatID, messageID: message.messageID)
+            return .task(taskID: taskID, messageID: message.messageID)
         case let .chat(chatID):
-            .channel(chatID: chatID, messageID: message.messageID)
+            switch message.conversationKind {
+            case .captain:
+                guard let agentID = captainOf(chatID) else { return .dm(chatID: chatID, messageID: message.messageID) }
+                return .captain(agentID: agentID, messageID: message.messageID)
+            case .dm:
+                return .dm(chatID: chatID, messageID: message.messageID)
+            case .channel, nil:
+                return .channel(chatID: chatID, messageID: message.messageID)
+            }
         }
     }
 }
@@ -63,10 +69,15 @@ public final class PushTaps {
     }
 
     /// Routes the pending tap if it can, and says what is left to do.
-    public func route(into router: HausRouter, activeServerID: String?, memberServerIDs: [String]) -> PushTapOutcome {
+    public func route(
+        into router: HausRouter,
+        activeServerID: String?,
+        memberServerIDs: [String],
+        captainOf: (String) -> String? = { _ in nil }
+    ) -> PushTapOutcome {
         guard isMounted, let push = pending else { return .idle }
         if push.serverID == activeServerID {
-            router.apply(PushRouteTable.request(for: push), from: .outside)
+            router.apply(PushRouteTable.request(for: push, captainOf: captainOf), from: .outside)
             pending = nil
             return .routed
         }

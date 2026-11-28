@@ -34,27 +34,28 @@ public struct SearchPerson: Identifiable, Hashable, Sendable {
 /// A Task the viewer may read, from the Server's authorized Task lists.
 public struct SearchTask: Identifiable, Hashable, Sendable {
     public let id: String
-    public let key: String
+    public let shortID: String
     public let title: String
-    public let state: TaskState
+    public let disc: TaskDiscState
+    /// The Captain whose crew the Task is.
     public let captain: SearchCaptain?
-    /// The person who owns the Task when no Captain does.
+    /// The person who started the Task when no Captain did.
     public let person: SearchPerson?
     public let updatedAt: Date
 
     public init(
         id: String,
-        key: String,
+        shortID: String,
         title: String,
-        state: TaskState,
+        disc: TaskDiscState,
         captain: SearchCaptain?,
         person: SearchPerson? = nil,
         updatedAt: Date
     ) {
         self.id = id
-        self.key = key
+        self.shortID = shortID
         self.title = title
-        self.state = state
+        self.disc = disc
         self.captain = captain
         self.person = person
         self.updatedAt = updatedAt

@@ -86,13 +86,30 @@ public struct PullRequestPresentation: Identifiable, Hashable, Sendable {
 
     public var filesText: String { PullRequestDiffstat.filesText(reading.changedFiles) }
 
-    public var url: URL? { WorkerPresentation.externalURL(reading.url) }
+    public var url: URL? {
+        guard let url = URL(string: reading.url),
+              ["https", "http"].contains(url.scheme?.lowercased()), url.host != nil else { return nil }
+        return url
+    }
 
-    public var stateLabel: String { TaskPullRequestPresentation.stateLabel(reading.state) }
+    public var stateLabel: String {
+        switch reading.state {
+        case "open": "Open"
+        case "merged": "Merged"
+        case "closed": "Closed"
+        case "draft": "Draft"
+        default: "Unknown state"
+        }
+    }
 
     /// The review rollup, or nil when nobody knows it.
     public var reviewLabel: String? {
-        reading.review == "unknown" ? nil : TaskPullRequestPresentation.reviewLabel(reading.review)
+        switch reading.review {
+        case "approved": "Approved"
+        case "changes-requested": "Changes requested"
+        case "none": "No review"
+        default: nil
+        }
     }
 
     public var checksLabel: String {
@@ -103,13 +120,6 @@ public struct PullRequestPresentation: Identifiable, Hashable, Sendable {
         case "none": "None"
         default: "Unknown"
         }
-    }
-
-    /// `head → base` from the Worker's branch evidence, or the head alone.
-    public var branchText: String? {
-        guard let head = context.headBranch else { return nil }
-        guard let base = context.baseBranch else { return head }
-        return "\(head) \u{2192} \(base)"
     }
 
     /// When the reading was taken, which is the newest thing Haus knows.
@@ -132,7 +142,7 @@ public struct PullRequestPresentation: Identifiable, Hashable, Sendable {
     public var sourceNote: String {
         switch reading.source {
         case .github: "Read from GitHub. Review, comment and merge happen there."
-        case .computer: "Read by the Worker’s Device. Review, comment and merge happen on GitHub."
+        case .computer: "Read by a Device. Review, comment and merge happen on GitHub."
         }
     }
 

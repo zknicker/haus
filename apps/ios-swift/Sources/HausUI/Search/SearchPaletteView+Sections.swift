@@ -165,11 +165,11 @@ enum SearchPaletteFixtures {
         people: [SearchPerson(id: "user-mia", name: "Mia Chen", handle: "mia")],
         tasks: [
             SearchTask(
-                id: "task-41", key: "HAUS-41", title: "iPhone tab bar shell", state: .open,
+                id: "task-41", shortID: "k3mq7xta", title: "iPhone tab bar shell", disc: .active(.working),
                 captain: blippy, updatedAt: .now
             ),
             SearchTask(
-                id: "task-44", key: "HAUS-44", title: "Pick the Duo inner layout", state: .todo,
+                id: "task-44", shortID: "p8vd2nrw", title: "Pick the Duo inner layout", disc: .active(.idle),
                 captain: tiny, updatedAt: .now.addingTimeInterval(-7_200)
             ),
         ]

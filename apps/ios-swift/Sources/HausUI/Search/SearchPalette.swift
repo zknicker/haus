@@ -37,7 +37,7 @@ enum SearchPalette {
     static func tasks(_ tasks: [SearchTask], query: String) -> [SearchTask] {
         let term = trimmed(query)
         guard !term.isEmpty else { return recent(tasks) }
-        return ranked(recent(tasks), query: term) { [$0.title, $0.key] }
+        return ranked(recent(tasks), query: term) { [$0.title, $0.shortID] }
     }
 
     static func recent(_ tasks: [SearchTask]) -> [SearchTask] {

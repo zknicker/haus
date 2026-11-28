@@ -11,12 +11,10 @@ extension AuthenticatedHausView {
         HomeTabView(
             firstRun: firstRun,
             tiles: store.captainTiles,
-            workers: store.activeWorkers,
             recent: store.homeRecentRows,
-            openTasks: store.homeOpenTaskRows,
+            activeTasks: store.homeActiveTaskRows,
             tileActions: captainTileActions,
             onOpen: openHomeRow,
-            onOpenWorker: { openActiveWorker(workID: $0.id) },
             onMarkRead: { chatID in Task { await store.markInboxRowRead(id: chatID) } },
             onRefresh: refreshHome,
             onNewCaptain: store.canManageServer ? { router.present(.newCaptain) } : nil
@@ -35,20 +33,11 @@ extension AuthenticatedHausView {
     }
 
     var tasksRoot: some View {
-        TaskBoardScreen(
+        TasksTabScreen(
             store: store,
-            filter: Binding(
-                get: {
-                    var filter = taskBoardFilter
-                    if router.tasksFilter == .assignedToMe { filter.scope = .assignedToMe }
-                    return filter
-                },
-                set: { filter in
-                    taskBoardFilter = filter
-                    router.tasksFilter = filter.scope == .assignedToMe ? .assignedToMe : .following
-                }
-            ),
-            onOpenTask: { router.open(.task(taskID: $0, messageID: nil)) }
+            view: $router.tasksView,
+            onOpenTask: { router.open(.task(taskID: $0, messageID: nil)) },
+            onNewTask: { router.present(.askAnything) }
         )
     }
 
@@ -69,7 +58,6 @@ extension AuthenticatedHausView {
                 tabPath: path,
                 data: data,
                 persistence: store.settingsPersistence,
-                cloudAgentActions: store.cloudAgentSettings,
                 automations: store.agentAutomations { router.open(route(forChatID: $0), from: .outside) },
                 stoppedClaims: store.agentStoppedClaims { openClaim($0) },
                 notifications: push.setting,
@@ -95,7 +83,7 @@ extension AuthenticatedHausView {
             isTabRoot: true,
             palette: store.searchPaletteContent,
             actions: SearchPaletteActions(
-                onSelectCaptain: { router.open(.captainDM(agentID: $0), from: .outside) },
+                onSelectCaptain: { router.open(.captain(agentID: $0), from: .outside) },
                 onSelectTask: { router.open(.task(taskID: $0), from: .outside) },
                 onOpenPeople: { router.open(.settings(.people), from: .outside) },
                 onNewTask: { router.present(.askAnything) },

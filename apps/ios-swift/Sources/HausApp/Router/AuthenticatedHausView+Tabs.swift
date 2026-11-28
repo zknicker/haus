@@ -90,15 +90,14 @@ extension AuthenticatedHausView {
     }
 
     /// Compact width keeps the tab's stack. Regular width shows its list
-    /// beside the selection, with a Worker opened from its Task beside the
-    /// Task (specs/ios-app.md, iPhone Duo).
+    /// beside the selection (specs/ios-app.md, iPhone Duo).
     @ViewBuilder
     private func adaptiveStack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
         switch router.panes(tab) {
         case .stack:
             stack(tab, root: root)
-        case let .split(selection, _, side):
-            AdaptiveSplitView(showsSide: side != nil) {
+        case let .split(selection, _):
+            AdaptiveSplitView {
                 root().foldsBottomChrome(tab, router: router)
             } content: {
                 NavigationStack(path: splitStackBinding(tab)) {
@@ -112,11 +111,6 @@ extension AuthenticatedHausView {
                     .navigationDestination(for: HausRoute.self) { routeDestination($0) }
                 }
                 .id(selection)
-            } side: {
-                if let side {
-                    NavigationStack { routeDestination(side) }
-                        .id(side)
-                }
             }
         }
     }
@@ -124,7 +118,7 @@ extension AuthenticatedHausView {
     private func splitStackBinding(_ tab: HausTab) -> Binding<[HausRoute]> {
         Binding(
             get: {
-                guard case let .split(_, stack, _) = router.panes(tab) else { return [] }
+                guard case let .split(_, stack) = router.panes(tab) else { return [] }
                 return stack
             },
             set: { router.setSplitStack($0, for: tab) }

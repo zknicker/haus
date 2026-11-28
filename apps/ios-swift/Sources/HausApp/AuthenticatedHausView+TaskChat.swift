@@ -54,9 +54,8 @@ extension AuthenticatedHausView {
             engagementChatID: chatID,
             landingMessageID: router.revealedMessageID(in: .task(taskID)),
             editing: store.taskChatEditing(taskID: taskID),
-            workPill: store.workPill(.task(taskID), now: .now),
+            workPill: store.workPill(.task(taskID)),
             onOpenWork: { router.open(.work(.task(taskID))) },
-            onOpenWorker: { router.open(.worker(workerID: $0)) },
             mentionOptions: originDestination.map { store.mentionOptions(for: $0) } ?? [],
             onLoadMentionOptions: {
                 guard let originDestination else { return }

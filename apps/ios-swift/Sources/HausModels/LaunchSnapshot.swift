@@ -7,9 +7,9 @@ import Foundation
 /// Scoped to one signed-in user and one Server: each Server keeps its own file
 /// (`LaunchSnapshotStore`), and a cold launch paints only the active Server's.
 public struct LaunchSnapshot: Codable, Sendable, Equatable {
-    /// Bump whenever a carried model's encoding changes shape. Version 4 keys
-    /// the snapshot by Server and carries the Worker `status` decode.
-    public static let currentVersion = 4
+    /// Bump whenever a carried model's encoding changes shape. Version 5
+    /// carries ADR 0062's Captain chats and Task short ids.
+    public static let currentVersion = 5
     /// Pages beyond this many messages are not worth a cold-launch paint.
     public static let maximumPageMessages = 200
     public static let maximumPages = 3

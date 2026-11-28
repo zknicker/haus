@@ -101,7 +101,7 @@ extension SettingsSheet {
                 SettingsUnavailableView(title: "Automations")
             }
         case .automations, .drive, .general, .notifications, .captains, .models, .modelUsage, .projects, .project,
-             .server, .people, .computers, .cloudAgents, .appInfo:
+             .server, .people, .computers, .appInfo:
             hubDestination(for: route)
         case .description(let ownerID, let title):
             DescriptionEditorView(

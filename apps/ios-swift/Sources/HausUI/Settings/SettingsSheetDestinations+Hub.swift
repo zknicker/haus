@@ -30,8 +30,7 @@ extension SettingsSheet {
         case .models:
             ModelsConnectionsView(
                 connections: server.modelConnections,
-                onOpenUsage: { path.append(.modelUsage) },
-                onOpenCloudAgents: { path.append(.cloudAgents) }
+                onOpenUsage: { path.append(.modelUsage) }
             )
         case .modelUsage:
             ModelConnectionsUsageView(connections: server.modelConnections ?? [])
@@ -50,13 +49,7 @@ extension SettingsSheet {
         case .people:
             ServerPeopleView(members: data.members)
         case .computers:
-            ServerComputersView(computers: data.computers, setWorkers: server.setWorkers)
-        case .cloudAgents:
-            WorkerSettingsView(
-                computers: data.computers,
-                canManage: canManageServer,
-                actions: cloudAgentActions
-            )
+            ServerComputersView(computers: data.computers)
         case .appInfo:
             AppInfoView()
         case .profile, .agent, .agentRuntime, .agentAutomations, .description:

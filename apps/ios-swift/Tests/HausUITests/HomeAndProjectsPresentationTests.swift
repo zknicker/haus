@@ -73,16 +73,6 @@ struct HomeAndProjectsPresentationTests {
         #expect(ProjectsFilter(captainID: "blippy").isNarrowed)
     }
 
-    @Test("A repo names the Devices it is checked out on")
-    func repoLinksLine() throws {
-        let links = try JSONDecoder().decode(
-            [ProjectRepoLink].self,
-            from: Data(#"[{"checkoutPath":null,"computerId":"c1","computerName":"Studio"},{"checkoutPath":null,"computerId":"c2","computerName":null}]"#.utf8)
-        )
-        #expect(ProjectReposSection.linksLine(links) == "Studio, A Device")
-        #expect(ProjectReposSection.linksLine([]) == "Not on any Device")
-    }
-
     private func row(
         time: Date? = nil,
         placement: HomeRowPresentation.TimePlacement = .trailing,
@@ -91,7 +81,7 @@ struct HomeAndProjectsPresentationTests {
     ) -> HomeRowPresentation {
         HomeRowPresentation(
             id: "row",
-            lead: .task(.open),
+            lead: .task(.active(.working)),
             title: "Row",
             subtitle: subtitle,
             time: time,

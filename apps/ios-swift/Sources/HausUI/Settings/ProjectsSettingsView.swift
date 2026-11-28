@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The Server's Projects and their setup: key, repositories, and where their
-/// Workers run. Blank until `project.list` lands; a failed first read says so.
+/// The Server's Projects and their setup: key and default Machine. Blank
+/// until `project.list` lands; a failed first read says so.
 struct ProjectsSettingsView: View {
     let projects: [SettingsProject]?
     let reload: @Sendable () async throws -> Void
@@ -66,27 +66,11 @@ struct ProjectSettingsDetailView: View {
                         ValueRow("Key", value: project.key, icon: .handle)
                     }
                     ValueRow(
-                        "Workers run on",
-                        value: project.defaultWorkerPlace ?? "Ask each time",
+                        "Default Machine",
+                        value: project.defaultMachine ?? "No default",
                         icon: .computer,
                         showsDivider: false
                     )
-                }
-                SettingsSection("Repositories", footer: "Change a Project’s setup in the Haus desktop app.") {
-                    SettingsListGroup {
-                        if project.repositories.isEmpty {
-                            AutomationNote("No repositories.")
-                        }
-                        ForEach(project.repositories, id: \.self) { repository in
-                            SettingsRow(
-                                title: repository,
-                                icon: .github,
-                                showsDivider: repository != project.repositories.last
-                            ) {
-                                EmptyView()
-                            }
-                        }
-                    }
                 }
             }
             .padding(.horizontal, 16)

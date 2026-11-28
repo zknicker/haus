@@ -4,13 +4,9 @@ import HausTransport
 
 public enum TaskWriteError: LocalizedError, Equatable {
     case invalidTitle
-    case nothingToChange
 
     public var errorDescription: String? {
-        switch self {
-        case .invalidTitle: "Give the Task a title of up to \(TaskText.titleMaxCharacters) characters."
-        case .nothingToChange: "There is nothing to change."
-        }
+        "Give the Task a title of up to \(TaskText.titleMaxCharacters) characters."
     }
 }
 
@@ -36,33 +32,27 @@ extension TasksModel {
 
     // MARK: - Writes
 
-    /// Starts a Task in `projectID` for a Captain, and lands the Server's record.
-    public func create(title: String, projectID: String, assigneeAgentID: String, description: String? = nil) async throws -> TaskRecord {
+    /// `task.start`, and lands the Server's record.
+    public func start(_ input: TaskStartInput) async throws -> TaskRecord {
         let ticket = try scope.requireTicket()
-        let trimmed = description?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let input = TaskCreateInput(
-            assigneeAgentID: assigneeAgentID,
-            description: trimmed?.isEmpty == false ? trimmed : nil,
-            projectID: projectID,
-            serverID: ticket.serverID,
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines)
-        ) else { throw TaskWriteError.invalidTitle }
-        let result = try await client.call(TaskProcedures.create, input)
+        let result = try await client.call(TaskProcedures.start, input)
         landWrite(result.task, ticket: ticket)
         return result.task
     }
 
-    public func setState(_ state: TaskTargetState, of task: TaskRecord) async throws {
+    /// Archives or restores `task`. Restoring starts no turn.
+    public func setArchived(_ archived: Bool, of task: TaskRecord) async throws {
         let ticket = try scope.requireTicket()
-        let input = TaskSetStateInput(expectedVersion: task.version, serverID: ticket.serverID, state: state, taskID: task.id)
-        landWrite(try await client.call(TaskProcedures.setState, input).task, ticket: ticket)
+        let input = TaskArchiveInput(expectedVersion: task.version, serverID: ticket.serverID, taskID: task.id)
+        let procedure = archived ? TaskProcedures.archive : TaskProcedures.unarchive
+        landWrite(try await client.call(procedure, input).task, ticket: ticket)
     }
 
-    /// Assigns `task` to a Captain or a person; nil unassigns it.
-    public func assign(_ assignee: TaskActor?, to task: TaskRecord) async throws {
+    public func rename(_ task: TaskRecord, to title: String) async throws {
         let ticket = try scope.requireTicket()
-        let input = Self.assignInput(assignee, to: task, serverID: ticket.serverID)
-        landWrite(try await client.call(TaskProcedures.assign, input).task, ticket: ticket)
+        guard let input = TaskUpdateInput(title: title, expectedVersion: task.version, serverID: ticket.serverID, taskID: task.id)
+        else { throw TaskWriteError.invalidTitle }
+        landWrite(try await client.call(TaskProcedures.update, input).task, ticket: ticket)
     }
 
     public func setFollow(_ followed: Bool, taskID: String) async throws {
@@ -72,31 +62,20 @@ extension TasksModel {
         landFollow(receipt.followed, taskID: receipt.taskID, ticket: ticket)
     }
 
-    public func update(_ patch: TaskUpdatePatch?, of task: TaskRecord) async throws {
-        guard let patch else { throw TaskWriteError.nothingToChange }
-        let ticket = try scope.requireTicket()
-        let input = TaskUpdateInput(expectedVersion: task.version, patch: patch, serverID: ticket.serverID, taskID: task.id)
-        landWrite(try await client.call(TaskProcedures.update, input).task, ticket: ticket)
-    }
-
-    nonisolated public static func assignInput(_ assignee: TaskActor?, to task: TaskRecord, serverID: String) -> TaskAssignInput {
-        TaskAssignInput(assignee: assignee, expectedVersion: task.version, serverID: serverID, taskID: task.id)
-    }
-
     /// Lands a write's answer in the detail and the lists that hold its Task,
     /// unless the Server changed while it was in flight or a newer version
-    /// already landed.
+    /// already landed. Lists move a Task by archive state on the next read.
     @discardableResult
     public func landWrite(_ task: TaskRecord, ticket: ServerTicket) -> Bool {
         guard scope.isCurrent(ticket) else { return false }
         if let detail = detailsByID[task.id], detail.task.version <= task.version, detail.task != task {
             detailsByID[task.id] = detail.replacing(task: task)
         }
-        if let open = openTasks, let next = Self.replacing(task, in: open), next != open {
-            openTasks = next
+        if let active = activeTasks, let next = Self.replacing(task, in: active), next != active {
+            activeTasks = next
         }
         if let list, let next = Self.replacing(task, in: list.tasks), next != list.tasks {
-            self.list = TaskListSnapshot(filter: list.filter, tasks: next)
+            self.list = TaskListSnapshot(archived: list.archived, tasks: next)
         }
         return true
     }
@@ -117,22 +96,5 @@ extension TasksModel {
         var next = tasks
         next[index] = task
         return next
-    }
-}
-
-extension TaskDetail {
-    func replacing(task: TaskRecord? = nil, followed: Bool? = nil) -> TaskDetail {
-        let task = task ?? self.task
-        return TaskDetail(
-            task: task,
-            descriptionContent: task.description == self.task.description ? descriptionContent : nil,
-            descriptionTaskLinks: task.description == self.task.description ? descriptionTaskLinks : [],
-            mentions: mentions,
-            reminders: reminders,
-            attachedWork: attachedWork,
-            pullRequests: pullRequests,
-            followed: followed ?? self.followed,
-            unreadCount: unreadCount
-        )
     }
 }

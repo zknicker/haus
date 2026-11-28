@@ -21,7 +21,7 @@ extension HausStore {
             case .implicitAgentDM(let agent):
                 response = try await client.query(
                     "chat.mentionOptions",
-                    input: AgentDMMentionOptionsInput(agentID: agent.id, serverID: serverID)
+                    input: CaptainMentionOptionsInput(agentID: agent.id, serverID: serverID)
                 )
             }
             mentionOptionsByDestinationID[destination.id] = response.options.compactMap {

@@ -1,43 +1,51 @@
+import Foundation
 import HausModels
 import Testing
 @testable import HausAppModel
 
 @Suite("Ask anything and first run")
 struct ShellPlansTests {
-    @Test("The first line titles the Task and the rest describes it")
-    func firstLineTitles() throws {
-        let input = try #require(
-            AskAnythingPlan.task(text: "  Ship the tab bar\n\nKeep the drawer for now. ", projectID: "p", captainID: "a", serverID: "s")
-        )
-        #expect(input.title == "Ship the tab bar")
-        #expect(input.description == "Keep the drawer for now.")
+    @Test("The ask is the Task's first message, trimmed, on the picked Machine and model")
+    func askStartsATask() throws {
+        let input = try #require(AskAnythingPlan.task(
+            text: "  Ship the tab bar\n\nKeep the drawer for now. ",
+            projectID: "p",
+            model: "gpt-5",
+            computerID: "cmp_1",
+            requestID: "req_1",
+            serverID: "s"
+        ))
+        #expect(input.prompt == "Ship the tab bar\n\nKeep the drawer for now.")
         #expect(input.projectID == "p")
-        #expect(input.assigneeAgentID == "a")
+        #expect(input.model == "gpt-5")
+        #expect(input.computerID == "cmp_1")
+        #expect(input.requestID == "req_1")
         #expect(input.serverID == "s")
     }
 
-    @Test("A one-line ask has no description, and a blank ask makes no Task")
-    func oneLineAndBlank() {
-        #expect(AskAnythingPlan.task(text: "Fix it", projectID: "p", captainID: "a", serverID: "s")?.description == nil)
-        #expect(AskAnythingPlan.task(text: " \n ", projectID: "p", captainID: "a", serverID: "s") == nil)
+    @Test("A blank ask, or one with no model, starts no Task")
+    func blankAskStartsNothing() {
+        #expect(AskAnythingPlan.task(text: " \n ", projectID: "p", model: "gpt-5", computerID: nil, requestID: "r", serverID: "s") == nil)
+        #expect(AskAnythingPlan.task(text: "Fix it", projectID: "p", model: "", computerID: nil, requestID: "r", serverID: "s") == nil)
     }
 
-    @Test("A lead too long for a title is cut, and the whole ask becomes the description")
-    func longLeadIsCut() throws {
-        let lead = String(repeating: "a", count: TaskText.titleMaxCharacters + 5)
-        let input = try #require(AskAnythingPlan.task(text: lead + "\nmore", projectID: "p", captainID: "a", serverID: "s"))
-        #expect(input.title.count == TaskText.titleMaxCharacters)
-        #expect(input.title.hasSuffix("…"))
-        #expect(input.description == lead + "\nmore")
+    @Test("No Machine leaves the Project's default to the Server")
+    func noMachineIsOmitted() throws {
+        let input = try #require(
+            AskAnythingPlan.task(text: "Fix it", projectID: "p", model: "gpt-5", computerID: nil, requestID: "r", serverID: "s")
+        )
+        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(input)) as? [String: Any]
+        #expect(json?["computerId"] == nil)
+        #expect(json?["prompt"] as? String == "Fix it")
     }
 
-    @Test("The picked Captain wins, then the Project's, then the first")
-    func captainChoice() {
+    @Test("The pick wins while listed, then the preferred one, then the first")
+    func choice() {
         let ids = ["a", "b", "c"]
-        #expect(AskAnythingPlan.captainID(captainIDs: ids, picked: "c", projectCaptainIDs: ["b"]) == "c")
-        #expect(AskAnythingPlan.captainID(captainIDs: ids, picked: "gone", projectCaptainIDs: ["x", "b"]) == "b")
-        #expect(AskAnythingPlan.captainID(captainIDs: ids, picked: nil, projectCaptainIDs: []) == "a")
-        #expect(AskAnythingPlan.captainID(captainIDs: [], picked: nil, projectCaptainIDs: []) == nil)
+        #expect(AskAnythingPlan.choice(ids, picked: "c", preferred: "b") == "c")
+        #expect(AskAnythingPlan.choice(ids, picked: "gone", preferred: "b") == "b")
+        #expect(AskAnythingPlan.choice(ids, picked: nil, preferred: "gone") == "a")
+        #expect(AskAnythingPlan.choice([], picked: nil) == nil)
     }
 
     @Test("A Server with a Project and a Captain needs no first run")

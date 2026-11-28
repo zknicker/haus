@@ -28,12 +28,7 @@ extension TaskChatView {
             case nil:
                 EmptyView()
             }
-            if let report = message.workerReport {
-                WorkerReportLine(report.line) { onOpenWorker(report.workerID) }
-                    .padding(.top, entry.topSpacing)
-            } else {
-                messageBody(entry)
-            }
+            messageBody(entry)
         }
     }
 

@@ -143,11 +143,11 @@ struct RichReferenceParityTests {
             mark: .glyph(.pullRequest)
         ),
         Row(
-            markdown: #"[Open \[draft C:\\fix](worker://caw_1)"#,
-            kind: .cloudAgentWork,
-            id: "caw_1",
-            label: #"Open [draft C:\fix"#,
-            mark: .glyph(.cloud)
+            markdown: "[Rotate tokens](task://tsk_1)",
+            kind: .task,
+            id: "tsk_1",
+            label: "Rotate tokens",
+            mark: .glyph(.tasks)
         ),
         // A stable library URL on the open Server, keyed by id and revision.
         // Its words stand until the title loads; bare-address words read as

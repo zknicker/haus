@@ -84,12 +84,15 @@ extension HausStore {
         switch chat.kind {
         case .channel:
             return (chat.name ?? (chat.isAll ? "all" : "Project"), .channel)
-        case .dm:
-            let name = chat.peerAgentID.flatMap { agentsByID[$0]?.displayName }
-                ?? chat.peerAgentDisplayName ?? "DM"
+        case .captain:
+            let name = chat.captainID.flatMap { agentsByID[$0]?.displayName }
+                ?? chat.peerAgentDisplayName ?? "Captain"
             return (name, .directMessage)
-        case .task, .unknown:
-            return (chat.name ?? "Task", .channel)
+        case .dm:
+            let name = chat.peerUserID.flatMap { membersByID[$0] }.flatMap { $0.displayName ?? $0.handle } ?? "DM"
+            return (name, .directMessage)
+        case .unknown:
+            return (chat.name ?? "Chat", .channel)
         }
     }
 }

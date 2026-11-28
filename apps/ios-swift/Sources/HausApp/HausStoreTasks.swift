@@ -11,10 +11,6 @@ extension HausStore {
         try await tasks.reloadDetail(taskID: taskID)
     }
 
-    func reloadTaskLabels() async throws {
-        try await tasks.reloadLabels()
-    }
-
     func activeServerID() throws -> String {
         guard let serverID = activeServer?.id else { throw HausStoreError.serverUnavailable }
         return serverID

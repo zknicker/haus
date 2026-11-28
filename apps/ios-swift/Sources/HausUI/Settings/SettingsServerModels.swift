@@ -1,31 +1,18 @@
 import Foundation
 import HausModels
 
-/// A Device's "Workers can run here" switch, as `computer.list` reports it.
-public struct SettingsComputerWorkers: Hashable, Sendable {
-    public let isEnabled: Bool
-    public let canChange: Bool
-
-    public init(isEnabled: Bool, canChange: Bool) {
-        self.isEnabled = isEnabled
-        self.canChange = canChange
-    }
-}
-
-/// A Project's setup as You shows it: its key, repositories, and default Worker place.
+/// A Project's setup as You shows it: its key and default Machine.
 public struct SettingsProject: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let key: String
-    public let repositories: [String]
-    public let defaultWorkerPlace: String?
+    public let defaultMachine: String?
 
-    public init(id: String, name: String, key: String, repositories: [String] = [], defaultWorkerPlace: String? = nil) {
+    public init(id: String, name: String, key: String, defaultMachine: String? = nil) {
         self.id = id
         self.name = name
         self.key = key
-        self.repositories = repositories
-        self.defaultWorkerPlace = defaultWorkerPlace
+        self.defaultMachine = defaultMachine
     }
 }
 
@@ -99,23 +86,19 @@ public struct SettingsServerContent {
     /// `artifact.list` for one Drive folder, by its path prefix.
     public let loadDrive: @Sendable (String) async throws -> DriveListing
     public let openDriveFile: @MainActor (DriveFilePresentation) -> Void
-    /// `computer.setWorkers`, by Computer id.
-    public let setWorkers: @Sendable (String, Bool) async throws -> Void
 
     public init(
         projects: [SettingsProject]?,
         modelConnections: [SettingsModelConnection]?,
         reloadProjects: @escaping @Sendable () async throws -> Void,
         loadDrive: @escaping @Sendable (String) async throws -> DriveListing,
-        openDriveFile: @escaping @MainActor (DriveFilePresentation) -> Void,
-        setWorkers: @escaping @Sendable (String, Bool) async throws -> Void
+        openDriveFile: @escaping @MainActor (DriveFilePresentation) -> Void
     ) {
         self.projects = projects
         self.modelConnections = modelConnections
         self.reloadProjects = reloadProjects
         self.loadDrive = loadDrive
         self.openDriveFile = openDriveFile
-        self.setWorkers = setWorkers
     }
 
     public static var preview: SettingsServerContent {
@@ -124,21 +107,14 @@ public struct SettingsServerContent {
             modelConnections: SettingsFixtures.modelConnections,
             reloadProjects: {},
             loadDrive: { _ in DriveListing(folders: [], files: []) },
-            openDriveFile: { _ in },
-            setWorkers: { _, _ in }
+            openDriveFile: { _ in }
         )
     }
 }
 
 extension SettingsFixtures {
     public static let projects = [
-        SettingsProject(
-            id: "project-haus",
-            name: "haus",
-            key: "HAUS",
-            repositories: ["zknicker/haus"],
-            defaultWorkerPlace: "Zach's MacBook Pro"
-        ),
+        SettingsProject(id: "project-haus", name: "haus", key: "HAUS", defaultMachine: "Zach's MacBook Pro"),
     ]
 
     public static let modelConnections = [

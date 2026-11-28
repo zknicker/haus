@@ -6,7 +6,6 @@ public enum RouteScreen: Hashable, Sendable {
     case conversation
     case task(taskID: String)
     case work(HausWorkPlace)
-    case worker(workerID: String)
     case pullRequest(PullRequestReading)
     /// A Drive folder's listing, by its prefix (`projects/haus/`).
     case driveFolder(prefix: String)
@@ -17,10 +16,9 @@ public enum RouteScreen: Hashable, Sendable {
 
     public init(_ route: HausRoute) {
         switch route {
-        case .captainDM, .channel, .dm: self = .conversation
+        case .captain, .channel, .dm: self = .conversation
         case .task(let taskID, _): self = .task(taskID: taskID)
         case .work(let place): self = .work(place)
-        case .worker(let workerID): self = .worker(workerID: workerID)
         case .pullRequest(let reading): self = .pullRequest(reading)
         case .driveFile(let path): self = DrivePath.isFolder(path) ? .driveFolder(prefix: path) : .driveFile(path: path)
         case .projectSettings(let projectID): self = .projectSettings(projectID: projectID)

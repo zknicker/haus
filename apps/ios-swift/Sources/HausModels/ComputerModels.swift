@@ -83,8 +83,4 @@ public struct ComputerSummary: Codable, Identifiable, Sendable, Equatable {
     public let updateTargetVersion: String?
     public let updateTotalBytes: Int?
     public let updateUpdatedAt: Date?
-    /// The "Workers can run here" switch; absent from Servers that predate it.
-    public let workersEnabled: Bool?
-    /// Whether the viewer may call `computer.setWorkers`: the attacher, an Owner, or an Admin.
-    public let canChangeWorkers: Bool?
 }

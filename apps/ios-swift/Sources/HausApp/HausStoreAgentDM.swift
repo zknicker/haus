@@ -29,7 +29,7 @@ extension HausStore {
         guard case .agentDM(let agentID) = row.target else { return .rejected }
         do {
             let client = self.client
-            let input = SendAgentDMInput(
+            let input = SendCaptainChatInput(
                 agentID: agentID,
                 content: row.content,
                 nonce: row.nonce,

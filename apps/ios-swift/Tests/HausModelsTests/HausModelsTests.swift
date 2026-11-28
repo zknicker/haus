@@ -231,7 +231,9 @@ final class HausModelsTests: XCTestCase {
         XCTAssertEqual(HausPreviewFixtures.server.slug, "haus")
         XCTAssertEqual(HausPreviewFixtures.agents.first?.displayName, "Blippy")
         XCTAssertEqual(HausPreviewFixtures.memberDirectory.viewerUserID, "user_preview")
-        XCTAssertEqual(HausPreviewFixtures.chats.last?.kind, .dm)
+        XCTAssertEqual(HausPreviewFixtures.chats.last?.kind, .captain)
+        XCTAssertEqual(HausPreviewFixtures.chats.last?.captainID, "agent_blippy")
+        XCTAssertEqual(HausPreviewFixtures.agents.first?.captainChatID, "chat_blippy")
         XCTAssertEqual(HausPreviewFixtures.chats.first?.name, "all")
         XCTAssertEqual(HausPreviewFixtures.messages.first?.content, "Welcome to Haus.")
     }

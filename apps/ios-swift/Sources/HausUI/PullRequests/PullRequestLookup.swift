@@ -11,14 +11,6 @@ public enum PullRequestLookup {
         return pullRequests.first { $0.id.caseInsensitiveCompare(id) == .orderedSame }
     }
 
-    /// The pull request a Worker report cited.
-    public static func find(
-        cited: WorkerCitedPullRequest,
-        in pullRequests: [PullRequestPresentation]
-    ) -> PullRequestPresentation? {
-        pullRequests.first { $0.id.caseInsensitiveCompare(cited.id) == .orderedSame }
-    }
-
     /// `owner/repo#n`, the id a reading of that address carries.
     static func readingID(_ url: URL) -> String? {
         let parts = url.path.split(separator: "/").map(String.init)

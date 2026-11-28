@@ -4,10 +4,8 @@ import XCTest
 
 final class ProjectContractTests: XCTestCase {
     private let project = """
-    {"archived":false,"chatId":"chat_sec","defaultWorkerPlace":{"computerId":"cmp_1","computerName":null,"kind":"computer"},
+    {"archived":false,"chatId":"chat_sec","defaultMachine":{"computerId":"cmp_1","computerName":"Studio"},
      "homeAgentIds":["agent_1"],"isHaus":false,"key":"SEC","keyEditable":true,"name":"sec",
-     "repos":[{"id":"repo_1","links":[{"checkoutPath":null,"computerId":"cmp_1","computerName":"Studio"}],
-       "repository":"haus/haus"}],
      "serverId":"server_1","taskKeyId":"key_sec"}
     """
 
@@ -16,22 +14,20 @@ final class ProjectContractTests: XCTestCase {
         XCTAssertEqual(ProjectProcedures.list.kind, .query)
         XCTAssertEqual(ProjectProcedures.create.path, "project.create")
         XCTAssertEqual(ProjectProcedures.update.path, "project.update")
-        XCTAssertEqual(ProjectProcedures.addRepo.path, "project.addRepo")
-        XCTAssertEqual(ProjectProcedures.removeRepo.path, "project.removeRepo")
-        XCTAssertEqual(ProjectProcedures.linkRepo.path, "project.linkRepo")
-        XCTAssertEqual(ProjectProcedures.unlinkRepo.path, "project.unlinkRepo")
-        XCTAssertEqual(ProjectProcedures.setDefaultWorkerPlace.path, "project.setDefaultWorkerPlace")
-        XCTAssertEqual(ProjectProcedures.setDefaultWorkerPlace.kind, .mutation)
+        XCTAssertEqual(ProjectProcedures.setDefaultMachine.path, "project.setDefaultMachine")
+        XCTAssertEqual(ProjectProcedures.setDefaultMachine.kind, .mutation)
     }
 
-    func testAProjectDecodesItsReposAndDefaultPlace() throws {
+    func testAProjectDecodesItsDefaultMachine() throws {
         let decoded = try ContractFixtures.decode([Project].self, "[\(project)]")
         let sec = try XCTUnwrap(decoded.first)
         XCTAssertEqual(sec.key, ProjectKey("SEC"))
-        XCTAssertEqual(sec.defaultWorkerPlace?.computerId, "cmp_1")
-        XCTAssertEqual(sec.repos.first?.links.first?.computerName, "Studio")
-        XCTAssertNil(sec.repos.first?.links.first?.checkoutPath)
+        XCTAssertEqual(sec.defaultMachine, ProjectDefaultMachine(computerID: "cmp_1", computerName: "Studio"))
         XCTAssertEqual(sec.homeAgentIDs, ["agent_1"])
+        let none = try ContractFixtures.decode(Project.self, project.replacingOccurrences(
+            of: #"{"computerId":"cmp_1","computerName":"Studio"}"#, with: "null"
+        ))
+        XCTAssertNil(none.defaultMachine)
     }
 
     func testAProjectWithAMalformedKeyOrMissingFieldFails() {
@@ -43,16 +39,10 @@ final class ProjectContractTests: XCTestCase {
         let result = try ContractFixtures.decode(ProjectMutationResult.self, #"{"chat":\#(ContractFixtures.chat),"project":\#(project)}"#)
         XCTAssertEqual(result.chat.id, "chat_sec")
         XCTAssertEqual(result.project.id, "chat_sec")
-        let added = try ContractFixtures.decode(ProjectRepoAdded.self, #"{"projectRepoId":"repo_2","repository":"haus/site"}"#)
-        XCTAssertEqual(added.projectRepoID, "repo_2")
-        let linked = try ContractFixtures.decode(ProjectRepoLinkReceipt.self, #"{"computerId":"cmp_1","projectRepoId":"repo_2"}"#)
-        XCTAssertEqual(linked.computerID, "cmp_1")
-        let removed = try ContractFixtures.decode(ProjectRepoRemoved.self, #"{"projectRepoId":"repo_2"}"#)
-        XCTAssertEqual(removed.projectRepoID, "repo_2")
-        let cleared = try ContractFixtures.decode(ProjectDefaultWorkerPlace.self, #"{"place":null}"#)
-        XCTAssertNil(cleared.place)
-        let cloud = try ContractFixtures.decode(ProjectDefaultWorkerPlace.self, #"{"place":{"kind":"cursor"}}"#)
-        XCTAssertEqual(cloud.place, .cursor)
+        let machine = try ContractFixtures.decode(ProjectDefaultMachineReceipt.self, #"{"computerId":"cmp_1"}"#)
+        XCTAssertEqual(machine.computerID, "cmp_1")
+        let cleared = try ContractFixtures.decode(ProjectDefaultMachineReceipt.self, #"{"computerId":null}"#)
+        XCTAssertNil(cleared.computerID)
         let event = try ContractFixtures.decode(ProjectUpdatedEvent.self, #"{"projectId":"project_sec","serverId":"server_1"}"#)
         XCTAssertEqual(event.projectID, "project_sec")
     }
@@ -82,31 +72,14 @@ final class ProjectContractTests: XCTestCase {
         ))
     }
 
-    func testRepoAndPlaceInputsSendTheirExactShapes() throws {
-        let add = try XCTUnwrap(ProjectRepoInput(projectID: "project_sec", repository: "haus/haus", serverID: "server_1"))
-        XCTAssertEqual(try ContractFixtures.encoded(add), try ContractFixtures.object(
-            #"{"projectId":"project_sec","repository":"haus/haus","serverId":"server_1"}"#
+    func testTheDefaultMachineInputSendsItsExactShapeAndClearsWithNull() throws {
+        let set = ProjectSetDefaultMachineInput(computerID: "cmp_1", projectID: "chat_sec", serverID: "server_1")
+        XCTAssertEqual(try ContractFixtures.encoded(set), try ContractFixtures.object(
+            #"{"computerId":"cmp_1","projectId":"chat_sec","serverId":"server_1"}"#
         ))
-        XCTAssertNil(ProjectRepoInput(projectID: "p", repository: "haus", serverID: "s"))
-        let link = ProjectRepoLinkInput(checkoutPath: nil, computerID: "cmp_1", projectRepoID: "repo_1", serverID: "server_1")
-        XCTAssertEqual(try ContractFixtures.encoded(link), try ContractFixtures.object(
-            #"{"checkoutPath":null,"computerId":"cmp_1","projectRepoId":"repo_1","serverId":"server_1"}"#
-        ))
-        let unlink = ProjectRepoUnlinkInput(computerID: "cmp_1", projectRepoID: "repo_1", serverID: "server_1")
-        XCTAssertEqual(try ContractFixtures.encoded(unlink), try ContractFixtures.object(
-            #"{"computerId":"cmp_1","projectRepoId":"repo_1","serverId":"server_1"}"#
-        ))
-        let remove = ProjectRepoTarget(projectRepoID: "repo_1", serverID: "server_1")
-        XCTAssertEqual(try ContractFixtures.encoded(remove), try ContractFixtures.object(
-            #"{"projectRepoId":"repo_1","serverId":"server_1"}"#
-        ))
-        let place = ProjectDefaultWorkerPlaceInput(place: .computer(id: "cmp_1"), projectID: "project_sec", serverID: "server_1")
-        XCTAssertEqual(try ContractFixtures.encoded(place), try ContractFixtures.object(
-            #"{"place":{"computerId":"cmp_1","kind":"computer"},"projectId":"project_sec","serverId":"server_1"}"#
-        ))
-        let ask = ProjectDefaultWorkerPlaceInput(place: nil, projectID: "project_sec", serverID: "server_1")
-        XCTAssertEqual(try ContractFixtures.encoded(ask), try ContractFixtures.object(
-            #"{"place":null,"projectId":"project_sec","serverId":"server_1"}"#
+        let clear = ProjectSetDefaultMachineInput(computerID: nil, projectID: "chat_sec", serverID: "server_1")
+        XCTAssertEqual(try ContractFixtures.encoded(clear), try ContractFixtures.object(
+            #"{"computerId":null,"projectId":"chat_sec","serverId":"server_1"}"#
         ))
     }
 

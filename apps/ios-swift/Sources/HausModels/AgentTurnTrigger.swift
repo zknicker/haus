@@ -15,20 +15,22 @@ public enum AgentTurnTrigger: Hashable, Sendable {
     case claim(chatID: String, messageID: String, preview: AgentTurnTriggerPreview?)
     case reminder(chatID: String)
     case trigger(chatID: String)
-    case worker(chatID: String)
+    case pullRequest(chatID: String)
     case onboarding(chatID: String)
     case greeting(chatID: String)
     case subagent
-    case task(key: String, taskID: String, title: String, more: Int?)
+    /// An Issue assigned to the agent or changed under it; `more` counts the
+    /// others its run coalesced.
+    case issue(code: String, issueID: String, title: String, more: Int?)
     case hidden
 }
 
 extension AgentTurnTrigger: Decodable {
     enum CodingKeys: String, CodingKey {
-        case author, kind, key, more, preview, title
+        case author, code, kind, more, preview, title
         case chatID = "chatId"
+        case issueID = "issueId"
         case messageID = "messageId"
-        case taskID = "taskId"
     }
 
     public init(from decoder: Decoder) throws {
@@ -50,14 +52,14 @@ extension AgentTurnTrigger: Decodable {
             )
         case "reminder": self = .reminder(chatID: try chatID())
         case "trigger": self = .trigger(chatID: try chatID())
-        case "worker": self = .worker(chatID: try chatID())
+        case "pull_request": self = .pullRequest(chatID: try chatID())
         case "onboarding": self = .onboarding(chatID: try chatID())
         case "greeting": self = .greeting(chatID: try chatID())
         case "subagent": self = .subagent
-        case "task":
-            self = .task(
-                key: try container.decode(String.self, forKey: .key),
-                taskID: try container.decode(String.self, forKey: .taskID),
+        case "issue":
+            self = .issue(
+                code: try container.decode(String.self, forKey: .code),
+                issueID: try container.decode(String.self, forKey: .issueID),
                 title: try container.decode(String.self, forKey: .title),
                 more: try container.decodeIfPresent(Int.self, forKey: .more)
             )

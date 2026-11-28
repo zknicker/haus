@@ -52,17 +52,12 @@ extension HausStore {
     var currentActivityByAgentID: [String: AgentActivityEvent] { captains.currentActivityByAgentID }
     var lifecycleRevision: Int { captains.lifecycleRevision }
 
-    // MARK: - Workers and settings
+    // MARK: - Settings
 
-    var activeWorkers: [ActiveWorker]? { workers.live }
     var computers: [ComputerSummary]? { settingsModel.computers }
     var modelConnections: ModelConnectionsRead? { settingsModel.modelConnections }
 
     func loadComputers(serverID: String) async {
         await settingsModel.load(serverID: serverID)
-    }
-
-    func loadActiveWorkers() async {
-        await workers.loadActive()
     }
 }

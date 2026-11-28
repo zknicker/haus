@@ -1,20 +1,5 @@
 import Foundation
 
-public enum TaskState: String, Codable, Hashable, Sendable {
-    case todo
-    case open
-    case done
-    case canceled
-    case unknown
-
-    public init(from decoder: Decoder) throws {
-        let raw = try decoder.singleValueContainer().decode(String.self)
-        self = TaskState(rawValue: raw) ?? .unknown
-    }
-
-    public var isClosed: Bool { self == .done || self == .canceled }
-}
-
 public struct TaskOrigin: Codable, Hashable, Sendable {
     public let chatID: String
     public let messageID: String
@@ -30,12 +15,14 @@ public struct TaskOrigin: Codable, Hashable, Sendable {
     }
 }
 
+/// A Task as its origin Channel previews it under the Message it started
+/// from: its newest messages and whether it is archived.
 public struct TaskPreview: Codable, Identifiable, Equatable, Sendable {
     public let taskID: String
     public let chatID: String
-    public let key: String
+    public let shortID: String
     public let title: String
-    public let state: TaskState
+    public let archivedAt: Date?
     public let originMessageID: String
     public let recentMessages: [TaskMessagePreview]
     public let messageCount: Int
@@ -43,13 +30,14 @@ public struct TaskPreview: Codable, Identifiable, Equatable, Sendable {
     public let followed: Bool
 
     public var id: String { taskID }
+    public var isArchived: Bool { archivedAt != nil }
 
     enum CodingKeys: String, CodingKey {
         case taskID = "taskId"
         case chatID = "chatId"
-        case key
+        case shortID = "shortId"
         case title
-        case state
+        case archivedAt
         case originMessageID = "originMessageId"
         case recentMessages
         case messageCount
@@ -60,9 +48,9 @@ public struct TaskPreview: Codable, Identifiable, Equatable, Sendable {
     public init(
         taskID: String,
         chatID: String,
-        key: String,
+        shortID: String,
         title: String,
-        state: TaskState,
+        archivedAt: Date? = nil,
         originMessageID: String,
         recentMessages: [TaskMessagePreview] = [],
         messageCount: Int,
@@ -71,28 +59,14 @@ public struct TaskPreview: Codable, Identifiable, Equatable, Sendable {
     ) {
         self.taskID = taskID
         self.chatID = chatID
-        self.key = key
+        self.shortID = shortID
         self.title = title
-        self.state = state
+        self.archivedAt = archivedAt
         self.originMessageID = originMessageID
         self.recentMessages = recentMessages
         self.messageCount = messageCount
         self.unreadCount = unreadCount
         self.followed = followed
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        taskID = try container.decode(String.self, forKey: .taskID)
-        chatID = try container.decode(String.self, forKey: .chatID)
-        key = try container.decode(String.self, forKey: .key)
-        title = try container.decode(String.self, forKey: .title)
-        state = try container.decode(TaskState.self, forKey: .state)
-        originMessageID = try container.decode(String.self, forKey: .originMessageID)
-        recentMessages = try container.decodeIfPresent([TaskMessagePreview].self, forKey: .recentMessages) ?? []
-        messageCount = try container.decodeIfPresent(Int.self, forKey: .messageCount) ?? recentMessages.count
-        unreadCount = try container.decodeIfPresent(Int.self, forKey: .unreadCount) ?? 0
-        followed = try container.decodeIfPresent(Bool.self, forKey: .followed) ?? false
     }
 
     public static func byOriginMessageID(_ previews: [TaskPreview]) -> [String: [TaskPreview]] {

@@ -1,3 +1,4 @@
+import HausModels
 import Observation
 
 /// The one owner of navigation (specs/ios-app.md, Router): the selected tab,
@@ -21,7 +22,7 @@ public final class HausRouter {
     public private(set) var tabBeforeSearch: HausTab = .home
     public private(set) var paths: [HausTab: [HausRoute]] = [:]
     public private(set) var sheet: HausSheet?
-    public var tasksFilter: TasksTabFilter = .following
+    public var tasksView: TaskListView = .mine
     /// The message the next screen for its conversation reveals.
     public private(set) var reveal: MessageReveal?
     /// The Server the stacks belong to. Another Server resets them.
@@ -48,20 +49,16 @@ public final class HausRouter {
     }
 
     /// The conversation the reader is looking at: the selected tab's top
-    /// route, or, split, the content pane's top beside a side pane. Never a
-    /// chat mounted lower in a stack or in another tab.
+    /// route. Never a chat mounted lower in a stack or in another tab.
     public var visibleConversation: HausConversation? {
-        if case let .split(selection, stack, _?) = panes(selectedTab) {
-            return (stack.last ?? selection)?.conversation
-        }
-        return topRoute?.conversation
+        topRoute?.conversation
     }
 
     /// Stacked, the bar belongs to a tab's root and every pushed screen hides
-    /// it; split, it stays beside a selection until a side pane needs the width.
+    /// it; split, it stays beside the selection.
     public var showsTabBar: Bool {
         switch panes(selectedTab) {
-        case let .split(_, _, side): side == nil
+        case .split: true
         case let .stack(path): path.isEmpty
         }
     }
@@ -92,18 +89,17 @@ public final class HausRouter {
         paths[tab] = [route]
     }
 
-    /// The Tasks tab at its root, showing `filter`.
-    public func showTasks(_ filter: TasksTabFilter) {
+    /// A tab at its root, with nothing over it.
+    public func showRoot(_ tab: HausTab) {
         sheet = nil
-        selectedTab = .tasks
-        paths[.tasks] = nil
-        tasksFilter = filter
+        selectedTab = tab
+        paths[tab] = nil
     }
 
     public func apply(_ request: RouterRequest, from origin: RouteOrigin) {
         switch request {
         case let .open(route): open(route, from: origin)
-        case let .tasks(filter): showTasks(filter)
+        case let .root(tab): showRoot(tab)
         }
     }
 
@@ -161,7 +157,7 @@ public final class HausRouter {
         paths = [:]
         sheet = nil
         reveal = nil
-        tasksFilter = .following
+        tasksView = .mine
     }
 
     /// You holds settings and the Drive it browses; Search hosts its own
@@ -180,5 +176,6 @@ public final class HausRouter {
 /// What a push tap or a deep link asks the router for.
 public enum RouterRequest: Hashable, Sendable {
     case open(HausRoute)
-    case tasks(TasksTabFilter)
+    /// A tab at its root, for a push the iPhone has no screen for.
+    case root(HausTab)
 }

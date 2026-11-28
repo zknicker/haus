@@ -7,9 +7,7 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     case messageReactionUpdated = "chat.onMessageReactionUpdated"
     case chatRead = "chat.onRead"
     case chatLifecycle = "chat.onLifecycle"
-    case cloudAgentWorkUpdated = "worker.onUpdated"
     case claimChanged = "claim.onChanged"
-    case taskLabelUpdated = "taskLabel.onUpdated"
     case taskCreated = "task.onCreated"
     case taskUpdated = "task.onUpdated"
     case taskFollowUpdated = "task.onFollowUpdated"
@@ -37,8 +35,8 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         switch self {
         case .agentUpdated, .agentExecutionJournal, .modelConnectionsUpdated:
             false
-        case .messageCreated, .messageReactionUpdated, .chatRead, .chatLifecycle, .cloudAgentWorkUpdated,
-             .claimChanged, .taskLabelUpdated, .taskCreated, .taskUpdated, .taskFollowUpdated, .agentLifecycle,
+        case .messageCreated, .messageReactionUpdated, .chatRead, .chatLifecycle,
+             .claimChanged, .taskCreated, .taskUpdated, .taskFollowUpdated, .agentLifecycle,
              .agentActivity, .computerUpdated, .serverUpdated, .projectUpdated, .artifactUpdated:
             true
         }
@@ -61,12 +59,8 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
             [.openTranscripts, .chatList]
         case .claimChanged:
             [.openTranscripts, .chatList]
-        case .cloudAgentWorkUpdated:
-            [.openTranscripts, .chatList, .activeWorkers]
         case .chatLifecycle:
             [.chatList]
-        case .taskLabelUpdated:
-            [.taskLabels]
         case .taskCreated, .taskUpdated:
             [.taskDetails, .unreadTasks]
         case .taskFollowUpdated:
@@ -111,10 +105,7 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     /// `server.list`: the active Server's name and the viewer's Servers.
     case serverList
     case taskDetails
-    /// `taskLabel.list`, once loaded.
-    case taskLabels
     case unreadTasks
-    case activeWorkers
     case agentAvailability
     case agentActivity
     /// `computer.list`.

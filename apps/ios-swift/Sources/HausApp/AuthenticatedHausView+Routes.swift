@@ -6,22 +6,15 @@ import SwiftUI
 /// Every open in the app goes through the router; these turn the things views
 /// hand back (a Home row, a Chat, a search result, a claim) into routes.
 extension AuthenticatedHausView {
-    /// A Happening now row opens the Task its Worker runs for.
-    func openActiveWorker(workID: String) {
-        guard let work = store.activeWorkers?.first(where: { $0.work.id == workID }) else { return }
-        switch work.location {
-        case .task(_, let taskID):
-            router.open(.task(taskID: taskID))
-        }
-    }
-
-    /// A Chat's route by its kind: Channels open in Projects, DMs in Home, and
-    /// a Task's own Chat as its Task.
+    /// A Chat's route by its kind: Channels open in Projects, DMs and Captain
+    /// chats in Home, and a Task's own Chat as its Task.
     func route(forChatID chatID: String, messageID: String? = nil) -> HausRoute {
         if store.chatsByID[chatID] == nil, let taskID = store.taskID(forChatID: chatID) {
             return .task(taskID: taskID, messageID: messageID)
         }
-        switch store.chatsByID[chatID]?.kind {
+        let chat = store.chatsByID[chatID]
+        if let captainID = chat?.captainID { return .captain(agentID: captainID, messageID: messageID) }
+        switch chat?.kind {
         case .dm?: return .dm(chatID: chatID, messageID: messageID)
         default: return .channel(chatID: chatID, messageID: messageID)
         }
@@ -29,7 +22,7 @@ extension AuthenticatedHausView {
 
     func route(for destination: ChatDestination) -> HausRoute {
         switch destination.kind {
-        case .agentDirectMessage(let agent): .captainDM(agentID: agent.id)
+        case .agentDirectMessage(let agent): .captain(agentID: agent.id)
         case .humanDirectMessage: .dm(chatID: destination.pendingKey)
         case .channel: .channel(chatID: destination.pendingKey)
         }
@@ -60,12 +53,18 @@ extension AuthenticatedHausView {
         let outcome = push.taps.route(
             into: router,
             activeServerID: store.activeServer?.id,
-            memberServerIDs: store.servers.map(\.id)
+            memberServerIDs: store.servers.map(\.id),
+            captainOf: { store.chatsByID[$0]?.captainID }
         )
         guard case .needsSwitch(let serverID) = outcome else { return }
         await switchServer(serverID)
         guard store.activeServer?.id == serverID else { return }
-        _ = push.taps.route(into: router, activeServerID: serverID, memberServerIDs: store.servers.map(\.id))
+        _ = push.taps.route(
+            into: router,
+            activeServerID: serverID,
+            memberServerIDs: store.servers.map(\.id),
+            captainOf: { store.chatsByID[$0]?.captainID }
+        )
     }
 
     func switchServer(_ serverID: String) async {

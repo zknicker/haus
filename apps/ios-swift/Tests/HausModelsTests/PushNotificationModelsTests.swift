@@ -118,13 +118,13 @@ final class PushNotificationModelsTests: XCTestCase {
         info["chatId"] = "chat_task_12"
         info["conversationChatId"] = "chat_task_12"
         info["taskId"] = "task_12"
-        info["taskKey"] = "SEC-12"
-        info["reason"] = "follow"
-        info["conversation"] = ["kind": "task", "name": "SEC-12"]
+        info["taskShortId"] = "k3mq7xta"
+        info["reason"] = "subscribed"
+        info["conversation"] = ["kind": "channel", "name": "security"]
         info["futureField"] = ["nested": true]
         let payload = try XCTUnwrap(PushNotificationPayload(userInfo: info))
         XCTAssertEqual(payload.taskID, "task_12")
-        XCTAssertEqual(payload.taskKey, "SEC-12")
+        XCTAssertEqual(payload.taskShortID, "k3mq7xta")
         XCTAssertEqual(payload.route, .task(taskID: "task_12", chatID: "chat_task_12"))
     }
 
@@ -134,7 +134,7 @@ final class PushNotificationModelsTests: XCTestCase {
         info["conversationChatId"] = nil
         info["taskId"] = "task_12"
         let payload = try XCTUnwrap(PushNotificationPayload(userInfo: info))
-        XCTAssertNil(payload.taskKey)
+        XCTAssertNil(payload.taskShortID)
         XCTAssertEqual(payload.route, .task(taskID: "task_12", chatID: "chat_task_12"))
     }
 
@@ -151,10 +151,16 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertEqual(PushNotificationPayload(userInfo: info)?.route, .chat(chatID: "chat_dm"))
     }
 
-    func testARetiredAssignmentPushOpensNothing() {
+    func testAnIssuePushIsNoMessage() {
         XCTAssertNil(PushNotificationPayload(userInfo: [
-            "kind": "task_assignment", "serverId": "server_1", "taskId": "task_1", "key": "SEC-1",
+            "kind": "issue_assignment", "serverId": "server_1", "issueId": "iss_1", "code": "GEN-12",
         ]))
+    }
+
+    func testACaptainChatPayloadSaysItsKind() throws {
+        var info = userInfo()
+        info["conversation"] = ["kind": "captain", "name": "Forge"]
+        XCTAssertEqual(try XCTUnwrap(PushNotificationPayload(userInfo: info)).conversationKind, .captain)
     }
 
     func testATaskPushSuppressesOnlyWhileItsTaskChatIsOnScreen() {

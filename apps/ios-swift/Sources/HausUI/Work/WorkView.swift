@@ -2,23 +2,20 @@ import SwiftUI
 
 /// Where the Work view's rows go when tapped. The App routes each one.
 public struct WorkViewActions {
-    public let openWorker: (WorkWorkerItem) -> Void
     public let openPullRequest: (PullRequestPresentation) -> Void
     public let openFile: (DriveFilePresentation) -> Void
 
     public init(
-        openWorker: @escaping (WorkWorkerItem) -> Void,
         openPullRequest: @escaping (PullRequestPresentation) -> Void,
         openFile: @escaping (DriveFilePresentation) -> Void
     ) {
-        self.openWorker = openWorker
         self.openPullRequest = openPullRequest
         self.openFile = openFile
     }
 }
 
-/// A place's work: its running and finished Workers, the pull requests they
-/// and its Tasks opened, and its recent Drive files, under filter chips.
+/// A place's work: the pull requests its Tasks opened and its recent Drive
+/// files, under filter chips.
 ///
 /// The title is the stock centered inline title over the navigation stack's
 /// own back button. Blank while the content loads; an empty state only once it
@@ -91,10 +88,6 @@ public struct WorkView: View {
     @ViewBuilder
     private func rows(_ section: WorkSection, in content: WorkViewContent, now: Date) -> some View {
         switch section {
-        case .running:
-            workerRows(content.running, now: now)
-        case .finished:
-            workerRows(content.finished, now: now)
         case .pullRequests:
             PullRequestRows(pullRequests: content.pullRequests, now: now, onOpen: actions.openPullRequest)
         case .pullRequestGroup(let group):
@@ -104,16 +97,9 @@ public struct WorkView: View {
         }
     }
 
-    private func workerRows(_ items: [WorkWorkerItem], now: Date) -> some View {
-        ForEach(items) { item in
-            WorkerRow(item.row(now: now)) { actions.openWorker(item) }
-        }
-    }
-
     private var emptyTitle: String {
         switch filter {
         case .all: "No work yet"
-        case .workers: "No Workers"
         case .pullRequests: "No open pull requests"
         case .files: "No files"
         }

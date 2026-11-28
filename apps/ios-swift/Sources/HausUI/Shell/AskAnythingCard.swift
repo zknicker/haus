@@ -1,29 +1,38 @@
 import SwiftUI
 
-/// A Project or Captain the "Ask anything" card can pick.
+/// A Project, Machine, or model the "Ask anything" card can pick.
 public struct AskAnythingChoice: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
-    public let avatarURL: URL?
     public let appearance: ChannelAppearance
 
-    public init(id: String, name: String, avatarURL: URL? = nil, appearance: ChannelAppearance = .default) {
+    public init(id: String, name: String, appearance: ChannelAppearance = .default) {
         self.id = id
         self.name = name
-        self.avatarURL = avatarURL
         self.appearance = appearance
     }
 }
 
-/// The composer card the accessory opens: a new Task for a chosen Captain in a
-/// chosen Project. Send returns false to keep the draft when the Server refuses.
+/// One pick row of the card: what it offers and what is picked.
+public struct AskAnythingPicker {
+    let choices: [AskAnythingChoice]
+    let selection: Binding<String?>
+
+    public init(choices: [AskAnythingChoice], selection: Binding<String?>) {
+        self.choices = choices
+        self.selection = selection
+    }
+}
+
+/// The composer card the accessory opens: a new Task in a chosen Project, on
+/// a chosen Machine with a chosen model, as the web App's Home composer
+/// starts one. Send returns false to keep the draft when the Server refuses.
 public struct AskAnythingCard: View {
     @Binding private var text: String
     private let interaction: ComposerInteraction
-    private let projects: [AskAnythingChoice]
-    private let captains: [AskAnythingChoice]
-    @Binding private var projectID: String?
-    @Binding private var captainID: String?
+    private let project: AskAnythingPicker
+    private let machine: AskAnythingPicker
+    private let model: AskAnythingPicker
     private let error: String?
     private let onSend: (String) async -> Bool
 
@@ -32,35 +41,38 @@ public struct AskAnythingCard: View {
     public init(
         text: Binding<String>,
         interaction: ComposerInteraction,
-        projects: [AskAnythingChoice],
-        captains: [AskAnythingChoice],
-        projectID: Binding<String?>,
-        captainID: Binding<String?>,
+        project: AskAnythingPicker,
+        machine: AskAnythingPicker,
+        model: AskAnythingPicker,
         error: String?,
         onSend: @escaping (String) async -> Bool
     ) {
         _text = text
         self.interaction = interaction
-        self.projects = projects
-        self.captains = captains
-        _projectID = projectID
-        _captainID = captainID
+        self.project = project
+        self.machine = machine
+        self.model = model
         self.error = error
         self.onSend = onSend
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                picker(projects, selection: $projectID, empty: "No projects") { choice in
-                    ChannelIconBox(appearance: choice.appearance, size: 18)
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    picker(project, empty: "No projects") { choice in
+                        ChannelIconBox(appearance: choice.appearance, size: 18)
+                    }
+                    picker(machine, empty: "No Machine attached") { _ in
+                        Image(systemName: "laptopcomputer").foregroundStyle(.secondary)
+                    }
+                    picker(model, empty: "No models") { _ in
+                        Image(systemName: "sparkles").foregroundStyle(.secondary)
+                    }
                 }
-                picker(captains, selection: $captainID, empty: "No Captains") { choice in
-                    AvatarView(name: choice.name, url: choice.avatarURL, presence: nil, size: 18)
-                }
-                Spacer(minLength: 0)
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
+            .scrollIndicators(.hidden)
             if let error {
                 Text(error)
                     .font(.footnote)
@@ -84,15 +96,15 @@ public struct AskAnythingCard: View {
     }
 
     private func picker<Mark: View>(
-        _ choices: [AskAnythingChoice],
-        selection: Binding<String?>,
+        _ picker: AskAnythingPicker,
         empty: String,
         @ViewBuilder mark: @escaping (AskAnythingChoice) -> Mark
     ) -> some View {
-        let selected = choices.first { $0.id == selection.wrappedValue }
+        let choices = picker.choices
+        let selected = choices.first { $0.id == picker.selection.wrappedValue }
         return Menu {
             ForEach(choices) { choice in
-                Button(choice.name) { selection.wrappedValue = choice.id }
+                Button(choice.name) { picker.selection.wrappedValue = choice.id }
             }
         } label: {
             HStack(spacing: 6) {
@@ -138,6 +150,6 @@ public struct AskAnythingAccessory: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Ask anything")
-        .accessibilityHint("Starts a Task for a Captain")
+        .accessibilityHint("Starts a Task")
     }
 }

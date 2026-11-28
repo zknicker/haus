@@ -52,17 +52,9 @@ extension HausStore {
             streamTask(stream, serverID: serverID) { (store, event: ChatLifecycleEvent) in
                 await store.receive(.lifecycle(event), serverID: serverID)
             }
-        case .cloudAgentWorkUpdated:
-            streamTask(stream, serverID: serverID) { (store, event: WorkerUpdatedEvent) in
-                await store.receive(.cloudAgentWorkUpdated(event), serverID: serverID)
-            }
         case .claimChanged:
             streamTask(stream, serverID: serverID) { (store, event: ClaimChangedEvent) in
                 await store.receive(.claimChanged(event), serverID: serverID)
-            }
-        case .taskLabelUpdated:
-            streamTask(stream, serverID: serverID) { (store, event: TaskLabelUpdatedEvent) in
-                await store.receive(.taskLabelUpdated(event), serverID: serverID)
             }
         case .taskCreated, .taskUpdated:
             streamTask(stream, serverID: serverID) { (store, event: TaskChangedEvent) in

@@ -12,37 +12,22 @@ struct TasksModelWritesTests {
         TasksModel(client: AppModelFixtures.client, scope: scope)
     }
 
-    @Test("Unassigning sends a null assignee at the Task's version")
-    func unassignEncodesNull() throws {
-        let task = AppModelFixtures.task("task_1", version: 3)
-
-        let unassign = TasksModel.assignInput(nil, to: task, serverID: "srv_a")
-        let assign = TasksModel.assignInput(.agent(agentID: "agent_1"), to: task, serverID: "srv_a")
-
-        let unassigned = try JSONSerialization.jsonObject(with: JSONEncoder().encode(unassign)) as? [String: Any]
-        let assigned = try JSONSerialization.jsonObject(with: JSONEncoder().encode(assign)) as? [String: Any]
-        #expect(unassigned?["assignee"] is NSNull)
-        #expect(unassigned?["expectedVersion"] as? Int == 3)
-        #expect((assigned?["assignee"] as? [String: String]) == ["kind": "agent", "agentId": "agent_1"])
-    }
-
-    @Test("A write's answer lands in the detail, the open list, and the filtered list")
+    @Test("A write's answer lands in the detail, the active list, and the Tasks list")
     func writeLandsEverywhereHeld() throws {
         let tasks = model()
         let ticket = try scope.requireTicket()
         let detailRead = try tasks.beginDetailRead(taskID: "task_1")
         tasks.landDetail(AppModelFixtures.detail("task_1"), for: detailRead)
-        let openRead = try tasks.beginOpenTasksRead()
-        tasks.landOpenTasks([AppModelFixtures.task("task_1"), AppModelFixtures.task("task_2")], for: openRead)
-        let filter = TaskListFilter(states: [.todo, .open])
-        let listRead = try tasks.beginListRead(filter)
-        tasks.landList([AppModelFixtures.task("task_1")], for: listRead, filter: filter)
+        let activeRead = try tasks.beginActiveTasksRead()
+        tasks.landActiveTasks([AppModelFixtures.task("task_1"), AppModelFixtures.task("task_2")], for: activeRead)
+        let listRead = try tasks.beginListRead(archived: false)
+        tasks.landList([AppModelFixtures.task("task_1")], for: listRead, archived: false)
 
-        let started = AppModelFixtures.task("task_1", state: "open", version: 2)
-        #expect(tasks.landWrite(started, ticket: ticket))
+        let archived = AppModelFixtures.task("task_1", archived: true, version: 2)
+        #expect(tasks.landWrite(archived, ticket: ticket))
 
-        #expect(tasks.detailsByID["task_1"]?.task.state == .open)
-        #expect(tasks.openTasks?.map(\.state) == [.open, .todo])
+        #expect(tasks.detailsByID["task_1"]?.task.isArchived == true)
+        #expect(tasks.activeTasks?.map(\.isArchived) == [true, false])
         #expect(tasks.list?.tasks.first?.version == 2)
     }
 
@@ -51,13 +36,13 @@ struct TasksModelWritesTests {
         let tasks = model()
         let ticket = try scope.requireTicket()
         let read = try tasks.beginDetailRead(taskID: "task_1")
-        tasks.landDetail(TaskDetail(task: AppModelFixtures.task("task_1", version: 5), mentions: [], reminders: []), for: read)
+        tasks.landDetail(TaskDetail(task: AppModelFixtures.task("task_1", version: 5)), for: read)
 
-        #expect(tasks.landWrite(AppModelFixtures.task("task_1", state: "done", version: 4), ticket: ticket))
-        #expect(tasks.detailsByID["task_1"]?.task.state == .todo)
+        #expect(tasks.landWrite(AppModelFixtures.task("task_1", archived: true, version: 4), ticket: ticket))
+        #expect(tasks.detailsByID["task_1"]?.task.isArchived == false)
 
         scope.activate("srv_b")
-        #expect(!tasks.landWrite(AppModelFixtures.task("task_1", state: "done", version: 6), ticket: ticket))
+        #expect(!tasks.landWrite(AppModelFixtures.task("task_1", archived: true, version: 6), ticket: ticket))
         #expect(!tasks.landFollow(true, taskID: "task_1", ticket: ticket))
     }
 
@@ -87,11 +72,11 @@ struct TasksModelWritesTests {
         #expect(!tasks.landProjects([], for: read))
     }
 
-    @Test("An empty patch is refused before it is sent")
-    func emptyPatchIsRefused() async {
+    @Test("A blank title is refused before it is sent")
+    func blankTitleIsRefused() async {
         let tasks = model()
-        await #expect(throws: TaskWriteError.nothingToChange) {
-            try await tasks.update(nil, of: AppModelFixtures.task("task_1"))
+        await #expect(throws: TaskWriteError.invalidTitle) {
+            try await tasks.rename(AppModelFixtures.task("task_1"), to: "   ")
         }
     }
 }

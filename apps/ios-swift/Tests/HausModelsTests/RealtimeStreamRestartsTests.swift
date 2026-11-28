@@ -5,13 +5,13 @@ import XCTest
 final class RealtimeStreamRestartsTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_000)
 
-    /// The iPhone's focused subscriptions, `taskLabel.onUpdated` and the
-    /// `server.onUpdated` membership sentinel included.
+    /// The iPhone's focused subscriptions, the `server.onUpdated` membership
+    /// sentinel included.
     func testTheIPhoneSubscribesToEveryFocusedChatStream() {
         XCTAssertEqual(Set(RealtimeStream.liveSession.map(\.path)), [
             "chat.onMessageCreated", "chat.onMessageReactionUpdated", "chat.onRead",
-            "chat.onLifecycle", "worker.onUpdated",
-            "claim.onChanged", "taskLabel.onUpdated", "task.onCreated",
+            "chat.onLifecycle",
+            "claim.onChanged", "task.onCreated",
             "task.onUpdated", "task.onFollowUpdated", "agent.onLifecycle", "agent.onActivity",
             "computer.onUpdated", "server.onUpdated", "project.onUpdated", "artifact.onUpdated",
         ])
@@ -45,7 +45,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         )
         // A sibling's first failure starts from its own first step.
         XCTAssertEqual(
-            restarts.ended(.taskLabelUpdated, by: .failed, at: start + 3),
+            restarts.ended(.taskUpdated, by: .failed, at: start + 3),
             .restart(after: .seconds(1), reauthenticate: false)
         )
         XCTAssertFalse(restarts.allRunning)
@@ -148,14 +148,9 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         }
         XCTAssertEqual(RealtimeStream.messageReactionUpdated.ownedProjections, [.openTranscripts, .chatList])
         XCTAssertEqual(RealtimeStream.claimChanged.ownedProjections, [.openTranscripts, .chatList])
-        XCTAssertEqual(RealtimeStream.taskLabelUpdated.ownedProjections, [.taskLabels])
         XCTAssertEqual(RealtimeStream.taskCreated.ownedProjections, [.taskDetails, .unreadTasks])
         XCTAssertEqual(RealtimeStream.taskUpdated.ownedProjections, [.taskDetails, .unreadTasks])
         XCTAssertEqual(RealtimeStream.taskFollowUpdated.ownedProjections, [.unreadTasks])
-        XCTAssertEqual(
-            RealtimeStream.cloudAgentWorkUpdated.ownedProjections,
-            [.openTranscripts, .chatList, .activeWorkers]
-        )
         XCTAssertEqual(RealtimeStream.chatLifecycle.ownedProjections, [.chatList])
         XCTAssertEqual(RealtimeStream.agentLifecycle.ownedProjections, [.agentAvailability])
         XCTAssertEqual(RealtimeStream.agentActivity.ownedProjections, [.agentActivity])

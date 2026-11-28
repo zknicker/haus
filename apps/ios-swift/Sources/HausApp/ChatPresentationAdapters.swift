@@ -47,7 +47,7 @@ extension HausStore {
                 ))
             }
         let materializedAgentIDs = Set(
-            chats.compactMap(\.peerAgentID) + receiptBackedAgentDMs.values
+            chats.compactMap(\.captainID) + receiptBackedAgentDMs.values
         )
         let implicit = agents
             .filter { !materializedAgentIDs.contains($0.id) }
@@ -66,19 +66,19 @@ extension HausStore {
                 appearance: ChannelAppearance(icon: chat.icon, color: chat.color),
                 description: chat.description
             ))
+        case .captain:
+            guard let agentID = chat.captainID else { return nil }
+            let agent = agentsByID[agentID]
+            let name = agent?.displayName ?? chat.peerAgentDisplayName ?? "Former Captain"
+            let presentation = agent.map(agentPresentation)
+                ?? AgentPresentation(id: agentID, name: name, avatarURL: nil, presence: .offline)
+            return .durableChat(ChatPresentation(
+                id: chat.id,
+                title: name,
+                kind: .agentDirectMessage(presentation),
+                unreadCount: chat.unreadCount
+            ))
         case .dm:
-            if let agentID = chat.peerAgentID {
-                let agent = agentsByID[agentID]
-                let name = agent?.displayName ?? chat.peerAgentDisplayName ?? "Former Captain"
-                let presentation = agent.map(agentPresentation)
-                    ?? AgentPresentation(id: agentID, name: name, avatarURL: nil, presence: .offline)
-                return .durableChat(ChatPresentation(
-                    id: chat.id,
-                    title: name,
-                    kind: .agentDirectMessage(presentation),
-                    unreadCount: chat.unreadCount
-                ))
-            }
             if let userID = chat.peerUserID {
                 let member = membersByID[userID]
                 let name = member?.displayName ?? member?.handle ?? member?.email ?? "Former member"
@@ -95,7 +95,7 @@ extension HausStore {
                 ))
             }
             return nil
-        case .task, .unknown:
+        case .unknown:
             return nil
         }
     }

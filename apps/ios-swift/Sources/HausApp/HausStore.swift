@@ -29,7 +29,6 @@ final class HausStore {
     let chatList: ChatsModel
     let tasks: TasksModel
     let captains: CaptainsModel
-    let workers: WorkersModel
     let projects: ProjectsModel
     let drive: DriveModel
     let settingsModel: SettingsModel
@@ -140,7 +139,6 @@ final class HausStore {
         chatList = ChatsModel()
         tasks = TasksModel(client: client, scope: scope)
         captains = CaptainsModel(client: client, scope: scope)
-        workers = WorkersModel(client: client, scope: scope)
         projects = ProjectsModel(client: client, scope: scope)
         drive = DriveModel(client: client, scope: scope)
         settingsModel = SettingsModel(client: client, scope: scope)

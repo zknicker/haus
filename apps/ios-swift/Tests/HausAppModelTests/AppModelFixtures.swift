@@ -20,17 +20,20 @@ enum AppModelFixtures {
 
     static func task(
         _ id: String,
-        key: String = "SEC-1",
-        state: String = "todo",
+        title: String = "Rotate tokens",
+        archived: Bool = false,
         serverID: String = "srv_a",
         version: Int = 1
     ) -> TaskRecord {
-        decode(
+        let archivedAt = archived ? #""2026-11-04T00:00:00.000Z""# : "null"
+        return decode(
             """
-            {"assignee":null,"chatId":"chat_\(id)","completedAt":null,"createdAt":"2026-11-03T00:00:00.000Z",
-             "createdBy":{"kind":"user","userId":"user_1"},"description":"","dueOn":null,"id":"\(id)",
-             "key":"\(key)","labelIds":[],"number":1,"origin":null,"priority":"none","serverId":"\(serverID)",
-             "state":"\(state)","title":"Rotate tokens","updatedAt":"2026-11-03T00:00:00Z","version":\(version)}
+            {"activity":"idle","agentId":"agt_task_\(id)","archivedAt":\(archivedAt),"captainId":null,
+             "chatId":"chat_\(id)","computerId":"cmp_1","createdAt":"2026-11-03T00:00:00.000Z",
+             "createdBy":{"kind":"user","userId":"user_1"},"description":"","id":"\(id)","model":"gpt-5",
+             "needsYou":false,"origin":null,"projectId":"chat_product","serverId":"\(serverID)",
+             "shortId":"k3mq7xta","title":"\(title)","titleCustom":false,
+             "updatedAt":"2026-11-03T00:00:00Z","version":\(version)}
             """
         )
     }
@@ -38,15 +41,15 @@ enum AppModelFixtures {
     static func project(_ id: String, name: String = "product") -> Project {
         decode(
             """
-            {"archived":false,"chatId":"chat_\(id)","defaultWorkerPlace":null,"homeAgentIds":[],"id":"\(id)",
-             "isHaus":false,"key":"PROD","keyEditable":true,"name":"\(name)","repos":[],"serverId":"srv_a",
+            {"archived":false,"chatId":"chat_\(id)","defaultMachine":null,"homeAgentIds":[],
+             "isHaus":false,"key":"PROD","keyEditable":true,"name":"\(name)","serverId":"srv_a",
              "taskKeyId":"key_\(id)"}
             """
         )
     }
 
-    static func detail(_ id: String, key: String = "SEC-1") -> TaskDetail {
-        TaskDetail(task: task(id, key: key), mentions: [], reminders: [])
+    static func detail(_ id: String, title: String = "Rotate tokens") -> TaskDetail {
+        TaskDetail(task: task(id, title: title))
     }
 
     static func snapshot(userID: String, serverID: String, servers: [ServerSummary]) -> LaunchSnapshot {

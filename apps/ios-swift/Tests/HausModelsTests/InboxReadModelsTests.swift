@@ -2,21 +2,7 @@ import Foundation
 import XCTest
 @testable import HausModels
 
-private let workJSON = """
-{"activity":{"at":"2026-09-11T09:05:00.000Z","summary":"Reading the diff"},
- "agentId":"agent_1","createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
- "job":{"followUp":null,"startedAt":"2026-09-11T09:01:00.000Z","state":"working"},
- "place":{"kind":"cursor"},"providerUrl":"https://cursor.com/work_1","repository":"zknicker/haus",
- "turns":[{"branches":[],"createdAt":"2026-09-11T09:00:00.000Z","errorCode":null,
-   "turnId":"wkt_1","startedAt":"2026-09-11T09:01:00.000Z","status":"running",
-   "stopRequestedAt":null,"summary":null,"terminalAt":null}],
- "startedAt":"2026-09-11T09:01:00.000Z","startingRef":"main","status":"working",
- "taskId":"task_1","terminalAt":null,"title":"Ship the iPhone build",
- "updatedAt":"2026-09-11T09:05:00.000Z"}
-"""
-
-/// The two Server-wide Inbox reads: the Chat list's quoted
-/// last line, and the Cloud Agent work running right now.
+/// The Chat list's quoted last line, which Home's rows read.
 final class InboxReadModelsTests: XCTestCase {
     func testDecodesTheChatListsQuotedLastMessage() throws {
         let json = """
@@ -53,96 +39,4 @@ final class InboxReadModelsTests: XCTestCase {
 
         XCTAssertNil(chat.lastMessage)
     }
-
-    func testDecodesServerWideActiveWorkers() throws {
-        let json = """
-        [{"agentName":"Blippy","chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
-          "conversationChatId":"chat_1",
-          "location":{"chatId":"chat_task","kind":"task","taskId":"task_1"},
-          "worker":\(workJSON)}]
-        """
-
-        let rows = try HausJSON.decoder().decode([ActiveWorker].self, from: Data(json.utf8))
-        let row = try XCTUnwrap(rows.first)
-
-        XCTAssertEqual(row.id, "work_1")
-        XCTAssertEqual(row.work.status, .running)
-        XCTAssertTrue(row.work.status.isActive)
-        XCTAssertEqual(row.work.activity?.summary, "Reading the diff")
-        XCTAssertEqual(row.conversationChatID, "chat_1")
-        XCTAssertEqual(row.chatKind, .dm)
-        XCTAssertEqual(row.chatPeerUserID, "user_2")
-        XCTAssertEqual(row.location, .task(chatID: "chat_task", taskID: "task_1"))
-    }
-
-    /// `location` is the only way a row says where it opens.
-    func testRejectsARowWithoutALocation() {
-        let json = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":"product","chatPeerUserId":null,
-         "conversationChatId":"chat_1","worker":\(workJSON)}
-        """
-
-        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveWorker.self, from: Data(json.utf8)))
-    }
-
-    /// `activeWorkLocations.message`: the newest visible link, after the launch
-    /// Chat is gone.
-    func testDecodesAMessageLocation() throws {
-        let json = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
-         "conversationChatId":"cht_tech_ops",
-         "location":{"chatId":"cht_task","kind":"task","taskId":"task_1"},
-         "worker":\(workJSON)}
-        """
-
-        let row = try HausJSON.decoder().decode(ActiveWorker.self, from: Data(json.utf8))
-
-        XCTAssertEqual(
-            row.location,
-            .task(chatID: "cht_task", taskID: "task_1")
-        )
-    }
-
-    func testRejectsAnUnknownLocationKind() {
-        let json = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
-         "location":{"kind":"elsewhere"},"worker":\(workJSON)}
-        """
-
-        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveWorker.self, from: Data(json.utf8))) {
-            XCTAssertEqual($0 as? ActiveWorkerLocation.UnknownKind, .init(kind: "elsewhere"))
-        }
-    }
-
-    /// A newer location kind skips only its own row; "Happening now" keeps the rest.
-    func testListSkipsARowWithAnUnknownLocationKind() throws {
-        let unknown = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
-         "location":{"kind":"elsewhere"},"worker":\(workJSON)}
-        """
-        let known = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
-         "conversationChatId":"cht_tech_ops",
-         "location":{"chatId":"cht_task","kind":"task","taskId":"task_1"},
-         "worker":\(workJSON)}
-        """
-
-        let list = try HausJSON.decoder().decode(
-            ActiveWorkerList.self,
-            from: Data("[\(unknown),\(known),\(unknown)]".utf8)
-        )
-
-        XCTAssertEqual(list.rows.map(\.conversationChatID), ["cht_tech_ops"])
-    }
-
-    func testListStillFailsOnAMalformedRow() {
-        let malformed = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"worker":\(workJSON)}
-        """
-
-        XCTAssertThrowsError(
-            try HausJSON.decoder().decode(ActiveWorkerList.self, from: Data("[\(malformed)]".utf8))
-        )
-    }
 }
-

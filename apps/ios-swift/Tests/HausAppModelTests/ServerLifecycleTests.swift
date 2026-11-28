@@ -58,17 +58,16 @@ struct ServerLifecycleTests {
     func switchDuringRefresh() throws {
         let launch = lifecycle()
         #expect(launch.adopt([a, b]) == .activated("srv_a", previous: nil))
-        let workers = WorkersModel(client: AppModelFixtures.client, scope: launch.scope)
         let tasks = TasksModel(client: AppModelFixtures.client, scope: launch.scope)
-        let activeRead = try workers.beginActiveRead()
-        let openRead = try tasks.beginOpenTasksRead()
+        let activeRead = try tasks.beginActiveTasksRead()
+        let listRead = try tasks.beginListRead(archived: false)
 
         launch.activate("srv_b")
 
-        #expect(!workers.landActive([], for: activeRead))
-        #expect(!tasks.landOpenTasks([AppModelFixtures.task("task_1")], for: openRead))
-        #expect(workers.active == nil)
-        #expect(tasks.openTasks == nil)
+        #expect(!tasks.landActiveTasks([AppModelFixtures.task("task_1")], for: activeRead))
+        #expect(!tasks.landList([AppModelFixtures.task("task_1")], for: listRead, archived: false))
+        #expect(tasks.activeTasks == nil)
+        #expect(tasks.list == nil)
         #expect(launch.preference.serverID == "srv_b")
     }
 
@@ -99,7 +98,7 @@ struct ServerLifecycleTests {
         let first = lifecycle(userID: "user_1")
         try await first.launchSnapshots.save(AppModelFixtures.snapshot(userID: "user_1", serverID: "srv_a", servers: [a]))
         first.activate("srv_a")
-        let key = ComposerDraftKey(serverID: "srv_a", destination: .worker("wrk_1"))
+        let key = ComposerDraftKey(serverID: "srv_a", destination: .task("tsk_1"))
         first.drafts.setText("secret", for: key)
         let staged = first.drafts.staged(for: key)
 

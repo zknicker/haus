@@ -1,12 +1,14 @@
 import Foundation
 
-public struct SendAgentDMInput: Encodable, Equatable, Sendable {
+/// `chat.send` to a Captain by id, for a Captain whose chat the reader has
+/// not loaded: the Server resolves its one shared chat.
+public struct SendCaptainChatInput: Encodable, Equatable, Sendable {
     public let agentID: String
     public let attachmentIDs: [String]
     public let content: String
     public let nonce: String
     public let serverID: String
-    public let targetKind = "agent-dm"
+    public let targetKind = "captain"
 
     public init(
         agentID: String,
@@ -50,11 +52,11 @@ public struct ChatMentionOptionsInput: Encodable, Equatable, Sendable {
     }
 }
 
-public struct AgentDMMentionOptionsInput: Encodable, Equatable, Sendable {
+public struct CaptainMentionOptionsInput: Encodable, Equatable, Sendable {
     public let agentID: String
     public let agentIDs: [String]
     public let serverID: String
-    public let targetKind = "agent-dm"
+    public let targetKind = "captain"
 
     public init(agentID: String, agentIDs: [String] = [], serverID: String) {
         self.agentID = agentID

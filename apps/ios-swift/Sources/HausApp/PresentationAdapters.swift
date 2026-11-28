@@ -63,9 +63,6 @@ extension HausStore {
     /// A rebuild reuses each unchanged message's parsed body.
     func messagePresentations(chatID: String) -> [MessagePresentation] {
         trackProjectionDirectory()
-        // Task chips wear the state of every Task this client holds; a state
-        // change retires the drawn rows, never a parsed body.
-        syncTaskReferenceStates()
         let page = messagesByChatID[chatID]
         let pending = pendingMessagesByChatID[chatID] ?? []
         if let cached = projections.messagePresentationsByChatID[chatID] { return cached }
@@ -85,14 +82,7 @@ extension HausStore {
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
-            let parsed = parsedBody(
-                id: message.id,
-                content: message.displayContent,
-                chatID: message.chatID,
-                taskLinks: message.taskLinks
-            )
-            // Every linked work draws the same card, wherever the link sits.
-            let linkedWork = message.cloudAgentWork
+            let parsed = parsedBody(id: message.id, content: message.content, chatID: message.chatID)
             return MessagePresentation(
                 id: message.id,
                 author: author,
@@ -104,21 +94,13 @@ extension HausStore {
                     replyReferencePresentation(reply.parent)
                 },
                 claim: message.claim.map(claimPresentation),
-                cloudAgents: linkedWork.map(cloudAgentPresentation),
                 reactions: reactionPresentations(message.reactions),
-                richBlocks: stampedBlocks(parsed),
+                richBlocks: parsed.richBlocks,
                 visualBody: parsed.visuals,
                 cause: message.cause.flatMap(MessageCausePresentation.init),
-                tasks: tasksByOrigin[message.id] ?? [],
-                workerReport: workerReport(message)
+                tasks: tasksByOrigin[message.id] ?? []
             )
         }
-    }
-
-    private func workerReport(_ message: ChatMessage) -> MessageWorkerReport? {
-        guard case let .workerReport(workerID, turnID, outcome) = message.body else { return nil }
-        let worker = message.cloudAgentWork.first { $0.id == workerID } ?? workers.worker(id: workerID)
-        return MessageWorkerReport(workerID: workerID, turnID: turnID, outcome: outcome, worker: worker)
     }
 
     /// An optimistic row is projected only until the page carries its nonce.
@@ -146,7 +128,7 @@ extension HausStore {
                 inlineReply: message.inlineReply,
                 isPending: true,
                 isSendFailed: message.sendState == .failed,
-                richBlocks: stampedBlocks(parsed),
+                richBlocks: parsed.richBlocks,
                 visualBody: parsed.visuals
             )
         }

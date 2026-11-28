@@ -159,7 +159,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// A pending row whose send did not reach Server: the viewer's own row,
     /// marked "Not sent", until they retry or delete it.
     public let isSendFailed: Bool
-    public let cloudAgents: [WorkerPresentation]
     /// Grouped emoji reactions in the Server's order, reactors resolved.
     public let reactions: [MessageReactionPresentation]
     /// What the row draws: the prose read as Markdown blocks.
@@ -175,8 +174,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// The Reminder or Trigger fire this message answers, when it answers one.
     public let cause: MessageCausePresentation?
     public let tasks: [TaskPreviewPresentation]
-    /// A Worker report, which a Task chat draws as one centered line.
-    public let workerReport: MessageWorkerReport?
 
     public init(
         id: String,
@@ -189,16 +186,13 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         claim: ClaimPresentation? = nil,
         isPending: Bool = false,
         isSendFailed: Bool = false,
-        cloudAgents: [WorkerPresentation] = [],
         reactions: [MessageReactionPresentation] = [],
         richBlocks: [RichMessageBlock]? = nil,
         visualBody: VisualMessageBody? = nil,
         cause: MessageCausePresentation? = nil,
-        tasks: [TaskPreviewPresentation] = [],
-        workerReport: MessageWorkerReport? = nil
+        tasks: [TaskPreviewPresentation] = []
     ) {
         self.tasks = tasks
-        self.workerReport = workerReport
         let body = Self.body(content: content)
         // Fences are split off the resolved body before anything renders it:
         // the message content IS the visual, and the prose above the cards is
@@ -216,7 +210,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.claim = claim
         self.isPending = isPending
         self.isSendFailed = isPending && isSendFailed
-        self.cloudAgents = cloudAgents
         self.reactions = reactions
         // Blocks handed in were parsed from whatever body the caller resolved,
         // so they are trusted when they describe this one; a trim that changes

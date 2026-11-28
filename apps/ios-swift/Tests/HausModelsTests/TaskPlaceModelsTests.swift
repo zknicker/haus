@@ -8,32 +8,33 @@ final class TaskPlaceModelsTests: XCTestCase {
     func testAChatOfEveryKindDecodesAndAnUnknownKindIsNotFatal() throws {
         XCTAssertEqual(try chat(kind: "channel").kind, .channel)
         XCTAssertEqual(try chat(kind: "dm").kind, .dm)
-        XCTAssertEqual(try chat(kind: "task").kind, .task)
+        XCTAssertEqual(try chat(kind: "captain").kind, .captain)
         XCTAssertEqual(try chat(kind: "forum").kind, .unknown)
     }
 
-    func testOnlyChannelsAndDMsAreListedConversations() {
+    func testChannelsDMsAndCaptainChatsAreListedConversations() {
         XCTAssertTrue(ChatKind.channel.isListedConversation)
         XCTAssertTrue(ChatKind.dm.isListedConversation)
-        XCTAssertFalse(ChatKind.task.isListedConversation)
+        XCTAssertTrue(ChatKind.captain.isListedConversation)
         XCTAssertFalse(ChatKind.unknown.isListedConversation)
     }
 
-    func testAChatListWithATaskChatAndExtraFieldsDecodes() throws {
-        let list = try decode([ChatSummary].self, "[\(chatJSON(kind: "task", extra: #","taskKeyId":"key_1","futureField":{"a":1}"#)),\(chatJSON(kind: "channel"))]")
-        XCTAssertEqual(list.map(\.kind), [.task, .channel])
+    func testACaptainChatNamesItsCaptainAndTheReadersFlags() throws {
+        let captain = try decode(ChatSummary.self, chatJSON(
+            kind: "captain",
+            peerAgentID: "agent_forge",
+            extra: #","captainChat":{"member":true,"subscribed":false}"#
+        ))
+        XCTAssertEqual(captain.captainID, "agent_forge")
+        XCTAssertEqual(captain.captainChat, CaptainChatMembership(member: true, subscribed: false))
+        XCTAssertNil(try chat(kind: "channel").captainChat)
+        XCTAssertNil(try chat(kind: "dm").captainID)
     }
 
-    // MARK: - Task state
-
-    func testEveryTaskStateDecodesAndAnUnknownOneReadsAsUnknown() throws {
-        for state in ["todo", "open", "done", "canceled"] {
-            XCTAssertEqual(try decode(TaskState.self, "\"\(state)\"").rawValue, state)
-        }
-        XCTAssertEqual(try decode(TaskState.self, "\"blocked\""), .unknown)
-        XCTAssertTrue(TaskState.done.isClosed)
-        XCTAssertTrue(TaskState.canceled.isClosed)
-        XCTAssertFalse(TaskState.open.isClosed)
+    func testARetiredCaptainsChatIsReadOnly() throws {
+        let retired = try decode(ChatSummary.self, chatJSON(kind: "captain", peerAgentID: "agent_old", retired: true))
+        XCTAssertTrue(retired.isReadOnly)
+        XCTAssertFalse(try chat(kind: "captain").isReadOnly)
     }
 
     // MARK: - Task preview on a page
@@ -48,8 +49,8 @@ final class TaskPlaceModelsTests: XCTestCase {
         let preview = try XCTUnwrap(page.tasks.first)
         XCTAssertEqual(preview.taskID, "task_12")
         XCTAssertEqual(preview.chatID, "chat_task_12")
-        XCTAssertEqual(preview.key, "SEC-12")
-        XCTAssertEqual(preview.state, .open)
+        XCTAssertEqual(preview.shortID, "k3mq7xta")
+        XCTAssertFalse(preview.isArchived)
         XCTAssertEqual(preview.originMessageID, "msg_origin")
         XCTAssertEqual(preview.recentMessages.map(\.id), ["m1", "m2"])
         XCTAssertEqual(preview.messageCount, 5)
@@ -57,22 +58,15 @@ final class TaskPlaceModelsTests: XCTestCase {
         XCTAssertTrue(preview.followed)
     }
 
-    func testAPageFromAServerThatPredatesTasksHasNone() throws {
-        let page = try decode(ChatMessagePage.self, """
-        {"messages":[],"nextBeforeSequence":null,"nextAfterSequence":null,"scannedThroughSequence":0}
-        """)
-        XCTAssertEqual(page.tasks, [])
-    }
-
     func testPreviewsGroupUnderTheirOriginMessage() throws {
         let preview = try decode(TaskPreview.self, Self.previewJSON)
         let second = TaskPreview(
-            taskID: "task_13", chatID: "chat_task_13", key: "SEC-13", title: "Second", state: .todo,
+            taskID: "task_13", chatID: "chat_task_13", shortID: "p8vd2nrw", title: "Second",
             originMessageID: "msg_origin", messageCount: 0
         )
         let other = TaskPreview(
-            taskID: "task_14", chatID: "chat_task_14", key: "SEC-14", title: "Other", state: .done,
-            originMessageID: "msg_other", messageCount: 1
+            taskID: "task_14", chatID: "chat_task_14", shortID: "q9we3psx", title: "Other",
+            archivedAt: Date(timeIntervalSince1970: 0), originMessageID: "msg_other", messageCount: 1
         )
         let grouped = TaskPreview.byOriginMessageID([preview, second, other])
         XCTAssertEqual(grouped["msg_origin"]?.map(\.taskID), ["task_12", "task_13"])
@@ -81,14 +75,13 @@ final class TaskPlaceModelsTests: XCTestCase {
 
     // MARK: - Task detail
 
-    func testATaskDetailDecodesItsPlaceAndAttachedWork() throws {
-        let detail = try decode(TaskDetail.self, Self.detailJSON(attachedWork: "[{\"id\":\"not-a-work\"}]"))
+    func testATaskDetailDecodesItsPlaceAndPullRequests() throws {
+        let detail = try decode(TaskDetail.self, Self.detailJSON)
         XCTAssertEqual(detail.task.chatID, "chat_task_12")
-        XCTAssertEqual(detail.task.state, .open)
+        XCTAssertEqual(detail.task.status, .working)
         XCTAssertEqual(detail.task.origin, TaskOrigin(chatID: "chat_security", messageID: "msg_origin"))
         XCTAssertTrue(detail.followed)
         XCTAssertEqual(detail.unreadCount, 3)
-        XCTAssertEqual(detail.attachedWork, [])
         let pullRequest = try XCTUnwrap(detail.pullRequests.first)
         XCTAssertEqual(pullRequest.number, 42)
         XCTAssertEqual(pullRequest.checks, "passing")
@@ -97,18 +90,18 @@ final class TaskPlaceModelsTests: XCTestCase {
         XCTAssertEqual(detail.reminders.first?.setBy, TaskReminderSetter(agentID: "agent_forge", displayName: "Forge"))
     }
 
-    func testAChatlessLegacyTaskDetailDecodes() throws {
+    func testAChatlessHistoryTaskDetailDecodes() throws {
         let detail = try decode(TaskDetail.self, """
-        {"assignee":null,"chatId":null,"completedAt":"2026-10-31T16:00:00Z",
-         "createdAt":"2026-10-30T16:00:00Z","createdBy":{"agentId":"agent_zero","kind":"agent"},
-         "description":"","dueOn":null,"id":"task_1","key":"SEC-1","labelIds":[],"number":1,"origin":null,
-         "priority":"none","serverId":"server_1","state":"done","title":"Old","updatedAt":"2026-10-30T16:00:00Z",
-         "version":1,"mentions":[],"reminders":[]}
+        {"activity":"idle","agentId":null,"archivedAt":"2026-10-31T16:00:00Z","captainId":null,"chatId":null,
+         "computerId":null,"createdAt":"2026-10-30T16:00:00Z","createdBy":{"agentId":"agent_zero","kind":"agent"},
+         "description":"","descriptionContent":"","descriptionTaskLinks":[],"followed":false,"id":"task_1",
+         "mentions":[],"model":null,"needsYou":false,"origin":null,"projectId":"chat_security","pullRequests":[],
+         "reminders":[],"serverId":"server_1","shortId":"a1b2c3d4","title":"Old","titleCustom":false,
+         "unreadCount":0,"updatedAt":"2026-10-30T16:00:00Z","version":1}
         """)
         XCTAssertNil(detail.task.chatID)
-        XCTAssertEqual(detail.task.state, .done)
+        XCTAssertTrue(detail.task.isArchived)
         XCTAssertNil(detail.task.origin)
-        XCTAssertEqual(detail.attachedWork, [])
         XCTAssertEqual(detail.pullRequests, [])
         XCTAssertFalse(detail.followed)
     }
@@ -118,17 +111,17 @@ final class TaskPlaceModelsTests: XCTestCase {
     func testUnreadPreviewsKeepTheTaskRowsAndDropWhatTheyCannotRead() throws {
         let list = try decode(ChatUnreadPreviewList.self, """
         {"previews":[
-          {"anchor":null,"chatId":"chat_task_12","earlierUnreadCount":2,"messages":[\(Self.messageJSON("m1", chatID: "chat_task_12"))],
-           "task":{"key":"SEC-12","projectId":"chat_security","state":"open","taskId":"task_12","title":"Rate-limit","extra":1}},
-          {"anchor":null,"chatId":"chat_product","earlierUnreadCount":0,"messages":[\(Self.messageJSON("m2", chatID: "chat_product"))],"task":null},
+          {"chatId":"chat_task_12","earlierUnreadCount":2,"messages":[\(Self.messageJSON("m1", chatID: "chat_task_12"))],
+           "task":{"archivedAt":null,"projectId":"chat_security","shortId":"k3mq7xta","taskId":"task_12","title":"Rate-limit"}},
+          {"chatId":"chat_product","earlierUnreadCount":0,"messages":[\(Self.messageJSON("m2", chatID: "chat_product"))],"task":null},
           {"chatId":42}
-        ],"futureField":[]}
+        ]}
         """)
         XCTAssertEqual(list.previews.map(\.chatID), ["chat_task_12", "chat_product"])
         let task = try XCTUnwrap(list.taskPreviews.first)
         XCTAssertEqual(list.taskPreviews.count, 1)
         XCTAssertEqual(task.task, ChatUnreadPreviewTask(
-            taskID: "task_12", key: "SEC-12", title: "Rate-limit", state: .open, projectID: "chat_security"
+            projectID: "chat_security", shortID: "k3mq7xta", taskID: "task_12", title: "Rate-limit"
         ))
         XCTAssertEqual(task.unreadCount, 3)
     }
@@ -198,12 +191,12 @@ final class TaskPlaceModelsTests: XCTestCase {
         store.setEntity(ChatMessageEntity(message: origin))
         XCTAssertEqual(store.page(.chat("chat_1"))?.tasks.map(\.taskID), ["task_12"])
 
-        let moved = TaskPreview(
-            taskID: "task_12", chatID: "chat_task_12", key: "SEC-12", title: "Rate-limit", state: .done,
-            originMessageID: "msg_origin", messageCount: 6
+        let archived = TaskPreview(
+            taskID: "task_12", chatID: "chat_task_12", shortID: "k3mq7xta", title: "Rate-limit",
+            archivedAt: Date(timeIntervalSince1970: 0), originMessageID: "msg_origin", messageCount: 6
         )
-        store.setEntity(ChatMessageEntity(message: origin, tasks: [moved]))
-        XCTAssertEqual(store.page(.chat("chat_1"))?.tasks.map(\.state), [.done])
+        store.setEntity(ChatMessageEntity(message: origin, tasks: [archived]))
+        XCTAssertEqual(store.page(.chat("chat_1"))?.tasks.map(\.isArchived), [true])
 
         store.write(
             ChatMessagePage(messages: [origin], nextBeforeSequence: nil),
@@ -226,31 +219,28 @@ final class TaskPlaceModelsTests: XCTestCase {
     // MARK: - Fixtures
 
     static let previewJSON = """
-    {"chatId":"chat_task_12","followed":true,"key":"SEC-12","messageCount":5,"originMessageId":"msg_origin",
+    {"archivedAt":null,"chatId":"chat_task_12","followed":true,"messageCount":5,"originMessageId":"msg_origin",
      "recentMessages":[
        {"authorAgentId":"agent_forge","authorUserId":null,"content":"On it","createdAt":"2026-11-17T10:00:00Z","id":"m1"},
        {"authorAgentId":null,"authorUserId":"user_1","content":"Thanks","createdAt":"2026-11-17T10:05:00Z","id":"m2"}],
-     "state":"open","taskId":"task_12","title":"Rate-limit Trigger webhooks","unreadCount":2,"futureField":"x"}
+     "shortId":"k3mq7xta","taskId":"task_12","title":"Rate-limit Trigger webhooks","unreadCount":2}
     """
 
-    static func detailJSON(attachedWork: String) -> String {
-        """
-        {"assignee":null,"boardId":"board_security","category":"active","chatId":"chat_task_12","columnId":"col_active",
-         "completedAt":null,"createdAt":"2026-10-30T16:00:00Z","createdBy":{"agentId":"agent_zero","kind":"agent"},
-         "description":"","descriptionContent":"","descriptionTaskLinks":[],"dueOn":null,"followed":true,
-         "id":"task_12","key":"SEC-12","keyId":"key_sec","labelIds":[],"mentions":[],"number":12,
-         "origin":{"chatId":"chat_security","messageId":"msg_origin"},"priority":"high","serverId":"server_1",
-         "state":"open","title":"Rate-limit","unreadCount":3,"updatedAt":"2026-11-03T16:00:00Z","version":3,
-         "attachedWork":\(attachedWork),
-         "pullRequests":[{"additions":10,"changedFiles":2,"checks":"passing","deletions":1,"headSha":"abc",
-           "number":42,"observedAt":"2026-11-17T10:00:00Z","repository":"haus/haus","review":"changes-requested",
-           "settledAt":null,"source":"github","state":"open","title":"Rate-limit webhooks",
-           "url":"https://github.com/haus/haus/pull/42"}],
-         "reminders":[{"anchorChatId":"chat_task_12","kind":"once","nextFireAt":"2026-11-17T19:35:00Z",
-           "reminderId":"rem_1","setBy":{"agentId":"agent_forge","displayName":"Forge"},"title":"Check back"}],
-         "futureField":{"nested":true}}
-        """
-    }
+    static let detailJSON = """
+    {"activity":"working","agentId":"agt_task_12","archivedAt":null,"captainId":"agent_forge",
+     "chatId":"chat_task_12","computerId":"cmp_1","createdAt":"2026-10-30T16:00:00Z",
+     "createdBy":{"agentId":"agent_forge","kind":"agent"},"description":"","descriptionContent":"",
+     "descriptionTaskLinks":[],"followed":true,"id":"task_12","mentions":[],"model":"gpt-5.5","needsYou":false,
+     "origin":{"chatId":"chat_security","messageId":"msg_origin"},"projectId":"chat_security",
+     "serverId":"server_1","shortId":"k3mq7xta","title":"Rate-limit","titleCustom":false,"unreadCount":3,
+     "updatedAt":"2026-11-03T16:00:00Z","version":3,
+     "pullRequests":[{"additions":10,"changedFiles":2,"checks":"passing","deletions":1,"headSha":"abc",
+       "number":42,"observedAt":"2026-11-17T10:00:00Z","repository":"haus/haus","review":"changes-requested",
+       "settledAt":null,"source":"github","state":"open","title":"Rate-limit webhooks",
+       "url":"https://github.com/haus/haus/pull/42"}],
+     "reminders":[{"anchorChatId":"chat_task_12","kind":"once","nextFireAt":"2026-11-17T19:35:00Z",
+       "reminderId":"rem_1","setBy":{"agentId":"agent_forge","displayName":"Forge"},"title":"Check back"}]}
+    """
 
     static func messageJSON(_ id: String, chatID: String) -> String {
         """
@@ -264,12 +254,13 @@ final class TaskPlaceModelsTests: XCTestCase {
         try decode(ChatSummary.self, chatJSON(kind: kind))
     }
 
-    private func chatJSON(kind: String, extra: String = "") -> String {
-        """
+    private func chatJSON(kind: String, peerAgentID: String? = nil, retired: Bool = false, extra: String = "") -> String {
+        let peer = peerAgentID.map { #""\#($0)""# } ?? "null"
+        return """
         {"archivedAt":null,"archivedByUserId":null,"color":null,"createdAt":"2026-01-01T00:00:00Z","icon":null,
          "id":"chat_\(kind)","isAll":false,"kind":"\(kind)","lastActivityAt":null,"lastMessage":null,
          "lastMessageSequence":0,"name":"launches","participantAgentIds":[],"participantUserIds":[],
-         "peerAgentDisplayName":null,"peerAgentId":null,"peerAgentRetired":false,"peerUserId":null,
+         "peerAgentDisplayName":null,"peerAgentId":\(peer),"peerAgentRetired":\(retired),"peerUserId":null,
          "serverId":"server_1","unreadCount":0\(extra)}
         """
     }

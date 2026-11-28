@@ -23,23 +23,34 @@ struct PushTapsTests {
         var userInfo = message(kind: "channel")
         userInfo["chatId"] = "chat_task"
         userInfo["taskId"] = "task_7"
-        userInfo["taskKey"] = "HAUS-7"
+        userInfo["taskShortId"] = "k3mq7xta"
         let push = try #require(HausPush(userInfo: userInfo))
         #expect(PushRouteTable.request(for: push) == .open(.task(taskID: "task_7", messageID: "msg_1")))
     }
 
-    @Test("A Task assignment opens the Task")
-    func taskAssignment() throws {
-        let push = try #require(HausPush(userInfo: [
-            "kind": "task_assignment", "key": "HAUS-7", "serverId": "srv_a", "taskId": "task_7",
-        ]))
-        #expect(PushRouteTable.request(for: push) == .open(.task(taskID: "task_7")))
+    @Test("A Captain chat message opens its Captain's chat at the message")
+    func captainMessage() throws {
+        var userInfo = message(kind: "captain")
+        userInfo["chatId"] = "chat_forge"
+        userInfo["conversationChatId"] = "chat_forge"
+        let push = try #require(HausPush(userInfo: userInfo))
+        let request = PushRouteTable.request(for: push) { $0 == "chat_forge" ? "agent_forge" : nil }
+        #expect(request == .open(.captain(agentID: "agent_forge", messageID: "msg_1")))
     }
 
-    @Test("A burst of assignments opens Tasks filtered to mine")
-    func assignmentBurst() throws {
-        let push = try #require(HausPush(userInfo: ["kind": "task_assignment_burst", "count": 3, "serverId": "srv_a"]))
-        #expect(PushRouteTable.request(for: push) == .tasks(.assignedToMe))
+    @Test("A Captain chat the Chat list does not know yet opens by its Chat id")
+    func unknownCaptainMessage() throws {
+        let push = try #require(HausPush(userInfo: message(kind: "captain")))
+        #expect(PushRouteTable.request(for: push) == .open(.dm(chatID: "chat_product", messageID: "msg_1")))
+    }
+
+    @Test("An Issue push opens Home on its Server, since the iPhone has no Issue screen")
+    func issuePush() throws {
+        let push = try #require(HausPush(userInfo: [
+            "kind": "issue_assignment", "code": "GEN-12", "issueId": "iss_1", "serverId": "srv_a",
+        ]))
+        #expect(push.serverID == "srv_a")
+        #expect(PushRouteTable.request(for: push) == .root(.home))
     }
 
     @Test("A cold-launch tap waits for the router, then routes once")
@@ -105,12 +116,15 @@ struct PushTapsTests {
     func newerTapWins() throws {
         let taps = PushTaps()
         let router = HausRouter()
+        router.selectedTab = .tasks
         taps.receive(try #require(HausPush(userInfo: message(kind: "channel"))))
-        taps.receive(try #require(HausPush(userInfo: ["kind": "task_assignment_burst", "count": 2, "serverId": "srv_a"])))
+        taps.receive(try #require(HausPush(userInfo: [
+            "kind": "issue_comment", "code": "GEN-12", "issueId": "iss_1", "serverId": "srv_a",
+        ])))
         taps.mount()
         #expect(taps.route(into: router, activeServerID: "srv_a", memberServerIDs: ["srv_a"]) == .routed)
-        #expect(router.selectedTab == .tasks)
-        #expect(router.tasksFilter == .assignedToMe)
+        #expect(router.selectedTab == .home)
+        #expect(router.path(.projects).isEmpty)
     }
 
     private func message(kind: String) -> [AnyHashable: Any] {

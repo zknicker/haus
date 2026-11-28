@@ -5,7 +5,6 @@ import HausModels
 /// screens pushed onto the tab's own stack.
 public struct SettingsSheet: View {
     let persistence: SettingsPersistence
-    let cloudAgentActions: WorkerSettingsActions
     let automations: AgentAutomationsActions
     let stoppedClaims: AgentStoppedClaimsActions
     let onSignOut: SettingsSignOut?
@@ -30,7 +29,6 @@ public struct SettingsSheet: View {
         tabPath: Binding<[SettingsRoute]>,
         data: SettingsData,
         persistence: SettingsPersistence,
-        cloudAgentActions: WorkerSettingsActions,
         automations: AgentAutomationsActions,
         stoppedClaims: AgentStoppedClaimsActions,
         notifications: PushNotificationsSetting,
@@ -41,7 +39,6 @@ public struct SettingsSheet: View {
     ) {
         self.onSignOut = onSignOut
         self.persistence = persistence
-        self.cloudAgentActions = cloudAgentActions
         self.automations = automations
         self.stoppedClaims = stoppedClaims
         self.notifications = notifications
@@ -98,7 +95,6 @@ public struct SettingsSheet: View {
             tabPath: $path,
             data: SettingsFixtures.data,
             persistence: .preview,
-            cloudAgentActions: .unavailable,
             automations: .preview,
             stoppedClaims: .unavailable,
             notifications: PushNotificationsSetting(),

@@ -23,21 +23,16 @@ struct TaskPreviewCard: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(task.accessibilityLabel)
         .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("task-preview-\(task.key)")
+        .accessibilityIdentifier("task-preview-\(task.shortID)")
         .padding(.top, 6)
     }
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            TaskStateDisc(
-                state: task.state,
-                size: 16,
-                surface: HausPlatformColor.canvas
-            )
-            .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
-            (Text(task.key).foregroundStyle(.secondary).monospacedDigit()
-                + Text("  ")
-                + Text(task.title).fontWeight(.semibold))
+            TaskActivityDisc(state: task.disc, size: 16, surface: HausPlatformColor.canvas)
+                .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
+            Text(task.title)
+                .fontWeight(.semibold)
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)

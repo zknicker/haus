@@ -195,7 +195,6 @@ extension HausStore {
         resetTranscripts()
         pendingMessagesByChatID = [:]
         tasks.reset()
-        workers.reset()
         projects.reset()
         drive.reset()
         settingsModel.reset()

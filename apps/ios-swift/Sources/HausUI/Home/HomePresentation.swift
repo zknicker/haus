@@ -43,7 +43,7 @@ public enum HomeRowLead: Hashable, Sendable {
     case captain(CaptainIdentity)
     case person(name: String, avatarURL: URL?)
     case project(ChannelAppearance)
-    case task(TaskState)
+    case task(TaskDiscState)
 }
 
 /// Where tapping a Home row goes.
@@ -59,7 +59,7 @@ public struct HomeRowPresentation: Identifiable, Hashable, Sendable {
     public enum TimePlacement: Hashable, Sendable {
         /// Trailing, beside the unread dot: when the conversation last moved.
         case trailing
-        /// At the end of the meta line: how long the Task has been open.
+        /// At the end of the meta line: how long ago the Task started.
         case meta
     }
 

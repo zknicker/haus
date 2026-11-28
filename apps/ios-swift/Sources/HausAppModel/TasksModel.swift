@@ -4,34 +4,32 @@ import HausTransport
 import Observation
 import OSLog
 
-/// The Task snapshots: details, labels, unread Task chats, the open Tasks,
-/// and one filtered list. Every snapshot stays absent until its first read,
-/// so "nothing here" is never confused with "not yet known", and a task event
+/// The Task snapshots: details, unread Task chats, the active Tasks, and the
+/// Tasks tab's list. Every snapshot stays absent until its first read, so
+/// "nothing here" is never confused with "not yet known", and a task event
 /// refreshes only what this client holds.
 @MainActor
 @Observable
 public final class TasksModel {
     public internal(set) var detailsByID: [String: TaskDetail] = [:]
-    public internal(set) var labels: [TaskLabel]?
     public internal(set) var unreadTasks: [ChatUnreadPreview]?
-    /// `task.listOpen`, the Home tab's Open tasks.
-    public internal(set) var openTasks: [TaskRecord]?
-    /// The Tasks tab's filtered `task.list`, with the filter it answers.
+    /// `task.listActive`, the Home tab's active Tasks.
+    public internal(set) var activeTasks: [TaskRecord]?
+    /// The Tasks tab's `task.list`: the active Tasks or the archived ones.
     public internal(set) var list: TaskListSnapshot?
-    /// `project.list`: the Projects a new Task can be filed in, and the names
+    /// `project.list`: the Projects a new Task can start in, and the names
     /// Task rows show.
     public internal(set) var projects: [Project]?
 
     @ObservationIgnored let client: TRPCClient
     @ObservationIgnored let scope: ServerScope
     @ObservationIgnored var detailReads = ReadSequence<String>()
-    @ObservationIgnored var labelReads = ReadSequence<WholeList>()
     @ObservationIgnored var unreadReads = ReadSequence<WholeList>()
-    @ObservationIgnored var openReads = ReadSequence<WholeList>()
+    @ObservationIgnored var activeReads = ReadSequence<WholeList>()
     @ObservationIgnored var listReads = ReadSequence<WholeList>()
     @ObservationIgnored var projectReads = ReadSequence<WholeList>()
-    /// The filter the next list refresh asks for: the last one shown.
-    @ObservationIgnored public internal(set) var listFilter: TaskListFilter?
+    /// Whether the next list refresh asks for archived Tasks: the last list shown.
+    @ObservationIgnored public internal(set) var listArchived: Bool?
 
     public init(client: TRPCClient, scope: ServerScope) {
         self.client = client
@@ -40,16 +38,14 @@ public final class TasksModel {
 
     public func reset() {
         detailsByID = [:]
-        labels = nil
         unreadTasks = nil
-        openTasks = nil
+        activeTasks = nil
         list = nil
         projects = nil
-        listFilter = nil
+        listArchived = nil
         detailReads.reset()
-        labelReads.reset()
         unreadReads.reset()
-        openReads.reset()
+        activeReads.reset()
         listReads.reset()
         projectReads.reset()
     }
@@ -71,15 +67,6 @@ public final class TasksModel {
         guard scope.accepts(read, in: detailReads) else { return false }
         if detailsByID[read.key] != detail { detailsByID[read.key] = detail }
         return true
-    }
-
-    // MARK: - Labels
-
-    public func reloadLabels() async throws {
-        let read = try labelReads.begin(.all, in: scope)
-        let loaded = try await client.call(TaskProcedures.labels, ServerScopeInput(serverID: read.serverID))
-        guard scope.accepts(read, in: labelReads) else { return }
-        if labels != loaded { labels = loaded }
     }
 
     // MARK: - Unread Task chats
@@ -110,13 +97,29 @@ public final class TasksModel {
 
     // MARK: - Lookups
 
+    /// Every Task record this client holds, newest version first per id.
+    public var heldRecords: [TaskRecord] {
+        var byID: [String: TaskRecord] = [:]
+        let records = detailsByID.values.map(\.task) + (activeTasks ?? []) + (list?.tasks ?? [])
+        for record in records where (byID[record.id]?.version ?? 0) < record.version {
+            byID[record.id] = record
+        }
+        return Array(byID.values)
+    }
+
+    public func record(taskID: String) -> TaskRecord? {
+        detailsByID[taskID]?.task
+            ?? activeTasks?.first { $0.id == taskID }
+            ?? list?.tasks.first { $0.id == taskID }
+    }
+
     public func chatID(taskID: String) -> String? {
-        detailsByID[taskID]?.task.chatID
+        record(taskID: taskID)?.chatID
             ?? unreadTasks?.first { $0.task?.taskID == taskID }?.chatID
     }
 
     public func taskID(chatID: String) -> String? {
-        detailsByID.values.first { $0.task.chatID == chatID }?.task.id
+        heldRecords.first { $0.chatID == chatID }?.id
             ?? unreadTasks?.first { $0.chatID == chatID }?.task?.taskID
     }
 

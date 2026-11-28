@@ -136,25 +136,14 @@ public struct SettingsComputer: Identifiable, Hashable, Sendable {
     public let isHealthy: Bool
     public let system: String
     public let version: String
-    /// Nil when the Server does not report the switch.
-    public let workers: SettingsComputerWorkers?
 
-    public init(
-        id: String,
-        name: String,
-        health: String,
-        isHealthy: Bool,
-        system: String,
-        version: String,
-        workers: SettingsComputerWorkers? = nil
-    ) {
+    public init(id: String, name: String, health: String, isHealthy: Bool, system: String, version: String) {
         self.id = id
         self.name = name
         self.health = health
         self.isHealthy = isHealthy
         self.system = system
         self.version = version
-        self.workers = workers
     }
 }
 
@@ -230,8 +219,7 @@ public enum SettingsFixtures {
             health: "Online",
             isHealthy: true,
             system: "Mac · Apple Silicon",
-            version: "v1.0.0",
-            workers: SettingsComputerWorkers(isEnabled: true, canChange: true)
+            version: "v1.0.0"
         ),
     ]
 

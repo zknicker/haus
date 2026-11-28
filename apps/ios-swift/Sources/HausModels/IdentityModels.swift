@@ -103,7 +103,8 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
     public let desiredReasoningEffort: AgentReasoningEffort?
     public let desiredRuntimeID: String
     public let displayName: String
-    public let dmChatID: String?
+    /// The Captain's one shared chat (ADR 0062).
+    public let captainChatID: String?
     public let effectiveModelID: String?
     public let effectiveReasoningEffort: AgentReasoningEffort?
     public let effectiveReportedAt: Date?
@@ -128,7 +129,7 @@ public struct AgentSummary: Codable, Identifiable, Sendable, Equatable {
         case desiredReasoningEffort
         case desiredRuntimeID = "desiredRuntimeId"
         case displayName
-        case dmChatID = "dmChatId"
+        case captainChatID = "captainChatId"
         case effectiveModelID = "effectiveModelId"
         case effectiveReasoningEffort
         case effectiveReportedAt
