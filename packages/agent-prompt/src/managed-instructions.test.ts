@@ -8,24 +8,19 @@ const efficiencyPrompt = renderPrompt({
     workspacePath: '/workspace',
 });
 
+// Capy prompt v2 item 8 cut capability selection to three sentences; these are the facts kept.
 test('an explicitly requested unavailable MCP does not trigger local configuration searches', () => {
-    expect(efficiencyPrompt).toContain('For Server MCPs, use the injected `execute` tool');
     expect(efficiencyPrompt).toContain(
-        'Local configuration, environment, and filesystem searches cannot establish a Server MCP grant'
+        "Your runtime's tool inventory lists what you can call in this run, including the Server's MCP connections, which you reach through the injected `execute` tool: await `tools.search({query})`, `tools.describe({name})`, then `tools.call({name,args})`; the `haus` CLI does not list them."
     );
     expect(efficiencyPrompt).toContain(
-        'An inventory establishes availability only inside its stated scope. Absence from one inventory does not establish that the capability, provider, or data is unavailable through another surface.'
+        'A connection missing there needs a connection or grant from a person, so report which one; local configuration, environment, and files cannot grant it.'
     );
-    // Raft parity: the runtime inventory is not populated by a CLI command —
-    // Haus has no `integration list` equivalent at all.
-    expect(efficiencyPrompt).toContain(
-        'The runtime tool inventory contains tools callable in this run, including injected Server-managed MCP tools. It is not populated by the `haus` CLI.'
-    );
-    expect(efficiencyPrompt).toContain('#### Runtime tools and Server-managed MCP');
+    expect(efficiencyPrompt).not.toContain('#### Runtime tools and Server-managed MCP');
     expect(efficiencyPrompt).not.toContain('integration list');
     expect(efficiencyPrompt).not.toContain('#### Haus Agent Login integrations');
     expect(efficiencyPrompt).toContain(
-        "The human's explicit choice of surface is part of that fit."
+        "The human's explicit choice of surface is part of the fit, so a surface they name is the one to use."
     );
 });
 
@@ -101,7 +96,7 @@ test('keeps current Raft instruction precedence without an Agent-creation policy
     expect(prompt).not.toContain('Do not obstruct a human-directed use of a credential');
     expect(prompt).not.toContain('Next action:');
     expect(prompt).toContain('### Capability and execution-surface selection');
-    expect(prompt).toContain("The human's explicit choice of surface is part of that fit.");
+    expect(prompt).toContain("The human's explicit choice of surface is part of the fit, so a surface they name is the one to use.");
     expect(prompt).not.toContain('URLs in non-English text');
     expect(prompt).not.toContain('## Capabilities');
     expect(prompt).toContain('Haus renders your message as Markdown, GFM tables included');
@@ -132,6 +127,17 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).toContain(
         '**Propagation:** when a constraint you own changes or expires, notify agents whose current plan or status still cites the old premise.'
     );
+    // Capy prompt v2 item 8: claims are the channel lock; status details live in the Manual.
+    expect(prompt).toContain(
+        '**Claim rule:** in a channel, a claim is the lock on a message, so two agents don\'t do the same work.'
+    );
+    expect(prompt).toContain(
+        'Your Captain chat has no other agent to race, and crew work is tracked on its Task and Issue.'
+    );
+    expect(prompt).toContain(
+        'When your work is done, set the claim to `done` yourself. The `claims` Manual topic covers `in_review` sign-offs, assignment, and `haus claim create`.'
+    );
+    expect(prompt).not.toContain('closed as stale');
     expect(prompt).toContain(
         '**Action:** choosing not to act requires current evidence just as choosing to act does.'
     );
@@ -151,7 +157,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).toContain(
         "- When you need a human's decision or action, @mention them where the work lives. Ask one question, a default only if reversible, and what you prepared. Their reply wakes you. Irreversible acts wait for an explicit yes."
     );
-    expect(prompt).toMatch(/13\. \*\*Images\*\*: `haus image models`.*\n14\. \*\*Tasks\*\*/);
+    expect(prompt).toMatch(/13\. \*\*Images\*\*: `haus image` \(`models`.*\n14\. \*\*Tasks\*\*/);
 
     // These Raft-only surfaces must not leak into the Haus prompt.
     expect(prompt).not.toContain('reviewer-isolation');
@@ -177,7 +183,11 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // repeat delivery with a handled msg= id is handled; +35 send nothing comes first among the draft paths.
     // Raised by exactly 93 (→ 37,785): crew reports are gone, so a Captain hears a crew turn end and
     // reads what is new in the Task's chat with message read --unread.
-    expect(prompt.length).toBeLessThanOrEqual(37_785);
+    // Lowered by exactly 1,234 (37,785 → 36,551) by prompt v2 (Capy's proposal, items 1–9): the
+    // Captain runs a lane, thinks while crew builds, writes complete briefs and checks crew work;
+    // family flag lists, reminder anchor rules and claim status detail moved to the Manual, and
+    // capability selection shrank to three sentences.
+    expect(prompt.length).toBeLessThanOrEqual(36_551);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt).toContain('Cite a web source as a Markdown link to the page you read.');
     expect(prompt.toLowerCase()).not.toContain('thread');

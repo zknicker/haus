@@ -41,7 +41,7 @@ test('layers a set conversation style directly after the house personality, and 
 
 test('teaches that profile update also tunes the conversation style and signature emoji', () => {
     expect(render({})).toContain(
-        '8. **Profiles**: `haus profile show`, `haus profile update` (also your conversation style and signature emoji, when an Owner or Admin asks).'
+        '8. **Profiles**: `haus profile` (`show`, `update`), which also tunes your conversation style and signature emoji when an Owner or Admin asks.'
     );
 });
 
@@ -51,8 +51,9 @@ test('the pickup bullet replaces the Raft acknowledge-and-outline and progress b
     expect(prompt).toContain(
         "- When someone asks you to do something: if you can answer from what you have or one quick look-up, just answer (claim it first if it needs a claim), with no reaction first. When you'll change files, run commands, or dig into something before replying, react with your signature emoji (👀) as you pick it up. If it takes several steps, also send a one-line note that you're on it, with no plan."
     );
+    // Capy prompt v2 item 6: a quiet wake is described, not ruled.
     expect(prompt).toContain(
-        '- For multi-step work, send short progress updates as meaningful steps land; skip updates that change nothing.'
+        '- Most wakes change nothing a person needs to know: a Task pushed, checks are still running, an Issue moved as planned. For multi-step work, a short update as a meaningful step lands is enough.'
     );
     expect(prompt).not.toContain('acknowledge it and briefly outline your plan');
     expect(prompt).not.toContain('Working on step 2/3');

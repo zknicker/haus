@@ -77,7 +77,7 @@ test('a cold reset turn drains the addressed message and notices the rest', () =
             '',
             '[target=#product msg=0196f0c4 time=2026-11-19 15:01:00 UTC type=human] maya: Can you draft the launch note?',
             '',
-            'Respond as appropriate. Complete all your work before stopping.',
+            "Respond as appropriate. Finish your own part before stopping; your crew's work comes back to you as their turns end.",
             "Each message's `target` identifies the conversation where it was asked.",
             '',
             ...noticeLines(
@@ -187,6 +187,19 @@ test('the turn after a runner crash names the tool calls the crash left unknown'
     expect(input.turnContent).toBe(
         'Haus restarted during your last turn, so these tool calls may or may not have taken effect: toolu_1, toolu_2. Check their effects before running them again.\n\nResume the interrupted turn.'
     );
+});
+
+test('a drained message tells a Captain its crew reports back, and a Task to complete its work', () => {
+    const drained = start({ drainItemIds: [first.id], inbox: [first], totalPending: 1 });
+    const session = { isColdStart: false, resumesInterruptedTurn: false, sessionGeneration: 2 };
+    const as = (sessionKind: 'captain' | 'task' | null) =>
+        composeTurnInput(drained, { ...session, sessionKind }, []).turnContent;
+    expect(as('captain')).toContain(
+        "Finish your own part before stopping; your crew's work comes back to you as their turns end."
+    );
+    expect(as('captain')).not.toContain('Complete all your work');
+    expect(as('task')).toContain('Respond as appropriate. Complete all your work before stopping.');
+    expect(as(null)).toContain('Respond as appropriate. Complete all your work before stopping.');
 });
 
 test('an Issue assignment teaches crew to a Captain and not to a Task, which cannot start one', () => {

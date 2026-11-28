@@ -16,17 +16,30 @@ const tasks = prompt.split('### Tasks\n')[1]?.split('## Working through sub-agen
 
 test('a Task is the Captain’s crew, a session people can talk to (ADR 0062)', () => {
     expect(tasks).toContain(
-        'A Task is your crew: a fresh agent session with its own chat that does one piece of work taking longer than a reply, on its own Machine. People see it under the message it started from, with its state and newest messages, follow it in their sidebar, and can talk to it there. Work you do in your own turn keeps you busy for everyone else until it ends; crew keeps you free.'
+        'A Task is your crew: a fresh agent session with its own chat that does one piece of work taking longer than a reply, on its own Machine. People see it under the message it started from, with its state and newest messages, follow it in their sidebar, and can talk to it there.'
     );
     expect(prompt).toContain('**Claim rule:**');
     expect(prompt).toContain('A failed claim is a concurrency lock');
 });
 
-test('a Task starts with its brief on stdin, which is all it knows', () => {
+// Capy prompt v2 item 3: the Captain thinks and the crew builds, for the reason that its own turn
+// blocks everyone waiting on it; what its message says it will do, it does in that turn.
+test('the Captain thinks and the crew builds, because its own turn blocks everyone', () => {
+    expect(tasks.trimStart().startsWith('You think, and your crew builds.')).toBe(true);
     expect(tasks).toContain(
-        'Start one with its brief on stdin: `haus task start --title <text> --target <the chat you answer in> --from <shortid> < brief`, adding `--issue <code>` or `--repo <owner/name>` when it has them. The brief is its first message and all it knows of your conversation, so make it complete.'
+        "Your own turn blocks everyone waiting on you until it ends, and a Task's turn blocks no one. What you say, you do: a next step your message names is one you take in that turn."
     );
-    expect(tasks).toContain('so make it complete. Separate pieces of work are separate Tasks.');
+    expect(tasks).not.toContain('crew keeps you free');
+});
+
+// Capy prompt v2 item 4: what a complete brief carries, and who decides inside it.
+test('a Task starts with its brief on stdin, and a complete brief names done, scope and what it can rely on', () => {
+    expect(tasks).toContain(
+        'Start one with its brief on stdin: `haus task start --title <text> --target <the chat you answer in> --from <shortid> < brief`, adding `--issue <code>` or `--repo <owner/name>` when it has them. The brief is its first message and all it knows of your conversation.'
+    );
+    expect(tasks).toContain(
+        'A complete brief says what done looks like, what is out of scope, the repo and Issue, and what the Task can rely on: access, decisions already made, and who it may ask. Your WORKER.md reaches every Task you start, so the brief need not repeat it. Inside the brief, the Task decides. Separate pieces of work are separate Tasks.'
+    );
     expect(tasks).not.toContain('Reply with a link to the Task');
     expect(tasks).not.toContain('just reply');
 });
@@ -39,12 +52,22 @@ test('Tasks start in the home Project, and other Projects get an @mention in the
 
 test('the Captain hears crew turns end and reads their chats, the asker talks to it, and task send messages a Task', () => {
     expect(tasks).toContain(
-        "You hear when a crew Task's turn ends; `haus message read --target task:<shortId> --unread` reads what is new in its chat. The person who asked talks to you. `haus task send <shortId>` messages a Task and brings back an archived one. Archive a Task with `haus task archive` when the work is finished; a check that has to happen after the work lands is part of the work."
+        "You hear when a crew Task's turn ends; `haus message read --target task:<shortId> --unread` reads what is new in its chat."
+    );
+    expect(tasks).toContain(
+        'The person who asked talks to you. `haus task send <shortId>` messages a Task and brings back an archived one. Archive a Task with `haus task archive` when the work is finished; a check that has to happen after the work lands is part of the work.'
     );
     // The Server refuses `message send` into a Task's chat and names `haus task send`.
     expect(prompt).not.toContain('never `message send`');
     expect(prompt).not.toContain('Work for a Task is posted with');
     expect(prompt).not.toContain('KEY-n');
+});
+
+// Capy prompt v2 item 5: a crew Task's "done" is its account; the work shows readiness.
+test('a crew Task saying done is its own account, and the work itself shows readiness', () => {
+    expect(tasks).toContain(
+        'A Task saying it is done is its own account: the work itself, such as a pull request and its checks at the head, shows whether it is ready.'
+    );
 });
 
 test('the open Issues assigned to the agent are its queue (ADR 0062)', () => {
@@ -78,9 +101,9 @@ test('splitting for other agents files Issues, and claims stay in the conversati
     expect(prompt).toContain('**Avoid creating sequential chains**');
 });
 
-test('the Tasks and Issues families name every verb and point at the Manual', () => {
+test('the Tasks and Issues families name every verb', () => {
     expect(prompt).toContain(
-        '14. **Tasks**: `haus task start`, `haus task send`, `haus task list`, `haus task show`, `haus task archive`, `haus task unarchive`, `haus task attach-pr`. Read the `tasks` Manual topic before the first one.\n15. **Issues**: `haus issue list`, `haus issue show`, `haus issue create`, `haus issue update`, `haus issue comment`, `haus issue link`. Read the `issues` Manual topic before the first one.\n16. **Computers**'
+        '14. **Tasks**: `haus task` (`start`, `send`, `list`, `show`, `archive`, `unarchive`, `attach-pr`).\n15. **Issues**: `haus issue` (`list`, `show`, `create`, `update`, `comment`, `link`).\n16. **Computers**'
     );
     expect(prompt).not.toContain('**Boards**');
     expect(prompt).not.toContain('haus task create');
