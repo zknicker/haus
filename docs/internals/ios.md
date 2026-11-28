@@ -857,8 +857,11 @@ started), All tasks, and Archived. `TaskListSections` groups an active list by a
 first, and lists Archived flat; rows run newest first with the Project, `Machine · model`, and age,
 and an unread Task chat wears a dot. Its `+` and Home's "Ask anything" accessory start a Task with
 `task.start` (`AskAnythingPlan`): a Project, a Machine (the Project's default first), a model from the
-runner catalog, and the text as the first message. The draft keeps its request id, so a retried send
-answers the same Task.
+runner catalog, and the text as the first message. The Project picker, like the web Home composer's
+and New Captain's home picker, offers only joined Channels other than `#all` that have a live
+`project.list` record (`AskAnythingPlan.projectChatIDs`), because `task.start` refuses any other
+Channel; the field reads "Start a Task". A refusal shows the Server's own message, never the raw
+tRPC code. The draft keeps its request id, so a retried send answers the same Task.
 
 A Task opens as one push on the tab's navigation stack, from the Tasks tab, Home, its origin preview,
 a chip, its Unread row, or a push. Until the Store holds a record that says whether the Task has a

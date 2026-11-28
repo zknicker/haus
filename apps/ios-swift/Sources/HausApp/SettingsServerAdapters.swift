@@ -30,16 +30,13 @@ extension HausStore {
         return HausUI.DriveListing(folders: page.folders, files: page.artifacts.map { DriveFilePresentation(record: $0) })
     }
 
-    /// The Projects tab's own set, the joined Channels in the same order, each
-    /// with the setup its Project record carries once `project.list` lands.
-    /// Blank until the Chat list has loaded.
+    /// The joined Projects in the Projects tab's order, as the web App's
+    /// Projects page lists them: Channels with a Project record, not `#all`.
+    /// Blank until the Chat list and `project.list` have loaded.
     private var settingsProjects: [SettingsProject]? {
-        guard hasLoadedChats else { return nil }
-        let records = tasks.projects ?? projects.projects ?? []
-        return projectRows.map { row in
-            guard let project = records.first(where: { $0.chatID == row.chatID }) else {
-                return SettingsProject(id: row.chatID, name: row.name, key: "")
-            }
+        guard hasLoadedChats, let records = tasks.projects ?? projects.projects else { return nil }
+        return projectRows.compactMap { row in
+            guard !row.isAll, let project = records.first(where: { $0.chatID == row.chatID }) else { return nil }
             return SettingsProject(
                 id: project.id,
                 name: row.name,

@@ -17,7 +17,7 @@ extension AuthenticatedHausView {
             )
         case .newCaptain:
             NewCaptainFormView(
-                projects: captainHomeProjects,
+                projects: askProjects,
                 devices: (store.computers ?? []).map { AskAnythingChoice(id: $0.id, name: $0.name ?? "Device") },
                 runtimes: (store.modelConnections?.runtimeCatalog ?? []).map(SettingsRuntime.init),
                 create: { draft in try await createCaptain(draft) }
@@ -63,11 +63,6 @@ extension AuthenticatedHausView {
     private func currentActivity(for destination: ChatDestination) -> AgentActivityPresentation? {
         guard case .captainChat(let agent) = destination.kind else { return nil }
         return store.currentActivityPresentation(agentID: agent.id)
-    }
-
-    private var captainHomeProjects: [AskAnythingChoice] {
-        let allChatIDs = Set(store.chats.filter(\.isAll).map(\.id))
-        return askProjects.filter { !allChatIDs.contains($0.id) }
     }
 
     /// `agent.create` needs a home Project and a Device; the form only offers

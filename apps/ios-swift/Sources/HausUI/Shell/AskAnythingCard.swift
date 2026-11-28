@@ -82,7 +82,7 @@ public struct AskAnythingCard: View {
             MessageComposerView(
                 text: $text,
                 interaction: interaction,
-                place: .task,
+                placeholder: "Start a Task",
                 isTextFocused: $isFocused,
                 allowsAttachments: false,
                 onSend: { content, _ in await onSend(content) }

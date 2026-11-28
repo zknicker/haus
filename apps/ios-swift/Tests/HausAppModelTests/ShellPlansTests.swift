@@ -1,5 +1,6 @@
 import Foundation
 import HausModels
+import HausTransport
 import Testing
 @testable import HausAppModel
 
@@ -46,6 +47,17 @@ struct ShellPlansTests {
         #expect(AskAnythingPlan.choice(ids, picked: "gone", preferred: "b") == "b")
         #expect(AskAnythingPlan.choice(ids, picked: nil, preferred: "gone") == "a")
         #expect(AskAnythingPlan.choice([], picked: nil) == nil)
+    }
+
+    @Test("A refused start reads in the Server's words, and a dropped link says so")
+    func refusalCopy() {
+        let refused = TRPCError(message: "That Project does not exist on this Server.", code: -32600)
+        #expect(AskAnythingPlan.refusal(refused) == "That Project does not exist on this Server.")
+        #expect(
+            AskAnythingPlan.refusal(TRPCClientError.transport("offline"))
+                == "Haus couldn't be reached. Check your connection and try again."
+        )
+        #expect(AskAnythingPlan.refusal(TRPCClientError.decoding("bad")) == "Haus couldn't start this Task. Try again.")
     }
 
     @Test("A Server with a Project and a Captain needs no first run")

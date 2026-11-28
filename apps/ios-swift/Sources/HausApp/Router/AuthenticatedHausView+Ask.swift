@@ -40,8 +40,10 @@ extension AuthenticatedHausView {
     }
 
     var askProjects: [AskAnythingChoice] {
-        store.chatDestinations.compactMap { destination in
-            guard case .channel = destination.kind, let chat = destination.durableChat else { return nil }
+        let projectChatIDs = AskAnythingPlan.projectChatIDs(chats: store.chats, projects: store.projects.projects)
+        return store.chatDestinations.compactMap { destination in
+            guard case .channel = destination.kind, let chat = destination.durableChat, projectChatIDs.contains(chat.id)
+            else { return nil }
             return AskAnythingChoice(id: chat.id, name: chat.title, appearance: chat.appearance)
         }
     }
@@ -88,7 +90,7 @@ extension AuthenticatedHausView {
             router.open(.task(taskID: task.id), from: .outside)
             return true
         } catch {
-            ask.error = error.localizedDescription
+            ask.error = AskAnythingPlan.refusal(error)
             return false
         }
     }

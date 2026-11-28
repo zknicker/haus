@@ -114,7 +114,28 @@ struct HomeAndProjectsTests {
         #expect(projects.projects == nil)
     }
 
-    private func chat(_ id: String, kind: String, minutesAgo: Int?, captainChat: String = "null") -> ChatSummary {
+    @Test("A Task starts only in a joined Channel with a live Project record, never #all")
+    func taskProjectChoices() {
+        let chats = [
+            chat("product", kind: "channel", minutesAgo: 1),
+            chat("ui_gallery", kind: "channel", minutesAgo: 1),
+            chat("all", kind: "channel", minutesAgo: 1, isAll: true),
+            chat("retired", kind: "channel", minutesAgo: 1),
+            chat("dm", kind: "dm", minutesAgo: 1),
+        ]
+        let projects = [
+            project("product"),
+            project("all", isHaus: true),
+            project("retired", archived: true),
+            project("dm"),
+            project("unjoined"),
+        ]
+
+        #expect(AskAnythingPlan.projectChatIDs(chats: chats, projects: projects) == ["product"])
+        #expect(AskAnythingPlan.projectChatIDs(chats: chats, projects: nil).isEmpty)
+    }
+
+    private func chat(_ id: String, kind: String, minutesAgo: Int?, captainChat: String = "null", isAll: Bool = false) -> ChatSummary {
         let lastMessage = minutesAgo.map { minutes in
             #"{"authorDisplayName":"Mia","content":"hi","createdAt":"\#(timestamp(minutesAgo: minutes))"}"#
         } ?? "null"
@@ -122,7 +143,7 @@ struct HomeAndProjectsTests {
         return decode(
             """
             {"archivedAt":null,"archivedByUserId":null,"captainChat":\(captainChat),"color":null,
-             "createdAt":"2026-01-01T00:00:00Z","description":null,"icon":null,"id":"\(id)","isAll":false,
+             "createdAt":"2026-01-01T00:00:00Z","description":null,"icon":null,"id":"\(id)","isAll":\(isAll),
              "kind":"\(kind)","lastActivityAt":null,"lastMessage":\(lastMessage),"lastMessageSequence":1,
              "name":"\(id)","participantAgentIds":[],"participantUserIds":[],"peerAgentDisplayName":null,
              "peerAgentId":\(peerAgent),"peerAgentRetired":false,"peerUserId":null,"serverId":"srv_a","unreadCount":0}
@@ -152,10 +173,10 @@ struct HomeAndProjectsTests {
         )
     }
 
-    private func project(_ chatID: String, archived: Bool = false) -> Project {
+    private func project(_ chatID: String, archived: Bool = false, isHaus: Bool = false) -> Project {
         decode(
             """
-            {"archived":\(archived),"chatId":"\(chatID)","defaultMachine":null,"homeAgentIds":[],"isHaus":false,
+            {"archived":\(archived),"chatId":"\(chatID)","defaultMachine":null,"homeAgentIds":[],"isHaus":\(isHaus),
              "key":"SEC","keyEditable":true,"name":"sec","serverId":"srv_a","taskKeyId":"key_\(chatID)"}
             """
         )
