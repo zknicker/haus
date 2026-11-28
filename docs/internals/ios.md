@@ -861,12 +861,15 @@ transcript's coordinator notes its resting anchor when a scroll settles (`Transc
 nil at the newest edge), so `carry()` touches no UIKit layout, and resumes a carried one once the
 table has a height and the item, unless the reader touches it first or a reveal wins. Only the
 stack on screen writes a tab's path: a compact stack torn down after the Duo opened writes nothing
-(`setStackPath`), as a split's already did (`setSplitStack`). Closing the Duo with a Task beside its
-conversation had the rebuilt compact stack write itself empty before either screen appeared, so until
-a rebuilt stack's top screen appears (`stackAppeared`, from the destination's `onAppear`) the router
-refuses a write that drops more than one route, once per fold, and bumps `stackRevision`, which the
-stack reads so it redraws from the router's path. Back pops one screen and is always taken. Refusals
-are logged under `chat.haus.ios` / `pose` with their call stack.
+(`setStackPath`), as a split's already did (`setSplitStack`). Closing the Duo draws the split once at
+compact width before the tab swaps it for its stack, and SwiftUI collapsed a detail-only split (Task
+mode's rail) by queuing a column pop (`NavigationColumnState.pop`, run in the window's rotation to the
+outer display) that landed on the new stack and emptied it. `AdaptiveSplitView` pins its split to the
+regular size class so it never collapses. As a backstop, until a rebuilt stack's top screen appears
+(`stackAppeared`, from the destination's `onAppear`) the router refuses a write that drops more than
+one route, once per fold, and bumps `stackRevision`, which the stack reads so it redraws from the
+router's path; a refusal logs one fault under `chat.haus.ios` / `pose`. Back pops one screen and is
+always taken.
 
 Conversations ask for `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)`
 (`keepsToolbarItemsWhileTyping`): with the keyboard up the rail runs short, and Call, Files and the

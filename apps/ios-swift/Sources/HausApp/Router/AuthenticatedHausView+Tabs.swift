@@ -1,6 +1,7 @@
 import HausAppModel
 import HausModels
 import HausUI
+import os
 import SwiftUI
 
 /// The root: five tabs, each with its own `NavigationStack` bound to the
@@ -70,6 +71,7 @@ extension AuthenticatedHausView {
     }
 
     private static let bottomChromeInset: CGFloat = 22
+    private static let foldLogger = Logger(subsystem: "chat.haus.ios", category: "pose")
 
     /// Folding or unfolding moves every tab between its stack and its split,
     /// which mounts its screens afresh, so what they hold is carried first.
@@ -143,9 +145,8 @@ extension AuthenticatedHausView {
         Binding(
             get: { router.path(tab) },
             set: { path in
-                let current = router.path(tab)
                 if !router.setStackPath(path, for: tab), router.layout == .stack {
-                    logRefusedStackWrite(path, over: current, tab: tab)
+                    Self.foldLogger.fault("\(tab.rawValue, privacy: .public) stack tried to drop several routes before its top appeared; kept")
                 }
             }
         )

@@ -66,6 +66,9 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
 
     /// Half open, the full list reaches the fold (`ListColumnLayout.foldedWidth`)
     /// and keeps its rows clear of it; the handle steps away until the Duo opens.
+    /// The split is the regular layout and never collapses: closing the Duo
+    /// draws it once at compact width before the tab swaps it for its stack,
+    /// and collapsing a detail-only split queued a pop that landed on that stack.
     private var split: some View {
         NavigationSplitView(columnVisibility: visibility) {
             list
@@ -92,6 +95,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar(removing: sidebarToggleRemoved)
+        .environment(\.horizontalSizeClass, .regular)
     }
 
     private var isFolded: Bool {

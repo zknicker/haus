@@ -382,13 +382,14 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
     - Closing with a Task beside its conversation, fully or half open, lost the Task and the selection (a plain
       chat folded fine). Logging showed the router still held `#all > task` at the fold and the Task's draft
       survived in the Store; then the compact stack the fold rebuilt wrote itself empty about 450 ms later, before
-      either of its screens had appeared, while the scene was still moving to the outer display. Setting the same
-      path at launch, or flipping the size class in place, never reproduced it, and the logged call stack was cut
-      short, so what inside UIKit or SwiftUI pops the unshown stack is still unknown. The router now refuses a
-      rebuilt stack's write that drops more than one route before its top screen has appeared
-      (`setStackPath`, `stackAppeared`), once per fold, and bumps `stackRevision` so the stack redraws from its path.
-      Back pops one screen and is always taken; once the top appears, every write is. A refusal is logged under
-      `chat.haus.ios` / `pose` with its call stack, one frame per line. Also hardened: the system's own
+      either of its screens had appeared. The call stack named the cause: the split, drawn once at compact width
+      before the tab swaps it out, collapsed its detail-only column (Task mode's rail) and SwiftUI ran the queued
+      column pop (`NavigationColumnState.pop`) during the window's rotation to the outer display, on the new stack.
+      The split is now pinned to the regular size class and never collapses. The router also refuses a rebuilt
+      stack's write that drops more than one route before its top screen has appeared (`setStackPath`,
+      `stackAppeared`), once per fold, bumping `stackRevision` so the stack redraws from its path; with that alone
+      the fold kept the Task, its chip, draft and focus. Back pops one screen and is always taken; once the top
+      appears, every write is. A refusal logs one fault under `chat.haus.ios` / `pose`. Also hardened: the system's own
       column-visibility writes no longer move a column Haus holds at the fold or beside a Task
       (`acceptsSystemVisibility`); a compact stack torn down after the layout moved on writes nothing; and a
       transcript notes its anchor when a scroll settles instead of forcing table layout inside the pose change.

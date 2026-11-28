@@ -63,10 +63,12 @@ extension HausRouter {
     /// once the layout has moved on writes nothing: only the stack on screen
     /// speaks for the tab. A stack rebuilt by the fold that drops several
     /// routes before its top screen has appeared isn't the reader going
-    /// back, who pops one screen they can see: closing the Duo with a Task
-    /// beside its conversation had the new stack write itself empty while the
-    /// scene was still moving to the outer display. It is refused once and the
-    /// stack redraws from the router's path.
+    /// back, who pops one screen they can see. Closing the Duo with a Task
+    /// beside its conversation had SwiftUI's split collapse its detail-only
+    /// column during the window's rotation to the outer display and run that
+    /// pop (`NavigationColumnState.pop`) on the new stack. The split no longer
+    /// collapses (`AdaptiveSplitView`); this refusal stays as the backstop,
+    /// once per fold, and the stack redraws from the router's path.
     /// Returns whether the write was taken.
     @discardableResult
     public func setStackPath(_ path: [HausRoute], for tab: HausTab) -> Bool {
