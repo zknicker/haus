@@ -10,6 +10,8 @@ struct AuthenticatedHausView: View {
     @State var agentCall: AgentCallRequest?
     @State var ask = AskAnythingDraft()
     @State var youTabIcon: Image?
+    /// What screens hold across a fold or unfold, which remounts every tab.
+    @State var poseCarry = PoseCarry()
     /// Which bars the shell draws, resolved before the first frame (`ShellChromeScope`).
     let shellChrome: ShellChrome
     /// The bottom safe area without the keyboard, for the chrome's clearance.

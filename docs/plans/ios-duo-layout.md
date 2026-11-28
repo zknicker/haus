@@ -335,6 +335,43 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 - Inner portrait uses the same splits with the system's horizontal bars. Its mock still has to be drawn before this
   slice is proved.
 - Proof: the Device Hub pass below runs clean.
+- **Built (2026-11-28).** Pose checks (half open, fold and unfold mid-draft, keyboard, portrait) are Zach's on the
+  Simulator; everything below is proved by tests and a build only.
+  - The fold: `Fold` (`HausUI/Adaptive/Fold.swift`) is the division region in a view's own coordinates, read by
+    `FoldReader` with `.includeInactive`, so layouts know where the fold is fully open too and nothing jumps when
+    the Duo half opens. Only an active fold costs clearance. `Fold.clearSide` gives a control the larger side of an
+    active fold, 28 pt clear.
+  - Task mode follows the region's orientation. A fold running top to bottom (landscape) puts the Task beside its
+    conversation; one running across (inner portrait) puts the Task below it. Fully open they meet at the fold's
+    midline, half open each keeps 28 pt off it, and with no region (other regular-width screens) they split evenly
+    side by side. `TaskModeSplit` places both with one `Layout`, so turning the Duo or half opening it never
+    remounts the conversation. The Task pane's hairline moves to its top edge when stacked (`\.taskPaneEdge`).
+  - A conversation alone keeps to the larger side of an active book fold. Half open like a book with no Task, the
+    full list reaches the fold (`ListColumnLayout.foldedWidth`, the column's min, ideal and max all set to it) with
+    its rows 28 pt clear, the stored column state untouched, and the handle hidden until the Duo opens. If the
+    system won't draw the column that wide, the detail still keeps its content off the fold.
+  - Fold audit of custom chrome: the rail's marks stop above a fold running across it and Show list waits below it
+    (`ListRailFold`); the handle's grip and touch area keep to the larger side of one (`handleSpan`); the composer,
+    its chip, the jump and unread pills and the Task pane's controls live inside panes that already keep clear.
+    System bars are the system's to place. Tabletop (a horizontal fold with no Task) is still Later: the list and
+    transcript run across it.
+  - Continuity: `PoseCarry` (HausUI) carries what screens hold across the remount a fold causes. The shell calls
+    `carry()` just before `router.layout` changes; each screen takes back its value under a `PoseKey` scoped by tab
+    and route (`poseScope`). Carried: each transcript's scroll anchor (the coordinator registers and resumes it
+    before the reader touches it, unless a reveal wins), the open turn details sheet, message drawer and model
+    sheet, the reply being composed, the Task pane's segment, the Projects filter and the Search query and scope.
+    Composer focus is keyed by draft, not screen, so folding a chip composer hands the keyboard to the Task chat,
+    which writes the same `.task(id)` draft. Router-owned sheets never remount. Drafts, chip targets and the
+    selection were already Store and router state; `HausRouter.besideTask(of:in:)` now owns the chip rule.
+  - Keyboard: conversations use `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)`
+    (`keepsToolbarItemsWhileTyping`): Call, Files and the Task's More act on what is being typed, and switching tabs
+    mid-sentence can wait. The keyboard reader measures from its own view's bottom, so a conversation ending at a
+    fold above the keyboard doesn't lift its composer. The mention card already stands on the composer; at regular
+    width it stays 330 pt wide at the composer's leading edge, as the keyboard board draws it.
+  - Not done: a screen's sheets other than those named (attachment viewer, avatar generation, rename alerts) close
+    on a fold.
+  - Proof: `FoldClearanceTests`, `PoseCarryTests`, `TaskModeLayoutTests`, `HausRouterFoldTests`; Duo inner display
+    fully open in landscape unchanged.
 
 ## Later
 

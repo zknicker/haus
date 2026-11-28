@@ -22,33 +22,51 @@ public struct ListRail<Target: Hashable & Sendable>: View {
     }
 
     public var body: some View {
-        VStack(spacing: RailSize.spacing) {
-            if let onCompose {
-                ListRailButton(title: "Ask anything", systemImage: "square.and.pencil", tint: HausPlatformColor.accentInk, action: onCompose)
-                Capsule()
-                    .fill(HausPlatformColor.hairline)
-                    .frame(width: 28, height: 1)
-            }
-            ScrollView {
-                LazyVStack(spacing: RailSize.spacing) {
-                    ForEach(items) { item in
-                        ListRailMark(item: item) { onSelect(item.target) }
-                    }
+        FoldReader { size, fold in
+            VStack(spacing: RailSize.spacing) {
+                if let onCompose {
+                    ListRailButton(title: "Ask anything", systemImage: "square.and.pencil", tint: HausPlatformColor.accentInk, action: onCompose)
+                    Capsule()
+                        .fill(HausPlatformColor.hairline)
+                        .frame(width: 28, height: 1)
                 }
-                .padding(.vertical, 2)
+                ScrollView {
+                    LazyVStack(spacing: RailSize.spacing) {
+                        ForEach(items) { item in
+                            ListRailMark(item: item) { onSelect(item.target) }
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .scrollIndicators(.hidden)
+                .padding(.bottom, ListRailFold.gap(height: size.height, fold: fold))
+                ListRailButton(title: "Show list", systemImage: "sidebar.leading", tint: HausPlatformColor.mutedInk, action: onExpand)
             }
-            .scrollIndicators(.hidden)
-            ListRailButton(title: "Show list", systemImage: "sidebar.leading", tint: HausPlatformColor.mutedInk, action: onExpand)
+            .padding(.top, ListRailFold.topPadding)
+            .padding(.bottom, ListRailFold.bottomPadding)
         }
-        .padding(.top, 12)
-        .padding(.bottom, 16)
         .frame(width: ListColumnLayout.railWidth)
         .frame(maxHeight: .infinity)
         .background(HausPlatformColor.canvas.ignoresSafeArea())
     }
 }
 
-private enum RailSize {
+/// Half open on a surface the fold runs across the rail: its marks scroll
+/// above the fold and Show list waits below it, each 28 pt clear.
+enum ListRailFold {
+    static let topPadding: CGFloat = 12
+    static let bottomPadding: CGFloat = 16
+
+    /// The room under the marks' scroll view that leaves the fold, and the
+    /// clearance either side of it, empty.
+    static func gap(height: CGFloat, fold: Fold?) -> CGFloat {
+        guard let fold, fold.isActive, fold.direction == .horizontal, fold.divides(height) else { return 0 }
+        let marksEnd = height - bottomPadding - RailSize.slot - RailSize.spacing
+        return max(marksEnd - (fold.span.lowerBound - Fold.clearance), 0)
+    }
+}
+
+enum RailSize {
     static let spacing: CGFloat = 10
     static let slot: CGFloat = 48
     static let side: CGFloat = 44

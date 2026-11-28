@@ -11,6 +11,7 @@ struct MessageComposerMentionPicker: View {
     let options: [MentionOptionPresentation]
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var sizeClass
     /// The box the list was actually given. It is the cap on a roomy screen and less than that
     /// when the composer stack is squeezed, and either way it is what decides the bottom fade.
     @State private var visibleHeight: CGFloat = 0
@@ -65,6 +66,7 @@ struct MessageComposerMentionPicker: View {
         .mask(alignment: .top) { bottomFade(isScrollable) }
         .padding(.vertical, MentionPickerLayout.cardVerticalPadding)
         .composerGlassSurface(cornerRadius: ComposerSurfaceMetrics.restingCornerRadius)
+        .frame(maxWidth: MentionPickerLayout.maxCardWidth(isRegularWidth: sizeClass == .regular), alignment: .leading)
     }
 
     /// The fade covers a fixed distance, not a fraction of the box, so the cut row dims by the

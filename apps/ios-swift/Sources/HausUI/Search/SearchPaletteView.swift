@@ -53,6 +53,8 @@ struct SearchPaletteView: View {
             await search.run(SearchPalette.searchesMessages(scope) ? query : "", chatID: nil, search: searchMessages)
         }
         .task { await actions.onAppear() }
+        .carriesAcrossPoses($query, as: "searchQuery")
+        .carriesAcrossPoses($scope, as: "searchScope")
         .alert("Couldn’t open that chat", isPresented: hasSelectionError) {
             Button("OK") { selectionError = nil }
         } message: {

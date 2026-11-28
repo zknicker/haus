@@ -72,6 +72,7 @@ public struct ProjectsTabView: View {
         .background(HausPlatformColor.canvas)
         .refreshable { await actions.refresh() }
         .task { await actions.refresh() }
+        .carriesAcrossPoses($filter, as: "projectsFilter")
         .hausScreenTitle("Projects")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

@@ -12,6 +12,7 @@ public struct TaskPaneView: View {
 
     @State private var section = TaskPaneSection.activity
     @State private var files: [DriveFilePresentation]?
+    @Environment(\.taskPaneEdge) private var edge
 
     public init(pane: TaskPanePresentation, actions: TaskPaneActions) {
         self.pane = pane
@@ -35,13 +36,17 @@ public struct TaskPaneView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(HausPlatformColor.groupedBackground)
-        .overlay(alignment: .leading) {
-            Rectangle().fill(HausPlatformColor.hairline).frame(width: 1).ignoresSafeArea()
+        .overlay(alignment: edge == .top ? .top : .leading) {
+            Rectangle()
+                .fill(HausPlatformColor.hairline)
+                .frame(width: edge == .top ? nil : 1, height: edge == .top ? 1 : nil)
+                .ignoresSafeArea()
         }
         .task(id: pane.agentID) {
             guard let agentID = pane.agentID else { return }
             files = await actions.loadFiles(agentID)
         }
+        .carriesAcrossPoses($section, as: "taskPaneSection")
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Task \(pane.header.title)")
     }

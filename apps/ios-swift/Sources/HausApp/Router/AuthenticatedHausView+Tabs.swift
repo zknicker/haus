@@ -59,13 +59,23 @@ extension AuthenticatedHausView {
             }
             .ignoresSafeArea(.keyboard)
         }
-        .onRegularWidthChange { router.layout = $0 ? .split : .stack }
-        .sheet(item: sheetBinding) { routerSheet($0) }        .task(id: store.settingsData?.viewer.avatarURL) {
+        .environment(\.poseCarry, poseCarry)
+        .onRegularWidthChange { changeLayout(to: $0 ? .split : .stack) }
+        .sheet(item: sheetBinding) { routerSheet($0) }
+        .task(id: store.settingsData?.viewer.avatarURL) {
             youTabIcon = await TabAvatarImage.image(url: store.settingsData?.viewer.avatarURL)
         }
     }
 
     private static let bottomChromeInset: CGFloat = 22
+
+    /// Folding or unfolding moves every tab between its stack and its split,
+    /// which mounts its screens afresh, so what they hold is carried first.
+    private func changeLayout(to layout: TabLayout) {
+        guard router.layout != layout else { return }
+        poseCarry.carry()
+        router.layout = layout
+    }
 
     private var showsBottomChrome: Bool {
         shellChrome == .custom && router.showsTabBar

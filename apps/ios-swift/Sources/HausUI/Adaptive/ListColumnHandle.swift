@@ -3,7 +3,8 @@ import SwiftUI
 
 /// The 12 pt grip on the list column's trailing edge. Its grabber follows the
 /// finger, and letting go snaps the column to hidden, the rail, or the full
-/// list by where the edge would land (`ListColumnLayout.released`).
+/// list by where the edge would land (`ListColumnLayout.released`). Half open
+/// on a surface, grip and touch area keep to the larger side of the fold.
 struct ListColumnHandle: View {
     let width: CGFloat
     let hasRail: Bool
@@ -12,12 +13,22 @@ struct ListColumnHandle: View {
     @GestureState private var travel: CGFloat = 0
 
     var body: some View {
+        FoldReader { size, fold in
+            let span = ListColumnLayout.handleSpan(height: size.height, fold: fold)
+            grip
+                .frame(width: ListColumnLayout.handleWidth, height: span.upperBound - span.lowerBound)
+                .offset(y: span.lowerBound)
+        }
+        .frame(width: ListColumnLayout.handleWidth)
+        .frame(maxHeight: .infinity)
+    }
+
+    private var grip: some View {
         Capsule()
             .fill(HausPlatformColor.faintInk)
             .frame(width: 4, height: 36)
             .offset(x: travel)
-            .frame(width: ListColumnLayout.handleWidth)
-            .frame(maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(.rect)
             .gesture(drag)
             .accessibilityElement()

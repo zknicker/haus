@@ -808,13 +808,19 @@ pushed full screen and folding changes nothing. `closeSidePane` and any write of
 own stack (`setSplitStack`) drop it. With a side route, `AdaptiveSplitView(besideTask:)` shows the
 rail, or hides the column on Search, which has no rail, through `TaskModeColumn`. It never writes
 the stored `ListColumn`, so closing the Task brings back the column the tab had. A drag while the
-Task is open moves only that Task's column. `TaskModeSplit` lays the detail column out as conversation | Task in an `HStack`,
-the conversation's `NavigationStack` always first, so opening the Task never remounts it.
-`TaskModePanes` splits the column evenly. Under iOS 27.1, when
-`GeometryProxy.reservedRegions(kind: .division)` returns a fold running top to bottom (only while
-half open, because inactive regions need `.includeInactive`), the panes meet at the fold instead
-and each pads 28 pt on its fold edge, so the composer, chip and pane controls keep clear of it.
-`ArrangementView` is not used. The conversation directly under the Task gets two things:
+Task is open moves only that Task's column. `TaskModeSplit` places the detail column's panes with
+one `Layout`, the conversation's `NavigationStack` always the first subview, so opening the Task,
+turning the Duo or half opening it never remounts it. `TaskModePanes` decides the frames from
+`Fold` (`HausUI/Adaptive/Fold.swift`): the division region in the column's own coordinates, read by
+`FoldReader` through `reservedRegions(kind: .division, options: .includeInactive)`, so a layout
+knows where the fold is fully open too. A fold running top to bottom puts the Task beside the
+conversation, one running across (inner portrait) puts it below; fully open they meet at the
+fold's midline, half open (the region active) each keeps 28 pt off it, and with no region they
+split evenly side by side. A horizontal fold keeps the split when the keyboard shortens the column
+past it, leaving the Task pane under the keyboard. The Task pane's hairline follows the edge it
+shares (`\.taskPaneEdge`). A conversation alone keeps to the larger side of an active book fold
+(`Fold.clearSide`). `ArrangementView` is not used. The conversation directly under the Task
+(`HausRouter.besideTask(of:in:)`) gets two things:
 - `besideTaskID`: its composer sends through `ComposerDraftStore.target`, which is the Task's own
   draft (`.task(id)`, `chat.send` to the Task's chat, steer by default) until the chip's × calls
   `release`. Opening the card again calls `aim` and brings the chip back. The chip sits inside the
@@ -823,6 +829,37 @@ and each pads 28 pt on its fold edge, so the composer, chip and pane controls ke
 - `taskModeChrome`: its bar shows only the Task's More menu (`TaskChatMenu`), and
   `\.chatHeaderYieldsToolbar` drops the conversation's own items. There is no Stop, as on the web
   App; interrupting is a later delivery choice in the composer.
+
+Half open like a book with no Task, `AdaptiveSplitView` reads the fold over the whole split and
+gives the full list the width up to it (`ListColumnLayout.foldedWidth`: the column's min, ideal and
+max all set to the fold's leading edge), pads the list's rows 28 pt off it, hides the edge handle,
+and shows the full list whatever the stored `ListColumn` says, without writing it. Custom chrome
+keeps clear of a fold running across it: the rail's marks scroll above it with Show list below
+(`ListRailFold`), and the handle's grip and touch area keep to the larger side
+(`ListColumnLayout.handleSpan`). The composer, chip, jump pills and Task pane controls sit inside
+panes that already keep clear. Bars are the system's.
+
+A fold or unfold flips `router.layout`, and every tab moves between its stack and its split, which
+mounts its screens afresh. `PoseCarry` (HausUI) carries what they held: the shell calls `carry()`
+just before the layout changes, while the old screens are still mounted, and each new screen takes
+its value back under a `PoseKey`. Keys are scoped by tab and route (`poseScope`, set by
+`adaptiveStack`, `routeDestination` and the Task pane), the same in a stack and a split; views
+outside a tab, such as a router sheet's, carry nothing because they never remount.
+`carriesAcrossPoses` carries a value through `onAppear`/`onDisappear`: the turn details sheet
+(`HeaderEngagement` and the Task pane's Activity share the name, so a Task pane's sheet reopens over
+the Task chat on the outer display), the message drawer, the model sheet, the reply being composed,
+the Task pane's segment, the Projects filter, and the Search query and scope. Composer focus is
+keyed by draft (`\.composerPoseKey`), not by screen, so a chip composer's keyboard lands on the Task
+chat, which writes the same `.task(id)` draft. Each transcript's coordinator registers its resting
+anchor (`TranscriptListView+Pose`, nil at the newest edge) and resumes a carried one once the table
+has a height and the item, unless the reader touches it first or a reveal wins.
+
+Conversations ask for `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)`
+(`keepsToolbarItemsWhileTyping`): with the keyboard up the rail runs short, and Call, Files and the
+Task's More act on what is being typed while the tab bar can wait. `KeyboardInsetSample` measures
+from the reading view's own bottom and only the part of the home-indicator inset it reaches, so a
+conversation ending at a fold above the keyboard keeps its composer where it is. At regular width
+the mention card stays list-column wide (330 pt) at the composer's leading edge.
 
 `TaskPaneView` has no composer. Its header shows the starter (the crew Captain, else the person),
 the activity pill and Close (`closeSidePane`), then the title and an Activity | Files segment.

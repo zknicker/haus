@@ -240,10 +240,17 @@ Layout follows size classes and the system's bar placement, never orientation or
 - **Half-open:**
   - Two equal panes either side of the reserved folding region: side by side like a book, or above and below on a
     surface.
+  - Like a book with no Task open, the full list reaches the fold and the detail starts past it.
   - No control comes within 28 pt of the fold. Custom chrome uses `ReservedRegion`.
+- **Task mode follows the fold's orientation:** beside its conversation where the fold runs top to bottom, below it
+  where the fold runs across (inner portrait). Fully open the two meet at the fold, so half opening moves nothing but
+  the clearance. With no fold they split evenly side by side.
 - **Closing the Duo** with a Task open beside its conversation shows the Task on the outer display, and Back returns
   to the conversation. The stack never changes.
-- **Pose changes** keep the selection, drafts and their targets, scroll anchors, and the open sheet.
+- **Pose changes** keep the selection, drafts and their targets, scroll anchors, the focused composer, and the open
+  sheet. Focus follows the draft: folding a chip composer leaves the keyboard on the Task chat.
+- **Keyboard:** the focused composer rides it, and with bars vertical the toolbar keeps its items while the tab bar
+  compresses. The mention card stands on the composer.
 - **Routing at regular width:** every tab splits.
   - The bottom of the tab's stack is the selection in the detail column, and the rest stacks over it. Folding and
     unfolding never rewrite a stack.

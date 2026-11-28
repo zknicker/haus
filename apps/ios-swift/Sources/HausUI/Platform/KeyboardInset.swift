@@ -27,6 +27,13 @@ struct KeyboardInsetSample: Equatable {
         return max(bottomSafeArea, (screenBottom - keyboardTop).rounded(.toNearestOrAwayFromZero))
     }
 
+    /// The part of the window's bottom safe area a view reaches into. A
+    /// screen that ends at the fold above another pane reaches none of it,
+    /// and a keyboard below that edge reaches nothing either.
+    static func bottomSafeArea(windowInset: CGFloat, windowBottom: CGFloat, viewBottom: CGFloat) -> CGFloat {
+        max(windowInset - (windowBottom - viewBottom), 0)
+    }
+
     /// A change is UIKit's own animation if it lands inside an animation block, or inside the window
     /// a keyboard notification announced. Interactive dismissal posts no notification while the
     /// finger moves, so every frame it drives reads as tracking.
@@ -120,10 +127,11 @@ private final class KeyboardInsetView: UIView {
         guard let window,
               let end = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
         else { return }
+        let bottom = convert(bounds, to: window).maxY
         let inset = KeyboardInsetSample.inset(
-            screenBottom: window.bounds.maxY,
+            screenBottom: bottom,
             keyboardTop: window.convert(end, from: nil).minY,
-            bottomSafeArea: window.safeAreaInsets.bottom,
+            bottomSafeArea: KeyboardInsetSample.bottomSafeArea(of: window, below: bottom),
             isEditing: KeyboardResponderProbe.current() != nil
         )
         report(inset, isAnimated: true)
@@ -140,8 +148,7 @@ private final class KeyboardInsetView: UIView {
         let inset = KeyboardInsetSample.inset(
             screenBottom: bounds.maxY,
             keyboardTop: keyboardLayoutGuide.layoutFrame.minY,
-            // The window's, not this view's: SwiftUI hosts the reader with no safe area of its own.
-            bottomSafeArea: window.safeAreaInsets.bottom,
+            bottomSafeArea: KeyboardInsetSample.bottomSafeArea(of: window, below: convert(bounds, to: window).maxY),
             isEditing: KeyboardResponderProbe.current() != nil
         )
         report(
@@ -160,6 +167,13 @@ private final class KeyboardInsetView: UIView {
         let sample = KeyboardInsetSample(inset: inset, isAnimated: reportedInset != nil && isAnimated)
         reportedInset = inset
         onChange?(sample)
+    }
+}
+
+extension KeyboardInsetSample {
+    @MainActor
+    static func bottomSafeArea(of window: UIWindow, below viewBottom: CGFloat) -> CGFloat {
+        bottomSafeArea(windowInset: window.safeAreaInsets.bottom, windowBottom: window.bounds.maxY, viewBottom: viewBottom)
     }
 }
 

@@ -10,7 +10,7 @@ extension AuthenticatedHausView {
     /// `besideTaskID`: the Task beside this conversation, which its composer
     /// sends to until the chip is let go.
     func routeDestination(_ route: HausRoute, besideTaskID: String? = nil) -> some View {
-        routeScreen(route, besideTaskID: besideTaskID)
+        routeScreen(route, besideTaskID: besideTaskID).poseScope(String(describing: route))
     }
 
     @ViewBuilder
@@ -54,6 +54,7 @@ extension AuthenticatedHausView {
             }
         }
         .hausHiddenNavigationBar(shellChrome == .custom)
+        .keepsToolbarItemsWhileTyping()
         .background(InteractivePopRestorer())
     }
 
@@ -113,6 +114,7 @@ extension AuthenticatedHausView {
             onVisibleMessagesChange: { reportVisibleMessages(destination, $0) }
         )
         .id(destination.id)
+        .environment(\.composerPoseKey, String(describing: composer))
         .task(id: destination.durableChat?.id) {
             guard let chat = destination.durableChat else { return }
             await store.loadWork(.chat(chat.id), includingFiles: false)

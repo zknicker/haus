@@ -77,6 +77,7 @@ private struct HeaderEngagementContent: View {
                 )
             }
         }
+        .carriesAcrossPoses(turnDetailsPresented.wrappedValue, as: "turnDetails") { tapped = $0 }
         .onChange(of: thought?.id) { _, _ in
             if let thought {
                 let name = typists.first { $0.id == thought.agentID }?.name

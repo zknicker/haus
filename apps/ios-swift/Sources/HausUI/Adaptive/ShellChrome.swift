@@ -34,6 +34,30 @@ extension EnvironmentValues {
     @Entry public var shellChrome = ShellChrome.custom
 }
 
+extension View {
+    /// The keyboard shortens the vertical bars, and the system then drops
+    /// either the toolbar's items or the tab bar. A conversation keeps its
+    /// items (Call, Files, the Task's More), which act on the place being
+    /// typed into; switching tabs mid-sentence can wait.
+    public func keepsToolbarItemsWhileTyping() -> some View {
+        modifier(ToolbarItemsWhileTyping())
+    }
+}
+
+private struct ToolbarItemsWhileTyping: ViewModifier {
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        if #available(iOS 27.1, *) {
+            content.toolbarVerticalCompressionBehavior(.prefersToolbarItems)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
 /// Builds the shell with `ShellChrome` read straight from the environment, so
 /// the first frame already draws the right bars. Below iOS 27.1 it is always
 /// custom.

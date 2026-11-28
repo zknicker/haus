@@ -54,6 +54,7 @@ public struct ChatScreenView: View {
     @State var modelRefusal: String??
     @State var modelChangeError: String?
     @Environment(\.chatEngagementSource) var engagementSource
+    @Environment(\.composerPoseKey) private var composerPoseKey
 
     public init(
         chat: ChatDestination,
@@ -164,6 +165,7 @@ public struct ChatScreenView: View {
             .modelChangeFailure($modelChangeError)
             .background(HausPlatformColor.canvas)
             .task(id: chat.id) { await onLoadMentionOptions() }
+            .carriesPose(of: self, composerKey: composerPoseKey)
     }
 
     /// A caller's safe-area attachment lands on the timeline's transcript root, so the

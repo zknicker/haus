@@ -9,7 +9,8 @@ import SwiftUI
 /// split, whose column is hidden meanwhile. Outside the split, the rail stays
 /// clear of the detail column's bars. A 12 pt handle on the full list's or the
 /// rail's trailing edge drags between the states. Beside a Task the column
-/// steps aside to the rail until the Task closes (`TaskModeColumn`).
+/// steps aside to the rail until the Task closes (`TaskModeColumn`). Half
+/// open like a book with no Task, the full list reaches the fold.
 public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: View>: View {
     @Binding private var column: ListColumn
     private let besideTask: Bool
@@ -20,6 +21,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
 
     @State private var listWidth = ListColumnLayout.fullIdealWidth
     @State private var taskMode = TaskModeColumn()
+    @State private var foldedWidth: CGFloat?
 
     public init(
         column: Binding<ListColumn>,
@@ -37,39 +39,50 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
     }
 
     public var body: some View {
-        HStack(spacing: 0) {
-            if shown == .rail {
-                rail
-                    .overlay(alignment: .trailing) {
-                        ListColumnHandle(width: ListColumnLayout.railWidth, hasRail: hasRail) { choose($0) }
-                    }
-                    .overlay(alignment: .trailing) {
-                        Rectangle().fill(HausPlatformColor.hairline).frame(width: 1).ignoresSafeArea()
-                    }
-                    .transition(.move(edge: .leading))
+        FoldReader { size, fold in
+            HStack(spacing: 0) {
+                if shown == .rail {
+                    rail
+                        .overlay(alignment: .trailing) {
+                            ListColumnHandle(width: ListColumnLayout.railWidth, hasRail: hasRail) { choose($0) }
+                        }
+                        .overlay(alignment: .trailing) {
+                            Rectangle().fill(HausPlatformColor.hairline).frame(width: 1).ignoresSafeArea()
+                        }
+                        .transition(.move(edge: .leading))
+                }
+                split
             }
-            split
+            .onChange(of: ListColumnLayout.foldedWidth(fold: fold, width: size.width, besideTask: besideTask), initial: true) {
+                foldedWidth = $1
+            }
         }
         .animation(.smooth(duration: 0.3), value: besideTask)
+        .animation(.smooth(duration: 0.3), value: foldedWidth)
         .onChange(of: besideTask) { _, isOpen in
             if !isOpen { taskMode.taskClosed() }
         }
     }
 
+    /// Half open, the full list reaches the fold (`ListColumnLayout.foldedWidth`)
+    /// and keeps its rows clear of it; the handle steps away until the Duo opens.
     private var split: some View {
         NavigationSplitView(columnVisibility: visibility) {
             list
+                .padding(.trailing, foldedWidth == nil ? 0 : Fold.clearance)
                 .frame(maxWidth: .infinity)
                 .environment(\.isListColumn, true)
                 .toolbar(removing: .sidebarToggle)
                 .onGeometryChange(for: CGFloat.self, of: \.size.width) { listWidth = $0 }
                 .overlay(alignment: .trailing) {
-                    ListColumnHandle(width: listWidth, hasRail: hasRail) { choose($0) }
+                    if foldedWidth == nil {
+                        ListColumnHandle(width: listWidth, hasRail: hasRail) { choose($0) }
+                    }
                 }
                 .navigationSplitViewColumnWidth(
-                    min: ListColumnLayout.fullMinimumWidth,
-                    ideal: ListColumnLayout.fullIdealWidth,
-                    max: ListColumnLayout.fullMaximumWidth
+                    min: foldedWidth ?? ListColumnLayout.fullMinimumWidth,
+                    ideal: foldedWidth ?? ListColumnLayout.fullIdealWidth,
+                    max: foldedWidth ?? ListColumnLayout.fullMaximumWidth
                 )
         } detail: {
             content.frame(maxWidth: .infinity)
@@ -79,7 +92,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
     }
 
     private var shown: ListColumn {
-        taskMode.shown(column, besideTask: besideTask, hasRail: hasRail)
+        foldedWidth == nil ? taskMode.shown(column, besideTask: besideTask, hasRail: hasRail) : .full
     }
 
     private func choose(_ next: ListColumn) {

@@ -105,6 +105,7 @@ extension TranscriptListCoordinator {
         }
         holdRestingInset(table)
         holdFollowedTop(table: table)
+        resumePose(in: table)
         performReveal(view: view, table: table)
         // Covers every path above — a reset's `reloadData`, an inset change, an
         // append's settle — with one reading taken after all of them.

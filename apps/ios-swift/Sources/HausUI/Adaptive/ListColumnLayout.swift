@@ -23,6 +23,22 @@ public enum ListColumnLayout {
         if width < railSnapWidth, hasRail { return .rail }
         return .full
     }
+
+    /// Half open like a book with no Task beside the conversation, the full
+    /// list reaches the fold, so list and detail are the two pages. Nil when
+    /// the fold is inactive, runs across, or leaves less than a full list.
+    public static func foldedWidth(fold: Fold?, width: CGFloat, besideTask: Bool) -> CGFloat? {
+        guard !besideTask, let fold, fold.isActive, fold.direction == .vertical, fold.divides(width),
+              fold.span.lowerBound >= fullMinimumWidth
+        else { return nil }
+        return fold.span.lowerBound
+    }
+
+    /// Where the edge handle's grip and touch area go: the whole edge, or the
+    /// larger side of an active fold running across it.
+    public static func handleSpan(height: CGFloat, fold: Fold?) -> ClosedRange<CGFloat> {
+        Fold.clearSide(of: height, avoiding: fold?.direction == .horizontal ? fold : nil)
+    }
 }
 
 extension ListColumn {

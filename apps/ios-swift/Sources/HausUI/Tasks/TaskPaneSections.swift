@@ -32,6 +32,7 @@ struct TaskPaneActivity: View {
             .sheet(item: $opened) { focus in
                 TurnDetailsSheet(focus: focus, source: source, typist: { _ in nil }, thought: { _ in nil })
             }
+            .carriesAcrossPoses($opened, as: "turnDetails")
         } else {
             TaskPaneEmpty(text: "No activity yet.")
         }

@@ -45,6 +45,14 @@ enum MentionPickerLayout {
 
     static var maxContentHeight: CGFloat { (maxVisibleRows * rowHeight) + headerHeight }
 
+    /// On a phone the card is as wide as the composer. In a split's detail
+    /// column or a Task-mode pane it stays list-column wide at the composer's
+    /// leading edge, standing right on the input the way the keyboard board
+    /// draws it.
+    static func maxCardWidth(isRegularWidth: Bool) -> CGFloat {
+        isRegularWidth ? ListColumnLayout.fullIdealWidth : .infinity
+    }
+
     /// The card's whole content for the draft as it currently reads. Empty means no card.
     static func sections(
         text: String,

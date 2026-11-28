@@ -190,6 +190,7 @@ public struct MessageTimelineView: View {
             onReply: allowsInlineReplies ? onSelectInlineReply : nil,
             onViewTurnDetails: onViewTurnDetails
         )
+        .carriesAcrossPoses($actionMessage, as: "actionMessage")
         .alert("Message unavailable", isPresented: historyRevealErrorPresented) {
             Button("Retry") {
                 historyRevealError = nil

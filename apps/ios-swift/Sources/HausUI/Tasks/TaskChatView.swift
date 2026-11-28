@@ -48,6 +48,7 @@ public struct TaskChatView: View {
     var scrollsNewMessagesToTop = ScrollNewMessagesToTop.defaultValue
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
+    @Environment(\.composerPoseKey) private var composerPoseKey
 
     public init(
         header: TaskChatHeaderPresentation?,
@@ -116,6 +117,10 @@ public struct TaskChatView: View {
                 holdExpired = true
             }
             .messageActionDrawer(for: $actionMessage, board: reactionBoard)
+            .carriesAcrossPoses($actionMessage, as: "actionMessage")
+            .carriesAcrossPoses(isComposerFocused, as: "composerFocus", key: .composerFocus(composerPoseKey)) {
+                isComposerFocused = $0
+            }
     }
 
     private var screen: some View {

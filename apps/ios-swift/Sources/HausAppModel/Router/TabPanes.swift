@@ -50,6 +50,14 @@ extension HausRouter {
         return shown
     }
 
+    /// The Task a conversation's composer steers: the side pane's, for the
+    /// conversation right under it. Folded there is no side pane, so the same
+    /// conversation writes its own draft, and unfolding brings the chip back.
+    public func besideTask(of route: HausRoute, in tab: HausTab) -> String? {
+        guard case .split(_, _, .task(let taskID, _)?) = panes(tab), path(tab).dropLast().last == route else { return nil }
+        return taskID
+    }
+
     /// Writes from a split tab's content-pane `NavigationStack`. A changed
     /// stack closes the side pane with it: the Task belonged to the
     /// conversation that was on top.

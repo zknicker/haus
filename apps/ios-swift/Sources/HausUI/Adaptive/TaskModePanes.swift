@@ -1,31 +1,54 @@
 import CoreGraphics
 
-/// How the detail column splits between a conversation and the Task beside
-/// it (specs/ios-app.md, Task mode). Half open like a book, the panes meet at
-/// the fold, which neither covers, and each keeps its controls 28 pt clear of
-/// it. Otherwise the two split the column evenly.
+/// Where the detail column puts its panes (specs/ios-app.md, Task mode and
+/// Half-open). A Task beside its conversation splits along the fold: side by
+/// side when it runs top to bottom, above and below when it runs across,
+/// meeting at its midline fully open and keeping 28 pt clear of it half open.
+/// With no fold the two split the column evenly side by side. A conversation
+/// alone keeps to the larger side of an active fold.
 public struct TaskModePanes: Equatable, Sendable {
-    /// Haus's choice, not Apple's.
-    public static let foldClearance: CGFloat = 28
+    public let conversation: CGRect
+    public let task: CGRect?
 
-    public let conversationWidth: CGFloat
-    public let foldWidth: CGFloat
-    public let taskWidth: CGFloat
-    /// What each pane keeps clear on its edge at the fold.
-    public let clearance: CGFloat
-
-    /// - Parameter fold: the division region's span across the column, in the
-    ///   column's own coordinates, while the device is half open.
-    public static func layout(width: CGFloat, fold: ClosedRange<CGFloat>?) -> TaskModePanes {
-        guard let fold, fold.lowerBound > 0, fold.upperBound < width else {
-            let half = (width / 2).rounded(.down)
-            return TaskModePanes(conversationWidth: half, foldWidth: 0, taskWidth: width - half, clearance: 0)
+    public static func layout(size: CGSize, fold: Fold?, isOpen: Bool) -> TaskModePanes {
+        guard isOpen else { return alone(size: size, fold: fold) }
+        guard let fold, splits(at: fold, size: size) else {
+            let half = (size.width / 2).rounded(.down)
+            return TaskModePanes(
+                conversation: CGRect(x: 0, y: 0, width: half, height: size.height),
+                task: CGRect(x: half, y: 0, width: size.width - half, height: size.height)
+            )
         }
+        let end = fold.isActive ? fold.span.lowerBound - Fold.clearance : fold.midline
+        let start = fold.isActive ? fold.span.upperBound + Fold.clearance : fold.midline
+        let length = fold.length(of: size)
+        let lead = 0...min(max(end, 0), length)
+        let trail = min(start, length)...max(length, min(start, length))
         return TaskModePanes(
-            conversationWidth: fold.lowerBound,
-            foldWidth: fold.upperBound - fold.lowerBound,
-            taskWidth: width - fold.upperBound,
-            clearance: foldClearance
+            conversation: rect(lead, in: size, along: fold.direction),
+            task: rect(trail, in: size, along: fold.direction)
         )
+    }
+
+    /// A fold running across still splits when the keyboard has shortened the
+    /// column to end above it: the Task pane is then under the keyboard.
+    private static func splits(at fold: Fold, size: CGSize) -> Bool {
+        fold.direction == .horizontal ? fold.span.lowerBound > 0 : fold.divides(size.width)
+    }
+
+    private static func alone(size: CGSize, fold: Fold?) -> TaskModePanes {
+        guard let fold, fold.direction == .vertical else {
+            return TaskModePanes(conversation: CGRect(origin: .zero, size: size), task: nil)
+        }
+        let side = Fold.clearSide(of: size.width, avoiding: fold)
+        return TaskModePanes(conversation: rect(side, in: size, along: .vertical), task: nil)
+    }
+
+    private static func rect(_ range: ClosedRange<CGFloat>, in size: CGSize, along direction: Fold.Direction) -> CGRect {
+        let length = range.upperBound - range.lowerBound
+        switch direction {
+        case .vertical: return CGRect(x: range.lowerBound, y: 0, width: length, height: size.height)
+        case .horizontal: return CGRect(x: 0, y: range.lowerBound, width: size.width, height: length)
+        }
     }
 }

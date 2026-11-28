@@ -21,6 +21,7 @@ extension AuthenticatedHausView {
                 Color.clear
             }
         }
+        .keepsToolbarItemsWhileTyping()
         .task { try? await store.reloadTaskDetail(taskID: taskID) }
     }
 
@@ -63,6 +64,7 @@ extension AuthenticatedHausView {
                 store.reportVisibleMessages(chatID: chatID, messageIDs: messageIDs)
             }
         )
+        .environment(\.composerPoseKey, String(describing: ComposerDestination.task(taskID)))
         .task(id: chatID) { await store.loadWork(.task(taskID), includingFiles: false) }
     }
 
