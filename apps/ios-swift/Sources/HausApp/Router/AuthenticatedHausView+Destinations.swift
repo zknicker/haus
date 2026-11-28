@@ -15,7 +15,7 @@ extension AuthenticatedHausView {
     private func routeScreen(_ route: HausRoute) -> some View {
         switch RouteScreen(route) {
         case .conversation:
-            chatRoute(route.conversation.flatMap(destination(for:)))
+            chatRoute(route.conversation)
         case .task(let taskID):
             taskDestination(taskID)
         case .projectSettings(let projectID):
@@ -34,11 +34,11 @@ extension AuthenticatedHausView {
     }
 
     @ViewBuilder
-    private func chatRoute(_ destination: ChatDestination?) -> some View {
+    private func chatRoute(_ routeConversation: HausConversation?) -> some View {
         Group {
-            if let destination {
+            if let routeConversation, let destination = destination(for: routeConversation) {
                 GeometryReader { proxy in
-                    chatScreen(destination, contentInsets: proxy.safeAreaInsets)
+                    chatScreen(destination, revealing: routeConversation, contentInsets: proxy.safeAreaInsets)
                         .ignoresSafeArea()
                 }
                 .ignoresSafeArea(.keyboard)
@@ -50,7 +50,11 @@ extension AuthenticatedHausView {
         .background(InteractivePopRestorer())
     }
 
-    private func chatScreen(_ destination: ChatDestination, contentInsets: EdgeInsets) -> some View {
+    private func chatScreen(
+        _ destination: ChatDestination,
+        revealing routeConversation: HausConversation,
+        contentInsets: EdgeInsets
+    ) -> some View {
         let composer = ComposerDestination.chat(destination.pendingKey)
         return ChatScreenView(
             chat: destination,
@@ -85,7 +89,7 @@ extension AuthenticatedHausView {
             mentionOptions: store.mentionOptions(for: destination),
             onLoadMentionOptions: { await store.loadMentionOptions(for: destination) },
             contentInsets: contentInsets,
-            scrollTargetMessageID: revealBinding(conversation(for: destination)),
+            scrollTargetMessageID: revealBinding(routeConversation),
             onVisibleMessagesChange: { reportVisibleMessages(destination, $0) }
         )
         .id(destination.id)
