@@ -19,6 +19,12 @@ extension HausStore {
         )
     }
 
+    /// Each non-empty draft's destination and length, for the pose log.
+    var draftSummary: String {
+        let summary = drafts.texts.map { "\($0.key.destination)=\($0.value.count)" }.sorted().joined(separator: ", ")
+        return summary.isEmpty ? "none" : summary
+    }
+
     func composerInteraction(for destination: ComposerDestination) -> ComposerInteraction {
         guard let key = draftKey(destination) else { return ComposerInteraction() }
         return drafts.staged(for: key)

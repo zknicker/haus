@@ -1,7 +1,6 @@
 import HausAppModel
 import HausModels
 import HausUI
-import os
 import SwiftUI
 
 /// The root: five tabs, each with its own `NavigationStack` bound to the
@@ -76,14 +75,10 @@ extension AuthenticatedHausView {
     /// which mounts its screens afresh, so what they hold is carried first.
     private func changeLayout(to layout: TabLayout) {
         guard router.layout != layout else { return }
-        Self.poseLogger.notice(
-            "Layout \(String(describing: router.layout), privacy: .public) to \(String(describing: layout), privacy: .public), paths \(String(describing: router.paths.mapValues(\.count)), privacy: .public)"
-        )
+        logLayoutChange(to: layout)
         poseCarry.carry()
         router.layout = layout
     }
-
-    private static let poseLogger = Logger(subsystem: "chat.haus.ios", category: "pose")
 
     private var showsBottomChrome: Bool {
         shellChrome == .custom && router.showsTabBar
@@ -115,7 +110,9 @@ extension AuthenticatedHausView {
         NavigationStack(path: pathBinding(tab)) {
             root()
                 .foldsBottomChrome(tab, router: router)
-                .navigationDestination(for: HausRoute.self) { routeDestination($0) }
+                .navigationDestination(for: HausRoute.self) { route in
+                    routeDestination(route).onAppear { logAppear(route, tab: tab) }
+                }
         }
     }
 
@@ -140,11 +137,7 @@ extension AuthenticatedHausView {
         Binding(
             get: { router.path(tab) },
             set: { path in
-                if router.path(tab).count - path.count > 1 {
-                    Self.poseLogger.notice(
-                        "\(String(describing: tab), privacy: .public) stack wrote \(path.count) over \(router.path(tab).count) routes, layout \(String(describing: router.layout), privacy: .public)"
-                    )
-                }
+                logStackWrite(path, over: router.path(tab), tab: tab)
                 router.setStackPath(path, for: tab)
             }
         )
