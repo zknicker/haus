@@ -311,10 +311,11 @@ links answer a plain-text 404.
 
 ### Agent CLI
 
-Agents edit shared files in their `drive/` folder with native file commands (`ls`, `cat`, `rg`,
+Captains edit shared files in their `drive/` folder with native file commands (`ls`, `cat`, `rg`,
 edits, `mv`, `rm`). The Computer pulls the folder when a turn starts and pushes it after the turn
-([Drive folder](../../specs/drive-folder.md)). `haus drive` keeps the read commands, and every
-command prints JSON.
+([Drive folder](../../specs/drive-folder.md)). A Task has no folder and reads with `haus drive view`.
+`haus drive` keeps the read commands. `view` prints a text file, or saves any file with
+`--output` (on the Agent's machine, when the runner runs it); `versions` and `share` print JSON.
 
 ```
 haus drive versions <id|link|path> [--offset <n>]
@@ -324,7 +325,9 @@ haus drive share <id|link|path> [--disable]
 
 A target is an artifact id, a pasted `/artifacts/<id>` link, a `drive://<path>` citation, or a
 Drive path such as `haus/reports/q4.md`. A leading `drive/` folder prefix is accepted. A path
-resolves through `GET /api/agent/artifacts/by-path`. `versions` pages the retained revisions.
+resolves through `GET /api/agent/artifacts/by-path`. `view` reads the bytes from
+`GET /api/agent/artifacts/:id/download` (with `revision_id` for `--revision-id`) and refuses to
+print bytes that are not UTF-8 text. `versions` pages the retained revisions.
 `share` prints `{ artifact_id, url }` (`POST /api/agent/artifacts/:id/public-link`); `--disable`
 prints `{ artifact_id, disabled: true }` (`…/public-link/disable`).
 

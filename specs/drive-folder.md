@@ -1,5 +1,5 @@
 ---
-summary: The machine half of Drive. Each Agent keeps its own plain drive/ folder on its machine, pulled at turn start while the turn runs and pushed after every turn with the revision each file started from. Covers what waits for the pull, how a failed pull stays safe, how push outcomes land in the folder, and how the Computer pulls before the turn until the runner ships.
+summary: The machine half of Drive. Each Captain keeps its own plain drive/ folder on its machine; a Task has none and reaches Drive through the Server. The folder is pulled at turn start while the turn runs and pushed after every turn with the revision each file started from. Covers what waits for the pull, how a failed pull stays safe, how push outcomes land in the folder, and how the Computer pulls before the turn until the runner ships.
 read_when:
   - changing the drive/ folder on a Computer, its layout, its location, or its state file
   - changing turn-start pull, what waits for it, or what a failed pull leaves behind
@@ -16,9 +16,15 @@ turn starts and a push after the turn settles. Nothing runs between turns.
 
 ## One folder per writer
 
-Each Agent keeps its own `drive/` folder in its working directory on its machine
+Each Captain keeps its own `drive/` folder in its working directory on its machine
 (`agents/<agent-id>/workspace/drive/`, per [workspace](workspace.md)). Two writers
-never share a folder. So every change in a push belongs to one writer, and two turns never edit
+never share a folder.
+
+A Task has no folder ([ADR 0062](../docs/adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md)).
+The Server sends no `drive-pull`, `drive-push`, or `drive-flush` frame for a Task agent, at a
+run's start, its settle, a Computer's reconnect, or a Machine change, so its machine never creates
+one. A Task reads a file with `haus drive view` and writes a deliverable with `haus drive write`,
+both through the Server. So every change in a push belongs to one writer, and two turns never edit
 one folder at once.
 
 ```text
@@ -47,8 +53,8 @@ through the runner, and the Computer syncs a machine folder for invocations
 
 The Agent uses `ls`, `cat`, `rg`, its edit tool, `mv`, and `rm`. There are no sync commands. D4
 deletes `haus files pull` and `haus files push`, with their `.haus-artifacts.json` manifests and
-`.haus-theirs` copies. The read commands that remain become `haus drive versions`,
-`haus drive view --revision-id`, and `haus drive share`.
+`.haus-theirs` copies. The read commands that remain are `haus drive versions`,
+`haus drive view`, and `haus drive share`, and a Task writes with `haus drive write`.
 
 ## Pull at turn start
 
@@ -66,7 +72,12 @@ When a turn starts and the Agent's machine is online, the machine pulls while th
    on the Server, so a pull never makes a local conflict. The pull checks the file's inode, size,
    and modification time again right before the replace, so an edit made while the download ran
    is kept the same way.
-5. Each file's bytes and its record are written together, one file at a time, bytes first. The
+5. Up to eight downloads run at once, started in change order, while changes still apply one at a
+   time in sequence order, so two changes to one path land in order. The machine downloads ahead
+   only a new path with nothing local or a file whose bytes still match its record, and fetches
+   any other body when its change applies. A failed download surfaces when its change applies,
+   exactly as it did one at a time, and a pull that stops waits for the downloads it started.
+   Each file's bytes and its record are written together, one file at a time, bytes first. The
    incoming revision is journaled in `drive.json` (`placing`) before its bytes move into place.
    A pull or push first settles any journaled revision: a file holding exactly those bytes takes
    it as its record, and anything else drops the entry, so a stop between the bytes and the
@@ -86,7 +97,7 @@ A pull that fails is logged as a warning and the turn runs.
 
 Only a tool call on the machine waits for the pull. A `bash` or edit invocation that arrives during
 the pull runs once the pull ends. The model's first response, Haus actions through `execute`, and
-Drive reads through the Server never wait. An Agent whose machine is offline or unset pulls nothing.
+Drive reads through the Server never wait. An Agent whose machine is offline or unset pulls nothing, and neither does a Task.
 
 A pull that fails leaves every file it already applied correctly recorded, and waiting calls run on
 the folder as it stands. Its counters did not advance, so the next pull asks again from the same

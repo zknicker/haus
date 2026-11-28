@@ -606,7 +606,7 @@ A `haus` flag that names a machine path reads or writes it through a `file-read`
 invocation on the Computer the enclosing `bash` or `shell` call targets with its `computer` field,
 or on the home when it names none
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-decision 5): `attachment upload --path`, `attachment view --output`,
+decision 5): `attachment upload --path`, `attachment view --output`, `drive view --output`,
 `image generate --reference <path>`, `image wait --out`, `trigger preview --payload-file`, and
 `trigger create|rotate --output`. Only those commands need the machine. A write works at any
 size up to the 50 MiB attachment limit: bytes over 700 KiB go up first and the `file-write`
@@ -616,9 +616,9 @@ the journal.
 
 A `haus` argument never resolves against the runner's disk, which holds every Agent's sessions.
 The runner's command table (`apps/runner/src/haus/command-access.ts`) classifies every Agent CLI
-command as Server-only, routed through the flags above, or refused. `drive view` writes into the
-Computer's Drive cache, so it is refused with `Code: HAUS_WORKSPACE_UNREACHABLE` and points at
-the `drive/` folder the Computer keeps in the Agent's workspace (D4). A command the table
+command as Server-only, routed through the flags above, or refused. `drive view` reads through
+the Server: it prints a text file, or writes `--output` to the machine, which is how a Task, with
+no `drive/` folder, reads Drive. A command the table
 does not know is refused with `Code: UNKNOWN_HAUS_COMMAND`, so a new CLI command cannot touch a
 local path until it is classified. The CLI child runs in a fresh per-call directory with an
 empty `HOME`.
@@ -1070,7 +1070,11 @@ the Agent alone, never by a Computer.
 
 ### Drive folder
 
-When a run starts and the Agent's machine is online, the Server sends `drive-pull` with the run
+Only a Captain has a `drive/` folder. A Task agent gets no Drive frame at all, at a run's start,
+its settle, a Computer's reconnect, or a Machine change
+([drive-folder.md](drive-folder.md#one-folder-per-writer)).
+
+When a Captain's run starts and its machine is online, the Server sends `drive-pull` with the run
 id to that Computer, which pulls as [drive-folder.md](drive-folder.md) describes. Invocations for
 that Agent wait for it. When the runner reports the run settled with `turn`, the Server sends
 `drive-push` with the run id, and the Computer pushes. A machine offline at either moment does
@@ -1123,7 +1127,7 @@ deadline to `invoke` and the optional `dropIfNotStarted` to `invoke-cancel`. The
 
 **Computer protocol, added by R4b (version 43):** `drive-pull` and `drive-push`
 (Server → Computer, `agentId`, `runId`, and `sessionGeneration`, in `packages/haus-api/src/agent-drive-sync.ts`). The
-Server sends `drive-pull` beside each `runner-start`, and `drive-push` when the runner's `turn`
+Server sends `drive-pull` beside each Captain's `runner-start`, and `drive-push` when the runner's `turn`
 reports the Agent's active run, before settling it starts the next run. Each goes only to the
 Agent's Computer when it is online, and the Computer ignores frames from an older session
 generation than one it has seen. When the Computer reconnects, the Server sends `drive-pull` for

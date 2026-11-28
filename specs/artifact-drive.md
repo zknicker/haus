@@ -17,9 +17,11 @@ Drive holds what Agents know and follow
 renamed and extended. The product noun is **Drive**. People see the App's Drive page, Agents use
 `haus drive` and the `drive` Manual topic. Wire names keep `artifact`.
 
-Drive is Server-hosted and canonical. Each Agent also keeps a plain `drive/` folder on its machine.
-The folder pulls at turn start and pushes after the turn, and [Drive folder](drive-folder.md) owns
-that half. There is no background process, no mount, and no continuous sync.
+Drive is Server-hosted and canonical. Each Captain also keeps a plain `drive/` folder on its
+machine. The folder pulls at turn start and pushes after the turn, and [Drive folder](drive-folder.md)
+owns that half. A Task has no folder: it reads with `haus drive view` and writes its deliverables
+with `haus drive write`, both through the Server. There is no background process, no mount, and no
+continuous sync.
 
 ## What changes from Files
 

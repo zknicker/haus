@@ -268,7 +268,9 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
     ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md)). Other Computers get no
     `drive/` folder (amended 2026-11-22). Prompt composition moves from the Computer to the
     runner. (Amended 2026-11-23: the folder lives on the Agent's Machine, and a Machine change
-    hands it over as [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) describes.)
+    hands it over as [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) describes.
+    Amended 2026-11-28: only a Captain keeps the folder; a Task reaches Drive through the Server,
+    per [ADR 0062](0062-tasks-are-agent-sessions-issues-are-the-backlog.md).)
 
 11. **Built-in machine tools only.** agent-browser is built in and managed by Haus. agent-desktop
     and the per-Computer "Computer use allowed" switch shipped as computer use

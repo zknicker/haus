@@ -234,8 +234,11 @@ one is never sent again. The repo's own `AGENTS.md` comes from the worktree. A T
 
 ## Drive
 
-A Task reads Drive with the existing read commands (`haus drive versions view share`) and writes
-its deliverables through the runner (step 5), as Capy threads edit their drive:
+A Task has no `drive/` folder on its Machine, and its turns send no Drive pull or push
+([drive-folder.md](drive-folder.md#one-folder-per-writer)). It reads Drive with `haus drive view`,
+which prints a text file or saves any file on its Machine with `--output`, and with
+`haus drive versions` and `haus drive share`. It writes its deliverables through the runner
+(step 5), as Capy threads edit their drive:
 
 - `haus drive write <path> [--from <file>]` writes one file, from stdin or from a file on the
   Task's Machine, whose path follows the call's target as every `haus` file path does
