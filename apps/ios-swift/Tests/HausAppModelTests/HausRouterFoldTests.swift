@@ -108,6 +108,40 @@ struct HausRouterFoldTests {
         #expect(drafts.target(conversation, beside: router.besideTask(of: channel, in: .projects)) == .chat("chat_product"))
     }
 
+    @Test("Half open to closed and back: stacks torn down by the swap write nothing, so the Task, its chip and its draft stay")
+    func halfOpenToClosedIgnoresTornDownStacks() {
+        let router = taskMode()
+        let drafts = ComposerDraftStore(makeStaged: StagedFiles.init, discardStaged: { _ in })
+        let conversation = ComposerDraftKey(serverID: "srv_a", destination: .chat("chat_product"))
+        let chip = ComposerDraftKey(serverID: "srv_a", destination: drafts.target(conversation, beside: router.besideTask(of: channel, in: .projects)))
+        drafts.setText("Fold draft check", for: chip)
+
+        router.layout = .stack
+        router.setSplitStack([], for: .projects)
+        #expect(router.panes(.projects) == .stack([channel, task]))
+
+        router.layout = .split
+        router.setStackPath([], for: .projects)
+        router.layout = .stack
+        router.setSplitStack([], for: .projects)
+
+        #expect(router.path(.projects) == [channel, task])
+        #expect(router.topRoute == task)
+        #expect(drafts.text(for: ComposerDraftKey(serverID: "srv_a", destination: .task("task_1"))) == "Fold draft check")
+
+        router.layout = .split
+        #expect(router.besideTask(of: channel, in: .projects) == "task_1")
+        #expect(drafts.target(conversation, beside: router.besideTask(of: channel, in: .projects)) == chip.destination)
+    }
+
+    @Test("Folded, the stack on screen still pops and pushes")
+    func compactStackWritesWhileFolded() {
+        let router = taskMode()
+        router.layout = .stack
+        router.setStackPath([channel], for: .projects)
+        #expect(router.path(.projects) == [channel])
+    }
+
     @Test("Only the conversation right under the Task carries its chip")
     func onlyTheConversationBeneath() {
         let router = taskMode()

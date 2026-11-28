@@ -833,7 +833,11 @@ shares (`\.taskPaneEdge`). A conversation alone keeps to the larger side of an a
 Half open like a book with no Task, `AdaptiveSplitView` reads the fold over the whole split and
 gives the full list the width up to it (`ListColumnLayout.foldedWidth`: the column's min, ideal and
 max all set to the fold's leading edge), pads the list's rows 28 pt off it, hides the edge handle,
-and shows the full list whatever the stored `ListColumn` says, without writing it. Custom chrome
+and shows the full list whatever the stored `ListColumn` says, without writing it. The system keeps a
+column's width when its range changes, so opening again fixes the column at its pre-fold width until
+it is drawn there (`ListColumnWidth`). The system's own visibility writes never move a column Haus
+holds at the fold or beside a Task, except to bring back a hidden one
+(`ListColumnLayout.acceptsSystemVisibility`). Custom chrome
 keeps clear of a fold running across it: the rail's marks scroll above it with Show list below
 (`ListRailFold`), and the handle's grip and touch area keep to the larger side
 (`ListColumnLayout.handleSpan`). The composer, chip, jump pills and Task pane controls sit inside
@@ -850,9 +854,14 @@ outside a tab, such as a router sheet's, carry nothing because they never remoun
 the Task chat on the outer display), the message drawer, the model sheet, the reply being composed,
 the Task pane's segment, the Projects filter, and the Search query and scope. Composer focus is
 keyed by draft (`\.composerPoseKey`), not by screen, so a chip composer's keyboard lands on the Task
-chat, which writes the same `.task(id)` draft. Each transcript's coordinator registers its resting
-anchor (`TranscriptListView+Pose`, nil at the newest edge) and resumes a carried one once the table
-has a height and the item, unless the reader touches it first or a reveal wins.
+chat, which writes the same `.task(id)` draft. A screen whose key changes while mounted (a composer
+gaining a Task's chip) moves its registration, and whatever no screen took is dropped as soon as the
+reader navigates (`settle`), so a later open never inherits a fold's focus or sheet. Each
+transcript's coordinator notes its resting anchor when a scroll settles (`TranscriptListView+Pose`,
+nil at the newest edge), so `carry()` touches no UIKit layout, and resumes a carried one once the
+table has a height and the item, unless the reader touches it first or a reveal wins. Only the
+stack on screen writes a tab's path: a compact stack torn down after the Duo opened writes nothing
+(`setStackPath`), as a split's already did (`setSplitStack`).
 
 Conversations ask for `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)`
 (`keepsToolbarItemsWhileTyping`): with the keyboard up the rail runs short, and Call, Files and the

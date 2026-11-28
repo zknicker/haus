@@ -370,6 +370,22 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
     width it stays 330 pt wide at the composer's leading edge, as the keyboard board draws it.
   - Not done: a screen's sheets other than those named (attachment viewer, avatar generation, rename alerts) close
     on a fold.
+  - **First Simulator walk (2026-11-28).** Half open like a book and half-open Task mode drew right, and open → closed
+    mid-draft kept everything. Three bugs, fixed:
+    - Unfolding left the list about 350 pt wide: the system keeps a column's width when its range changes, so the
+      fold's fixed width leaked. `ListColumnWidth` now fixes the column back at the width it had before the fold
+      until the system draws it there, then hands the range back.
+    - Selecting `#all` after a fold raised its keyboard: a screen registered its value under the key it had when it
+      appeared, so a composer that gained a Task's chip stayed registered under its own draft and carried stale
+      focus. `PoseCarry.register` now moves a screen's registration when its key changes, and anything carried
+      that no screen took is dropped the moment the reader navigates (`settle`).
+    - Closing from half open lost the Task, the selection and the chip's draft. No router or store write path
+      reproduces it in tests. Hardened what differs from open → closed: the system's own column-visibility writes no
+      longer move a column Haus holds at the fold or beside a Task (`acceptsSystemVisibility`); a compact stack
+      torn down after the layout moved on writes nothing (`setStackPath`, as `setSplitStack` already did); and a
+      transcript notes its anchor when a scroll settles instead of forcing table layout inside the pose change's
+      SwiftUI update. The `chat.haus.ios` `pose` log records each layout change and any stack write that drops more
+      than one route, and the `server` log records a draft being emptied, so a repeat shows its cause.
   - Proof: `FoldClearanceTests`, `PoseCarryTests`, `TaskModeLayoutTests`, `HausRouterFoldTests`; Duo inner display
     fully open in landscape unchanged.
 

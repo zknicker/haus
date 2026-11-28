@@ -1,6 +1,7 @@
 import HausAppModel
 import HausModels
 import HausUI
+import os
 import SwiftUI
 
 /// The root: five tabs, each with its own `NavigationStack` bound to the
@@ -61,6 +62,8 @@ extension AuthenticatedHausView {
         }
         .environment(\.poseCarry, poseCarry)
         .onRegularWidthChange { changeLayout(to: $0 ? .split : .stack) }
+        .onChange(of: router.paths) { poseCarry.settle() }
+        .onChange(of: router.selectedTab) { poseCarry.settle() }
         .sheet(item: sheetBinding) { routerSheet($0) }
         .task(id: store.settingsData?.viewer.avatarURL) {
             youTabIcon = await TabAvatarImage.image(url: store.settingsData?.viewer.avatarURL)
@@ -73,9 +76,14 @@ extension AuthenticatedHausView {
     /// which mounts its screens afresh, so what they hold is carried first.
     private func changeLayout(to layout: TabLayout) {
         guard router.layout != layout else { return }
+        Self.poseLogger.notice(
+            "Layout \(String(describing: router.layout), privacy: .public) to \(String(describing: layout), privacy: .public), paths \(String(describing: router.paths.mapValues(\.count)), privacy: .public)"
+        )
         poseCarry.carry()
         router.layout = layout
     }
+
+    private static let poseLogger = Logger(subsystem: "chat.haus.ios", category: "pose")
 
     private var showsBottomChrome: Bool {
         shellChrome == .custom && router.showsTabBar
@@ -129,7 +137,17 @@ extension AuthenticatedHausView {
     }
 
     private func pathBinding(_ tab: HausTab) -> Binding<[HausRoute]> {
-        Binding(get: { router.path(tab) }, set: { router.setPath($0, for: tab) })
+        Binding(
+            get: { router.path(tab) },
+            set: { path in
+                if router.path(tab).count - path.count > 1 {
+                    Self.poseLogger.notice(
+                        "\(String(describing: tab), privacy: .public) stack wrote \(path.count) over \(router.path(tab).count) routes, layout \(String(describing: router.layout), privacy: .public)"
+                    )
+                }
+                router.setStackPath(path, for: tab)
+            }
+        )
     }
 
     private var sheetBinding: Binding<HausSheet?> {

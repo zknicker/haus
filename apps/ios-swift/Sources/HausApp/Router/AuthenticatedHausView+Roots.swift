@@ -49,7 +49,7 @@ extension AuthenticatedHausView {
     /// Settings and the Drive it browses, on one stack: the hub pushes its
     /// own screens, and Drive opens through the router.
     var youStack: some View {
-        NavigationStack(path: navigationPath({ router.path(.you) }) { router.setPath($0, for: .you) }) {
+        NavigationStack(path: navigationPath({ router.path(.you) }) { router.setStackPath($0, for: .you) }) {
             youRoot
                 .foldsBottomChrome(.you, router: router)
                 .navigationDestination(for: HausRoute.self) { routeDestination($0) }

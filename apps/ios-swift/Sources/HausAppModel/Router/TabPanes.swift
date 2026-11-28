@@ -58,6 +58,15 @@ extension HausRouter {
         return taskID
     }
 
+    /// Writes from a compact tab's `NavigationStack`. Folding and unfolding
+    /// swap a tab's stack for its split and back, and a stack being torn down
+    /// once the layout has moved on writes nothing: only the stack on screen
+    /// speaks for the tab.
+    public func setStackPath(_ path: [HausRoute], for tab: HausTab) {
+        guard layout == .stack else { return }
+        setPath(path, for: tab)
+    }
+
     /// Writes from a split tab's content-pane `NavigationStack`. A changed
     /// stack closes the side pane with it: the Task belonged to the
     /// conversation that was on top.

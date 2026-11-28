@@ -21,7 +21,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
 
     @State private var listWidth = ListColumnLayout.fullIdealWidth
     @State private var taskMode = TaskModeColumn()
-    @State private var foldedWidth: CGFloat?
+    @State private var columnWidth = ListColumnWidth()
 
     public init(
         column: Binding<ListColumn>,
@@ -54,11 +54,11 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
                 split
             }
             .onChange(of: ListColumnLayout.foldedWidth(fold: fold, width: size.width, besideTask: besideTask), initial: true) {
-                foldedWidth = $1
+                columnWidth.fold(to: $1)
             }
         }
         .animation(.smooth(duration: 0.3), value: besideTask)
-        .animation(.smooth(duration: 0.3), value: foldedWidth)
+        .animation(.smooth(duration: 0.3), value: columnWidth.folded)
         .onChange(of: besideTask) { _, isOpen in
             if !isOpen { taskMode.taskClosed() }
         }
@@ -69,20 +69,23 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
     private var split: some View {
         NavigationSplitView(columnVisibility: visibility) {
             list
-                .padding(.trailing, foldedWidth == nil ? 0 : Fold.clearance)
+                .padding(.trailing, isFolded ? Fold.clearance : 0)
                 .frame(maxWidth: .infinity)
                 .environment(\.isListColumn, true)
                 .toolbar(removing: .sidebarToggle)
-                .onGeometryChange(for: CGFloat.self, of: \.size.width) { listWidth = $0 }
+                .onGeometryChange(for: CGFloat.self, of: \.size.width) {
+                    listWidth = $0
+                    columnWidth.measured($0)
+                }
                 .overlay(alignment: .trailing) {
-                    if foldedWidth == nil {
+                    if !isFolded {
                         ListColumnHandle(width: listWidth, hasRail: hasRail) { choose($0) }
                     }
                 }
                 .navigationSplitViewColumnWidth(
-                    min: foldedWidth ?? ListColumnLayout.fullMinimumWidth,
-                    ideal: foldedWidth ?? ListColumnLayout.fullIdealWidth,
-                    max: foldedWidth ?? ListColumnLayout.fullMaximumWidth
+                    min: columnWidth.fixed ?? ListColumnLayout.fullMinimumWidth,
+                    ideal: columnWidth.fixed ?? ListColumnLayout.fullIdealWidth,
+                    max: columnWidth.fixed ?? ListColumnLayout.fullMaximumWidth
                 )
         } detail: {
             content.frame(maxWidth: .infinity)
@@ -91,8 +94,12 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
         .toolbar(removing: sidebarToggleRemoved)
     }
 
+    private var isFolded: Bool {
+        columnWidth.folded != nil
+    }
+
     private var shown: ListColumn {
-        foldedWidth == nil ? taskMode.shown(column, besideTask: besideTask, hasRail: hasRail) : .full
+        isFolded ? .full : taskMode.shown(column, besideTask: besideTask, hasRail: hasRail)
     }
 
     private func choose(_ next: ListColumn) {
@@ -115,6 +122,8 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
         Binding(
             get: { shown.visibility },
             set: { visibility in
+                guard ListColumnLayout.acceptsSystemVisibility(isFolded: isFolded, besideTask: besideTask, shown: shown)
+                else { return }
                 let next = shown.showing(visibility)
                 if next != shown { choose(next) }
             }

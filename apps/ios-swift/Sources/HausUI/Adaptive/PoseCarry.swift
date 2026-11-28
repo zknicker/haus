@@ -10,6 +10,7 @@ import SwiftUI
 @MainActor
 public final class PoseCarry {
     private var live: [PoseKey: Holder] = [:]
+    private var keys: [UUID: PoseKey] = [:]
     private var carried: [PoseKey: Any] = [:]
 
     public init() {}
@@ -20,12 +21,24 @@ public final class PoseCarry {
         carried = live.compactMapValues { $0.read() }
     }
 
+    /// The reader moved on after a pose change: what no screen took is
+    /// stale, and a screen opened later starts fresh.
+    public func settle() {
+        carried.removeAll()
+    }
+
+    /// Registers `token`'s value under `key`, leaving any key it held before:
+    /// a composer whose draft changes, beside a Task or back, carries focus
+    /// for the new draft only.
     public func register(_ key: PoseKey, token: UUID, read: @escaping @MainActor () -> Any?) {
+        unregister(token: token)
         live[key] = Holder(token: token, read: read)
+        keys[token] = key
     }
 
     /// A screen leaving; a newer one registered under its key stays.
-    public func unregister(_ key: PoseKey, token: UUID) {
+    public func unregister(token: UUID) {
+        guard let key = keys.removeValue(forKey: token) else { return }
         if live[key]?.token == token { live[key] = nil }
     }
 
@@ -109,9 +122,12 @@ private struct PoseCarrying<Value: Equatable>: ViewModifier {
                 if let carried = carry.take(resolvedKey, as: Value.self) { restore(carried) }
                 carry.register(resolvedKey, token: slot.token) { [slot] in slot.value }
             }
-            .onDisappear {
-                if let carry, let resolvedKey { carry.unregister(resolvedKey, token: slot.token) }
+            .onChange(of: resolvedKey) { _, key in
+                guard let carry else { return }
+                guard let key else { return carry.unregister(token: slot.token) }
+                carry.register(key, token: slot.token) { [slot] in slot.value }
             }
+            .onDisappear { carry?.unregister(token: slot.token) }
     }
 
     /// A view outside every tab, such as a sheet's, never remounts on a pose

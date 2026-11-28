@@ -259,10 +259,16 @@ where Item.ID == String {
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         // A reveal's `scrollToRow` travel is over; settles close themselves.
         scheduleNearNewestSync(scrollView)
+        if let table = scrollView as? UITableView { noteRestingAnchor(table) }
     }
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         scheduleNearNewestSync(scrollView)
+        if let table = scrollView as? UITableView { noteRestingAnchor(table) }
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate, let table = scrollView as? UITableView { noteRestingAnchor(table) }
     }
 }
 
