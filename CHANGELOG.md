@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v31.0.1 - 2026-11-27
+
+- 31.0.1 publishes what 31.0.0 planned. 31.0.0's Haus Computer job failed on a test before it published anything, so none of v31.0.0 reached anyone and its notes above describe this release.
+- Server 30.0.0, Haus Computer 27.0.0 and Haus Agent 18.0.1 publish together. Haus Agent 18.0.1 is the 18.0.0 that v31.0.0 describes, under a new number. The deploy applies migrations 0159 through 0166, as v31.0.0 describes. Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v31.0.0 - 2026-11-27
 
 - Issues are the backlog. An Issue belongs to one Project and carries its code (GEN-12), one of five states (Backlog, Todo, In progress, Done, Canceled), a priority, one assignee (a person, a Captain or a Task), a due date, labels, sub-issues, comments and an activity feed. The Issues page has For you, Assigned to me, Created by me, Mentioned and All, as a list grouped by state or a board you drag cards across. An Issue's page edits every field and lists the Tasks and pull requests working on it.
