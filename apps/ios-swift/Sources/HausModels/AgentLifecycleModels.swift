@@ -10,6 +10,7 @@ public enum AgentLifecyclePhase: String, Codable, Sendable {
 public enum AgentLifecycleOutcome: String, Codable, Sendable {
     case completed
     case failed
+    case interrupted
     case stopped
 }
 
