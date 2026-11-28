@@ -134,6 +134,7 @@ final class HausStore {
             scope: scope,
             preference: ActiveServerPreference(userID: session.user.id),
             launchSnapshots: .applicationSupport(appProtocolVersion: HausAppProtocol.version),
+            listColumns: ListColumnPreference(userID: session.user.id),
             drafts: ComposerDraftStore(makeStaged: ComposerInteraction.init, discardStaged: { $0.cleanUp() })
         )
         chatList = ChatsModel()

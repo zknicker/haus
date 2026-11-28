@@ -62,8 +62,7 @@ extension AuthenticatedHausView {
         .environment(\.shellChrome, shellChrome)
         .onShellChromeChange { shellChrome = $0 }
         .onRegularWidthChange { router.layout = $0 ? .split : .stack }
-        .sheet(item: sheetBinding) { routerSheet($0) }
-        .task(id: store.settingsData?.viewer.avatarURL) {
+        .sheet(item: sheetBinding) { routerSheet($0) }        .task(id: store.settingsData?.viewer.avatarURL) {
             youTabIcon = await TabAvatarImage.image(url: store.settingsData?.viewer.avatarURL)
         }
     }
@@ -104,42 +103,6 @@ extension AuthenticatedHausView {
         }
     }
 
-    private func adaptiveStack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
-        adaptiveStack(tab, root: root, stacked: { stack(tab, root: root) })
-    }
-
-    /// Compact width keeps the tab's stack. Regular width shows its list
-    /// beside the selection (specs/ios-app.md, iPhone Duo). The pane's stack
-    /// holds settings screens as themselves, so the settings screen it starts
-    /// from draws the ones it pushes.
-    @ViewBuilder
-    private func adaptiveStack<Root: View, Stacked: View>(
-        _ tab: HausTab,
-        @ViewBuilder root: () -> Root,
-        @ViewBuilder stacked: () -> Stacked
-    ) -> some View {
-        switch router.panes(tab) {
-        case .stack:
-            stacked()
-        case let .split(selection, _):
-            AdaptiveSplitView {
-                root().foldsBottomChrome(tab, router: router)
-            } content: {
-                NavigationStack(path: navigationPath({ splitStack(tab) }) { router.setSplitStack($0, for: tab) }) {
-                    Group {
-                        if let selection {
-                            routeDestination(selection).environment(\.chatHeaderShowsBack, false)
-                        } else {
-                            Color.clear
-                        }
-                    }
-                    .navigationDestination(for: HausRoute.self) { routeDestination($0) }
-                }
-                .id(selection)
-            }
-        }
-    }
-
     /// `routes` as a `NavigationStack` holds them: settings screens as
     /// themselves, everything else as routes. Only back and interactive pop
     /// write it, so a write keeps a prefix.
@@ -155,11 +118,6 @@ extension AuthenticatedHausView {
             },
             set: { write(Array(routes().prefix($0.count))) }
         )
-    }
-
-    private func splitStack(_ tab: HausTab) -> [HausRoute] {
-        guard case let .split(_, stack) = router.panes(tab) else { return [] }
-        return stack
     }
 
     private func pathBinding(_ tab: HausTab) -> Binding<[HausRoute]> {

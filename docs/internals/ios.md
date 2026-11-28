@@ -765,6 +765,36 @@ compact Search still opens hits `.outside` in their own tab, and an outside open
 Search. Each list marks the row the detail shows with `listSelection` (`HausUI/Adaptive`): a
 `systemFill`-tinted row with medium (12 pt) corners, never an accent fill.
 
+The list column has three states (`ListColumn`, HausModels): full, a 76 pt rail, or hidden.
+`AdaptiveSplitView` takes the state as a binding. The system never draws its column narrower than
+about 280 pt on the Duo's inner display, whatever `navigationSplitViewColumnWidth` asks, so the
+system column holds only the full list (`.all`); for the rail and hidden it is `.detailOnly`, and
+the rail is Haus content leading the whole split in an `HStack`. It stays outside the split
+because the detail column's bar spans the column, and a pushed screen's Back would land over a
+rail inside it. A 12 pt `ListColumnHandle` on
+the full list's or the rail's trailing edge drags between the states: its grabber follows the
+finger, and letting go snaps by where the edge lands (`ListColumnLayout.released`: under 40 pt
+hidden, under 160 pt the rail, else full), with VoiceOver actions for each state. The system's own
+drag still resizes the full list. The system sidebar button hides the full list and brings it back
+over a hidden column; on the rail it is removed, because the rail's bottom button brings back the
+full list. Search has no rail: its column is full where another tab would draw the rail. Each tab's rail is `ListRail` over items
+built from the rows its list already draws (`ListRails`): Home's recent conversations (Captain
+marks, Project tiles, people and Task discs, with the accent unread dot or the green dot for a
+Captain or Task at work), the Projects' tiles, the Tasks view's discs, and You's settings symbols.
+Compose sits at the top (none on You) and the full-list button at the bottom. The selected mark
+gets `listSelection`'s tint and a 4 pt indicator on the rail's leading edge. The state is
+remembered per Server by `ListColumnPreference` (HausAppModel), owned by `ServerLifecycle` beside
+the launch snapshots: app-local presentation state in `UserDefaults` per signed-in user, cleared
+on membership loss and sign-out. Compact layouts never read it, so folding leaves it alone and
+unfolding restores it.
+
+In the list column under stock bars, `hausScreenTitle` asks for the system's large title
+(`\.isListColumn`, set by `AdaptiveSplitView`), which the Duo draws bold and leading in the
+column's toolbar row beside the actions; everywhere else it stays the centered 17 pt title. A
+custom 26 pt title item does not fit: in the system's 280 pt column it pushes compose and `+`
+into an overflow menu. A Task chat's identity leads the column under stock bars, as a Chat's does,
+and stays centered with custom chrome.
+
 Both transcripts — the Chat timeline and a Task's messages — sit on `TranscriptListView`, the
 flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each
 cell's `contentView` scaled back, data reversed so the newest item is row zero. This is the

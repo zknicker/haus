@@ -211,6 +211,42 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
   - Search: no rail state, so its column is full or hidden.
 - The column state is remembered per Server, beside the launch snapshot.
 - Proof: dragging reaches all three states, and the rail's selection matches the detail column.
+- **Built (2026-11-27).**
+  - Shipped the 12 pt drag handle, not the system drag. The system never draws its column narrower
+    than 280 pt on the open inner display: with `min` at 76 pt, and even with a fixed
+    `navigationSplitViewColumnWidth(76)` from the first frame, the column measured 280 pt
+    (`onGeometryChange` on a column-filling frame), and `ideal` is ignored the same way. So the
+    system drag can never cross 160 pt, and its column can't be the rail.
+  - The system's column holds only the full list (`.all`). For the rail and hidden it is
+    `.detailOnly`, and the rail is Haus content leading the whole split in an `HStack`, with a
+    hairline on its edge. Inside the detail column the rail sat under that column's bar, which
+    spans the column: a pushed screen's Back and the Task title landed over the rail. The split
+    keeps its place in the `HStack`, so toggling the rail never remounts it. `ListColumnHandle` sits on the full list's and the rail's trailing edge;
+    its grabber follows the finger, and letting go snaps by where the edge lands
+    (`ListColumnLayout.released`): under 40 pt hidden, under 160 pt the rail, else the full list.
+    The handle carries VoiceOver actions for the three states. The system's own drag still resizes
+    the full list between 280 and 360 pt. Whether the handle and that drag share the edge without a
+    fight is unproved: the Simulator here can't drag.
+  - Hidden also comes from the system sidebar button, which stands beside the full list and over a
+    hidden column; showing it brings back the full list. On the rail the system button is removed
+    (`toolbar(removing:)`), since the rail's bottom button does the same and the system one added
+    a toolbar row over the detail.
+  - `ListColumn` (HausModels) is the state, `ListColumnPreference` (HausAppModel) keeps it per
+    Server in `UserDefaults` per user, owned by `ServerLifecycle` beside the launch snapshots and
+    cleared with them. It never reaches Server.
+  - Rails: `ListRail` over `ListRails` items built from rows the lists already draw. Home lists
+    Recent (people show their avatar, Tasks their disc), Projects its Projects in list order with
+    `#all` last, Tasks the current view's Tasks as discs, You its selecting settings rows (not
+    Appearance or the app icon, which change in place). Compose is the Ask anything sheet on Home,
+    Projects and Tasks; You has none. Unread wins over the green work dot.
+  - Headers: the list column title is the system's large title, which the Duo draws bold and
+    leading in the toolbar row. A custom 26 pt title item pushed compose and `+` into an overflow
+    menu at 280 pt. The Task chat's identity moves to `.topBarLeading`, leading-aligned, under
+    stock bars, and its navigation title is empty there, since the system drew the title a second
+    time and squeezed the identity. `toolbar(removing: .title)` crashed the Task screen on iOS 27.2
+    (EXC_BAD_ACCESS copying its `AlertModifier`), so it isn't used. Compact iPhones keep both centered titles.
+  - Proof: `ListColumnLayoutTests`, `ListRailsTests`, `ListColumnPreferenceTests` and the lifecycle
+    tests; Duo inner-display screenshots of each state forced by a temporary launch argument.
 
 ### D4. Task mode
 

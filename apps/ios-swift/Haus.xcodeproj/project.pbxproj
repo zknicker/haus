@@ -48,6 +48,7 @@
 		4CA3B55B334066589E4CFEA7 /* HausStoreCaptainChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02E1B7EABD0F8D45FF7CDF8 /* HausStoreCaptainChat.swift */; };
 		4DB1FFCA73D4632113FDD0E6 /* HausStoreReactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB87577C6DF7147FA7C8E74D /* HausStoreReactions.swift */; };
 		4DCE55C82B0FF476161F79B2 /* HausStorePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D804D45D075913F4A3A028 /* HausStorePush.swift */; };
+		50DDEBA932EEBFA5E24F9815 /* AuthenticatedHausView+Split.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6284B0B314221136BA25F2BC /* AuthenticatedHausView+Split.swift */; };
 		52551422BE2056D26C78745F /* UtilityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */; };
 		5376EAB5B5D3CF0671600353 /* CommunicationNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F461CB50C4296185DBCD6F /* CommunicationNotification.swift */; };
 		5407C93318BF3F49B2657805 /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 60637EC440962728355A2196 /* Inter-Bold.ttf */; };
@@ -108,6 +109,7 @@
 		E6A30E8C50CB2576ECAB96CF /* HausStoreIconBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418FFEC09EE99BB4ADABBF7D /* HausStoreIconBadge.swift */; };
 		E7697FD376A099392761AD80 /* Inter-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FA351053E35DF6CC5494D19D /* Inter-SemiBold.ttf */; };
 		E7AED1D7D7B0AA1AE73102EE /* TranscriptWindowScrollingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B53C2D0C19204903D3EE0F3 /* TranscriptWindowScrollingTests.swift */; };
+		EB70BCAAD81EB5E6CE2296A3 /* AuthenticatedHausView+Rails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFCF8DB9BDC09B440D9B230 /* AuthenticatedHausView+Rails.swift */; };
 		EECBD3F5DF1F0DB3BA83E5D0 /* HausStoreActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197041FDE46D01CE30061965 /* HausStoreActivity.swift */; };
 		EF431CD8172F457FDB5BB64E /* AuthenticatedHausView+TaskChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97D3947F3A8D3DD87D2FFF5 /* AuthenticatedHausView+TaskChat.swift */; };
 		EF499854B2F9D70B435232F4 /* HausStoreHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F320C65051725B25AFAB257 /* HausStoreHistory.swift */; };
@@ -187,6 +189,7 @@
 		5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPresentationAdapters.swift; sourceTree = "<group>"; };
 		599DA44C9DA817DC367BE98B /* HausRuntimeConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausRuntimeConfiguration.swift; sourceTree = "<group>"; };
 		60637EC440962728355A2196 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
+		6284B0B314221136BA25F2BC /* AuthenticatedHausView+Split.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Split.swift"; sourceTree = "<group>"; };
 		63342E1AAABDD7D434433BC6 /* HausStoreClaims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreClaims.swift; sourceTree = "<group>"; };
 		6479EFBFB200B67B041489C1 /* PresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationAdapters.swift; sourceTree = "<group>"; };
 		6A505BEC3D0CB539BE1085D6 /* HausStoreEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreEngagement.swift; sourceTree = "<group>"; };
@@ -205,6 +208,7 @@
 		79E99BCD80EEC7975869319D /* HausStoreSendDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreSendDelivery.swift; sourceTree = "<group>"; };
 		7BBD370B92F008F8FD120B80 /* TaskListAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListAdapters.swift; sourceTree = "<group>"; };
 		7E08E5DEFD1A05E1C54F7701 /* AuthenticatedHausView+Roots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Roots.swift"; sourceTree = "<group>"; };
+		7FFCF8DB9BDC09B440D9B230 /* AuthenticatedHausView+Rails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Rails.swift"; sourceTree = "<group>"; };
 		8096FDD8A785B21FBB90BD6D /* HausStoreServerSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreServerSwitch.swift; sourceTree = "<group>"; };
 		8397321F27C0C2610051B5AE /* AuthenticatedHausView+References.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+References.swift"; sourceTree = "<group>"; };
 		847ADA1DF62C8F14D097543B /* HausStoreWork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreWork.swift; sourceTree = "<group>"; };
@@ -363,8 +367,10 @@
 				4222A8D6ABAB76C4A695D610 /* AuthenticatedHausView+Ask.swift */,
 				38A63235F2CA8A88E1D21D49 /* AuthenticatedHausView+Destinations.swift */,
 				11AC70382444212BF105D14D /* AuthenticatedHausView+HomeProjects.swift */,
+				7FFCF8DB9BDC09B440D9B230 /* AuthenticatedHausView+Rails.swift */,
 				7E08E5DEFD1A05E1C54F7701 /* AuthenticatedHausView+Roots.swift */,
 				ABAF10A501B5BDA65EEB865D /* AuthenticatedHausView+Sheets.swift */,
+				6284B0B314221136BA25F2BC /* AuthenticatedHausView+Split.swift */,
 				9EEEC89F282AF1A6A80074CB /* AuthenticatedHausView+Tabs.swift */,
 				2DC54261FA61047A4FE69452 /* AuthenticatedHausView+Work.swift */,
 				6DDC737869512159FFB57F68 /* InteractivePopRestorer.swift */,
@@ -682,11 +688,13 @@
 				F2DC68086562D376F82AAF6C /* AuthenticatedHausView+Calls.swift in Sources */,
 				0EBEF9279F74F6CF33558406 /* AuthenticatedHausView+Destinations.swift in Sources */,
 				95C6D2A6A86F56F6EEC3B20E /* AuthenticatedHausView+HomeProjects.swift in Sources */,
+				EB70BCAAD81EB5E6CE2296A3 /* AuthenticatedHausView+Rails.swift in Sources */,
 				A57173988EB2AAA7F998517A /* AuthenticatedHausView+Reads.swift in Sources */,
 				486715E59C541662E4EA3377 /* AuthenticatedHausView+References.swift in Sources */,
 				7A34EAA64D7180268387609E /* AuthenticatedHausView+Roots.swift in Sources */,
 				C323DE156E64DD8A5301B545 /* AuthenticatedHausView+Routes.swift in Sources */,
 				35F12A83CC399D9C4BC74B0E /* AuthenticatedHausView+Sheets.swift in Sources */,
+				50DDEBA932EEBFA5E24F9815 /* AuthenticatedHausView+Split.swift in Sources */,
 				3544783881DB61FCB14E5143 /* AuthenticatedHausView+Tabs.swift in Sources */,
 				EF431CD8172F457FDB5BB64E /* AuthenticatedHausView+TaskChat.swift in Sources */,
 				C08D92351A823289742D18F3 /* AuthenticatedHausView+Tasks.swift in Sources */,

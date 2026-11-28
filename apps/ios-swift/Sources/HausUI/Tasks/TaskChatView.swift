@@ -37,7 +37,7 @@ public struct TaskChatView: View {
     @State var attachmentTiles = AttachmentImageTileRegistry()
     @State var visualHeights = VisualHeightRegistry()
     @Environment(\.reactionStickers) var reactionBoard
-    @Environment(\.shellChrome) private var shellChrome
+    @Environment(\.shellChrome) var shellChrome
     @State var actionMessage: MessagePresentation?
     @State var heldMessageID: String?
     @State var unreadJump = TranscriptUnreadJump(messageID: nil)

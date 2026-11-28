@@ -1,12 +1,13 @@
 import HausModels
 import SwiftUI
 
-/// The Task chat's stock centered header: the activity disc and the title
-/// over its activity, and the `…` menu.
+/// The Task chat's header: the activity disc and the title over its
+/// activity, and the `…` menu. The identity is centered with custom chrome
+/// and leads the column under stock bars, as a Chat's does.
 extension TaskChatView {
     func chrome(_ content: some View) -> some View {
         content
-            .navigationTitle(header?.title ?? "")
+            .navigationTitle(shellChrome == .stock ? "" : header?.title ?? "")
             .hausInlineNavigationTitle()
             .toolbar { taskToolbar }
             .alert("Rename task", isPresented: $isRenamePresented) {
@@ -23,11 +24,16 @@ extension TaskChatView {
 
     @ToolbarContentBuilder
     var taskToolbar: some ToolbarContent {
-        ToolbarItem(placement: .principal) {
+        ToolbarItem(placement: titlePlacement) {
             if let header {
-                TaskChatTitle(header: header, subtitle: showsOutage ? ConnectionOutage.title : nil)
+                TaskChatTitle(
+                    header: header,
+                    subtitle: showsOutage ? ConnectionOutage.title : nil,
+                    alignment: shellChrome == .stock ? .leading : .center
+                )
             }
         }
+        .sharedBackgroundVisibility(shellChrome == .stock ? .hidden : .automatic)
         if editing != nil || startedFrom != nil {
             ToolbarItem(placement: .primaryAction) {
                 TaskChatMenu(
@@ -43,6 +49,14 @@ extension TaskChatView {
                 .hausHeaderGlyph()
             }
         }
+    }
+
+    private var titlePlacement: ToolbarItemPlacement {
+        #if os(iOS)
+        shellChrome == .stock ? .topBarLeading : .principal
+        #else
+        .principal
+        #endif
     }
 
     var editFailurePresented: Binding<Bool> {
@@ -67,14 +81,15 @@ extension TaskChatView {
     }
 }
 
-/// The centered identity: the activity disc and the truncating title over the
+/// The identity: the activity disc and the truncating title over the
 /// activity, or the connection state while the link is down.
 struct TaskChatTitle: View {
     let header: TaskChatHeaderPresentation
     let subtitle: String?
+    var alignment: HorizontalAlignment = .center
 
     var body: some View {
-        VStack(spacing: 1) {
+        VStack(alignment: alignment, spacing: 1) {
             HStack(spacing: 7) {
                 TaskActivityDisc(state: header.disc, size: 16, surface: HausPlatformColor.canvas)
                 Text(header.title)
@@ -87,6 +102,7 @@ struct TaskChatTitle: View {
                 .font(.caption)
                 .foregroundStyle(HausPlatformColor.mutedInk)
         }
+        .fixedSize(horizontal: alignment == .leading, vertical: false)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(header.title)
         .accessibilityValue(header.disc.label)
