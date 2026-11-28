@@ -861,15 +861,24 @@ transcript's coordinator notes its resting anchor when a scroll settles (`Transc
 nil at the newest edge), so `carry()` touches no UIKit layout, and resumes a carried one once the
 table has a height and the item, unless the reader touches it first or a reveal wins. Only the
 stack on screen writes a tab's path: a compact stack torn down after the Duo opened writes nothing
-(`setStackPath`), as a split's already did (`setSplitStack`). Closing the Duo draws the split once at
-compact width before the tab swaps it for its stack, and SwiftUI collapsed a detail-only split (Task
-mode's rail) by queuing a column pop (`NavigationColumnState.pop`, run in the window's rotation to the
-outer display) that landed on the new stack and emptied it. `AdaptiveSplitView` pins its split to the
-regular size class so it never collapses. As a backstop, until a rebuilt stack's top screen appears
-(`stackAppeared`, from the destination's `onAppear`) the router refuses a write that drops more than
-one route, once per fold, and bumps `stackRevision`, which the stack reads so it redraws from the
-router's path; a refusal logs one fault under `chat.haus.ios` / `pose`. Back pops one screen and is
-always taken.
+(`setStackPath`), as a split's already did (`setSplitStack`). SwiftUI pops the compact stack during
+the scene's move to the outer display when a Task sat beside its conversation
+(`NavigationColumnState.pop`, run in the window's rotation), before the stack's top screen has
+appeared. Pinning the split to the regular size class did not stop it. The router's refusal is the
+bounded workaround: until a rebuilt stack's top screen appears (`stackAppeared`, from the
+destination's `onAppear`) it refuses a write that drops more than one route, once per fold, and bumps
+`stackRevision`, which the stack reads so it redraws from the router's path. Back pops one screen
+and is always taken. Each refusal logs one fault under `chat.haus.ios` / `pose`; remove the
+workaround once that fault stops firing on a newer iOS.
+
+Haus alone moves the list column. The system writes the split's column visibility on its own (turning
+the Duo to portrait hid the list, and that write used to be stored as the reader's choice), so the
+visibility binding refuses every system write and redraws. The system sidebar button is removed
+everywhere: its place in the detail column's bar is covered by the conversation's own stack, so with
+bars horizontal a hidden list could not come back. A hidden column's detail shows Haus's own Show
+list instead (`\.revealListColumn`, `showListButton`). The Chat composer clears whichever reaches
+higher, the keyboard or the screen's bottom inset (`ChatComposerInset`), because with bars horizontal
+at regular width the system tab bar floats inside that inset and the keyboard reader does not know it.
 
 Conversations ask for `.toolbarVerticalCompressionBehavior(.prefersToolbarItems)`
 (`keepsToolbarItemsWhileTyping`): with the keyboard up the rail runs short, and Call, Files and the

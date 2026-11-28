@@ -52,12 +52,4 @@ extension ListColumn {
     public var visibility: NavigationSplitViewVisibility {
         self == .full ? .all : .detailOnly
     }
-
-    /// The column after the system's sidebar button sets `visibility`:
-    /// hiding the full list hides the column, and showing it from the rail
-    /// or hidden brings back the full list.
-    public func showing(_ visibility: NavigationSplitViewVisibility) -> ListColumn {
-        if visibility == .detailOnly { return self == .full ? .hidden : self }
-        return .full
-    }
 }

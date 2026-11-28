@@ -61,6 +61,13 @@ struct FoldClearanceTests {
         #expect(KeyboardInsetSample.inset(screenBottom: 412, keyboardTop: 620, bottomSafeArea: 0, isEditing: true) == 0)
     }
 
+    @Test func theComposerClearsAHorizontalTabBarAndRidesTheKeyboardOverIt() {
+        #expect(ChatComposerInset.bottom(keyboard: 20, screen: 98) == 98)
+        #expect(ChatComposerInset.bottom(keyboard: 330, screen: 98) == 330)
+        #expect(ChatComposerInset.bottom(keyboard: nil, screen: 34) == 34)
+        #expect(ChatComposerInset.bottom(keyboard: 34, screen: 34) == 34)
+    }
+
     @Test func theMentionCardStaysListWideBesideTheList() {
         #expect(MentionPickerLayout.maxCardWidth(isRegularWidth: true) == ListColumnLayout.fullIdealWidth)
         #expect(MentionPickerLayout.maxCardWidth(isRegularWidth: false) == .infinity)

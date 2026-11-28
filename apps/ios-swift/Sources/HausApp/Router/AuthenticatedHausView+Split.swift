@@ -62,6 +62,7 @@ extension AuthenticatedHausView {
                         Color.clear
                     }
                 }
+                .showListButton()
                 .navigationDestination(for: HausRoute.self) {
                     conversationScreen($0, tab: tab)
                 }

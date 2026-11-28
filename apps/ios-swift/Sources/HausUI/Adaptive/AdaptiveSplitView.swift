@@ -22,6 +22,7 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
     @State private var listWidth = ListColumnLayout.fullIdealWidth
     @State private var taskMode = TaskModeColumn()
     @State private var columnWidth = ListColumnWidth()
+    @State private var refusedVisibility = 0
 
     public init(
         column: Binding<ListColumn>,
@@ -66,9 +67,8 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
 
     /// Half open, the full list reaches the fold (`ListColumnLayout.foldedWidth`)
     /// and keeps its rows clear of it; the handle steps away until the Duo opens.
-    /// The split is the regular layout and never collapses: closing the Duo
-    /// draws it once at compact width before the tab swaps it for its stack,
-    /// and collapsing a detail-only split queued a pop that landed on that stack.
+    /// Haus alone moves the column, so the system's sidebar button is gone and
+    /// a hidden column's detail shows Haus's own Show list (`\.revealListColumn`).
     private var split: some View {
         NavigationSplitView(columnVisibility: visibility) {
             list
@@ -91,11 +91,13 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
                     max: columnWidth.fixed ?? ListColumnLayout.fullMaximumWidth
                 )
         } detail: {
-            content.frame(maxWidth: .infinity)
+            content
+                .frame(maxWidth: .infinity)
+                .environment(\.revealListColumn, shown == .hidden ? { choose(.full) } : nil)
         }
         .navigationSplitViewStyle(.balanced)
-        .toolbar(removing: sidebarToggleRemoved)
-        .environment(\.horizontalSizeClass, .regular)
+        .toolbar(removing: .sidebarToggle)
+        .onChange(of: refusedVisibility) {}
     }
 
     private var isFolded: Bool {
@@ -115,22 +117,14 @@ public struct AdaptiveSplitView<ListPane: View, RailPane: View, ContentPane: Vie
         withAnimation(.smooth(duration: 0.3)) { taskMode = mode }
     }
 
-    /// The system's sidebar button stands only over a hidden column. The full
-    /// list's header leaves it out so its title has the room (the handle
-    /// collapses the list), and the rail has its own button for the full list.
-    private var sidebarToggleRemoved: ToolbarDefaultItemKind? {
-        shown == .rail ? .sidebarToggle : nil
-    }
-
+    /// The system writes the column's visibility on its own, as when the Duo
+    /// turns to portrait and it hides the list. That write is refused and the
+    /// split redrawn, so the column stays where the reader put it and the
+    /// refusal never reaches the stored `ListColumn`.
     private var visibility: Binding<NavigationSplitViewVisibility> {
         Binding(
             get: { shown.visibility },
-            set: { visibility in
-                guard ListColumnLayout.acceptsSystemVisibility(isFolded: isFolded, besideTask: besideTask, shown: shown)
-                else { return }
-                let next = shown.showing(visibility)
-                if next != shown { choose(next) }
-            }
+            set: { if $0 != shown.visibility { refusedVisibility += 1 } }
         )
     }
 }

@@ -1,5 +1,4 @@
 import CoreGraphics
-import HausModels
 
 /// The width Haus asks the system's list column for. Fully open it asks for
 /// nothing fixed, and the system draws its own width, which the reader can
@@ -37,15 +36,4 @@ public struct ListColumnWidth: Equatable, Sendable {
     }
 
     private static let reachTolerance: CGFloat = 12
-}
-
-extension ListColumnLayout {
-    /// Whether a column visibility the system writes, from its sidebar button
-    /// or on its own, moves the column. Only Haus moves a column it is
-    /// holding at the fold or stepping aside for a Task, except that the
-    /// system button still brings back a hidden one.
-    public static func acceptsSystemVisibility(isFolded: Bool, besideTask: Bool, shown: ListColumn) -> Bool {
-        if isFolded { return false }
-        return !besideTask || shown == .hidden
-    }
 }

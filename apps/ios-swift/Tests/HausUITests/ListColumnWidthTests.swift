@@ -44,11 +44,4 @@ struct ListColumnWidthTests {
         width.measured(280)
         #expect(width.fixed == nil)
     }
-
-    @Test func onlyHausMovesAColumnItHoldsAtTheFoldOrBesideATask() {
-        #expect(!ListColumnLayout.acceptsSystemVisibility(isFolded: true, besideTask: false, shown: .full))
-        #expect(!ListColumnLayout.acceptsSystemVisibility(isFolded: false, besideTask: true, shown: .rail))
-        #expect(ListColumnLayout.acceptsSystemVisibility(isFolded: false, besideTask: true, shown: .hidden))
-        #expect(ListColumnLayout.acceptsSystemVisibility(isFolded: false, besideTask: false, shown: .hidden))
-    }
 }

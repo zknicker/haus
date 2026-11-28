@@ -33,13 +33,4 @@ struct ListColumnLayoutTests {
         #expect(ListColumn.rail.visibility == .detailOnly)
         #expect(ListColumn.hidden.visibility == .detailOnly)
     }
-
-    @Test func theSidebarButtonHidesTheFullListAndShowsItFromTheRailOrHidden() {
-        #expect(ListColumn.full.showing(.detailOnly) == .hidden)
-        #expect(ListColumn.rail.showing(.detailOnly) == .rail)
-        #expect(ListColumn.hidden.showing(.detailOnly) == .hidden)
-        #expect(ListColumn.hidden.showing(.all) == .full)
-        #expect(ListColumn.rail.showing(.doubleColumn) == .full)
-        #expect(ListColumn.full.showing(.all) == .full)
-    }
 }
