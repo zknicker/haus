@@ -1305,7 +1305,8 @@ name, handle, and avatar from the member directory, with a former-member fallbac
 longer carries them. There are no DMs with Captains.
 
 Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Captain
-chat target (`targetKind: captain`). `@` offers Agents and humans, `#` offers channels, and `$` offers the Skills the chat's Agents
+chat target (`targetKind: captain`). A Task's composer queries the Task's own Chat, whose Skills come
+from its Project's Captains, so a Task started from "Ask anything" has a roster too. `@` offers Agents and humans, `#` offers channels, and `$` offers the Skills the chat's Agents
 carry; selecting one writes the shared `agent://`, `user://`, `chat://`, or `skill://` markdown
 reference into the draft. The Server sends a Skill's `insertText` bare where every other kind arrives
 with its sigil, so the composer adds the `$` and a Skill selection serializes as

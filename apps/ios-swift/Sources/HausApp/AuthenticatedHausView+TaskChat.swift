@@ -27,9 +27,6 @@ extension AuthenticatedHausView {
     private func taskChatDestination(_ taskID: String) -> some View {
         let chatID = store.taskChatID(taskID: taskID)
         let origin = store.taskOrigin(taskID: taskID)
-        let originDestination = origin.flatMap { origin in
-            store.chatDestinations.first { $0.durableChat?.id == origin.chatID }
-        }
         return TaskChatView(
             header: store.taskChatHeader(taskID: taskID),
             startedFrom: store.taskStartedFrom(taskID: taskID),
@@ -56,10 +53,10 @@ extension AuthenticatedHausView {
             editing: store.taskChatEditing(taskID: taskID),
             workPill: store.workPill(.task(taskID)),
             onOpenWork: { router.open(.work(.task(taskID))) },
-            mentionOptions: originDestination.map { store.mentionOptions(for: $0) } ?? [],
+            mentionOptions: chatID.map { store.mentionOptions(chatID: $0) } ?? [],
             onLoadMentionOptions: {
-                guard let originDestination else { return }
-                await store.loadMentionOptions(for: originDestination)
+                guard let chatID else { return }
+                await store.loadMentionOptions(chatID: chatID)
             },
             onVisibleMessagesChange: { messageIDs in
                 guard let chatID else { return }
