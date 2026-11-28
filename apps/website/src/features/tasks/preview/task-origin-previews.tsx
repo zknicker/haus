@@ -13,7 +13,11 @@ import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { TaskStateDisc } from '../task-state-disc.tsx';
 import { taskStateLabels, taskStateOf } from '../task-state.ts';
 import { useTaskAgentName } from '../use-task-agent-name.ts';
-import { taskPreviewAuthorName, taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
+import {
+    taskPreviewAuthorName,
+    taskPreviewCounts,
+    taskPreviewLabel,
+} from './task-preview-model.ts';
 
 export function TaskOriginPreviews({
     previews,
