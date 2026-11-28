@@ -93,12 +93,21 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 - Set `project.yml`'s `xcodeVersion` to 27.1. It is XcodeGen compatibility only and does not pick the SDK.
 - Keep the iOS 26.0 deployment target. Gate every 27.1 API with `#available`, and fall back below 27.1 to today's
   size-class behavior.
-- Confirm the 27.1 names this plan depends on against Apple's documentation and the Tech Talk sample code, and
-  record them here before D1's brief is written:
-  - how a view learns that its bars are vertical
-  - `ReservedRegion`
-  - `ArrangementView`
-  - the vertical compression behavior for toolbars
+- Building with the 27.1 SDK ends letterboxing. The app doesn't set `UIRequiresFullScreen`, which would bring it
+  back, so keep it unset.
+- The 27.1 names this plan uses, from Apple's documentation (confirm each compiles before D1's brief):
+  - `@Environment(\.toolbarVerticalEdge)` (`HorizontalEdge?`) tells a view its bars are vertical and on which
+    edge. It reports the preferred edge even while no bar is showing. UIKit's trait is `verticalBarEdge`.
+  - System containers lay bars out vertically on their own with the 27.1 SDK. `TabView` needs no opt-in, and
+    `.toolbarVerticalBehavior(.disabled)` opts a view out.
+  - `.toolbarVerticalCompressionBehavior(.prefersTabBar)` or `(.prefersToolbarItems)`, with
+    `ToolbarItemVisibilityPriority`, decides what stays when the keyboard compresses the rail.
+  - `GeometryProxy.reservedRegions(kind: .division)` returns the fold. It is empty when the Duo is fully open or
+    closed. `.occlusion` regions are the camera and sensors.
+  - `ArrangementView` must not sit inside a `NavigationSplitView`, `List` or `ScrollView`, so Haus doesn't use it.
+  - `.onHingeChange` and `DeviceHinge` report the angle and pose. Use them for effects only, never layout.
+- Still unverified until it runs on the Duo Simulator:
+  - whether `.toolbar(.hidden, for: .tabBar)` hides a vertical tab bar
   - whether `NavigationSplitView` columns resize by drag, as in Messages
 - Proof: the app runs edge to edge on the Device Hub's iPhone Duo Simulator, not letterboxed.
 
@@ -106,7 +115,7 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 
 - `AuthenticatedHausView+Tabs.swift`: give each `Tab` its title and symbol: Home, Projects, Tasks, You (the
   viewer's photo), Search.
-  - Where bars are vertical or the width is regular, drop `.toolbar(.hidden, for: .tabBar)` and the
+  - Where `toolbarVerticalEdge` is non-nil or the width is regular, drop `.toolbar(.hidden, for: .tabBar)` and the
     `HausBottomChrome` overlay, and let the `TabView` draw its own bar.
 - `AuthenticatedHausView+Destinations.swift`: on those displays, stop hiding the tab bar on every route, and stop
   applying `.hausHiddenNavigationBar()` to chats.
@@ -137,9 +146,9 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 
 - `AdaptiveSplitView` gains a column state: full, rail or hidden.
   - Full uses today's widths. Rail sets the column to a fixed 76 pt. Hidden uses `.detailOnly`.
-  - If 27.1 resizes columns by drag, map the drag's release width to the nearest state.
-  - Otherwise, add a 12 pt drag handle on the column's edge. Releasing below 160 pt snaps to rail, and below 40 pt
-    hides the column.
+  - A 12 pt drag handle on the column's edge sets the state. Releasing below 160 pt snaps to rail, and below 40 pt
+    hides the column. If D0 finds that 27.1 resizes columns by drag, map that drag's release width to the nearest
+    state instead.
 - Each tab's root renders as a rail in that state:
   - Home: recent conversations.
   - Projects: Project tiles.
@@ -158,9 +167,8 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 - `TabPanes`: add the side pane back. A `.task` directly over a conversation route (`.captain`, `.dm`, `.channel`)
   is the side pane.
 - `AdaptiveSplitView`: add a side pane; with one, the column state becomes rail.
-  - Under 27.1 the detail column holds an `ArrangementView` split arrangement of the conversation and the Task.
-    Navigation stays outside it.
-  - Below 27.1 it uses today's `HStack`.
+  - The detail column lays the conversation and the Task out in an `HStack`. Under 27.1 the two panes meet at
+    the `reservedRegions(kind: .division)` fold when it is present, and split evenly otherwise.
 - `HausRouter.visibleConversation` becomes a set: the conversation and the Task are both visible, for mark-read and
   push suppression.
 - Composer: add the target chip. A draft is kept per target. Sending posts to the Task's chat.
