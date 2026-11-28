@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v31.1.0 - 2026-11-28
+
+- A crew Task starts working right away. Tasks no longer copy the whole Drive onto their Machine before their first command, which made a new Task's first commands wait for minutes and get cancelled before they ran. A Task reads Drive files with `haus drive view` and saves deliverables with `haus drive write`. Captains keep their `drive/` folder.
+- A Captain's Drive folder downloads up to eight files at a time, so a first pull of a large Drive takes seconds instead of minutes.
+- Server 30.1.0, Haus Computer 27.0.1 and Haus Agent 18.1.0 publish together. Haus Agent 18.1.0 fixes `haus drive view`, which failed for every Agent, and can save a file to the Machine with `--output`. Computer protocol 52 is unchanged, so either side can update first. No database migration. Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v31.0.1 - 2026-11-27
 
 - 31.0.1 publishes what 31.0.0 planned. 31.0.0's Haus Computer job failed on a test before it published anything, so none of v31.0.0 reached anyone and its notes above describe this release.
