@@ -75,7 +75,7 @@ extension HausStore {
     private func makeLaunchSnapshot() -> LaunchSnapshot? {
         guard hasLiveServerState, let serverID = activeServer?.id else { return nil }
         // The surfaces the user lands on first, then the most recently used.
-        let priority = [canvasChatID, openChatID, preferredInitialChatID].compactMap { $0 }
+        let priority = openChatIDs.sorted() + [preferredInitialChatID].compactMap { $0 }
             + historyNavigation.retention.orderedChatIDs.reversed()
         return LaunchSnapshot(
             appProtocolVersion: lifecycle.launchSnapshots.appProtocolVersion,

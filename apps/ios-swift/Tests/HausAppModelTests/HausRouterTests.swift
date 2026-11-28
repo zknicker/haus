@@ -59,7 +59,7 @@ struct HausRouterTests {
         router.open(.captain(agentID: "agent_1", messageID: "m_3"), from: .outside)
         #expect(router.selectedTab == .home)
         #expect(router.revealedMessageID(in: .captain("agent_1")) == "m_3")
-        #expect(router.visibleConversation == .captain("agent_1"))
+        #expect(router.visibleConversations == [.captain("agent_1")])
     }
 
     @Test("You holds only settings, and Search's hits open from outside in their own tabs")
@@ -113,14 +113,14 @@ struct HausRouterTests {
         router.selectedTab = .projects
         router.open(.channel(chatID: "chat_product"))
         router.open(.task(taskID: "task_1"))
-        #expect(router.visibleConversation == .task("task_1"))
+        #expect(router.visibleConversations == [.task("task_1")])
         router.open(.work(.task("task_1")))
-        #expect(router.visibleConversation == nil)
+        #expect(router.visibleConversations.isEmpty)
         router.pop()
         router.selectedTab = .home
-        #expect(router.visibleConversation == nil)
+        #expect(router.visibleConversations.isEmpty)
         router.selectedTab = .projects
-        #expect(router.visibleConversation == .task("task_1"))
+        #expect(router.visibleConversations == [.task("task_1")])
     }
 
     @Test("Stacked, only a tab's root shows the tab bar; every pushed screen hides it")

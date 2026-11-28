@@ -11,8 +11,9 @@ public enum TabPanes: Hashable, Sendable {
     /// The tab's root with its whole stack over it.
     case stack([HausRoute])
     /// The list beside the selection, with the rest of the stack over the
-    /// selection.
-    case split(selection: HausRoute?, stack: [HausRoute])
+    /// selection. A Task directly over a conversation sits beside it in the
+    /// side pane, and the list steps aside.
+    case split(selection: HausRoute?, stack: [HausRoute], side: HausRoute? = nil)
 }
 
 extension HausTab {
@@ -30,13 +31,37 @@ extension HausRouter {
     public func panes(_ tab: HausTab) -> TabPanes {
         let path = path(tab)
         guard layout == .split else { return .stack(path) }
-        return .split(selection: path.first ?? tab.emptySelection, stack: Array(path.dropFirst()))
+        let selection = path.first ?? tab.emptySelection
+        guard let side = Self.sidePane(in: path) else {
+            return .split(selection: selection, stack: Array(path.dropFirst()))
+        }
+        return .split(selection: selection, stack: Array(path.dropFirst().dropLast()), side: side)
     }
 
-    /// Writes from a split tab's content-pane `NavigationStack`.
+    /// The conversations the reader is looking at: the selected tab's top
+    /// route, and beside a Task the conversation under it too. Never a chat
+    /// mounted lower in a stack or in another tab.
+    public var visibleConversations: Set<HausConversation> {
+        let path = path(selectedTab)
+        var shown = Set([path.last?.conversation].compactMap(\.self))
+        if layout == .split, Self.sidePane(in: path) != nil, let beneath = path.dropLast().last?.conversation {
+            shown.insert(beneath)
+        }
+        return shown
+    }
+
+    /// Writes from a split tab's content-pane `NavigationStack`. A changed
+    /// stack closes the side pane with it: the Task belonged to the
+    /// conversation that was on top.
     public func setSplitStack(_ stack: [HausRoute], for tab: HausTab) {
-        guard case let .split(selection?, current) = panes(tab), current != stack else { return }
+        guard case let .split(selection?, current, _) = panes(tab), current != stack else { return }
         setPath([selection] + stack, for: tab)
+    }
+
+    /// Closes the Task beside its conversation, back to the conversation.
+    public func closeSidePane(_ tab: HausTab) {
+        guard case .split(_, _, _?) = panes(tab) else { return }
+        setPath(Array(path(tab).dropLast()), for: tab)
     }
 
     /// What replaces a split tab's selection instead of stacking over it: a
@@ -47,6 +72,15 @@ extension HausRouter {
         case (.you, .settings), (.you, .driveFile(path: "")): true
         case (.you, _): false
         case (.home, _), (.projects, _), (.tasks, _), (.search, _): route.conversation != nil
+        }
+    }
+
+    /// A Task directly over a Captain chat, a DM or a Channel sits beside it.
+    nonisolated static func sidePane(in path: [HausRoute]) -> HausRoute? {
+        guard path.count >= 2, case .task = path[path.count - 1] else { return nil }
+        switch path[path.count - 2] {
+        case .captain, .dm, .channel: return path.last
+        case .task, .pullRequest, .work, .driveFile, .settings, .projectSettings: return nil
         }
     }
 }

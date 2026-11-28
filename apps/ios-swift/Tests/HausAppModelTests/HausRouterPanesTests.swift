@@ -91,10 +91,10 @@ struct HausRouterPanesTests {
         let router = HausRouter()
         router.open(.task(taskID: "task_1"), from: .outside)
         router.layout = .split
-        #expect(router.visibleConversation == .task("task_1"))
+        #expect(router.visibleConversations == [.task("task_1")])
         router.open(.work(.task("task_1")))
-        #expect(router.visibleConversation == nil)
+        #expect(router.visibleConversations.isEmpty)
         router.pop()
-        #expect(router.visibleConversation == .task("task_1"))
+        #expect(router.visibleConversations == [.task("task_1")])
     }
 }

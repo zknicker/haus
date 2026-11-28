@@ -40,7 +40,9 @@
 		3C7596C63D050A5AD2F99480 /* HausStoreMessageBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98180CA66F0FB2C45C041767 /* HausStoreMessageBodies.swift */; };
 		3DF2040138423821D77FC199 /* HausStoreArtifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C52F0B1DA203DF7B2F7F315D /* HausStoreArtifacts.swift */; };
 		3EC31C6D2A9BC16BEBB57141 /* ChatPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA4A3F1787540E29C3BE266 /* ChatPresentationAdapters.swift */; };
+		40A1B49DCE7BA2624C11348D /* TaskPaneAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD7DD3289E5DE1E339DE168A /* TaskPaneAdapters.swift */; };
 		41B04BD7EABE5C585B663283 /* halloween-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9E9E1387FDC4B811FF25DD22 /* halloween-icon.icon */; };
+		43895326F23B3DB9D8B45689 /* AuthenticatedHausView+TaskPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35DA6444ABC5778EF2D9128 /* AuthenticatedHausView+TaskPane.swift */; };
 		449338184448632A2D3D33B8 /* SearchPaletteAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99127CC785EDBF70123807EA /* SearchPaletteAdapters.swift */; };
 		44B50B0FDF5AD409888415AE /* HausStoreMentions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D58A2E06B71FDA6ABF4D58 /* HausStoreMentions.swift */; };
 		486715E59C541662E4EA3377 /* AuthenticatedHausView+References.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8397321F27C0C2610051B5AE /* AuthenticatedHausView+References.swift */; };
@@ -238,12 +240,14 @@
 		B09206EC655FA6C9134513FB /* AuthBoundaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthBoundaryView.swift; sourceTree = "<group>"; };
 		B834451B996028D83D752D26 /* AuthenticatedHausSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatedHausSupport.swift; sourceTree = "<group>"; };
 		BD1EA8725447134726BD4E03 /* HausStoreAgentStart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreAgentStart.swift; sourceTree = "<group>"; };
+		BD7DD3289E5DE1E339DE168A /* TaskPaneAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPaneAdapters.swift; sourceTree = "<group>"; };
 		C33E22F3873B8A832FCD4467 /* PushNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifications.swift; sourceTree = "<group>"; };
 		C52F0B1DA203DF7B2F7F315D /* HausStoreArtifacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreArtifacts.swift; sourceTree = "<group>"; };
 		C799DCE0C12DFA6D65C82F1E /* HausStoreUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreUtilities.swift; sourceTree = "<group>"; };
 		C97D3947F3A8D3DD87D2FFF5 /* AuthenticatedHausView+TaskChat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+TaskChat.swift"; sourceTree = "<group>"; };
 		CACE5B858776957137DD4839 /* AuthenticatedHausView+Calls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Calls.swift"; sourceTree = "<group>"; };
 		CE16B456BE9D7C8D1129D79A /* HausStoreProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreProfiles.swift; sourceTree = "<group>"; };
+		D35DA6444ABC5778EF2D9128 /* AuthenticatedHausView+TaskPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+TaskPane.swift"; sourceTree = "<group>"; };
 		D9D58A2E06B71FDA6ABF4D58 /* HausStoreMentions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreMentions.swift; sourceTree = "<group>"; };
 		DB87577C6DF7147FA7C8E74D /* HausStoreReactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreReactions.swift; sourceTree = "<group>"; };
 		DC799CB8FAC41CB382B7ACC9 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
@@ -400,6 +404,7 @@
 				8397321F27C0C2610051B5AE /* AuthenticatedHausView+References.swift */,
 				25A9247649992AD4B411E84D /* AuthenticatedHausView+Routes.swift */,
 				C97D3947F3A8D3DD87D2FFF5 /* AuthenticatedHausView+TaskChat.swift */,
+				D35DA6444ABC5778EF2D9128 /* AuthenticatedHausView+TaskPane.swift */,
 				16A78D1EF0B10B20E7B2D1CB /* AuthenticatedHausView+Tasks.swift */,
 				6EA4A3F1787540E29C3BE266 /* ChatPresentationAdapters.swift */,
 				863A796FD5EC6B10A14B9623 /* HausApp.swift */,
@@ -459,6 +464,7 @@
 				9D9EFEB07542DA3493E90F5F /* SettingsServerAdapters.swift */,
 				4F3442CFF7F141228FFA4C88 /* TaskChatAdapters.swift */,
 				7BBD370B92F008F8FD120B80 /* TaskListAdapters.swift */,
+				BD7DD3289E5DE1E339DE168A /* TaskPaneAdapters.swift */,
 				147265512B955B90F06F98BE /* TaskPresentationAdapters.swift */,
 				1F43ECD00552A5930DFF5375 /* TasksTabScreen.swift */,
 				440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */,
@@ -697,6 +703,7 @@
 				50DDEBA932EEBFA5E24F9815 /* AuthenticatedHausView+Split.swift in Sources */,
 				3544783881DB61FCB14E5143 /* AuthenticatedHausView+Tabs.swift in Sources */,
 				EF431CD8172F457FDB5BB64E /* AuthenticatedHausView+TaskChat.swift in Sources */,
+				43895326F23B3DB9D8B45689 /* AuthenticatedHausView+TaskPane.swift in Sources */,
 				C08D92351A823289742D18F3 /* AuthenticatedHausView+Tasks.swift in Sources */,
 				1CDBB65271CC8A2C73E19EB2 /* AuthenticatedHausView+Work.swift in Sources */,
 				B8D82894CDA748B68BB5E770 /* AuthenticatedHausView.swift in Sources */,
@@ -757,6 +764,7 @@
 				35CB42DA716ECD15A88894E4 /* SettingsServerAdapters.swift in Sources */,
 				55CBE7147ECA55D0D9A195CA /* TaskChatAdapters.swift in Sources */,
 				02309C65648C25839C4843EC /* TaskListAdapters.swift in Sources */,
+				40A1B49DCE7BA2624C11348D /* TaskPaneAdapters.swift in Sources */,
 				D64E21F3C9B2593262584CBC /* TaskPresentationAdapters.swift in Sources */,
 				8662552B34B80F2D4BC66AB8 /* TasksTabScreen.swift in Sources */,
 				52551422BE2056D26C78745F /* UtilityPresentationAdapters.swift in Sources */,

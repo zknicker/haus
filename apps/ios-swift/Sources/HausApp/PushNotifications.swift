@@ -25,9 +25,9 @@ final class PushNotifications {
     /// Tapped notifications on their way to the router. A tap can arrive
     /// before any Store does, so the queue lives here.
     let taps = PushTaps()
-    /// The Chat the selected tab's top route shows, reported by the shell, so
-    /// a push for that very conversation does not banner over it.
-    @ObservationIgnored var viewingChatID: String?
+    /// The Chats on screen, reported by the shell, so a push for one of those
+    /// very conversations does not banner over it.
+    @ObservationIgnored var viewingChatIDs: Set<String> = []
     @ObservationIgnored private(set) var deviceToken: String?
     /// The token this Store last told the Server about, so a foreground
     /// re-check does not re-send an unchanged registration.
@@ -88,8 +88,8 @@ final class PushNotifications {
         }
     }
 
-    func clearDelivered(openedChatID: String?) async {
-        guard openedChatID != nil else { return }
+    func clearDelivered(openedChatIDs: Set<String>) async {
+        guard !openedChatIDs.isEmpty else { return }
         let center = UNUserNotificationCenter.current()
         let delivered = await center.deliveredNotifications().map { notification in
             DeliveredPushCleanup.Delivered(
@@ -98,7 +98,7 @@ final class PushNotifications {
                 payload: PushNotificationPayload(userInfo: notification.request.content.userInfo)
             )
         }
-        let identifiers = DeliveredPushCleanup.identifiers(delivered, openedChatID: openedChatID)
+        let identifiers = DeliveredPushCleanup.identifiers(delivered, openedChatIDs: openedChatIDs)
         if !identifiers.isEmpty {
             center.removeDeliveredNotifications(withIdentifiers: identifiers)
         }
@@ -108,7 +108,7 @@ final class PushNotifications {
         PushForegroundPresentation.decide(
             payload,
             viewingServerID: store?.activeServer?.id,
-            viewingChatID: viewingChatID
+            viewingChatIDs: viewingChatIDs
         )
     }
 
@@ -147,7 +147,7 @@ final class PushNotifications {
         store = nil
         registeredToken = nil
         taps.discard()
-        viewingChatID = nil
+        viewingChatIDs = []
         pendingUnregister.isPending = false
         persistPreference(false)
         let center = UNUserNotificationCenter.current()

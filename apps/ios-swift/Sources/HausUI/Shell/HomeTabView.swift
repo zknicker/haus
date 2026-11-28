@@ -9,6 +9,8 @@ public struct HomeTabView: View {
     private let tiles: [CaptainTilePresentation]
     private let recent: [HomeRowPresentation]?
     private let activeTasks: [HomeRowPresentation]?
+    /// The row the content pane beside the list shows.
+    private let selected: HomeRowTarget?
     private let tileActions: CaptainTileActions
     private let onOpen: (HomeRowTarget) -> Void
     private let onMarkRead: (String) -> Void
@@ -20,6 +22,7 @@ public struct HomeTabView: View {
         tiles: [CaptainTilePresentation],
         recent: [HomeRowPresentation]?,
         activeTasks: [HomeRowPresentation]?,
+        selected: HomeRowTarget? = nil,
         tileActions: CaptainTileActions,
         onOpen: @escaping (HomeRowTarget) -> Void,
         onMarkRead: @escaping (String) -> Void,
@@ -30,6 +33,7 @@ public struct HomeTabView: View {
         self.tiles = tiles
         self.recent = recent
         self.activeTasks = activeTasks
+        self.selected = selected
         self.tileActions = tileActions
         self.onOpen = onOpen
         self.onMarkRead = onMarkRead
@@ -87,6 +91,7 @@ public struct HomeTabView: View {
             HomeRow(row: row, now: now)
         }
         .buttonStyle(.plain)
+        .listSelection(selected != nil && row.target == selected)
         .hausPlainRow()
         .swipeActions(edge: .trailing) {
             if let chatID = row.markReadChatID {

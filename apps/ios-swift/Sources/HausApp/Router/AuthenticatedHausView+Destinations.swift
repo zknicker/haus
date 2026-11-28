@@ -7,15 +7,17 @@ import SwiftUI
 /// visibility for every screen in it (`AuthenticatedHausView+Tabs.swift`). A
 /// route whose record has not arrived yet stays blank until it does.
 extension AuthenticatedHausView {
-    func routeDestination(_ route: HausRoute) -> some View {
-        routeScreen(route)
+    /// `besideTaskID`: the Task beside this conversation, which its composer
+    /// sends to until the chip is let go.
+    func routeDestination(_ route: HausRoute, besideTaskID: String? = nil) -> some View {
+        routeScreen(route, besideTaskID: besideTaskID)
     }
 
     @ViewBuilder
-    private func routeScreen(_ route: HausRoute) -> some View {
+    private func routeScreen(_ route: HausRoute, besideTaskID: String?) -> some View {
         switch RouteScreen(route) {
         case .conversation:
-            chatRoute(route.conversation)
+            chatRoute(route.conversation, besideTaskID: besideTaskID)
         case .task(let taskID):
             taskDestination(taskID)
         case .projectSettings(let projectID):
@@ -34,11 +36,16 @@ extension AuthenticatedHausView {
     }
 
     @ViewBuilder
-    private func chatRoute(_ routeConversation: HausConversation?) -> some View {
+    private func chatRoute(_ routeConversation: HausConversation?, besideTaskID: String?) -> some View {
         Group {
             if let routeConversation, let destination = destination(for: routeConversation) {
                 GeometryReader { proxy in
-                    chatScreen(destination, revealing: routeConversation, contentInsets: proxy.safeAreaInsets)
+                    chatScreen(
+                        destination,
+                        revealing: routeConversation,
+                        besideTaskID: besideTaskID,
+                        contentInsets: proxy.safeAreaInsets
+                    )
                         .ignoresSafeArea(edges: shellChrome.transcriptIgnoredEdges)
                 }
                 .ignoresSafeArea(.keyboard)
@@ -53,9 +60,11 @@ extension AuthenticatedHausView {
     private func chatScreen(
         _ destination: ChatDestination,
         revealing routeConversation: HausConversation,
+        besideTaskID: String?,
         contentInsets: EdgeInsets
     ) -> some View {
-        let composer = ComposerDestination.chat(destination.pendingKey)
+        let conversationComposer = ComposerDestination.chat(destination.pendingKey)
+        let composer = store.composerTarget(conversationComposer, beside: besideTaskID)
         return ChatScreenView(
             chat: destination,
             messages: store.messagePresentations(chatID: destination.pendingKey),
@@ -66,7 +75,13 @@ extension AuthenticatedHausView {
             onOpenSidebar: { router.pop() },
             onOpenChatDetails: { router.present(.chatDetails(conversation(for: destination))) },
             onOpenSearch: { router.present(.chatSearch(chatID: destination.durableChat?.id)) },
-            onSend: { content, attachments in await send(content, attachments: attachments, to: destination) },
+            onSend: { content, attachments in
+                guard case .task(let taskID) = composer else {
+                    return await send(content, attachments: attachments, to: destination)
+                }
+                guard let chatID = store.taskChatID(taskID: taskID) else { return false }
+                return await store.send(content, to: chatID, attachments: attachments)
+            },
             onSendInlineReply: { content, attachments, reference in
                 guard case .durableChat(let chat) = destination else { return false }
                 return await store.send(
@@ -80,6 +95,11 @@ extension AuthenticatedHausView {
             onOpenAttachment: { try await store.downloadAttachment($0) },
             onOpenAgent: { router.open(.captain(agentID: $0)) },
             onCall: callAction(for: destination),
+            composerTask: composerTaskChip(composer),
+            onClearComposerTask: {
+                guard let besideTaskID else { return }
+                store.releaseComposerTarget(conversationComposer, from: besideTaskID)
+            },
             workPill: destination.durableChat.flatMap { store.workPill(.chat($0.id)) },
             onOpenWork: {
                 guard let chat = destination.durableChat else { return }
@@ -107,6 +127,11 @@ extension AuthenticatedHausView {
             guard attachments.isEmpty else { return false }
             return await store.sendCaptainChat(content, to: agent.id) != .rejected
         }
+    }
+
+    private func composerTaskChip(_ composer: ComposerDestination) -> ComposerTaskChip? {
+        guard case .task(let taskID) = composer, let header = store.taskChatHeader(taskID: taskID) else { return nil }
+        return ComposerTaskChip(title: header.title, disc: header.disc)
     }
 
     private func callAction(for destination: ChatDestination) -> (() -> Void)? {

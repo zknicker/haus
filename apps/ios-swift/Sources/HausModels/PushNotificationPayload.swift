@@ -161,12 +161,11 @@ public enum PushForegroundPresentation: Sendable, Equatable {
     public static func decide(
         _ payload: PushNotificationPayload?,
         viewingServerID: String?,
-        viewingChatID: String?
+        viewingChatIDs: Set<String>
     ) -> PushForegroundPresentation {
         guard let payload,
-              let viewingChatID,
               payload.serverID == viewingServerID,
-              payload.chatID == viewingChatID
+              viewingChatIDs.contains(payload.chatID)
         else { return .banner }
         return .suppress
     }

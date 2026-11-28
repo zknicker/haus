@@ -13,6 +13,7 @@ extension AuthenticatedHausView {
             tiles: store.captainTiles,
             recent: store.homeRecentRows,
             activeTasks: store.homeActiveTaskRows,
+            selected: selectedHomeTarget,
             tileActions: captainTileActions,
             onOpen: openHomeRow,
             onMarkRead: { chatID in Task { await store.markInboxRowRead(id: chatID) } },
@@ -67,7 +68,7 @@ extension AuthenticatedHausView {
     }
 
     private var youListSelection: SettingsListSelection? {
-        guard case let .split(selection, _) = router.panes(.you) else { return nil }
+        guard case let .split(selection, _, _) = router.panes(.you) else { return nil }
         return SettingsListSelection(route: YouStack.row(selection: selection)) { router.open(YouStack.route($0)) }
     }
 
@@ -126,7 +127,7 @@ extension AuthenticatedHausView {
 
     /// The conversation selected beside a split tab's list.
     private func selectedConversation(_ tab: HausTab) -> HausConversation? {
-        guard case let .split(selection?, _) = router.panes(tab) else { return nil }
+        guard case let .split(selection?, _, _) = router.panes(tab) else { return nil }
         return selection.conversation
     }
 
@@ -139,7 +140,7 @@ extension AuthenticatedHausView {
     }
 
     private var searchSelection: SearchSelection? {
-        guard case let .split(selection?, _) = router.panes(.search) else { return nil }
+        guard case let .split(selection?, _, _) = router.panes(.search) else { return nil }
         if let reveal = selection.revealedMessage { return .message(reveal.messageID) }
         switch selection.conversation {
         case .chat(let chatID)?: return .chat(chatID)

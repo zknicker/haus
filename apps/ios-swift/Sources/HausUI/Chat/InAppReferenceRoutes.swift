@@ -16,6 +16,9 @@ public enum InAppReferenceRoutes {
     public static var openMessage: ((MessageReferenceTarget) -> Void)?
     /// Opens a Task from a Task reference chip.
     public static var openTask: ((TaskReferenceTarget) -> Void)?
+    /// Opens a Task from its card under the message it started from, beside
+    /// that conversation where there is room.
+    public static var openTaskCard: ((TaskReferenceTarget) -> Void)?
     /// The native open for a pull request address the App holds a reading
     /// for; nil leaves the address to the system browser.
     public static var openPullRequest: ((URL) -> (() -> Void)?)?

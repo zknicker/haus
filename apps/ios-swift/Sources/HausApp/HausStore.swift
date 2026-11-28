@@ -74,13 +74,10 @@ final class HausStore {
     @ObservationIgnored var launchRetry: Task<Void, Never>?
     @ObservationIgnored var launchSnapshotWrite: Task<Void, Never>?
     @ObservationIgnored var chatListRefreshAgain = false
-    /// The deepest Chat surface on the user's stack, and the only Chat that
-    /// acknowledges reads: it is what the user is actually looking at.
-    var openChatID: String?
-    /// The Chat the shell canvas is showing, whether or not a pushed route
-    /// covers it. A covered canvas still has to stay fresh, but it never
-    /// acknowledges reads, which stay with `openChatID`.
-    var canvasChatID: String?
+    /// The Chats on screen, the only ones that acknowledge reads: the
+    /// selected tab's top route, and beside a Task its conversation too
+    /// (`HausRouter.visibleConversations`).
+    var openChatIDs: Set<String> = []
     /// Memoized Chat projections. Cache writes must stay invisible to
     /// Observation: a projection read happens inside a view body, and a tracked
     /// write there would invalidate the body that just performed it.

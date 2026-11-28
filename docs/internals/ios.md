@@ -762,7 +762,7 @@ pushes, so they share its saved-profile overlay and avatar sessions. Search hold
 settings: at regular width its hits open `.inside` and replace the selection, scrolled to the match
 and banded through the router's `reveal` (the same jump-and-flash path as a reference), while
 compact Search still opens hits `.outside` in their own tab, and an outside open never lands in
-Search. Each list marks the row the detail shows with `listSelection` (`HausUI/Adaptive`): a
+Search. Each list, Home's included, marks the row the detail shows with `listSelection` (`HausUI/Adaptive`): a
 `systemFill`-tinted row with medium (12 pt) corners, never an accent fill.
 
 The list column has three states (`ListColumn`, HausModels): full, a 76 pt rail, or hidden.
@@ -794,6 +794,39 @@ column's toolbar row beside the actions; everywhere else it stays the centered 1
 custom 26 pt title item does not fit: in the system's 280 pt column it pushes compose and `+`
 into an overflow menu. A Task chat's identity leads the column under stock bars, as a Chat's does,
 and stays centered with custom chrome.
+
+Task mode: a Task's preview card opens through `InAppReferenceRoutes.openTaskCard`, which calls
+`HausRouter.open(_:from: .taskCard)`. That pushes the `.task` route over the conversation on top
+instead of replacing the selection, and in a split a Task already beside that conversation gives
+way to the new one. A Task from the Tasks list, a `task://` reference or a push still opens the old
+way. `TabPanes.split` carries a `side` route: a `.task` directly over a `.captain`, `.dm` or
+`.channel` (`HausRouter.sidePane(in:)`). It is still the top of the stack, so compact draws it
+pushed full screen and folding changes nothing. `closeSidePane` and any write of the conversation's
+own stack (`setSplitStack`) drop it. With a side route, `AdaptiveSplitView(besideTask:)` shows the
+rail, or hides the column on Search, which has no rail, through `TaskModeColumn`. It never writes
+the stored `ListColumn`, so closing the Task brings back the column the tab had. A drag while the
+Task is open moves only that Task's column. `TaskModeSplit` lays the detail column out as conversation | Task in an `HStack`,
+the conversation's `NavigationStack` always first, so opening the Task never remounts it.
+`TaskModePanes` splits the column evenly. Under iOS 27.1, when
+`GeometryProxy.reservedRegions(kind: .division)` returns a fold running top to bottom (only while
+half open, because inactive regions need `.includeInactive`), the panes meet at the fold instead
+and each pads 28 pt on its fold edge, so the composer, chip and pane controls keep clear of it.
+`ArrangementView` is not used. The conversation directly under the Task gets two things:
+- `besideTaskID`: its composer sends through `ComposerDraftStore.target`, which is the Task's own
+  draft (`.task(id)`, `chat.send` to the Task's chat, steer by default) until the chip's × calls
+  `release`. Opening the card again calls `aim` and brings the chip back.
+- `taskModeChrome`: its bar shows Stop, which confirms before `agent.stop` on the Task's agent,
+  for Owners and Admins only and only while the Task is working, and the Task's More menu
+  (`TaskChatMenu`). `\.chatHeaderYieldsToolbar` drops the conversation's own items.
+
+`TaskPaneView` has no composer. Its header shows the starter (the crew Captain, else the person),
+the activity pill and Close (`closeSidePane`), then the title and an Activity | Files segment.
+Activity is `TurnDetailsCaptainSection` for the Task's agent, read through the turn details source
+(`agent.turns`, live runs from `agent.onActivity`); a turn or step opens the turn details sheet.
+Files is `artifact.list` with `creator: {agent: task.agentId}` and `recursive`, the files the
+Task's agent created, drawn as `DriveFileRows`. A row opens `.driveFile` on top of the stack. The
+Task is then no longer directly over its conversation, so it draws as a pushed screen under the file,
+and Back returns to Task mode.
 
 Both transcripts — the Chat timeline and a Task's messages — sit on `TranscriptListView`, the
 flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each
@@ -965,9 +998,10 @@ or title change, a follow), the held origin Message re-reads through `chat.messa
 carries that Message's `tasks`; an answer without the key, from an older Server, falls back to one
 `chat.messages` read around the Message (`HausStoreTaskPlaces.swift`).
 
-A pushed Task owns the open Chat while it is on screen, and the shell's Chat selection resumes
-ownership when it pops; the covered canvas Chat stays named so its page keeps refreshing underneath,
-but read acknowledgements belong to the deepest surface alone.
+The Chats on screen are `HausRouter.visibleConversations`, resolved to `HausStore.openChatIDs`:
+the selected tab's top route, and in Task mode the conversation under the Task as well. A pushed
+Task owns the open Chat while it covers its conversation; beside it, both are open. Only open Chats
+acknowledge reads, keep their pages refreshing, and hold back a foreground push.
 
 A message's Task references read as chips. A written `[title](task://id)` is a reference by the
 time `RichMessageParser` runs and chips with the Tasks glyph and the link's own words, like the web
@@ -1585,10 +1619,10 @@ back into history never sends a lower sequence; one `(chat, sequence)` is **atte
 it is in flight; a **failed** acknowledgement releases its claim without advancing the mark, so the
 next visibility change or foreground retries it; and nothing acknowledges at all unless the app is
 **frontmost**, the phone's reading of the web App's document-visible-and-window-focused gate.
-Returning to active re-evaluates the open Chat's current mark. Reads still belong to the deepest
-surface alone: every mounted transcript reports what it is showing, including a canvas Chat a pushed
-Task covers, but only `openChatID` acknowledges — and while the Inbox is the canvas there is no
-Chat screen mounted to report at all. The durable `chat.read` event — which Server writes only when
+Returning to active re-evaluates each open Chat's current mark. Reads still belong to the Chats on
+screen alone: every mounted transcript reports what it is showing, including a Chat a pushed Task
+covers, but only `openChatIDs` acknowledge. The Task pane shows no transcript, so a Task's chat
+beside its conversation reports nothing and its mark stays put, while its pushes are held back. The durable `chat.read` event — which Server writes only when
 the read moved and addresses to the reader alone — owns the `chat.list` refresh, exactly as the web
 App's `useChatRead` does, so one acknowledgement produces one list refresh and unread counts remain
 Server projections rather than local durable state.

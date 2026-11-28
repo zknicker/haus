@@ -19,6 +19,18 @@ extension HausStore {
         return drafts.staged(for: key)
     }
 
+    /// Where a conversation's composer sends: the Task beside it until its
+    /// chip is let go (`ComposerDraftStore.target`).
+    func composerTarget(_ conversation: ComposerDestination, beside taskID: String?) -> ComposerDestination {
+        guard let key = draftKey(conversation) else { return conversation }
+        return drafts.target(key, beside: taskID)
+    }
+
+    func releaseComposerTarget(_ conversation: ComposerDestination, from taskID: String) {
+        guard let key = draftKey(conversation) else { return }
+        drafts.release(key, from: taskID)
+    }
+
     private func draftKey(_ destination: ComposerDestination) -> ComposerDraftKey? {
         activeServer.map { ComposerDraftKey(serverID: $0.id, destination: destination) }
     }

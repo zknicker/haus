@@ -134,7 +134,7 @@ extension HausStore {
             else { break }
             after = next
         }
-        if case let .chat(chatID) = key, openChatID == chatID {
+        if case let .chat(chatID) = key, openChatIDs.contains(chatID) {
             await markChatReadIfNeeded(chatID: chatID)
         }
     }
@@ -181,11 +181,10 @@ extension HausStore {
         entityLoads[messageID] = EntityLoad(token: token, task: task)
     }
 
-    /// Whether a mounted surface lists the message: the deepest open Chat or
-    /// the canvas it covers, including their inline-reply chains.
+    /// Whether a Chat on screen lists the message, including its inline-reply
+    /// chains.
     private func isShown(_ messageID: String) -> Bool {
-        let shown = Set(OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID))
-        return transcripts.keys(listing: messageID).contains { shown.contains($0.chatID) }
+        transcripts.keys(listing: messageID).contains { openChatIDs.contains($0.chatID) }
     }
 
     /// A Chat came on screen: read the entities that changed while it was
@@ -206,9 +205,8 @@ extension HausStore {
     func recoverOpenTranscripts() async {
         let readStart = realtimeReconciliation.beginRead()
         defer { realtimeReconciliation.landed(.openTranscripts, readStartedAt: readStart) }
-        let open = OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID)
-        let openSet = Set(open)
-        staleTranscriptChatIDs.formUnion(transcripts.lists.keys.map(\.chatID).filter { !openSet.contains($0) })
+        let open = openChatIDs
+        staleTranscriptChatIDs.formUnion(transcripts.lists.keys.map(\.chatID).filter { !open.contains($0) })
         await withTaskGroup(of: Void.self) { group in
             for chatID in open {
                 group.addTask { await self.reseedLoadedPages(chatID: chatID) }

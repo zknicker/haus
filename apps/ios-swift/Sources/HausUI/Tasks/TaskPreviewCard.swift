@@ -6,7 +6,7 @@ struct TaskPreviewCard: View {
 
     var body: some View {
         Button {
-            InAppReferenceRoutes.openTask?(TaskReferenceTarget(taskID: task.taskID))
+            InAppReferenceRoutes.openTaskCard?(TaskReferenceTarget(taskID: task.taskID))
         } label: {
             VStack(alignment: .leading, spacing: 5) {
                 header

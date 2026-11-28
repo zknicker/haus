@@ -7,6 +7,7 @@ struct ComposerPlaceTests {
         #expect(ComposerPlace.task.placeholder == "Reply")
         #expect(ComposerPlace.project(name: "product").placeholder == "Message #product")
         #expect(ComposerPlace.person(name: "Zach").placeholder == "Message Zach")
+        #expect(ComposerPlace.steeringTask.placeholder == "Steer the Task")
     }
 
     @Test func sendCircleIsAccentOnlyWhenSendable() {

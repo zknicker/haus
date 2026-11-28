@@ -67,11 +67,11 @@ extension AuthenticatedHausView {
     }
 
     private func railSelection(_ tab: HausTab) -> HausRoute? {
-        guard case let .split(selection, _) = router.panes(tab) else { return nil }
+        guard case let .split(selection, _, _) = router.panes(tab) else { return nil }
         return selection
     }
 
-    private var selectedHomeTarget: HomeRowTarget? {
+    var selectedHomeTarget: HomeRowTarget? {
         switch railSelection(.home)?.conversation {
         case .captain(let agentID)?: .captain(agentID)
         case .chat(let chatID)?: .chat(chatID)

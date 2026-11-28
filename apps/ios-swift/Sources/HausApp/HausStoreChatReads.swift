@@ -12,10 +12,9 @@ private let readStateLogger = Logger(
 /// see `ChatReadLedger`.
 extension HausStore {
 
-    /// Loads the selected Chat and acknowledges whatever of it is already on
-    /// screen. Unselected cached Chats stay unread.
+    /// Loads a Chat on screen and acknowledges whatever of it is already
+    /// visible. Chats off screen stay unread.
     func openChat(chatID: String) async {
-        openChatID = chatID
         await loadMessages(chatID: chatID)
         await revealTranscript(chatID: chatID)
         await markChatReadIfNeeded(chatID: chatID)
@@ -39,7 +38,7 @@ extension HausStore {
         let scope = ChatReadScope(serverID: serverID, chatID: chatID)
         let previous = chatReads.visibleHighWater(scope)
         let raised = chatReads.observeVisible(scope, sequence: sequence)
-        guard raised != previous, openChatID == chatID else { return }
+        guard raised != previous, openChatIDs.contains(chatID) else { return }
         Task { await markChatReadIfNeeded(chatID: chatID) }
     }
 
@@ -53,8 +52,10 @@ extension HausStore {
             backgroundedAt = Date()
             await flushLaunchSnapshot()
         }
-        guard foregrounded, let openChatID else { return }
-        await markChatReadIfNeeded(chatID: openChatID)
+        guard foregrounded else { return }
+        for chatID in openChatIDs {
+            await markChatReadIfNeeded(chatID: chatID)
+        }
     }
 
     /// Acknowledges the highest sequence this Chat has actually shown, while
@@ -72,7 +73,7 @@ extension HausStore {
     /// alone, so one acknowledgement produces one list refresh. Refreshing here
     /// as well made every opened Chat refetch twice.
     func markChatReadIfNeeded(chatID: String) async {
-        guard let serverID = activeServer?.id, openChatID == chatID else { return }
+        guard let serverID = activeServer?.id, openChatIDs.contains(chatID) else { return }
 
         let scope = ChatReadScope(serverID: serverID, chatID: chatID)
         guard let request = chatReads.pendingAcknowledgement(
@@ -94,7 +95,7 @@ extension HausStore {
 
             // A newer row can scroll into view while the mutation is in flight.
             // Match the view-key effect by immediately acknowledging it.
-            guard activeServer?.id == serverID, openChatID == chatID else { return }
+            guard activeServer?.id == serverID, openChatIDs.contains(chatID) else { return }
             if chatReads.pendingAcknowledgement(scope, foregrounded: isForegrounded) != nil {
                 await markChatReadIfNeeded(chatID: chatID)
             }

@@ -66,7 +66,7 @@ struct AuthenticatedHausView: View {
             case .background:
                 hasBackgrounded = true
             case .active:
-                Task { await push.clearDelivered(openedChatID: push.viewingChatID) }
+                Task { await push.clearDelivered(openedChatIDs: push.viewingChatIDs) }
                 guard hasBackgrounded else {
                     Task { await store.refreshIconBadge() }
                     return
@@ -87,7 +87,7 @@ struct AuthenticatedHausView: View {
             .onChange(of: store.activeServer?.id, initial: true) { _, serverID in
                 router.adopt(serverID: serverID)
             }
-            .task(id: visibleChatID) { await showVisibleChat(visibleChatID) }
+            .task(id: visibleChatIDs) { await showVisibleChats(visibleChatIDs) }
             .onChange(of: store.iconBadgeCount, initial: true) { _, count in
                 push.updateBadge(unreadChatCount: count)
             }

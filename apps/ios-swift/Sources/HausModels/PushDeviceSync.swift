@@ -71,10 +71,9 @@ public enum DeliveredPushCleanup {
         }
     }
 
-    public static func identifiers(_ delivered: [Delivered], openedChatID: String?) -> [String] {
-        guard let openedChatID else { return [] }
-        return delivered
-            .filter { $0.groupID == openedChatID || $0.payload?.chatID == openedChatID }
+    public static func identifiers(_ delivered: [Delivered], openedChatIDs: Set<String>) -> [String] {
+        delivered
+            .filter { openedChatIDs.contains($0.groupID) || $0.payload.map { openedChatIDs.contains($0.chatID) } == true }
             .map(\.identifier)
     }
 }

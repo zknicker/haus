@@ -126,7 +126,8 @@ its tab and replaces that tab's stack with the route on top of the tab's root.
   routes. A Server the person no longer belongs to drops the tap and shows a notice.
 - **Consuming the tap:** the app consumes the tap only once routing succeeds.
 - **Cold launch:** the tap waits in a queue until the router mounts, then runs once.
-- **Foreground pushes:** suppressed only for the chat that the selected tab's top route shows.
+- **Foreground pushes:** suppressed only for the chats on screen: the selected tab's top route, and
+  in Task mode the conversation beside the Task.
 
 ## Server lifecycle
 
@@ -139,7 +140,8 @@ its tab and replaces that tab's stack with the route on top of the tab's root.
 - **Sign-out:** clear every Server's snapshot, drafts, and staged attachments.
 - **Drafts and staged attachments:** keyed by Server and destination: a Chat id, or a Task id before its chat is
   known.
-- **Read marks and push suppression:** only the selected tab's top route may mark a chat read or suppress its pushes.
+- **Read marks and push suppression:** only the chats on screen may mark read or suppress their pushes: the
+  selected tab's top route, and in Task mode the conversation under the Task too.
   Mounted chats in other tabs never do.
 
 ## Places and transcripts
@@ -230,6 +232,12 @@ Layout follows size classes and the system's bar placement, never orientation or
   - The conversation's composer gets a target chip for that Task and sends to it as steer. The chip's × sends to
     the conversation again.
   - Stop is in the toolbar, and Close is at the top of the Task pane.
+  - The Task pane shows who started it, its activity, its title, then Activity (its turn details) and Files (the
+    files its agent created). It has no composer.
+  - Stop confirms first, then stops the Task's agent (`agent.stop`), which keeps it stopped until an Owner or
+    Admin starts it. Only Owners and Admins see it, and only a working Task can be stopped.
+  - Closing the Task returns to the conversation and the list column it had. A Task from the Tasks list or a link
+    replaces the selection instead.
 - **Half-open:**
   - Two equal panes either side of the reserved folding region: side by side like a book, or above and below on a
     surface.

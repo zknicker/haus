@@ -115,8 +115,12 @@ public enum HausSheet: Hashable, Identifiable, Sendable {
     public var id: Self { self }
 }
 
-/// Where an open comes from: a tap inside a tab, or a push or deep link.
+/// Where an open comes from: a tap inside a tab, a Task's card in the
+/// conversation on screen, or a push or deep link.
 public enum RouteOrigin: Sendable {
     case inside
+    /// Opens the Task over the conversation its card sits in, never in
+    /// place of the selection (specs/ios-app.md, Task mode).
+    case taskCard
     case outside
 }

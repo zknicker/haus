@@ -190,7 +190,7 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
     over a selection share one saved-profile overlay and one set of avatar sessions, as on a compact stack.
   - Search holds every route but settings, so a hit's Work or file stacks over it beside the list. An outside
     open with no tab of its own never lands in Search, and compact Search still opens hits from outside.
-  - Projects, Tasks, You and Search lists mark the selection with `listSelection`. Home's list does not yet.
+  - Projects, Tasks, You and Search lists mark the selection with `listSelection`. Home's list does too, from D4.
   - Proof: router tests in `HausRouterSplitTabsTests` and `HausRouterPanesTests`; Duo inner-display screenshots
     of You (General and Captains), Search with a hit banded, Projects and Tasks; iPhone 17 Pro You and Search
     unchanged.
@@ -270,6 +270,41 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
 - Toolbar: Stop asks for confirmation before it interrupts.
 - Proof: the canvas's Task-open, rail-with-Task and half-open boards reproduce. Closing the Task returns to the
   conversation and the column state it had.
+- **Built (2026-11-27).**
+  - `RouteOrigin.taskCard`: a Task's preview card opens through `InAppReferenceRoutes.openTaskCard` and pushes
+    the Task over the conversation on top. In a split, a Task already beside that conversation gives way to the
+    new one. On compact iPhones the card push is the same full-screen Task chat as before.
+  - `TabPanes.split(selection:stack:side:)`: `side` is a `.task` directly over a `.captain`, `.dm` or `.channel`
+    (`HausRouter.sidePane(in:)`). `closeSidePane` pops it, and a write of the conversation's stack drops it.
+  - `HausRouter.visibleConversations` is a set. It feeds `HausStore.openChatIDs`, which replaces `openChatID`
+    and `canvasChatID` (they always held the same Chat), `PushNotifications.viewingChatIDs` and
+    `DeliveredPushCleanup.identifiers(_:openedChatIDs:)`. `OpenChatPages` is gone.
+  - Column: `AdaptiveSplitView(besideTask:)` shows `TaskModeColumn`, which is the rail (hidden on Search) until the
+    Task closes. It never writes the stored `ListColumn`, so closing restores the old state.
+  - Panes: `TaskModeSplit` lays out conversation | Task in an `HStack`. `TaskModePanes` splits them evenly, or
+    meets at a top-to-bottom division region from `reservedRegions(kind: .division)` (default options, so only
+    an active fold) with 28 pt of padding on each pane's fold edge. That is how fold clearance is met. Half open
+    is unproved, because this pose can't be set from here.
+  - One composer: `ComposerDraftStore.target` sends the conversation's composer to the Task's own draft
+    (`.task(id)`). Sends go to the Task's chat through `chat.send`, whose `delivery` defaults to `steer`, and
+    the Server passes it only to the Task chat's recipient (`enqueue-recipients.ts`). The chip's × calls
+    `release`, and the card calls `aim` to bring the chip back. The placeholder reads "Steer the Task". The chip
+    sits above the composer, not inside the pill as the mock draws it, which keeps `MessageComposerView` at its
+    size cap.
+  - Toolbar: `taskModeChrome` swaps the conversation's items (`\.chatHeaderYieldsToolbar`) for Stop and the
+    Task's More menu. Stop confirms first, then calls `agent.stop` on the Task's agent, for Owners and Admins,
+    and only while the Task is working. There is no lighter "end this turn" read: `interrupt` delivery needs a
+    message.
+  - Pane: `TaskPaneView` shows the starter, an activity pill, Close, the title, and Activity | Files.
+    - Activity is `TurnDetailsCaptainSection` over the turn details source (`agent.turns` plus live runs).
+    - Files is `artifact.list` filtered to the Task's agent as `creator`, recursively. No Server read was added.
+  - Home's list marks its selected row with `listSelection`.
+  - Proof:
+    - Tests: `HausRouterTaskModeTests`, `ComposerTargetTests`, `TaskModeLayoutTests`, and the updated
+      push-cleanup and foreground tests.
+    - Screenshots: Duo inner display in landscape with `#all` beside its Task (the rail, the chip, and Stop and
+      More in the rail), and iPhone 17 Pro with the card pushing the Task full screen and Home unchanged. Each
+      state was forced by a temporary launch argument.
 
 ### D5. Poses and continuity
 

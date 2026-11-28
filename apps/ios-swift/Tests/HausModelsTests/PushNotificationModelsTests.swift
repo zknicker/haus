@@ -93,7 +93,7 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertEqual(payload.route, .chat(chatID: "chat_channel"))
         XCTAssertEqual(payload.chatID, "chat_channel")
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_channel"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_channel"]),
             .suppress
         )
     }
@@ -170,11 +170,11 @@ final class PushNotificationModelsTests: XCTestCase {
         info["taskId"] = "task_12"
         let payload = PushNotificationPayload(userInfo: info)
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_task_12"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_security", "chat_task_12"]),
             .suppress
         )
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_security"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_security"]),
             .banner
         )
     }
@@ -184,7 +184,7 @@ final class PushNotificationModelsTests: XCTestCase {
     func testSuppressesWhileViewingThatChat() {
         let payload = PushNotificationPayload(userInfo: userInfo())
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_dm"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_dm"]),
             .suppress
         )
     }
@@ -192,19 +192,19 @@ final class PushNotificationModelsTests: XCTestCase {
     func testBannersForAnotherChatServerOrNoChat() {
         let payload = PushNotificationPayload(userInfo: userInfo())
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_other"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: ["chat_other"]),
             .banner
         )
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_2", viewingChatID: "chat_dm"),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_2", viewingChatIDs: ["chat_dm"]),
             .banner
         )
         XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: nil),
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatIDs: []),
             .banner
         )
         XCTAssertEqual(
-            PushForegroundPresentation.decide(nil, viewingServerID: "server_1", viewingChatID: "chat_dm"),
+            PushForegroundPresentation.decide(nil, viewingServerID: "server_1", viewingChatIDs: ["chat_dm"]),
             .banner
         )
     }

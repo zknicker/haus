@@ -10,10 +10,17 @@ extension ChatScreenView {
         VStack(spacing: 0) {
             WorkPillSlot(state: workPill, open: onOpenWork)
             ChatComposerStatus(peerAgentID: chat.kind.peerAgentID)
+            if let composerTask {
+                ComposerTaskChipView(chip: composerTask, onClear: onClearComposerTask)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, ComposerSurfaceMetrics.sideMargin)
+                    .padding(.bottom, 4)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             MessageComposerView(
                 text: $draft,
                 interaction: composerInteraction,
-                place: chat.kind.composerPlace(title: chat.title),
+                place: composerTask == nil ? chat.kind.composerPlace(title: chat.title) : .steeringTask,
                 isTextFocused: $isComposerFocused,
                 allowsAttachments: chat.durableChat != nil,
                 mentionOptions: mentionOptions,
@@ -28,6 +35,7 @@ extension ChatScreenView {
             .padding(.bottom, chatBottomInset)
             .openingEntrance(.composer)
         }
+        .animation(.smooth(duration: 0.25), value: composerTask)
     }
 
     /// The keyboard reaches this screen as a bottom safe-area inset from the shell. Freezing that

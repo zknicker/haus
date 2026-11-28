@@ -67,6 +67,7 @@ struct ChatScreenHeader: View {
 
     @State private var showsOutage = false
     @Environment(\.chatHeaderShowsBack) private var showsBack
+    @Environment(\.chatHeaderYieldsToolbar) private var yieldsToolbar
     @Environment(\.shellChrome) private var shellChrome
     @State private var stopTarget: CaptainStopTarget?
     @Environment(\.captainStop) private var captainStop
@@ -109,13 +110,15 @@ struct ChatScreenHeader: View {
             EmptyView()
         }
         .toolbar {
-            ChatHeaderToolbar(
-                actions: placeActions,
-                onOpenFiles: onOpenFiles,
-                onCall: onCall,
-                onOpenSearch: onOpenSearch,
-                onOpenChatDetails: onOpenChatDetails
-            )
+            if !yieldsToolbar {
+                ChatHeaderToolbar(
+                    actions: placeActions,
+                    onOpenFiles: onOpenFiles,
+                    onCall: onCall,
+                    onOpenSearch: onOpenSearch,
+                    onOpenChatDetails: onOpenChatDetails
+                )
+            }
         }
     }
 

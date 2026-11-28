@@ -55,10 +55,11 @@ final class PushDeviceSyncTests: XCTestCase {
             delivered("2", conversation: "chan", chat: "task_chat", taskID: "task_1"),
             delivered("3", conversation: "dm", chat: "dm"),
         ]
-        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: "chan"), ["1", "2"])
-        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: "task_chat"), ["2"])
-        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: "other"), [])
-        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: nil), [])
+        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatIDs: ["chan"]), ["1", "2"])
+        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatIDs: ["task_chat"]), ["2"])
+        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatIDs: ["other"]), [])
+        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatIDs: []), [])
+        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatIDs: ["dm", "task_chat"]), ["2", "3"])
     }
 
     private func action(isOn: Bool, pending: Bool, token: String?, registered: String?) -> PushDeviceSync.Action {

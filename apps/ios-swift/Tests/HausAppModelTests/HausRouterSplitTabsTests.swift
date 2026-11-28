@@ -55,7 +55,7 @@ struct HausRouterSplitTabsTests {
         router.open(.channel(chatID: "chat_product", messageID: "msg_1"))
         #expect(router.selectedTab == .search)
         #expect(router.revealedMessageID(in: .chat("chat_product")) == "msg_1")
-        #expect(router.visibleConversation == .chat("chat_product"))
+        #expect(router.visibleConversations == [.chat("chat_product")])
 
         router.open(.dm(chatID: "chat_dm", messageID: "msg_2"))
         #expect(router.path(.search) == [.dm(chatID: "chat_dm", messageID: "msg_2")])

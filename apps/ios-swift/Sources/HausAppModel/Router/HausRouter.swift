@@ -48,12 +48,6 @@ public final class HausRouter {
         path(selectedTab).last
     }
 
-    /// The conversation the reader is looking at: the selected tab's top
-    /// route. Never a chat mounted lower in a stack or in another tab.
-    public var visibleConversation: HausConversation? {
-        topRoute?.conversation
-    }
-
     /// Stacked, the bar belongs to a tab's root and every pushed screen hides
     /// it; split, it stays beside the selection.
     public var showsTabBar: Bool {
@@ -76,6 +70,10 @@ public final class HausRouter {
     public func open(_ route: HausRoute, from origin: RouteOrigin = .inside) {
         sheet = nil
         reveal = route.revealedMessage
+        if origin == .taskCard, case .task = route, Self.canStack(route, on: selectedTab) {
+            openBesideConversation(route)
+            return
+        }
         if origin == .inside, Self.canStack(route, on: selectedTab) {
             guard topRoute != route else { return }
             if layout == .split, Self.selects(route, on: selectedTab) {
@@ -160,6 +158,16 @@ public final class HausRouter {
         sheet = nil
         reveal = nil
         tasksView = .mine
+    }
+
+    /// A Task's card pushes the Task over the conversation it sits in. Split,
+    /// a Task already beside that conversation gives way to the new one.
+    private func openBesideConversation(_ route: HausRoute) {
+        guard topRoute != route else { return }
+        if layout == .split, Self.sidePane(in: path(selectedTab)) != nil {
+            paths[selectedTab]?.removeLast()
+        }
+        paths[selectedTab, default: []].append(route)
     }
 
     /// You holds settings and the Drive it browses; every other tab holds any
