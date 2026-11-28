@@ -65,7 +65,7 @@ own composer, and their toolbar buttons in the trailing rail.
 - **Task mode.** Tapping a Task's card in a conversation opens the Task beside that conversation.
   - The two take equal panes meeting at the fold: the conversation leads and the Task trails.
   - The list column steps aside to the rail.
-  - This replaces the Worker side pane, which ADR 0062 deletes.
+  - The Worker side pane it replaces is already deleted, with its `TabPanes` and `AdaptiveSplitView` plumbing.
 - **One composer.** In Task mode, the conversation's composer shows a target chip for the open Task: its activity
   glyph, its title (truncated) and ×.
   - Words sent with the chip go to the Task's chat as steer (ADR 0062).
@@ -155,9 +155,9 @@ Each slice is one PR. D0 to D3 can land before ADR 0062's iPhone work. D4 and D5
   - `HausRouter.open` with that origin pushes the `.task` route over the current conversation instead of replacing
     the selection.
   - A Task opened from the Tasks list or a link still becomes the selection.
-- `TabPanes.sideRoute`: a `.task` directly over a conversation route (`.captainDM`, `.dm`, `.channel`) is the side
-  pane. The Worker rule goes.
-- `AdaptiveSplitView`: with a side pane, the column state becomes rail rather than `.detailOnly`.
+- `TabPanes`: add the side pane back. A `.task` directly over a conversation route (`.captain`, `.dm`, `.channel`)
+  is the side pane.
+- `AdaptiveSplitView`: add a side pane; with one, the column state becomes rail.
   - Under 27.1 the detail column holds an `ArrangementView` split arrangement of the conversation and the Task.
     Navigation stays outside it.
   - Below 27.1 it uses today's `HStack`.

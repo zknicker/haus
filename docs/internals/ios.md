@@ -60,7 +60,7 @@ through it. In a channel the row is the working Agents' 18-point avatars, overla
 (three at most, then "+N"), followed by the hopping dots — no visible "is typing" words. Each new
 thought drops as one glass bubble (`EngagementThoughtBubble`, "**Blippy** Found a timing race…",
 one line, cut at 300 points) from under the row over the oldest visible messages, and the speaking
-Agent's avatar lifts slightly while it shows. In an Agent DM the title already names the Agent, so
+Agent's avatar lifts slightly while it shows. In a Captain chat the title already names the Captain, so
 the row is that Agent's latest thought as a one-line secondary subtitle, crossfading as thoughts
 change, with the dots trailing (only the dots before a first thought). A Task puts the same row
 just under its header band, roster style. The band's
@@ -95,7 +95,7 @@ lift. Like the header, the row stops growing past the largest standard text size
 stops at the first accessibility size. There are no haptics: this is ambient information. The
 App's emoji faces are not ported.
 
-A stopped Agent's DM says so above the composer (`StoppedAgentNotice`): one glass card on the
+A stopped Captain's chat says so above the composer (`StoppedAgentNotice`): one glass card on the
 composer's own material with a stop glyph, "<Agent> is stopped", what that means, and a prominent Start
 for Owners and Admins (`agent.start`, then an Agent directory refresh; a spinner stands in for the
 label while it runs, a success haptic, and a native alert on failure). It is a deliberate product
@@ -171,12 +171,6 @@ not configurable, rather than an extra automatic-effort choice. A model change k
 effort or selects the model's concrete default. The editor explains next-turn application and the
 session reset required by runtime/model changes or a Grok Build reasoning change.
 
-Cloud Agent settings use `cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect`.
-Computer owns the Cursor sign-in attempt and credentials. The phone presents the Server-reported
-sign-in link, checks progress while the screen is active, and supports cancellation and retry after
-failure or expiry. Returning from the browser refreshes the attempt; leaving the screen does not
-cancel it. A later visit can resume the pending attempt on the same Computer.
-The screen's Model row reads `cloudAgentSettings.get` and pushes a searchable list: Auto (Cursor picks a model for each run) first, then the reported Cursor catalog in family sections (Claude, GPT, Gemini, Grok, Composer, Other) in Cursor's order. Below it, an Effort picker (a menu for five or fewer options, a pushed list for more) and a Fast toggle appear only when the chosen model offers them, starting at the saved param or the model's default. Picking a model saves `params: {}`; picking a param's default value leaves it unset; every edit saves immediately through `cloudAgentSettings.setModel` (Owners and Admins) and shows in place until the Server answers. Members read the values. An unavailable saved model, a saved param the model no longer offers, a missing catalog, and save failures are explained in the section footer. The Model row is a custom navigation row, not a stock `Picker`, so a long value stacks and wraps instead of truncating. `WorkerModelChoice` owns the list, control, and footer logic.
 
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
@@ -707,7 +701,7 @@ when nothing left it at all (no Server).
 A page of history or replies the reader asked for that fails to load says so in place: the
 transcript's load-older accessory turns into a quiet "Couldn't load earlier messages · Try Again" line
 (`TranscriptLoadOlderButton`). Background work (tail reads, foreground refresh, stream reconciliation,
-history refresh, Worker refresh) logs instead: the header already speaks for connectivity.
+history refresh, Task refresh) logs instead: the header already speaks for connectivity.
 Lost connectivity is header state, never a banner over the transcript (`ConnectionOutage`): once the
 Server connection has been down for two seconds the Chat header's title, or a Task's navigation
 subtitle, reads "Connecting…" until it returns, so a stream that drops and reconnects says nothing.
@@ -828,19 +822,8 @@ block, and a plain message never joins a reply's block. The composer states the 
 "Replying to **Name**" with a cancel control, and lets go of it the moment the reply is sent —
 the reply is already in the transcript — taking it back only when nothing left the composer.
 
-Workers use the same Server records as the web App. Settings → Cloud agents lets an Owner or
-Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
-sign-in browser on that Computer, not on the phone; iOS never receives the credential.
-
-Each Message's `workers` annotation (decoded as `cloudAgentWork`) supplies one inline card per linked Worker in
-a Chat or Task (`ChatMessageWorkers.swift`); the card names the Agent from the work's
-`agentId`, and `RichMessageParser` reads `worker://` links as reference chips. Cards follow the
-[card contract](../../specs/cloud-agents.md): the Server's `job` headlines in Cursor's vocabulary
-(never "Queued"), an optional PR row, exactly one single-line status line
-(`WorkerStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
-Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
-`worker.updated`, sent once per linking Message, refreshes that Message through the normal durable event/reconnect path; a deleted Chat reloads the active work
-list, since linked work outlives it. Cards scroll with their Messages and follow-ups update the same card.
+There are no Workers or cloud agent hand-off ([ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md)):
+parallel work is a Task, and the phone shows it as one.
 
 There are no Threads ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)): a side
 conversation is inline replies in its Channel or DM, and work lives in Tasks. A message row offers no
@@ -855,43 +838,54 @@ composed or converted always states itself. The preference is per device, like a
 claims in chat** is the switch. A stopped claim opened from an Agent profile opens its message in the
 Channel or DM that numbers it (`claim.chatID`, revealing `claim.messageID`).
 
-A Task is a place ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)): a Channel
-for one piece of work, started by an Agent from a Message in a Channel, with a state (todo, open,
-done, canceled) and its own `task` Chat. There are no boards or columns, and the phone has no Tasks
-page, no create, and no state or assignee controls (decision 15). The phone holds Tasks apart from
-Chat state: `TaskSnapshots` is its own observable on the Store, holding each opened Task's
-`task.get` (`TaskDetail`, whose `TaskRecord` is the Task), the label catalog, and the followed
-unread Tasks. Every list stays nil until its first read, so "nothing here" is never "not yet known",
-and a durable event refreshes only what is held. `TaskRecord` requires only the Task's identity and
-state and decodes everything else leniently, so a Server that drops or adds a field never costs a
-Task its screen. `HausUI/Tasks` owns the screens; `TaskChatAdapters.swift` and
-`TaskPresentationAdapters.swift` are the seams.
+A Task is an agent session with its own chat ([ADR 0062](../adr/0062-tasks-are-agent-sessions-issues-are-the-backlog.md)):
+a title, an 8-character short id, active or archived (`archivedAt`), and an activity (`working`,
+`waiting`, `idle`, `failed`, plus `needsYou`). `TaskRecord` decodes `taskSchema` strictly, and
+`TaskActivityStatus` names the activity with the web App's words (Needs you, Working, Waiting,
+Failed, Idle); `TaskDiscState` adds Archived, and `TaskActivityDisc` draws it. A Task has no state,
+priority, labels, assignee, due day, or key; those are an Issue's, and the phone has no Issue screen.
+The phone holds Tasks apart from Chat state: `TasksModel` is its own observable on the Store,
+holding each opened Task's `task.get` (`TaskDetail`), the active Tasks (`task.listActive`), the Tasks
+tab's `task.list` (active or archived), the Projects, and the followed unread Tasks. Every snapshot
+stays nil until its first read, so "nothing here" is never "not yet known", and a durable event
+refreshes only what is held. `HausUI/Tasks` and `HausUI/TasksTab` own the screens;
+`TaskChatAdapters.swift`, `TaskListAdapters.swift`, and `TaskPresentationAdapters.swift` are the
+seams.
 
-A Task opens as one push on the root navigation stack, from its origin preview, a chip, its Unread
-row, a Happening now row for work attached to it, or a push, so Back returns to whichever canvas is
-showing; it never selects the canvas Chat. Until the Store holds a record that says whether the Task
-has a Chat, the screen is blank rather than guessing. A Task with a Chat opens as `TaskChatView`:
-the Chat timeline's own rows and the iPhone composer, under `TaskChatHeader`, a band in the layout
-above the transcript (never over it) with the Task's title, which wraps at every size, its state
-disc and words; its Workers, pull requests, and files open from the Work pill. At large text sizes the band stops growing at a fraction of the screen and scrolls
-inside itself. A quiet **Started from #channel** row heads the transcript once its oldest page is
-loaded and opens the origin Message in its Channel. The Task's Chat is the open Chat while the
-screen shows, so what the reader sees there is what reads it, and opening it clears the
-notifications its messages sent. The composer mentions from the origin Channel's roster, and an
-archived origin Channel leaves the Task readable without a composer. The message drawer offers
-reactions and copying only.
+The Tasks tab (`TaskListScreen`) shows the web Tasks page's chips: My tasks (active Tasks the reader
+started), All tasks, and Archived. `TaskListSections` groups an active list by activity, Needs you
+first, and lists Archived flat; rows run newest first with the Project, `Machine · model`, and age,
+and an unread Task chat wears a dot. Its `+` and Home's "Ask anything" accessory start a Task with
+`task.start` (`AskAnythingPlan`): a Project, a Machine (the Project's default first), a model from the
+runner catalog, and the text as the first message. The draft keeps its request id, so a retried send
+answers the same Task.
+
+A Task opens as one push on the tab's navigation stack, from the Tasks tab, Home, its origin preview,
+a chip, its Unread row, or a push. Until the Store holds a record that says whether the Task has a
+Chat, the screen is blank rather than guessing. A Task with a Chat opens as `TaskChatView`: the Chat
+timeline's own rows and the iPhone composer, under a centered header with the activity disc, the
+title, and the activity (or the connection state while the link is down). Its `…` menu (`TaskChatMenu`)
+renames, copies the `[title](task://id)` reference, follows or stops following, archives or restores,
+and opens the origin. Its pull requests and files open from the Work pill. A message sent there reaches
+the Task's agent as steer, `chat.send`'s default delivery; the phone sends no delivery mode. A quiet
+**Started from #channel** row heads the transcript once its oldest page is loaded and opens the origin
+Message. The Task's Chat is the open Chat while the screen shows, so what the reader sees there is
+what reads it, and opening it clears the notifications its messages sent. The composer mentions from
+the origin Channel's roster, and an archived origin Channel leaves the Task readable without a
+composer. The message drawer offers reactions and copying only.
 
 A Task from before Tasks were places has no Chat (`chatId: null`) and is read-only history. It
 opens `TaskDetailView`, a read-only details screen with no composer and no control that writes: the
 title and description (drawn like a message body, so its references are chips), native fact rows
-(state, assignee, priority, due day, labels, creator, created, updated), **Mentioned in**, and
-**Reminders**, with **Copy reference** the one menu action. A **Mentioned in** row opens its Channel
+(status, who started it, created, updated), **Mentioned in**, and **Reminders**, with **Copy
+reference** the one menu action. A **Mentioned in** row opens its Channel
 or DM at the message; `TaskMention.place` names that Channel or DM, so a row reads `#security` or
 `DM`. A Reminder anchored on a Task's own Chat opens that Task.
 
 A Channel Message an Agent started Tasks from shows each one under it (`TaskPreviewStack`, one
-`TaskPreviewCard` per Task) at inline density: the state disc, key, and title, which
-wraps rather than truncating, then `Open · 9 messages · 2 new`, then up to three newest messages.
+`TaskPreviewCard` per Task) at inline density: the disc (active or archived) and the title, which
+wraps rather than truncating, then `9 messages · 2 new` (led by `Archived` once archived), then up to
+three newest messages.
 The whole card opens the Task through `InAppReferenceRoutes.openTask`, because hosted rows have no
 environment. Previews ride `chat.messages` pages as `tasks`; a preview this build cannot read drops
 itself, never the page. When an event says a previewed Task changed (a new message, a read, a state
@@ -903,43 +897,39 @@ A pushed Task owns the open Chat while it is on screen, and the shell's Chat sel
 ownership when it pops; the covered canvas Chat stays named so its page keeps refreshing underneath,
 but read acknowledgements belong to the deepest surface alone.
 
-A message's Task references read as chips. A written `[SEC-12](task://id)` is already a reference
-by the time `RichMessageParser` runs; a bare `SEC-12` is not, because the Server records it without
-rewriting the content. `TaskLinkChips` turns the bare keys a message's `taskLinks` resolved into
-chips, working on the parsed runs rather than the Markdown, so code spans, code blocks, Markdown
-links, and autolinked URLs never reach it and a key the Server did not resolve stays text. The chip
-reads the Task's current key, since a Task can be re-keyed while the message keeps the words it was
-written with. A tapped chip pushes the Task. There is no Convert to Task: only Agents start Tasks
-(decision 4), so the message drawer offers none.
+A message's Task references read as chips. A written `[title](task://id)` is a reference by the
+time `RichMessageParser` runs and chips with the Tasks glyph and the link's own words, like the web
+App's tertiary chip; a chip reads nothing to render. A bare `GEN-12` names an Issue and stays text. A
+tapped chip pushes the Task. There is no Convert to Task in the message drawer.
 
-A Task chip wears its Task's state disc in place of the Tasks glyph — no fill, the mark plus the
-dotted rule every reference draws — whenever the app already holds a read of that Task: a page's
-Task previews, the open Tasks, the Tasks list, or a detail, freshest last
-(`HausStore.taskReferenceStateIndex`). A chip reads nothing to render, so a Task the app has no read
-of keeps the glyph rather than fanning out one read per chip. `TaskReferenceStates` stamps the
-states after the parse, so a state change retires the drawn rows and never a parsed body. A
-library link to a Drive file opens that file's Drive route once its metadata is loaded
+A library link to a Drive file opens that file's Drive route once its metadata is loaded
 (`InAppReferenceRoutes.openDriveArtifact`); a link pinned to a revision keeps the artifact viewer,
 because Drive shows the newest revision.
 
 Home is the cold-start tab and stands on Server-wide, Store-owned reads (`HausStoreInbox`): the
 Chat list's unread Chats, the followed unread Tasks (`chat.unreadPreviews`' rows that name a Task),
-and the Workers running now (`worker.listActive`). Each stays nil until its first load, so "nothing
-unread" is never confused with "not yet known". Happening now, Recent (with Mark Read on a row's
-long press), and Open tasks render from them; unread shows as row dots, never counts, and archived
+and the active Tasks (`task.listActive`). Each stays nil until its first load, so "nothing
+unread" is never confused with "not yet known". Captain tiles open each Captain's shared chat
+(`kind: captain`, read from `chat.list`; the tile's unread dot is that chat's). Recent (with Mark Read
+on a row's long press) and Tasks render from them; Recent fills with DMs and the Captain chats the
+person joined (`captainChat.member`); unread shows as row dots, never counts, and archived
 Projects restore from Projects. The Inbox page, its sidebar row, and the **Active this week** card
 (with its `stats.live` read) are retired. The app icon badge is the Server's cross-Server
 `chat.unreadChatCount`, the number push puts on `aps.badge`.
 
 A tapped notification is a `PushNotificationPayload` decoded from `userInfo`; keys this build does
 not know are ignored, and its `route` is the whole decision. A push for a Message in a Task's Chat
-carries `taskId` and `taskKey`, routes to `.task`, and pushes the Task over whatever is showing,
-whatever its conversation ids say; one without opens its conversation, the Channel or DM, on the canvas.
+carries `taskId` and `taskShortId`, routes to `.task`, and pushes the Task over whatever is showing,
+whatever its conversation ids say; one without opens its conversation: the Channel, the DM, or, for
+`conversation.kind: captain`, the Captain's chat by the Captain the Chat list names
+(`PushRouteTable.request(for:captainOf:)`, opening the Chat by id while the list does not hold it yet).
+An Issue push (`issue_assignment`, `issue_comment`) decodes to `HausPush.issue` and opens Home on its
+Server, since the phone has no Issue screen.
 The rule is one pure function, `PushNotificationRoute.opening(chatID:conversationChatID:taskID:)`:
 a push sent before ADR 0053 that names a side conversation's own Chat as `chatId` beside its parent
 `conversationChatId` opens the parent Channel, where those messages now live as inline replies, and
-the payload reads its `chatId` as that parent so a reader already on it is not bannered. A push for another Server opens nothing, and a malformed one (or a retired
-`task_assignment` push, which names no message) decodes to nil. A Task push arriving while its Task
+the payload reads its `chatId` as that parent so a reader already on it is not bannered. A push for another Server opens nothing, and a malformed one (or any
+other `kind`) decodes to nil. A Task push arriving while its Task
 screen is up is suppressed like any push for the Chat on screen.
 
 An "Active this week" card keeps its figure and sparkline
@@ -1030,7 +1020,7 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 
 `HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
 `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`,
-`chat.onLifecycle`, `worker.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
+`chat.onLifecycle`, `claim.onChanged`,
 `task.onCreated`, `task.onUpdated`, `task.onFollowUpdated`, `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`,
 `server.onUpdated` (the membership sentinel), `project.onUpdated`, and `artifact.onUpdated`. These are
 `RealtimeStream.liveSession`. The other cases (`agent.onUpdated`, `agent.onExecutionJournal`,
@@ -1038,7 +1028,7 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 invalidate. `project.onUpdated` re-reads `project.list` once loaded (the Projects tab's and the Task picker's)
 through the coalesced pass. `artifact.onUpdated` re-reads the named file's open previews at once (every open
 preview for a null id) and the browsed Drive folder and each place's recent files through the coalesced pass.
-`worker.onUpdated` names the Worker's Task, and refreshes that Task's held detail. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
+`computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an
 offline Agent list, and only the attach's `computer.updated` says presence came back. Its events
 run the same coalesced owned-projection pass a start does (Agent list and activity, and
@@ -1047,8 +1037,9 @@ stream ends and restarts alone with capped backoff (1 s doubling to 30 s, reset 
 connected); a sibling never notices. The connection indicator follows only the message and Agent
 lifecycle streams. Chat events coalesce into targeted reads (`ChatRealtimeEffects`): a tail read per
 loaded list for a new message, a `chat.message` read per changed annotation, one shared Chat list
-read. Task events coalesce the same way against `TaskSnapshots` (`applyTaskEffects`,
-`applyTaskPlaceEffects`): only a held Task or label list reads, a changed Task's held origin preview
+read. Task events coalesce the same way against `TasksModel` (`TasksModel.apply`,
+`applyTaskPlaceEffects`): only a held Task detail or Task list reads (a Task agent's run starting or
+settling is a `task.updated`, so a held activity stays current), a changed Task's held origin preview
 re-reads through `chat.message`, and the followed unread Tasks read again once held.
 
 Recovery is anchored to the subscription start (`RealtimeReconciliation`). A read that finished
@@ -1063,8 +1054,7 @@ reloads the open lists' loaded pages and marks off-screen lists to reload when s
 clock makes the newest-started `chat.list` and `server.list` read win, so a slow foreground
 snapshot never overwrites a reconciliation that already landed.
 
-No message carries a label, so `taskLabel.onUpdated` owns only the label catalog. The Task streams
-own `taskDetails` and `unreadTasks` (`RealtimeProjection`); the message and read streams own
+The Task streams own `taskDetails` and `unreadTasks` (`RealtimeProjection`); the message and read streams own
 `unreadTasks` too, because a Task message or read moves a followed Task's Unread row.
 
 Refusals follow the coded `hausRefusal` only, never a bare tRPC code. `membership_lost` is final
@@ -1294,7 +1284,7 @@ already present in that cache.
 Shared wire contracts and model projections belong in `HausModels`; authenticated operations,
 realtime delivery, and recovery belong in `HausTransport`. Each Server procedure the phone calls
 through the typed path is a `HausProcedure<Input, Output>` in a per-area namespace
-(`TaskProcedures`, `WorkerProcedures`, `ProjectProcedures`, `AgentProcedures`, `DriveProcedures`,
+(`TaskProcedures`, `ProjectProcedures`, `AgentProcedures`, `DriveProcedures`,
 `ModelConnectionProcedures`), and `TRPCClient.call` runs it. `HausUI` receives narrow models and
 closures from `HausApp` rather than owning Server transport or inventing mobile-only records.
 
@@ -1306,15 +1296,16 @@ retry.
 Optimistic rows never patch durable history.
 
 The native Chat shell navigates over a typed destination rather than assuming every sidebar row is a
-persisted Chat. A durable destination carries a Server Chat id; an implicit Agent-DM destination carries
-only the Agent id. Every active Agent therefore appears in the sidebar before a DM exists. Its first
-text send uses `chat.send` with `targetKind: agent-dm`, then adopts the Chat id from the receipt and never
-creates a placeholder record. Materialized Agent and human DMs remain durable destinations; human peers
-resolve their current name, handle, and avatar from the member directory, with a former-member fallback
-when the directory no longer carries them.
+persisted Chat. A durable destination carries a Server Chat id; an implicit Captain chat destination
+(`implicitCaptainChat`) carries only the Captain id, for a Captain whose one shared chat
+(`kind: captain`, ADR 0062) the Chat list does not hold yet. Its first text send uses `chat.send` with
+`targetKind: captain`, then adopts the Chat id from the receipt and never creates a placeholder record.
+Listed Captain chats and person-to-person DMs are durable destinations; human peers resolve their current
+name, handle, and avatar from the member directory, with a former-member fallback when the directory no
+longer carries them. There are no DMs with Captains.
 
-Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Agent-DM
-target. `@` offers Agents and humans, `#` offers channels, and `$` offers the Skills the chat's Agents
+Native composers query `chat.mentionOptions` against either that durable Chat or the implicit Captain
+chat target (`targetKind: captain`). `@` offers Agents and humans, `#` offers channels, and `$` offers the Skills the chat's Agents
 carry; selecting one writes the shared `agent://`, `user://`, `chat://`, or `skill://` markdown
 reference into the draft. The Server sends a Skill's `insertText` bare where every other kind arrives
 with its sigil, so the composer adds the `$` and a Skill selection serializes as
