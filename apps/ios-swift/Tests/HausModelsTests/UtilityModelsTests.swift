@@ -64,7 +64,8 @@ final class UtilityModelsTests: XCTestCase {
           "runId":null,
           "sequence":2,
           "serverId":"server_1",
-          "claim":null
+          "claim":null,
+          "taskShortId":"HAUS-12"
         }
         """
 
@@ -73,6 +74,7 @@ final class UtilityModelsTests: XCTestCase {
             from: Data(json.utf8)
         )
 
+        XCTAssertEqual(result.taskShortID, "HAUS-12")
         XCTAssertEqual(result.id, "message_1")
         XCTAssertEqual(result.message.content, "Native realtime is working.")
         XCTAssertEqual(result.message.chatID, "chat_1")

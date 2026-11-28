@@ -84,6 +84,7 @@ struct MessageSearchResultRow: View {
         switch result.chatKind {
         case .channel: "in #\(result.chatName)"
         case .directMessage: "in DM"
+        case .task: "in \(result.chatName)"
         }
     }
 }

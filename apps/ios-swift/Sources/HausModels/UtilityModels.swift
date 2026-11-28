@@ -56,26 +56,30 @@ public struct ChatSearchInput: Encodable, Equatable, Sendable {
 }
 
 /// A `chat.search` row keeps the existing message projection intact and adds
-/// only the archive marker needed by the Archived surface.
+/// the archive marker and, for a message in a Task's chat, the Task's short id.
 public struct ChatSearchResult: Decodable, Identifiable, Equatable, Sendable {
     public let message: ChatMessage
     public let chatArchivedAt: Date?
+    public let taskShortID: String?
 
     public var id: String { message.id }
 
-    public init(message: ChatMessage, chatArchivedAt: Date?) {
+    public init(message: ChatMessage, chatArchivedAt: Date?, taskShortID: String? = nil) {
         self.message = message
         self.chatArchivedAt = chatArchivedAt
+        self.taskShortID = taskShortID
     }
 
     private enum CodingKeys: String, CodingKey {
         case chatArchivedAt
+        case taskShortID = "taskShortId"
     }
 
     public init(from decoder: Decoder) throws {
         message = try ChatMessage(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         chatArchivedAt = try container.decodeIfPresent(Date.self, forKey: .chatArchivedAt)
+        taskShortID = try container.decodeIfPresent(String.self, forKey: .taskShortID)
     }
 }
 
