@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from 'bun:test';
 import { randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -25,7 +25,55 @@ afterAll(async () => {
     await Promise.all(roots.map((root) => rm(root, { force: true, recursive: true })));
 });
 
-describe.skipIf(process.platform !== 'darwin')('the Keychain attachment store', () => {
+const keychainKeepsItems = process.platform === 'darwin' && (await keychainKeepsProbeItem());
+
+describe('the file attachment store', () => {
+    test('keeps the Server credential in a private attachment file', async () => {
+        const dataRoot = await temporaryRoot();
+        const attachment = attached('srv_file_write');
+
+        await createAttachmentStore(dataRoot, null).writeAttachment(attachment);
+
+        const file = join(dataRoot, 'servers', attachment.serverId, 'attachment.json');
+        expect((await stat(file)).mode & 0o777).toBe(0o600);
+        const fresh = createAttachmentStore(dataRoot, null);
+        expect(await fresh.readAttachment(attachment.serverId)).toEqual(attachment);
+        expect(await fresh.listAttachments()).toEqual([withoutCredential(attachment)]);
+    });
+
+    test('a record without its credential reads as no attachment', async () => {
+        const dataRoot = await temporaryRoot();
+        const record = withoutCredential(attached('srv_file_missing'));
+        await mkdir(join(dataRoot, 'servers', record.serverId), { recursive: true });
+        await writeFile(
+            join(dataRoot, 'servers', record.serverId, 'attachment.json'),
+            JSON.stringify(record)
+        );
+        const store = createAttachmentStore(dataRoot, null);
+
+        expect(await store.readAttachment(record.serverId)).toBeNull();
+        expect(await store.listAttachments()).toEqual([record]);
+    });
+
+    test('a pending setup keeps its credential in its file and clears it when done', async () => {
+        const dataRoot = await temporaryRoot();
+        const slug = 'file-pending';
+
+        const pending = await getOrCreatePendingAttachment({
+            dataRoot,
+            keychain: null,
+            origin: 'https://haus.test',
+            slug,
+        });
+
+        expect(await filesContaining(dataRoot, pending.credential)).toHaveLength(1);
+        expect(await readPendingAttachment(dataRoot, slug, null)).toEqual(pending);
+        await removePendingAttachment(dataRoot, slug, null);
+        expect(await readPendingAttachment(dataRoot, slug, null)).toBeNull();
+    });
+});
+
+describe.skipIf(!keychainKeepsItems)('the Keychain attachment store', () => {
     test("keeps the Server credential out of every file an Agent's tools can read", async () => {
         const dataRoot = await temporaryRoot();
         const attachment = attached('srv_keychain_write');
@@ -94,6 +142,15 @@ describe.skipIf(process.platform !== 'darwin')('the Keychain attachment store', 
         expect(await Bun.secrets.get({ name: `pending-${slug}`, service })).toBeNull();
     });
 });
+
+async function keychainKeepsProbeItem() {
+    const account = `probe-${randomUUID()}`;
+    accounts.add(account);
+    return await keychain.write(account, randomUUID()).then(
+        () => true,
+        () => false
+    );
+}
 
 async function temporaryRoot() {
     const root = await mkdtemp(join(tmpdir(), 'haus-attachment-store-'));
