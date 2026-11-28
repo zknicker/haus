@@ -12,7 +12,8 @@ import { useTranscriptRenderContextOptional } from '../../chats/chat-transcript-
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { TaskStateDisc } from '../task-state-disc.tsx';
 import { taskStateLabels, taskStateOf } from '../task-state.ts';
-import { taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
+import { useTaskAgentName } from '../use-task-agent-name.ts';
+import { taskPreviewAuthorName, taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
 
 export function TaskOriginPreviews({
     previews,
@@ -44,15 +45,28 @@ function TaskPreviewList({
                         void openTask({ shortId: preview.shortId, taskId: preview.taskId })
                     }
                     preview={preview}
+                    serverId={serverId}
                 />
             ))}
         </div>
     );
 }
 
-function TaskPreviewBlock({ onOpen, preview }: { onOpen: () => void; preview: TaskPreview }) {
+function TaskPreviewBlock({
+    onOpen,
+    preview,
+    serverId,
+}: {
+    onOpen: () => void;
+    preview: TaskPreview;
+    serverId: string;
+}) {
     const counts = taskPreviewCounts(preview);
     const now = useRelativeNow();
+    const taskAgentNames = useTaskAgentName(
+        serverId,
+        preview.agentId ? { id: preview.agentId, model: preview.model } : null
+    );
     return (
         <div className="group/task card-shell bg-nested-surface hover:bg-nested-surface-hover relative mt-1.5 flex w-full max-w-(--chat-card-width) min-w-0 flex-col gap-1 px-2.5 py-2 shadow-(--nested-surface-ring)">
             <button
@@ -79,7 +93,12 @@ function TaskPreviewBlock({ onOpen, preview }: { onOpen: () => void; preview: Ta
             {preview.recentMessages.length > 0 ? (
                 <div className="pointer-events-none relative flex w-full min-w-0 flex-col gap-1 text-left">
                     {preview.recentMessages.map((message) => (
-                        <TaskPreviewMessage key={message.id} message={message} now={now} />
+                        <TaskPreviewMessage
+                            key={message.id}
+                            message={message}
+                            now={now}
+                            taskAgentNames={taskAgentNames}
+                        />
                     ))}
                 </div>
             ) : null}
@@ -87,7 +106,15 @@ function TaskPreviewBlock({ onOpen, preview }: { onOpen: () => void; preview: Ta
     );
 }
 
-function TaskPreviewMessage({ message, now }: { message: TaskReplyPreview; now: number }) {
+function TaskPreviewMessage({
+    message,
+    now,
+    taskAgentNames,
+}: {
+    message: TaskReplyPreview;
+    now: number;
+    taskAgentNames: ReadonlyMap<string, string> | undefined;
+}) {
     const context = useTranscriptRenderContextOptional();
     const actor: TranscriptActor = message.authorAgentId
         ? { id: message.authorAgentId, kind: 'agent' }
@@ -95,11 +122,15 @@ function TaskPreviewMessage({ message, now }: { message: TaskReplyPreview; now: 
           ? { id: message.authorUserId, kind: 'participant' }
           : null;
     const profile = actor ? context?.resolveActorProfile?.(actor) : null;
-    const name = profile?.name ?? 'Unknown';
+    const { name, taskAgent } = taskPreviewAuthorName(message, taskAgentNames, profile?.name);
     return (
         <span className="flex min-w-0 items-center gap-1.5 text-sm leading-tight">
-            <span className={cn(profile?.deleted && 'opacity-50 grayscale')}>
-                <EntityAvatar name={name} size={20} src={profile?.avatarUrl} />
+            <span className={cn(!taskAgent && profile?.deleted && 'opacity-50 grayscale')}>
+                <EntityAvatar
+                    name={name}
+                    size={20}
+                    src={taskAgent ? undefined : profile?.avatarUrl}
+                />
             </span>
             <span className="shrink-0 font-semibold">{name}</span>
             <span className="text-muted min-w-0 flex-1 truncate">

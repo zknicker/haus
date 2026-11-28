@@ -10,13 +10,17 @@ export const taskPreviewRecentMessageLimit = 3;
  * A Task as its origin Channel previews it under the Message it started from
  * (ADR 0053 decision 7): its newest messages and whether it is archived.
  * One origin Message can carry several. Rides `chat.messages` pages as `tasks`.
+ * `agentId` and `model` are the Task's own, so its agent's messages are named the way the
+ * Task page names them; a Task agent is on no roster.
  */
 export const taskPreviewSchema = z
     .object({
+        agentId: idSchema.nullable(),
         archivedAt: timestampSchema.nullable(),
         chatId: idSchema,
         followed: z.boolean(),
         messageCount: z.number().int().nonnegative(),
+        model: z.string().min(1).max(128).nullable(),
         originMessageId: idSchema,
         recentMessages: z.array(taskReplyPreviewSchema).max(taskPreviewRecentMessageLimit),
         shortId: taskShortIdSchema,

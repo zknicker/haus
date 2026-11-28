@@ -65,10 +65,12 @@ export async function listTaskPreviews(
             continue;
         }
         previews.push({
+            agentId: task.agentId,
             archivedAt: task.archivedAt,
             chatId: chat.chatId,
             followed: chat.followed,
             messageCount: chat.messageCount,
+            model: task.model,
             originMessageId: task.origin.messageId,
             recentMessages: await readRecentMessages(db, input.serverId, chat.chatId),
             shortId: task.shortId,

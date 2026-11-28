@@ -272,10 +272,12 @@ function tailReads(requests: readonly ReadRequest[]) {
 
 function taskPreview(originMessageId: string, messageCount: number): TaskPreview {
     return {
+        agentId: null,
         archivedAt: null,
         chatId: 'cht_task',
         followed: true,
         messageCount,
+        model: null,
         originMessageId,
         recentMessages: [],
         shortId: 'k3mq7xta',

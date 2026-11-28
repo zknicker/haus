@@ -19,10 +19,12 @@ test('a message page defaults its Task previews to none', () => {
 
 test('a Task preview carries its archive time and at most three recent messages', () => {
     const preview = {
+        agentId: 'agt_crew',
         archivedAt: null,
         chatId: 'cht_task',
         followed: true,
         messageCount: 4,
+        model: 'gpt-5.6-sol',
         originMessageId: 'msg_origin',
         recentMessages: [],
         shortId: 'k3mq7xta',

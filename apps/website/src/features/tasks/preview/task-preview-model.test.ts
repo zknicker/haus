@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
+import { taskPreviewAuthorName, taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
 
 test('a preview counts its messages and, for a follower, what is new', () => {
     expect(taskPreviewCounts({ messageCount: 1, unreadCount: 0 })).toEqual({
@@ -36,4 +36,20 @@ test('the open button names the Task, its state, and its counts', () => {
             unreadCount: 1,
         })
     ).toBe('Open task Rate-limit webhooks, Archived, 4 messages, 1 new');
+});
+
+test('the Task agent is named as the Task page names it, other authors by profile', () => {
+    const names = new Map([['agt_crew', 'GPT-5.6 Sol']]);
+    expect(taskPreviewAuthorName({ authorAgentId: 'agt_crew' }, names, undefined)).toEqual({
+        name: 'GPT-5.6 Sol',
+        taskAgent: true,
+    });
+    expect(taskPreviewAuthorName({ authorAgentId: null }, names, 'Zach')).toEqual({
+        name: 'Zach',
+        taskAgent: false,
+    });
+    expect(taskPreviewAuthorName({ authorAgentId: 'agt_other' }, undefined, undefined)).toEqual({
+        name: 'Unknown',
+        taskAgent: false,
+    });
 });
